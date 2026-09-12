@@ -6,8 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write"
+    "check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
+    "lint": "biome check --no-errors-on-unmatched --files-ignore-unknown=true",
+    "format": "prettier --write \"**/*.{md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{md,yaml,yml}\"",
+    "lint:md": "markdownlint \"**/*.md\" --ignore-path .gitignore --ignore CLAUDE.md",
+    "lint:md:fix": "markdownlint --fix \"**/*.md\" --ignore-path .gitignore --ignore CLAUDE.md",
+    "types:check": "tsc --noEmit",
+    "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && pnpm types:check && pnpm build",
+    "prepare": "husky || true"
   },
   "dependencies": {
     "next": "16.3.5",
@@ -15,13 +22,28 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.2",
+    "@biomejs/biome": "2.5.13",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
+    "markdownlint-cli": "^0.49.1",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "packageManager": "pnpm@10.27.0"
+  "packageManager": "pnpm@10.27.0",
+  "lint-staged": {
+    "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css}": [
+      "biome check --no-errors-on-unmatched --files-ignore-unknown=true"
+    ],
+    "*.{md,yaml,yml}": [
+      "prettier --check"
+    ],
+    "*.md": [
+      "markdownlint --ignore-path .gitignore --ignore CLAUDE.md"
+    ]
+  }
 }

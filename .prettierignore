@@ -1,0 +1,17 @@
+# Prettier only owns the file types Biome does not support (Markdown, YAML).
+# Everything else is formatted by Biome ΓÇö see biome.json.
+
+# Lockfiles ΓÇö never reformat
+pnpm-lock.yaml
+
+# Dependencies and build output
+node_modules
+dist
+build
+.next
+.turbo
+.nx
+coverage
+
+# Generated
+CHANGELOG.md
