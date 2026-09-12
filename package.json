@@ -26,6 +26,8 @@
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "@t3-oss/env-nextjs": "^0.13.11",
+    "@tanstack/react-form": "^1.33.5",
+    "better-auth": "^1.7.4",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.6",
     "drizzle-orm": "^0.45.2",
