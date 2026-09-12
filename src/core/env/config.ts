@@ -2,6 +2,8 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import * as z from "zod";
 
 export const env = createEnv({
+  // Runtime secrets are supplied when the app starts, not when it builds.
+  skipValidation: process.env.SKIP_ENV_VALIDATION === "1",
   server: {
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),

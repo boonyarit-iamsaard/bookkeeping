@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "SKIP_ENV_VALIDATION=1 next build",
     "check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
     "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && pnpm types:check && pnpm build",
     "db:generate": "drizzle-kit generate",
@@ -21,7 +21,7 @@
     "lint:md:fix": "markdownlint --fix \"**/*.md\" --ignore-path .gitignore",
     "prepare": "husky || true",
     "start": "next start",
-    "types:check": "tsc --noEmit"
+    "types:check": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

@@ -2,7 +2,6 @@ import "server-only";
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { env } from "@/core/configs/env";
 import {
   accounts,
   accountsRelations,
@@ -12,6 +11,7 @@ import {
   usersRelations,
   verifications,
 } from "@/core/database/schema/auth";
+import { env } from "@/core/env/config";
 
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
