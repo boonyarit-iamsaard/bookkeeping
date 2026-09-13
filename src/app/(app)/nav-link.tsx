@@ -18,7 +18,7 @@ export function NavLink({ href, children }: Readonly<NavLinkProps>) {
       href={href}
       aria-current={isCurrent ? "page" : undefined}
       className={cn(
-        "rounded-4xl px-3 py-1.5 font-medium text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "rounded-4xl px-2 py-1.5 font-medium text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:px-3",
         isCurrent ? "text-foreground" : "text-muted-foreground",
       )}
     >

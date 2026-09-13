@@ -9,7 +9,7 @@ interface AppHeaderProps {
 export function AppHeader({ email }: Readonly<AppHeaderProps>) {
   return (
     <header className="border-b bg-background">
-      <div className="mx-auto flex h-14 w-full max-w-2xl items-center gap-6 px-4">
+      <div className="mx-auto flex h-14 w-full max-w-2xl items-center gap-2 px-4 sm:gap-6">
         <Link
           href="/wallets"
           className="font-semibold tracking-tight outline-none focus-visible:rounded-sm focus-visible:ring-[3px] focus-visible:ring-ring/50"
