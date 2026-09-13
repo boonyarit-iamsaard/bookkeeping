@@ -247,21 +247,54 @@ async function validateAgainstOwner(
   tx: Database,
   input: Readonly<OwnedTransactionFields>,
 ): Promise<FieldRejection | undefined> {
-  if (input.type === "transfer") {
-    if (input.currency !== "THB") {
-      return { code: "invalid-currency" };
-    }
-    if (!input.destinationWalletId || input.categoryId !== null) {
-      return { code: "invalid-transfer" };
-    }
-    if (input.walletId === input.destinationWalletId) {
-      return { code: "same-wallet" };
-    }
-  } else if (input.destinationWalletId) {
+  const shapeRejection = validateTransferShape(input);
+  if (shapeRejection) {
+    return shapeRejection;
+  }
+  const owned = await lockOwnedWallets(tx, input);
+  if (!owned.ok) {
+    return owned.error;
+  }
+  const categoryRejection = await validateCategory(tx, input);
+  if (categoryRejection) {
+    return categoryRejection;
+  }
+  return validateDate(input.transactionDate, owned.value);
+}
+
+/** A transfer names two distinct wallets in THB and no category; others name one wallet. */
+function validateTransferShape(
+  input: Readonly<TransactionFields>,
+): FieldRejection | undefined {
+  if (input.type !== "transfer") {
+    return input.destinationWalletId ? { code: "invalid-transfer" } : undefined;
+  }
+  if (input.currency !== "THB") {
+    return { code: "invalid-currency" };
+  }
+  if (!input.destinationWalletId || input.categoryId !== null) {
     return { code: "invalid-transfer" };
   }
-  const walletIds = walletIdsOf(input);
-  // Stable lock order also protects validation against future wallet lifecycle writes.
+  if (input.walletId === input.destinationWalletId) {
+    return { code: "same-wallet" };
+  }
+  return undefined;
+}
+
+interface OwnedWallet {
+  id: string;
+  openingDate: CalendarDate;
+  archivedAt: Date | null;
+}
+
+/**
+ * Share-locks the owner's named wallets in a stable order and rejects a
+ * missing or archived one; an edit may keep the archived wallets it already has.
+ */
+async function lockOwnedWallets(
+  tx: Database,
+  input: Readonly<OwnedTransactionFields>,
+): Promise<Result<OwnedWallet[], FieldRejection>> {
   const ownedWallets = await tx
     .select({
       id: wallets.id,
@@ -270,52 +303,73 @@ async function validateAgainstOwner(
     })
     .from(wallets)
     .where(
-      and(inArray(wallets.id, walletIds), eq(wallets.userId, input.ownerId)),
+      and(
+        inArray(wallets.id, walletIdsOf(input)),
+        eq(wallets.userId, input.ownerId),
+      ),
     )
     .orderBy(asc(wallets.id))
     .for("share");
-  if (!ownedWallets.some((wallet) => wallet.id === input.walletId)) {
-    return { code: "wallet-not-found" };
+  const ownedIds = new Set(ownedWallets.map((wallet) => wallet.id));
+  if (!ownedIds.has(input.walletId)) {
+    return err({ code: "wallet-not-found" });
   }
-  if (
-    input.destinationWalletId &&
-    !ownedWallets.some((wallet) => wallet.id === input.destinationWalletId)
-  ) {
-    return { code: "destination-wallet-not-found" };
+  if (input.destinationWalletId && !ownedIds.has(input.destinationWalletId)) {
+    return err({ code: "destination-wallet-not-found" });
   }
-  for (const wallet of ownedWallets) {
-    if (wallet.archivedAt && !input.retainedWalletIds?.includes(wallet.id)) {
-      return { code: "wallet-archived", walletId: wallet.id };
-    }
+  const archived = ownedWallets.find(
+    (wallet) =>
+      wallet.archivedAt && !input.retainedWalletIds?.includes(wallet.id),
+  );
+  if (archived) {
+    return err({ code: "wallet-archived", walletId: archived.id });
   }
-  if (input.type !== "transfer") {
-    if (!input.categoryId) {
-      return { code: "category-not-found" };
-    }
-    const [category] = await tx
-      .select({ kind: categories.kind })
-      .from(categories)
-      .where(
-        and(
-          eq(categories.id, input.categoryId),
-          eq(categories.userId, input.ownerId),
-        ),
-      );
-    if (!category) {
-      return { code: "category-not-found" };
-    }
-    if (category.kind !== input.type) {
-      return { code: "category-kind-mismatch" };
-    }
+  return ok(ownedWallets);
+}
+
+/** Income and expenses need one of the owner's categories of the same kind. */
+async function validateCategory(
+  tx: Database,
+  input: Readonly<TransactionFields>,
+): Promise<FieldRejection | undefined> {
+  if (input.type === "transfer") {
+    return undefined;
   }
+  if (!input.categoryId) {
+    return { code: "category-not-found" };
+  }
+  const [category] = await tx
+    .select({ kind: categories.kind })
+    .from(categories)
+    .where(
+      and(
+        eq(categories.id, input.categoryId),
+        eq(categories.userId, input.ownerId),
+      ),
+    );
+  if (!category) {
+    return { code: "category-not-found" };
+  }
+  if (category.kind !== input.type) {
+    return { code: "category-kind-mismatch" };
+  }
+  return undefined;
+}
+
+/** The date is at most Bangkok today and inside every named wallet's history. */
+function validateDate(
+  transactionDate: CalendarDate,
+  ownedWallets: readonly OwnedWallet[],
+): FieldRejection | undefined {
   const today = todayIn({ timeZone: APP_TIME_ZONE });
-  if (input.transactionDate > today) {
+  if (transactionDate > today) {
     return { code: "future-date", today };
   }
-  for (const wallet of ownedWallets) {
-    if (input.transactionDate < wallet.openingDate) {
-      return { code: "before-opening", openingDate: wallet.openingDate };
-    }
+  const unopened = ownedWallets.find(
+    (wallet) => transactionDate < wallet.openingDate,
+  );
+  if (unopened) {
+    return { code: "before-opening", openingDate: unopened.openingDate };
   }
   return undefined;
 }

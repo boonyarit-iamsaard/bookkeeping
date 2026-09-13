@@ -164,8 +164,10 @@ function revalidateTransactionPages(id?: string) {
   }
 }
 
+const FORM_FIELD_NAMES: ReadonlySet<string> = new Set(TRANSACTION_FORM_FIELDS);
+
 function isFormField(value: unknown): value is TransactionFormField {
-  return TRANSACTION_FORM_FIELDS.some((field) => field === value);
+  return typeof value === "string" && FORM_FIELD_NAMES.has(value);
 }
 
 function describeInvalidInput(error: z.ZodError): TransactionActionError {
