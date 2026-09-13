@@ -1,9 +1,9 @@
 import { Plus, ReceiptText } from "lucide-react";
 import Link from "next/link";
+import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { SignedMoney } from "@/features/transactions/components/signed-money";
-import type { TransactionDetail } from "@/features/transactions/server/operations";
-import { categoryLabel } from "@/features/transactions/transaction-types";
+import type { TransactionDetail } from "@/features/transactions/transaction.types";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
 import { formatCalendarDate } from "@/shared/helpers/dates";

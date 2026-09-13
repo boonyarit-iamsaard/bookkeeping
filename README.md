@@ -47,22 +47,25 @@ src/
       schema/           # Tables and relations, also used by Drizzle CLI
   features/
     auth/               # Sign-in/sign-up forms, hooks, and sign-out button
+    categories/         # Category vocabulary, behavior, and picker forms
+    transactions/       # Transaction vocabulary, behavior, and entry form
     wallets/            # Wallet operations, server actions, form, and list
   shared/
     components/ui/      # Reusable UI primitives
+    components/form/    # Reusable form feedback
     helpers/            # Helpers independent of business features
-    hooks/              # Hooks shared across features
   styles/               # Global styles and fonts
 tests/
   database/             # PostgreSQL test harness (setup, rollback helper)
   e2e/                  # Playwright browser tests
 ```
 
-Keep routes focused on composing features. Group business logic and its UI by
-feature, such as `features/transactions/`, when that feature is implemented.
-Keep feature-specific code in its feature folder; promote code to `shared/` only
-when it is independent of a particular feature. Shared modules and core
-infrastructure should not import feature code.
+Keep routes focused on composing features. Group business logic, vocabulary,
+and UI by feature. Promote code to `shared/` only when it is independent of a
+particular feature. Database schemas import pure feature vocabulary from
+`*.types.ts`; those modules have no database, server, or UI dependencies.
+See [code conventions](docs/code-conventions.md) for the authoritative structure,
+filename and symbol naming rules, dependency boundaries, and enforcement.
 
 Server-side feature code can import `db` from `@/core/database/client`. Keep that
 client out of Client Components and Drizzle CLI configuration. Feature
@@ -111,7 +114,7 @@ already initialized database; update the existing database password and
 ## Tests
 
 ```bash
-pnpm test          # Vitest: pure helpers and PostgreSQL operation tests
+pnpm test          # Vitest: unit and PostgreSQL integration tests
 pnpm test:e2e      # Playwright: browser flows against an isolated app/database
 ```
 
@@ -120,11 +123,16 @@ Tests load `.env` in every environment. GitHub Actions copies the checked-in
 stays enabled. Testcontainers supplies the database URL, and the browser runner
 overrides the app URL with its actual port.
 
-Operation tests (`*.db.test.ts`) use Testcontainers to start a disposable
+Unit tests (`*.unit.test.ts`) are colocated with their source modules. Run them
+without Docker using `pnpm exec vitest run --project unit`.
+
+Integration tests (`*.integration.test.ts`) use Testcontainers to start a disposable
 PostgreSQL 18 database on an available port. Docker must be running. The harness
 applies the current schema with `db:push`, provides its connection URL to test
 workers, and stops the container after the suite. Every test runs inside a
-transaction that is rolled back. No local development database is used.
+transaction that is rolled back, except concurrency checks that use committed
+writes isolated by owner. No local development database is used. Run this suite
+alone using `pnpm exec vitest run --project integration`.
 
 Browser tests live in `tests/e2e/` and need Chromium once:
 
@@ -150,7 +158,10 @@ pnpm build
 pnpm test:e2e
 ```
 
-`pnpm run ci` runs the complete check sequence. `pnpm check` applies Biome fixes;
+`pnpm run ci` runs the complete check sequence, including browser tests against
+the production build using `next start`, both locally and in GitHub Actions.
+Standalone `pnpm test:e2e` uses `next dev` unless `CI=1` is set.
+`pnpm check` applies Biome fixes;
 `pnpm format` formats Markdown and YAML files.
 
 `pnpm types:check` generates Next.js route types before running TypeScript, so

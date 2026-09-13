@@ -3,7 +3,7 @@
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import type { CategoryKind } from "@/core/database/schema/category-kind";
+import type { CategoryKind } from "@/features/categories/category.types";
 import type { CategoryFormInput } from "@/features/categories/category-form-schema";
 import {
   categoryFormSchema,
@@ -16,8 +16,8 @@ import type {
   CategoryFormField,
   CreateCategoryActionError,
   CreateCategoryActionSuccess,
-} from "@/features/categories/server/actions";
-import { createCategoryAction } from "@/features/categories/server/actions";
+} from "@/features/categories/server/category.actions";
+import { createCategoryAction } from "@/features/categories/server/category.actions";
 
 interface UseCreateCategoryFormOptions {
   kind: CategoryKind;

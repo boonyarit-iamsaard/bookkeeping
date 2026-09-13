@@ -87,3 +87,13 @@ Rename/icon updates and category removal management follow in 08; do not add chi
 - Design: extension of the incumbent world; surface brief updated at
   `.impeccable/surfaces/src-app-app-transactions-new-page-tsx.md`;
   DESIGN.md unchanged; detector clean; inspected at 360px, 412px, 1280px.
+
+### 2026-09-13 — Naming and vocabulary follow-up
+
+The reusable creation form is now `CreateCategoryForm` in
+`src/features/categories/components/create-category-form.tsx`, superseding the
+`CategoryCreateForm` name in the earlier handoff. Shared category kinds and
+`CategorySummary` live in `src/features/categories/category.types.ts`.
+Category behavior and actions are in `server/category.ts` and
+`server/category.actions.ts`; database tests use `server/category.integration.test.ts`.
+Follow [code conventions](../../../docs/code-conventions.md) for subsequent work.

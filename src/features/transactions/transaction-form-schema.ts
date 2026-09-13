@@ -1,10 +1,10 @@
 import * as z from "zod";
-import { TRANSACTION_TYPES } from "@/core/database/schema/transaction-type";
 import {
   MAX_NOTE_LENGTH,
   MAX_TRANSACTION_AMOUNT,
   MIN_TRANSACTION_AMOUNT,
 } from "@/features/transactions/money-limits";
+import { TRANSACTION_TYPES } from "@/features/transactions/transaction.types";
 import type { CalendarDate } from "@/shared/helpers/dates";
 import {
   APP_TIME_ZONE,

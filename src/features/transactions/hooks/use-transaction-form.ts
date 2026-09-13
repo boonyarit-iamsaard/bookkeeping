@@ -3,16 +3,16 @@
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import type { CategorySummary } from "@/features/categories/server/operations";
+import type { CategorySummary } from "@/features/categories/category.types";
 import type {
   TransactionActionError,
   TransactionActionSuccess,
   TransactionFormField,
-} from "@/features/transactions/server/actions";
+} from "@/features/transactions/server/transaction.actions";
+import type { TransactionType } from "@/features/transactions/transaction.types";
 import type { TransactionFormInput } from "@/features/transactions/transaction-form-schema";
 import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
-import type { TransactionType } from "@/features/transactions/transaction-types";
-import type { WalletType } from "@/features/wallets/wallet-types";
+import type { WalletType } from "@/features/wallets/wallet.types";
 import type { CalendarDate } from "@/shared/helpers/dates";
 import type { Result } from "@/shared/helpers/result";
 

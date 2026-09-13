@@ -12,7 +12,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "@/core/database/schema/auth";
-import { CATEGORY_KINDS } from "@/core/database/schema/category-kind";
+import { CATEGORY_KINDS } from "@/features/categories/category.types";
 
 export const categoryKindEnum = pgEnum("category_kind", CATEGORY_KINDS);
 

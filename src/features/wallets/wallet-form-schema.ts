@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { WALLET_TYPES } from "@/core/database/schema/wallet-type";
+import { WALLET_TYPES } from "@/features/wallets/wallet.types";
 import {
   APP_TIME_ZONE,
   parseCalendarDate,

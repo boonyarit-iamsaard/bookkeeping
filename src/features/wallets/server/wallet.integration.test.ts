@@ -1,8 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import {
-  createWallet,
-  listWallets,
-} from "@/features/wallets/server/operations";
+import { createWallet, listWallets } from "@/features/wallets/server/wallet";
 import {
   createTestUser,
   setupTestDatabase,

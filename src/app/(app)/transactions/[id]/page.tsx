@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { TransactionDetailView } from "@/features/transactions/components/transaction-detail";
-import { getTransaction } from "@/features/transactions/server/operations";
+import { getTransaction } from "@/features/transactions/server/transaction";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function Page({
   params,
-}: PageProps<"/transactions/[id]">) {
+}: Readonly<PageProps<"/transactions/[id]">>) {
   const session = await getSession();
   if (!session) {
     redirect("/sign-in");

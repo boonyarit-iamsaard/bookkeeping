@@ -14,8 +14,12 @@ import {
 } from "drizzle-orm/pg-core";
 import { users } from "@/core/database/schema/auth";
 import { categories } from "@/core/database/schema/categories";
-import { TRANSACTION_TYPES } from "@/core/database/schema/transaction-type";
 import { wallets } from "@/core/database/schema/wallets";
+import type { TransactionSnapshot } from "@/features/transactions/transaction.types";
+import {
+  TRANSACTION_CHANGE_ACTIONS,
+  TRANSACTION_TYPES,
+} from "@/features/transactions/transaction.types";
 
 export const transactionTypeEnum = pgEnum(
   "transaction_type",
@@ -103,29 +107,10 @@ export const submissionReceipts = pgTable(
   ],
 );
 
-export const TRANSACTION_CHANGE_ACTIONS = ["edit", "delete"] as const;
-export type TransactionChangeAction =
-  (typeof TRANSACTION_CHANGE_ACTIONS)[number];
-
 export const transactionChangeActionEnum = pgEnum(
   "transaction_change_action",
   TRANSACTION_CHANGE_ACTIONS,
 );
-
-/**
- * The fields of a transaction that carry financial or descriptive meaning,
- * frozen as they stood before and after a change. Amounts are decimal
- * strings because JSON has no bigint. Transfer and refund corrections can
- * extend this shape without a new table.
- */
-export interface TransactionSnapshot {
-  type: (typeof TRANSACTION_TYPES)[number];
-  walletId: string;
-  categoryId: string;
-  amount: string;
-  transactionDate: string;
-  note: string;
-}
 
 /**
  * Internal change history: one row per successful edit or deletion, written

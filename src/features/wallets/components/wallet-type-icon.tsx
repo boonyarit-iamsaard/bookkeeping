@@ -1,6 +1,6 @@
 import type { LucideProps } from "lucide-react";
 import { Banknote, Landmark, Smartphone } from "lucide-react";
-import type { WalletType } from "@/features/wallets/wallet-types";
+import type { WalletType } from "@/features/wallets/wallet.types";
 
 const ICONS: Record<WalletType, React.ComponentType<LucideProps>> = {
   cash: Banknote,

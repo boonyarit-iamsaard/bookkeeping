@@ -5,7 +5,7 @@
   "scripts": {
     "build": "SKIP_ENV_VALIDATION=1 next build",
     "check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-    "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && pnpm types:check && pnpm test && pnpm build && pnpm test:e2e",
+    "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && pnpm types:check && pnpm test && pnpm build && CI=1 pnpm test:e2e",
     "db:push": "drizzle-kit push",
     "db:start": "docker compose up -d --wait",
     "db:stop": "docker compose down",

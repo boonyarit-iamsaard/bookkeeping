@@ -1,8 +1,14 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import type { Database } from "@/core/database/database";
 import { categories } from "@/core/database/schema/categories";
-import type { CategoryKind } from "@/core/database/schema/category-kind";
-import { CATEGORY_KINDS } from "@/core/database/schema/category-kind";
+import type {
+  CategoryKind,
+  CategorySummary,
+} from "@/features/categories/category.types";
+import {
+  CATEGORY_KINDS,
+  UNCATEGORIZED_NAME,
+} from "@/features/categories/category.types";
 import {
   MAX_CATEGORY_NAME_LENGTH,
   normalizeCategoryName,
@@ -11,17 +17,6 @@ import { DEFAULT_CATEGORIES } from "@/features/categories/defaults";
 import { GENERIC_ICON_ID, isIconId } from "@/features/categories/icons";
 import type { Result } from "@/shared/helpers/result";
 import { err, ok } from "@/shared/helpers/result";
-
-export const UNCATEGORIZED_NAME = "Uncategorized";
-
-export interface CategorySummary {
-  id: string;
-  kind: CategoryKind;
-  parentId: string | null;
-  name: string;
-  iconId: string;
-  isProtected: boolean;
-}
 
 /**
  * Gives the owner an editable copy of the default trees, once. Each tree is

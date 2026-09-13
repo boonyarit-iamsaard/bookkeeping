@@ -76,3 +76,13 @@ Transaction capture follows in 02; opening corrections and archive/delete contro
 - Normal and interrupted real-server checks now show Next cleanup completing;
   interruption exits with code 143. All eight local browser tests passed without
   retries after the lifecycle changes. Type and Biome checks passed.
+
+### 2026-09-13 — Naming and vocabulary follow-up
+
+The architecture consistency change supersedes the earlier filename references:
+wallet behavior now lives in `src/features/wallets/server/wallet.ts`, server
+actions in `server/wallet.actions.ts`, and shared wallet vocabulary in
+`src/features/wallets/wallet.types.ts`. Tests use `*.unit.test.ts` and
+`*.integration.test.ts`; the wallet database tests are now
+`src/features/wallets/server/wallet.integration.test.ts`.
+Follow [code conventions](../../../docs/code-conventions.md) for subsequent work.

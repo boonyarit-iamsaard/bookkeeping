@@ -11,7 +11,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "@/core/database/schema/auth";
-import { WALLET_TYPES } from "@/core/database/schema/wallet-type";
+import { WALLET_TYPES } from "@/features/wallets/wallet.types";
 
 export const walletTypeEnum = pgEnum("wallet_type", WALLET_TYPES);
 

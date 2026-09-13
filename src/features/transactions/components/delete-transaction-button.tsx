@@ -2,14 +2,14 @@
 
 import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { useState } from "react";
-import { deleteTransactionAction } from "@/features/transactions/server/actions";
-import type { TransactionType } from "@/features/transactions/transaction-types";
+import { deleteTransactionAction } from "@/features/transactions/server/transaction.actions";
+import type { TransactionType } from "@/features/transactions/transaction.types";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
-} from "@/features/transactions/transaction-types";
+} from "@/features/transactions/transaction.types";
 import { Button } from "@/shared/components/ui/button";
 import type { CalendarDate } from "@/shared/helpers/dates";
 import { formatCalendarDate } from "@/shared/helpers/dates";
@@ -64,7 +64,8 @@ export function DeleteTransactionButton({
     let result: Awaited<ReturnType<typeof deleteTransactionAction>>;
     try {
       result = await deleteTransactionAction({ id: transaction.id });
-    } catch {
+    } catch (error) {
+      unstable_rethrow(error);
       setState({ name: "failed", message: LOST_RESPONSE });
       return;
     }
@@ -78,8 +79,6 @@ export function DeleteTransactionButton({
       router.refresh();
       return;
     }
-    router.push("/transactions?deleted=1");
-    router.refresh();
   }
 
   const deleting = state.name === "deleting";

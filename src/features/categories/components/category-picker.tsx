@@ -3,17 +3,19 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { ArrowLeft, Check, ChevronDown, Plus, Search, X } from "lucide-react";
 import { useId, useRef, useState } from "react";
-import type { CategoryKind } from "@/features/categories/category-kinds";
-import { CATEGORY_KIND_LABELS } from "@/features/categories/category-kinds";
+import type {
+  CategoryKind,
+  CategorySummary,
+} from "@/features/categories/category.types";
+import { CATEGORY_KIND_LABELS } from "@/features/categories/category.types";
 import type { CategoryGroup } from "@/features/categories/category-search";
 import {
   categoryPath,
   searchCategories,
 } from "@/features/categories/category-search";
-import { CategoryCreateForm } from "@/features/categories/components/category-create-form";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
-import type { CreateCategoryActionSuccess } from "@/features/categories/server/actions";
-import type { CategorySummary } from "@/features/categories/server/operations";
+import { CreateCategoryForm } from "@/features/categories/components/create-category-form";
+import type { CreateCategoryActionSuccess } from "@/features/categories/server/category.actions";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { cn } from "@/shared/helpers/cn";
@@ -139,7 +141,7 @@ export function CategoryPicker({
                     New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
                   </Dialog.Title>
                 </header>
-                <CategoryCreateForm
+                <CreateCategoryForm
                   kind={kind}
                   categories={categories}
                   initialName={view.initialName}

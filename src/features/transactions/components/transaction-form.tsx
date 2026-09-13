@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
-import type { CreateCategoryActionSuccess } from "@/features/categories/server/actions";
+import type { CreateCategoryActionSuccess } from "@/features/categories/server/category.actions";
 import { DeleteTransactionButton } from "@/features/transactions/components/delete-transaction-button";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import type {
@@ -20,15 +20,15 @@ import { MAX_NOTE_LENGTH } from "@/features/transactions/money-limits";
 import {
   createTransactionAction,
   updateTransactionAction,
-} from "@/features/transactions/server/actions";
-import type { TransactionFormInput } from "@/features/transactions/transaction-form-schema";
-import type { TransactionType } from "@/features/transactions/transaction-types";
+} from "@/features/transactions/server/transaction.actions";
+import type { TransactionType } from "@/features/transactions/transaction.types";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
   TRANSACTION_TYPES,
-} from "@/features/transactions/transaction-types";
-import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-types";
+} from "@/features/transactions/transaction.types";
+import type { TransactionFormInput } from "@/features/transactions/transaction-form-schema";
+import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet.types";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 import {
@@ -76,11 +76,17 @@ interface TransactionFormProps {
   mode: TransactionFormMode;
 }
 
-function initialValuesFor(
-  mode: TransactionFormMode,
-  categories: readonly CategoryOption[],
-  today: CalendarDate,
-): TransactionFormInput {
+interface InitialValuesOptions {
+  mode: TransactionFormMode;
+  categories: readonly CategoryOption[];
+  today: CalendarDate;
+}
+
+function initialValuesFor({
+  mode,
+  categories,
+  today,
+}: Readonly<InitialValuesOptions>): TransactionFormInput {
   if (mode.kind === "edit") {
     const { transaction } = mode;
     return {
@@ -102,7 +108,7 @@ function initialValuesFor(
   };
 }
 
-function saveFor(mode: TransactionFormMode): SaveTransaction {
+function saveFor(mode: Readonly<TransactionFormMode>): SaveTransaction {
   if (mode.kind === "edit") {
     const { id } = mode.transaction;
     return (values) => updateTransactionAction({ ...values, id });
@@ -111,16 +117,14 @@ function saveFor(mode: TransactionFormMode): SaveTransaction {
     createTransactionAction({ ...values, submissionKey });
 }
 
-/** "Save −฿120.00 · Cash" once the amount parses; plain "Save" before that. */
-function SaveLabel({
-  type,
-  amountText,
-  walletName,
-}: Readonly<{
+interface SaveLabelProps {
   type: TransactionType;
   amountText: string;
   walletName: string | undefined;
-}>) {
+}
+
+/** "Save −฿120.00 · Cash" once the amount parses; plain "Save" before that. */
+function SaveLabel({ type, amountText, walletName }: Readonly<SaveLabelProps>) {
   const parsed = parseMoneyInput({ text: amountText, currency: "THB" });
   if (!parsed.ok || parsed.value <= 0n || !walletName) {
     return "Save";
@@ -195,7 +199,7 @@ export function TransactionForm({
   } = useTransactionForm({
     wallets,
     categories,
-    initialValues: initialValuesFor(mode, categories, initialToday),
+    initialValues: initialValuesFor({ mode, categories, today: initialToday }),
     save: saveFor(mode),
   });
   const today = useBangkokToday(initialToday);

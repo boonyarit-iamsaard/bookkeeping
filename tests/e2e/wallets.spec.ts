@@ -2,6 +2,12 @@ import { expect, test } from "@playwright/test";
 import { z } from "zod";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
+test.afterEach(async ({ page }) => {
+  expect(
+    (await page.pageErrors({ filter: "all" })).map((error) => error.stack),
+  ).toEqual([]);
+});
+
 test("a new user creates a wallet and its opening balance survives a reload", async ({
   page,
 }) => {

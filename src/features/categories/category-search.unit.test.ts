@@ -1,24 +1,31 @@
 import { describe, expect, test } from "vitest";
+import type { CategorySummary } from "@/features/categories/category.types";
 import { searchCategories } from "./category-search";
-import type { CategorySummary } from "./server/operations";
 
-function category(
-  id: string,
-  name: string,
-  parentId: string | null = null,
-  kind: "income" | "expense" = "expense",
-): CategorySummary {
+interface CategoryFixtureOptions {
+  id: string;
+  name: string;
+  parentId?: string | null;
+  kind?: CategorySummary["kind"];
+}
+
+function category({
+  id,
+  name,
+  parentId = null,
+  kind = "expense",
+}: Readonly<CategoryFixtureOptions>): CategorySummary {
   return { id, kind, parentId, name, iconId: "generic", isProtected: false };
 }
 
 const tree = [
-  category("u", "Uncategorized"),
-  category("food", "Food & Drink"),
-  category("groceries", "Groceries", "food"),
-  category("coffee", "Coffee & snacks", "food"),
-  category("transport", "Transport"),
-  category("fuel", "Fuel", "transport"),
-  category("salary", "Salary", null, "income"),
+  category({ id: "u", name: "Uncategorized" }),
+  category({ id: "food", name: "Food & Drink" }),
+  category({ id: "groceries", name: "Groceries", parentId: "food" }),
+  category({ id: "coffee", name: "Coffee & snacks", parentId: "food" }),
+  category({ id: "transport", name: "Transport" }),
+  category({ id: "fuel", name: "Fuel", parentId: "transport" }),
+  category({ id: "salary", name: "Salary", parentId: null, kind: "income" }),
 ];
 
 describe("category search", () => {

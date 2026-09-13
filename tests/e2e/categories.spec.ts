@@ -2,6 +2,12 @@ import { expect, test } from "@playwright/test";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
+test.afterEach(async ({ page }) => {
+  expect(
+    (await page.pageErrors({ filter: "all" })).map((error) => error.stack),
+  ).toEqual([]);
+});
+
 test("search picks either level, and a missing parent and child are created without leaving the form", async ({
   page,
 }) => {

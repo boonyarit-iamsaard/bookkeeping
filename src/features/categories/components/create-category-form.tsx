@@ -1,18 +1,20 @@
 "use client";
 
 import { useId } from "react";
+import type {
+  CategoryKind,
+  CategorySummary,
+} from "@/features/categories/category.types";
+import { CATEGORY_KIND_LABELS } from "@/features/categories/category.types";
 import {
   NEW_PARENT,
   NO_PARENT,
 } from "@/features/categories/category-form-schema";
-import type { CategoryKind } from "@/features/categories/category-kinds";
-import { CATEGORY_KIND_LABELS } from "@/features/categories/category-kinds";
 import { MAX_CATEGORY_NAME_LENGTH } from "@/features/categories/category-name";
 import { topLevelParents } from "@/features/categories/category-search";
 import { IconPicker } from "@/features/categories/components/icon-picker";
 import { useCreateCategoryForm } from "@/features/categories/hooks/use-create-category-form";
-import type { CreateCategoryActionSuccess } from "@/features/categories/server/actions";
-import type { CategorySummary } from "@/features/categories/server/operations";
+import type { CreateCategoryActionSuccess } from "@/features/categories/server/category.actions";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -24,7 +26,7 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { NativeSelect } from "@/shared/components/ui/native-select";
 
-interface CategoryCreateFormProps {
+interface CreateCategoryFormProps {
   kind: CategoryKind;
   /** Both trees; only this kind's top-level parents are offered. */
   categories: readonly CategorySummary[];
@@ -40,14 +42,14 @@ interface CategoryCreateFormProps {
  * Lives inside the category panel. Its own form element: submit events are
  * stopped here so Enter can never reach the transaction form behind it.
  */
-export function CategoryCreateForm({
+export function CreateCategoryForm({
   kind,
   categories,
   initialName,
   initialParentId,
   onCreated,
   onCancel,
-}: Readonly<CategoryCreateFormProps>) {
+}: Readonly<CreateCategoryFormProps>) {
   const prefix = useId();
   const {
     form,

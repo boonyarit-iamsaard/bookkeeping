@@ -6,11 +6,11 @@ import { db } from "@/core/database/client";
 import {
   initializeDefaultCategories,
   listCategories,
-} from "@/features/categories/server/operations";
+} from "@/features/categories/server/category";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
-import { getTransaction } from "@/features/transactions/server/operations";
-import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-types";
-import { listWallets } from "@/features/wallets/server/operations";
+import { getTransaction } from "@/features/transactions/server/transaction";
+import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction.types";
+import { listWallets } from "@/features/wallets/server/wallet";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { APP_TIME_ZONE, formatInstant, todayIn } from "@/shared/helpers/dates";
 import { formatMoney, formatMoneyInput } from "@/shared/helpers/money";
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
 export default async function Page({
   params,
-}: PageProps<"/transactions/[id]/edit">) {
+}: Readonly<PageProps<"/transactions/[id]/edit">>) {
   const session = await getSession();
   if (!session) {
     redirect("/sign-in");

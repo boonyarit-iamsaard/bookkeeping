@@ -2,14 +2,14 @@
 
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
+import type { CategorySummary } from "@/features/categories/category.types";
 import { createCategorySubmissionSchema } from "@/features/categories/category-form-schema";
 import { CATEGORY_MESSAGES } from "@/features/categories/category-name";
 import type {
   CategoryErrorField,
-  CategorySummary,
   CreateCategoryError,
-} from "@/features/categories/server/operations";
-import { createCategory } from "@/features/categories/server/operations";
+} from "@/features/categories/server/category";
+import { createCategory } from "@/features/categories/server/category";
 import type { Result } from "@/shared/helpers/result";
 import { err, ok } from "@/shared/helpers/result";
 

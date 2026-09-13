@@ -1,5 +1,7 @@
-import type { CategoryKind } from "@/core/database/schema/category-kind";
-import type { CategorySummary } from "@/features/categories/server/operations";
+import type {
+  CategoryKind,
+  CategorySummary,
+} from "@/features/categories/category.types";
 
 export interface CategoryGroup {
   parent: CategorySummary;
@@ -80,7 +82,7 @@ export function searchCategories({
 
 /** "Food & Drink › Groceries" for a child, the bare name for a parent. */
 export function categoryPath(
-  category: CategorySummary,
+  category: Readonly<CategorySummary>,
   categories: readonly CategorySummary[],
 ): string {
   if (category.parentId === null) {
@@ -88,4 +90,16 @@ export function categoryPath(
   }
   const parent = categories.find((c) => c.id === category.parentId);
   return parent ? `${parent.name} › ${category.name}` : category.name;
+}
+
+interface CategoryLabelInput {
+  name: string;
+  parentName: string | null;
+}
+
+/** "Food & Drink › Groceries" for a child, the bare name for a parent. */
+export function categoryLabel(category: Readonly<CategoryLabelInput>): string {
+  return category.parentName
+    ? `${category.parentName} › ${category.name}`
+    : category.name;
 }

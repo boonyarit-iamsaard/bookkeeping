@@ -4,7 +4,7 @@ import {
   createCategory,
   initializeDefaultCategories,
   listCategories,
-} from "@/features/categories/server/operations";
+} from "@/features/categories/server/category";
 import {
   createTestUser,
   setupTestDatabase,

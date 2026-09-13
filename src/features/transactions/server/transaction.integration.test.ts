@@ -3,8 +3,8 @@ import type { Database } from "@/core/database/database";
 import {
   initializeDefaultCategories,
   listCategories,
-} from "@/features/categories/server/operations";
-import type { CreateTransactionInput } from "@/features/transactions/server/operations";
+} from "@/features/categories/server/category";
+import type { CreateTransactionInput } from "@/features/transactions/server/transaction";
 import {
   createTransaction,
   deleteTransaction,
@@ -12,11 +12,8 @@ import {
   listTransactionChanges,
   listTransactions,
   updateTransaction,
-} from "@/features/transactions/server/operations";
-import {
-  createWallet,
-  listWallets,
-} from "@/features/wallets/server/operations";
+} from "@/features/transactions/server/transaction";
+import { createWallet, listWallets } from "@/features/wallets/server/wallet";
 import {
   createTestUser,
   setupTestDatabase,
@@ -472,12 +469,18 @@ describe("submission receipts", () => {
   });
 });
 
+interface RecordExpenseOptions {
+  db: Database;
+  owner: Awaited<ReturnType<typeof setupOwner>>;
+  overrides?: Partial<CreateTransactionInput>;
+}
+
 /** A committed ฿500 expense on 2 Sep; the wallet then holds ฿11,500. */
-async function recordExpense(
-  db: Database,
-  owner: Awaited<ReturnType<typeof setupOwner>>,
-  overrides: Partial<CreateTransactionInput> = {},
-) {
+async function recordExpense({
+  db,
+  owner,
+  overrides = {},
+}: Readonly<RecordExpenseOptions>) {
   const input: CreateTransactionInput = {
     ownerId: owner.owner.id,
     submissionKey: freshKey(),
@@ -496,12 +499,19 @@ async function recordExpense(
   return { input, transaction: saved.value.transaction };
 }
 
-async function balanceOf(
-  db: Database,
-  ownerId: string,
-  walletId: string,
-  asOf?: string,
-) {
+interface BalanceOptions {
+  db: Database;
+  ownerId: string;
+  walletId: string;
+  asOf?: string;
+}
+
+async function balanceOf({
+  db,
+  ownerId,
+  walletId,
+  asOf,
+}: Readonly<BalanceOptions>) {
   const summaries = await listWallets(db, { ownerId, asOf });
   const found = summaries.find((w) => w.id === walletId);
   if (!found) {
@@ -521,8 +531,12 @@ describe("correcting transactions", () => {
         openingAmount: 0n,
         openingDate: "2026-09-03",
       });
-      const { transaction } = await recordExpense(db, owner);
-      const cashBefore = await balanceOf(db, owner.owner.id, owner.wallet.id);
+      const { transaction } = await recordExpense({ db, owner });
+      const cashBefore = await balanceOf({
+        db,
+        ownerId: owner.owner.id,
+        walletId: owner.wallet.id,
+      });
       expect(cashBefore).toBe(1_150_000n);
 
       const updated = await updateTransaction(db, {
@@ -550,12 +564,23 @@ describe("correcting transactions", () => {
           category: expect.objectContaining({ name: "Uncategorized" }),
         }),
       );
-      expect(await balanceOf(db, owner.owner.id, owner.wallet.id)).toBe(
-        1_200_000n,
-      );
-      expect(await balanceOf(db, owner.owner.id, savings.id)).toBe(-75_050n);
       expect(
-        await balanceOf(db, owner.owner.id, savings.id, "2026-09-03"),
+        await balanceOf({
+          db,
+          ownerId: owner.owner.id,
+          walletId: owner.wallet.id,
+        }),
+      ).toBe(1_200_000n);
+      expect(
+        await balanceOf({ db, ownerId: owner.owner.id, walletId: savings.id }),
+      ).toBe(-75_050n);
+      expect(
+        await balanceOf({
+          db,
+          ownerId: owner.owner.id,
+          walletId: savings.id,
+          asOf: "2026-09-03",
+        }),
       ).toBe(0n);
       expect(
         await listTransactionChanges(db, {
@@ -591,7 +616,7 @@ describe("correcting transactions", () => {
   test("saving an edit that changes nothing succeeds without a history entry", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
-      const { input, transaction } = await recordExpense(db, owner);
+      const { input, transaction } = await recordExpense({ db, owner });
       const unchanged = await updateTransaction(db, {
         ownerId: owner.owner.id,
         id: transaction.id,
@@ -621,7 +646,7 @@ describe("correcting transactions", () => {
         openingAmount: 0n,
         openingDate: "2026-09-05",
       });
-      const { transaction } = await recordExpense(db, owner);
+      const { transaction } = await recordExpense({ db, owner });
       const valid = {
         ownerId: owner.owner.id,
         id: transaction.id,
@@ -676,9 +701,13 @@ describe("correcting transactions", () => {
         id: transaction.id,
       });
       expect(current).toEqual(transaction);
-      expect(await balanceOf(db, owner.owner.id, owner.wallet.id)).toBe(
-        1_150_000n,
-      );
+      expect(
+        await balanceOf({
+          db,
+          ownerId: owner.owner.id,
+          walletId: owner.wallet.id,
+        }),
+      ).toBe(1_150_000n);
       expect(
         await listTransactionChanges(db, {
           ownerId: owner.owner.id,
@@ -692,7 +721,7 @@ describe("correcting transactions", () => {
     await withRollback(async (db) => {
       const alice = await setupOwner(db);
       const bob = await setupOwner(db);
-      const { transaction } = await recordExpense(db, alice);
+      const { transaction } = await recordExpense({ db, owner: alice });
 
       expect(
         await updateTransaction(db, {
@@ -748,19 +777,27 @@ describe("correcting transactions", () => {
           id: transaction.id,
         }),
       ).toEqual(transaction);
-      expect(await balanceOf(db, alice.owner.id, alice.wallet.id)).toBe(
-        1_150_000n,
-      );
+      expect(
+        await balanceOf({
+          db,
+          ownerId: alice.owner.id,
+          walletId: alice.wallet.id,
+        }),
+      ).toBe(1_150_000n);
     });
   });
 
   test("deletion removes the transaction from lists, detail, and every balance, and records history", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
-      const { transaction } = await recordExpense(db, owner);
-      const { transaction: kept } = await recordExpense(db, owner, {
-        amount: 100n,
-        transactionDate: "2026-09-03",
+      const { transaction } = await recordExpense({ db, owner });
+      const { transaction: kept } = await recordExpense({
+        db,
+        owner,
+        overrides: {
+          amount: 100n,
+          transactionDate: "2026-09-03",
+        },
       });
 
       const deleted = await deleteTransaction(db, {
@@ -778,11 +815,20 @@ describe("correcting transactions", () => {
       expect(
         (await listTransactions(db, owner.owner.id)).map((t) => t.id),
       ).toEqual([kept.id]);
-      expect(await balanceOf(db, owner.owner.id, owner.wallet.id)).toBe(
-        1_199_900n,
-      );
       expect(
-        await balanceOf(db, owner.owner.id, owner.wallet.id, "2026-09-02"),
+        await balanceOf({
+          db,
+          ownerId: owner.owner.id,
+          walletId: owner.wallet.id,
+        }),
+      ).toBe(1_199_900n);
+      expect(
+        await balanceOf({
+          db,
+          ownerId: owner.owner.id,
+          walletId: owner.wallet.id,
+          asOf: "2026-09-02",
+        }),
       ).toBe(1_200_000n);
       expect(
         await listTransactionChanges(db, {
@@ -828,7 +874,7 @@ describe("correcting transactions", () => {
   test("a late create retry after an edit or deletion confirms the current outcome", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
-      const { input, transaction } = await recordExpense(db, owner);
+      const { input, transaction } = await recordExpense({ db, owner });
       await updateTransaction(db, {
         ownerId: owner.owner.id,
         id: transaction.id,
@@ -854,16 +900,20 @@ describe("correcting transactions", () => {
         transaction.id,
       );
       expect(await listTransactions(db, owner.owner.id)).toEqual([]);
-      expect(await balanceOf(db, owner.owner.id, owner.wallet.id)).toBe(
-        1_200_000n,
-      );
+      expect(
+        await balanceOf({
+          db,
+          ownerId: owner.owner.id,
+          walletId: owner.wallet.id,
+        }),
+      ).toBe(1_200_000n);
     });
   });
 
   test("simultaneous edits serialize: every one lands in history and the balance matches the last", async () => {
     const db = committed();
     const owner = await setupOwner(db);
-    const { transaction } = await recordExpense(db, owner);
+    const { transaction } = await recordExpense({ db, owner });
     const amounts = [1_000n, 2_000n, 3_000n, 4_000n, 5_000n];
 
     const outcomes = await Promise.all(
@@ -895,8 +945,12 @@ describe("correcting transactions", () => {
       id: transaction.id,
     });
     expect(final?.amount).toBe(BigInt(history[4]?.after?.amount ?? "0"));
-    expect(await balanceOf(db, owner.owner.id, owner.wallet.id)).toBe(
-      1_200_000n - (final?.amount ?? 0n),
-    );
+    expect(
+      await balanceOf({
+        db,
+        ownerId: owner.owner.id,
+        walletId: owner.wallet.id,
+      }),
+    ).toBe(1_200_000n - (final?.amount ?? 0n));
   });
 });

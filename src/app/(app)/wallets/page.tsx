@@ -5,14 +5,16 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { WalletList } from "@/features/wallets/components/wallet-list";
-import { listWallets } from "@/features/wallets/server/operations";
+import { listWallets } from "@/features/wallets/server/wallet";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Wallets",
 };
 
-export default async function Page({ searchParams }: PageProps<"/wallets">) {
+export default async function Page({
+  searchParams,
+}: Readonly<PageProps<"/wallets">>) {
   const session = await getSession();
   if (!session) {
     redirect("/sign-in");

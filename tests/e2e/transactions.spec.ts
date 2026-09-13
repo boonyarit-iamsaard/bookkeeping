@@ -8,6 +8,12 @@ import {
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
+test.afterEach(async ({ page }) => {
+  expect(
+    (await page.pageErrors({ filter: "all" })).map((error) => error.stack),
+  ).toEqual([]);
+});
+
 test("quick entry: amount then Save records an expense and moves the wallet balance", async ({
   page,
 }) => {
@@ -313,7 +319,15 @@ test("an invalid edit keeps the values and names the field; deleting removes the
   await expect(page.getByLabel("Date")).toHaveValue("2026-08-31");
 
   await page.getByRole("button", { name: "Delete expense" }).click();
+  const deletionResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      Boolean(response.request().headers()["next-action"]),
+  );
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+  expect((await deletionResponse).headers()["x-action-redirect"]).toBe(
+    "/transactions?deleted=1;push",
+  );
 
   await expect(page).toHaveURL(/\/transactions\?deleted=1$/);
   await expect(page.getByRole("status")).toContainText("Transaction deleted");

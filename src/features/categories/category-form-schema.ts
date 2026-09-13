@@ -1,6 +1,6 @@
 import * as z from "zod";
-import type { CategoryKind } from "@/core/database/schema/category-kind";
-import { CATEGORY_KINDS } from "@/core/database/schema/category-kind";
+import type { CategoryKind } from "@/features/categories/category.types";
+import { CATEGORY_KINDS } from "@/features/categories/category.types";
 import {
   CATEGORY_MESSAGES,
   MAX_CATEGORY_NAME_LENGTH,

@@ -6,7 +6,7 @@ import { useCreateWalletForm } from "@/features/wallets/hooks/use-create-wallet-
 import {
   WALLET_TYPE_LABELS,
   WALLET_TYPES,
-} from "@/features/wallets/wallet-types";
+} from "@/features/wallets/wallet.types";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 import {
   Field,

@@ -1,4 +1,4 @@
-import type { CategoryKind } from "@/core/database/schema/category-kind";
+import type { CategoryKind } from "@/features/categories/category.types";
 import type { IconId } from "@/features/categories/icons";
 
 export interface DefaultCategory {

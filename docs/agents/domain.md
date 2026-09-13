@@ -27,3 +27,21 @@ If a concept is absent from the glossary, reconsider whether the project uses it
 ## Flag ADR conflicts
 
 If a proposal contradicts an existing ADR, identify the ADR and explain why the decision should be reopened.
+
+## During architecture reviews
+
+Assess whether domain-driven design (DDD) would now resolve concrete friction.
+Raise it when domain invariants recur across modules and drift, the same term
+acquires conflicting meanings, or distinct rule sets need separate ownership.
+Show the affected code and a change or failure that the current feature-first
+structure cannot handle clearly; size and directory counts alone are insufficient.
+
+Recommend the smallest established DDD practice that addresses that evidence,
+such as a domain-owned invariant, an aggregate for atomic consistency, or a
+bounded context for genuinely different models. Explain its benefit over the
+existing feature modules and typed contracts. Propose stronger enforcement when
+the rule and ownership are clear and repeated violations justify it; use existing
+tooling. Keep consistency with recognizable conventions as the goal rather than
+introducing a bespoke framework. Record resolved domain terms in `CONTEXT.md`
+and decisions in ADRs when they are hard to reverse, surprising without context,
+and based on a real trade-off.

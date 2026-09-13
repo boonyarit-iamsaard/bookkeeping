@@ -2,6 +2,14 @@
 
 These notes capture the accepted icon-catalog approach and implementation considerations. The tracking direction was confirmed on 2026-09-12; application stack choices and implementation planning remain separate work.
 
+## Code organization
+
+Follow [code conventions](../../docs/code-conventions.md) for feature structure,
+filename and symbol naming, vocabulary ownership, and executable TypeScript checks.
+Future architecture reviews should assess whether concrete domain complexity
+warrants DDD or stronger enforcement using the triggers in
+[domain documentation rules](../../docs/agents/domain.md#during-architecture-reviews).
+
 ## Icon catalog
 
 - Ship catalog definitions with the app. A definition contains a stable ID, renderer-specific icon name, browsing group, and English semantic tags.

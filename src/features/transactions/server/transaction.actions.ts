@@ -1,18 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import * as z from "zod";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import type {
   CreateTransactionError,
   UpdateTransactionError,
-} from "@/features/transactions/server/operations";
+} from "@/features/transactions/server/transaction";
 import {
   createTransaction,
   deleteTransaction,
   updateTransaction,
-} from "@/features/transactions/server/operations";
+} from "@/features/transactions/server/transaction";
 import {
   createTransactionSubmissionSchema,
   updateTransactionSubmissionSchema,
@@ -117,10 +118,10 @@ export type DeleteTransactionActionError =
   | { code: "unauthenticated" }
   | { code: "not-found"; message: string };
 
-/** Deletes one of the session user's own transactions; repeating it is harmless. */
+/** Deletes an owned transaction and leaves its now-missing edit page. */
 export async function deleteTransactionAction(
   input: unknown,
-): Promise<Result<{ id: string }, DeleteTransactionActionError>> {
+): Promise<Result<never, DeleteTransactionActionError>> {
   const session = await getSession();
   if (!session) {
     return err({ code: "unauthenticated" });
@@ -139,7 +140,9 @@ export async function deleteTransactionAction(
   }
 
   revalidateTransactionPages(outcome.value.id);
-  return ok({ id: outcome.value.id });
+  // Redirect in this response so revalidation renders the list, not a 404
+  // for the deleted transaction before client-side navigation can run.
+  redirect("/transactions?deleted=1");
 }
 
 const NOT_FOUND = {

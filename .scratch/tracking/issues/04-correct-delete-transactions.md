@@ -71,3 +71,32 @@ Transfer corrections are delivered in 05; linked-refund and refunded-expense gua
   unchanged; inspected at 360px, 412px, 1280px.
 - Verification: 86 unit/database tests, 26 browser tests, Biome, Prettier,
   markdownlint, type check, and production build all passed.
+
+### 2026-09-13 — Deletion navigation and browser error checks
+
+Local CI exposed a development profiler exception after deletion:
+`Performance.measure` rejected a negative timestamp for `Page`. The full
+browser sequence reproduced it; a focused response check confirmed that the
+Server Action revalidated the open edit page after its record was removed,
+returning `NEXT_HTTP_ERROR_FALLBACK;404` before client navigation.
+The bundled React Server Components profiler has the missing timing guard
+reported in [React issue 37561](https://github.com/react/react/issues/37561).
+
+Successful deletion now redirects to the transaction list from the Server
+Action after revalidation. The client uses Next's `unstable_rethrow` to preserve
+framework redirects while continuing to handle uncertain connection failures.
+The existing deletion browser test requires a redirect to the list in the
+action response rather than a render of the missing edit page, and
+all browser suites check errors across the entire test with
+`page.pageErrors({ filter: "all" })`, including before later navigation.
+
+Local `pnpm run ci` now runs browser tests against its production build using
+`CI=1`, matching GitHub Actions. Standalone browser tests retain development
+mode. This avoids the unnecessary deleted-page render; other development
+redirect/not-found paths may still encounter the upstream profiler bug until
+Next.js incorporates its fix.
+
+Verification: a clean `pnpm run ci` passed all checks, 86 unit/integration
+tests, and 26 production browser tests without retries. The original
+development desktop sequence also passed all 13 tests without the profiler
+exception.

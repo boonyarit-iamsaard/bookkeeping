@@ -10,6 +10,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Agent skills
 
+### Code conventions
+
+Before writing, refactoring, or reviewing application code, read
+`docs/code-conventions.md` for naming, vocabulary ownership, and house-style
+enforcement.
+
 ### Database schema changes
 
 Use `db:push` while the domain model is unsettled, including for test and CI

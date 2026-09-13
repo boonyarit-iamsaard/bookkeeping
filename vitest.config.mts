@@ -14,16 +14,15 @@ export default defineConfig({
         test: {
           name: "unit",
           environment: "node",
-          include: ["src/**/*.test.ts"],
-          exclude: ["src/**/*.db.test.ts"],
+          include: ["src/**/*.unit.test.ts"],
         },
       },
       {
         resolve: { alias },
         test: {
-          name: "db",
+          name: "integration",
           environment: "node",
-          include: ["src/**/*.db.test.ts"],
+          include: ["src/**/*.integration.test.ts"],
           hookTimeout: 60_000,
           globalSetup: ["tests/database/global-setup.ts"],
           fileParallelism: false,

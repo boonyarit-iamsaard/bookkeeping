@@ -3,23 +3,24 @@ import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Database } from "@/core/database/database";
 import { categories } from "@/core/database/schema/categories";
-import type { TransactionType } from "@/core/database/schema/transaction-type";
-import type {
-  TransactionChangeAction,
-  TransactionSnapshot,
-} from "@/core/database/schema/transactions";
 import {
   submissionReceipts,
   transactionChanges,
   transactions,
 } from "@/core/database/schema/transactions";
-import type { WalletType } from "@/core/database/schema/wallet-type";
 import { wallets } from "@/core/database/schema/wallets";
 import {
   MAX_NOTE_LENGTH,
   MAX_TRANSACTION_AMOUNT,
   MIN_TRANSACTION_AMOUNT,
 } from "@/features/transactions/money-limits";
+import type {
+  TransactionChange,
+  TransactionChangeAction,
+  TransactionDetail,
+  TransactionSnapshot,
+  TransactionType,
+} from "@/features/transactions/transaction.types";
 import type { CalendarDate } from "@/shared/helpers/dates";
 import { APP_TIME_ZONE, todayIn } from "@/shared/helpers/dates";
 import type { Result } from "@/shared/helpers/result";
@@ -51,24 +52,6 @@ export type CreateTransactionError =
   | { code: "before-opening"; openingDate: CalendarDate }
   /** The same key was already used with a different payload. */
   | { code: "submission-conflict" };
-
-export interface TransactionDetail {
-  id: string;
-  type: TransactionType;
-  currency: "THB";
-  amount: bigint;
-  transactionDate: CalendarDate;
-  note: string;
-  /** The server instant of the original entry. */
-  recordedAt: Date;
-  wallet: { id: string; name: string; type: WalletType };
-  category: {
-    id: string;
-    name: string;
-    iconId: string;
-    parentName: string | null;
-  };
-}
 
 export interface CreateTransactionOutcome {
   transaction: TransactionDetail;
@@ -416,14 +399,16 @@ export type UpdateTransactionError =
   /** Also covers another owner's record and a deleted one. */
   { code: "transaction-not-found" } | FieldRejection;
 
-function snapshotOf(row: {
+interface SnapshotInput {
   type: TransactionType;
   walletId: string;
   categoryId: string;
   amount: bigint;
   transactionDate: CalendarDate;
   note: string;
-}): TransactionSnapshot {
+}
+
+function snapshotOf(row: Readonly<SnapshotInput>): TransactionSnapshot {
   return {
     type: row.type,
     walletId: row.walletId,
@@ -434,7 +419,10 @@ function snapshotOf(row: {
   };
 }
 
-function sameSnapshot(a: TransactionSnapshot, b: TransactionSnapshot) {
+function sameSnapshot(
+  a: Readonly<TransactionSnapshot>,
+  b: Readonly<TransactionSnapshot>,
+) {
   return (
     a.type === b.type &&
     a.walletId === b.walletId &&
@@ -495,14 +483,14 @@ export async function updateTransaction(
       return;
     }
     const before = snapshotOf(current);
-    const after: TransactionSnapshot = {
+    const after = {
       type: current.type,
       walletId: input.walletId,
       categoryId: input.categoryId,
       amount: input.amount.toString(),
       transactionDate: input.transactionDate,
       note: input.note,
-    };
+    } satisfies TransactionSnapshot;
     if (sameSnapshot(before, after)) {
       return;
     }
@@ -547,7 +535,9 @@ interface DeleteTransactionOptions {
   id: string;
 }
 
-export type DeleteTransactionError = { code: "transaction-not-found" };
+export interface DeleteTransactionError {
+  code: "transaction-not-found";
+}
 
 /**
  * Soft-deletes an income or expense: it leaves lists, detail, and every
@@ -600,13 +590,6 @@ async function recordChange(tx: Database, input: Readonly<RecordChangeInput>) {
     before: input.before,
     after: input.after,
   });
-}
-
-export interface TransactionChange {
-  action: TransactionChangeAction;
-  before: TransactionSnapshot;
-  after: TransactionSnapshot | null;
-  changedAt: Date;
 }
 
 interface ListTransactionChangesOptions {

@@ -16,6 +16,7 @@
       "!**/coverage",
       "!**/.turbo",
       "!**/.pnpm-store",
+      "!.impeccable/hook.cache.json",
       "!**/next-env.d.ts",
       "!public",
       "!**/test-results",
@@ -47,6 +48,13 @@
           "options": {
             "functions": ["clsx", "cva", "cn"]
           }
+        },
+        "noUnsafeTypeAssertion": "error",
+        "useReactFunctionComponentDefinition": {
+          "level": "error",
+          "options": {
+            "namedComponents": "functionDeclaration"
+          }
         }
       },
       "style": {
@@ -68,7 +76,57 @@
         "noUnusedTemplateLiteral": "error",
         "useNumberNamespace": "error",
         "noInferrableTypes": "error",
-        "noUselessElse": "error"
+        "noUselessElse": "error",
+        "noDefaultExport": "error",
+        "useConsistentTypeDefinitions": {
+          "level": "error",
+          "options": {
+            "style": "interface"
+          }
+        },
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": {
+            "filenameCases": ["kebab-case"]
+          }
+        },
+        "useNamingConvention": {
+          "level": "error",
+          "options": {
+            "strictCase": false,
+            "conventions": [
+              {
+                "selector": {
+                  "kind": "objectLiteralProperty"
+                },
+                "formats": ["camelCase", "snake_case", "CONSTANT_CASE"]
+              }
+            ]
+          }
+        },
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["@/**", "./**", "../**", "node:*"],
+                "importNamePattern": "(\\*|default)",
+                "message": "Use named imports for project modules and Node builtins."
+              }
+            ]
+          }
+        }
+      },
+      "suspicious": {
+        "noExplicitAny": "error"
+      },
+      "complexity": {
+        "useMaxParams": {
+          "level": "error",
+          "options": {
+            "max": 2
+          }
+        }
       }
     },
     "domains": {
@@ -88,17 +146,43 @@
   },
   "overrides": [
     {
-      "includes": ["**/tests/**", "**/*.test.*"],
+      "includes": ["src/**/index.ts", "src/**/index.tsx"],
       "linter": {
         "rules": {
-          "style": {
-            "noNonNullAssertion": "off"
+          "performance": {
+            "noBarrelFile": "error"
           }
         }
       }
     },
     {
-      "includes": ["src/ui/**", "src/app/**"],
+      "includes": [
+        "src/app/**/page.tsx",
+        "src/app/**/layout.tsx",
+        "src/app/**/loading.tsx",
+        "src/app/**/error.tsx",
+        "src/app/**/global-error.tsx",
+        "src/app/**/not-found.tsx",
+        "src/app/**/global-not-found.tsx",
+        "src/app/**/template.tsx",
+        "src/app/**/default.tsx",
+        "next.config.ts",
+        "drizzle.config.ts",
+        "playwright.config.ts",
+        "vitest.config.mts",
+        "postcss.config.mjs",
+        "tests/database/global-setup.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/app/**"],
       "linter": {
         "rules": {
           "style": {

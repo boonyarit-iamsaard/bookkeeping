@@ -1,8 +1,11 @@
 import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
 import type { Database } from "@/core/database/database";
 import { transactions } from "@/core/database/schema/transactions";
-import type { WalletType } from "@/core/database/schema/wallet-type";
 import { wallets } from "@/core/database/schema/wallets";
+import type {
+  WalletSummary,
+  WalletType,
+} from "@/features/wallets/wallet.types";
 import type { CalendarDate } from "@/shared/helpers/dates";
 import { APP_TIME_ZONE, todayIn } from "@/shared/helpers/dates";
 
@@ -14,17 +17,6 @@ export interface CreateWalletInput {
   /** Integer satang; zero and negative openings are valid. */
   openingAmount: bigint;
   openingDate: CalendarDate;
-}
-
-export interface WalletSummary {
-  id: string;
-  name: string;
-  type: WalletType;
-  currency: "THB";
-  openingAmount: bigint;
-  openingDate: CalendarDate;
-  /** Derived: opening balance plus current transactions through `asOf`. */
-  balance: bigint;
 }
 
 export async function createWallet(

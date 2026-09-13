@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
-import { createWallet } from "@/features/wallets/server/operations";
+import { createWallet } from "@/features/wallets/server/wallet";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
 import type { Result } from "@/shared/helpers/result";
 import { err, ok } from "@/shared/helpers/result";

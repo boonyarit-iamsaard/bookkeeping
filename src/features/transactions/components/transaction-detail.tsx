@@ -1,11 +1,9 @@
+import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { SignedMoney } from "@/features/transactions/components/signed-money";
-import type { TransactionDetail } from "@/features/transactions/server/operations";
-import {
-  categoryLabel,
-  TRANSACTION_TYPE_LABELS,
-} from "@/features/transactions/transaction-types";
-import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-types";
+import type { TransactionDetail } from "@/features/transactions/transaction.types";
+import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction.types";
+import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet.types";
 import {
   APP_TIME_ZONE,
   formatCalendarDate,
