@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 const AUTH_ROUTES = new Set(["/sign-in", "/sign-up"]);
-const PROTECTED_ROUTES = ["/dashboard"];
+const PROTECTED_ROUTES = ["/dashboard", "/wallets"];
 
 // Optimistic cookie check only. The real session check lives in the (app)
 // layout, which hits the database.
@@ -26,5 +26,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/sign-in", "/sign-up", "/dashboard/:path*"],
+  matcher: ["/sign-in", "/sign-up", "/dashboard/:path*", "/wallets/:path*"],
 };

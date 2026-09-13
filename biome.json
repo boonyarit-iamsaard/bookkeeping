@@ -17,7 +17,9 @@
       "!**/.turbo",
       "!**/.pnpm-store",
       "!**/next-env.d.ts",
-      "!public"
+      "!public",
+      "!**/test-results",
+      "!**/playwright-report"
     ]
   },
   "formatter": {

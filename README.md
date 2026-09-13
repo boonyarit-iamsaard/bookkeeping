@@ -42,15 +42,20 @@ src/
     auth/               # Better Auth setup, browser client, and session helper
     env/config.ts       # T3 Env schemas and runtime validation
     database/
-      client.ts         # Server-only PostgreSQL pool and Drizzle client
+      client.ts         # Server-only Drizzle client for the app
+      database.ts       # Database factory and the Database type operations accept
       schema/           # Tables and relations, also used by Drizzle CLI
   features/
     auth/               # Sign-in/sign-up forms, hooks, and sign-out button
+    wallets/            # Wallet operations, server actions, form, and list
   shared/
     components/ui/      # Reusable UI primitives
     helpers/            # Helpers independent of business features
     hooks/              # Hooks shared across features
   styles/               # Global styles and fonts
+tests/
+  database/             # PostgreSQL test harness (setup, rollback helper)
+  e2e/                  # Playwright browser tests
 ```
 
 Keep routes focused on composing features. Group business logic and its UI by
@@ -60,7 +65,9 @@ when it is independent of a particular feature. Shared modules and core
 infrastructure should not import feature code.
 
 Server-side feature code can import `db` from `@/core/database/client`. Keep that
-client out of Client Components and Drizzle CLI configuration. The CLI reads
+client out of Client Components and Drizzle CLI configuration. Feature
+operations take a `Database` parameter rather than importing the client, so
+tests can run them inside a rolled-back transaction. The CLI reads
 the schema separately through `drizzle.config.ts`, which uses the shared env
 configuration.
 
@@ -86,23 +93,50 @@ runtime validation enabled.
 
 ## Database commands
 
-| Command                  | Purpose                                                  |
-| ------------------------ | -------------------------------------------------------- |
-| `pnpm db:start`          | Start local PostgreSQL and wait for its health check     |
-| `pnpm db:stop`           | Stop the local container while retaining its data volume |
-| `pnpm db:push`           | Apply schema changes directly for local development      |
-| `pnpm db:generate`       | Generate versioned migrations in `drizzle/`              |
-| `pnpm db:migrate`        | Apply generated migrations                               |
-| `pnpm db:migrate:deploy` | Apply generated migrations during deployment             |
-| `pnpm db:studio`         | Open Drizzle Studio                                      |
+| Command          | Purpose                                                  |
+| ---------------- | -------------------------------------------------------- |
+| `pnpm db:start`  | Start local PostgreSQL and wait for its health check     |
+| `pnpm db:stop`   | Stop the local container while retaining its data volume |
+| `pnpm db:push`   | Apply schema changes directly for local development      |
+| `pnpm db:studio` | Open Drizzle Studio                                      |
 
-Use versioned migrations for deployment. Commit generated migrations alongside
-their schema changes.
+The schema-change policy in [AGENTS.md](AGENTS.md#database-schema-changes)
+requires `db:push` until the user explicitly authorizes switching to migrations.
 
 PostgreSQL stores its initialized credentials in the persistent data volume.
 Changing `POSTGRES_PASSWORD` in Compose does not change the password of an
 already initialized database; update the existing database password and
 `DATABASE_URL` together when changing credentials.
+
+## Tests
+
+```bash
+pnpm test          # Vitest: pure helpers and PostgreSQL operation tests
+pnpm test:e2e      # Playwright: browser flows against an isolated app/database
+```
+
+Tests load `.env` in every environment. GitHub Actions copies the checked-in
+`.env.ci.example` to `.env` before running checks. Runtime environment validation
+stays enabled. Testcontainers supplies the database URL, and the browser runner
+overrides the app URL with its actual port.
+
+Operation tests (`*.db.test.ts`) use Testcontainers to start a disposable
+PostgreSQL 18 database on an available port. Docker must be running. The harness
+applies the current schema with `db:push`, provides its connection URL to test
+workers, and stops the container after the suite. Every test runs inside a
+transaction that is rolled back. No local development database is used.
+
+Browser tests live in `tests/e2e/` and need Chromium once:
+
+```bash
+pnpm exec playwright install --with-deps chromium
+```
+
+The browser runner creates its own disposable PostgreSQL database, pushes the
+schema, and starts a fresh app server on an available port. It uses `pnpm dev`
+locally and `pnpm start` in CI. It waits for server teardown before stopping
+the database, including when interrupted. Server errors remain visible; enable
+server stdout and startup diagnostics with `DEBUG=pw:webserver pnpm test:e2e`.
 
 ## Checks
 
@@ -111,7 +145,9 @@ pnpm lint
 pnpm format:check
 pnpm lint:md
 pnpm types:check
+pnpm test
 pnpm build
+pnpm test:e2e
 ```
 
 `pnpm run ci` runs the complete check sequence. `pnpm check` applies Biome fixes;
@@ -121,15 +157,19 @@ pnpm build
 it works from a clean checkout.
 
 GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
-`main`, installing dependencies with a frozen lockfile before running
-`pnpm run ci`.
+`main`. It installs dependencies with a frozen lockfile and Chromium, then runs
+`pnpm run ci`. Testcontainers supplies disposable PostgreSQL databases for both
+operation and browser tests.
 
 To run the workflow locally, install `act`, start Docker, and run:
 
 ```bash
+cp .env.ci.example .env.ci
 act push -j ci
 ```
 
 `.actrc` selects the `catthehacker/ubuntu:act-latest` runner image and
-`linux/amd64` architecture. Local CI does not require runtime environment values
-or a running PostgreSQL instance.
+`linux/amd64` architecture and loads `.env.ci` instead of the local development
+`.env`. Both `.env` and `.env.ci` are ignored by Git; only the templates are
+committed. The workflow copies `.env.ci.example` to `.env` inside the runner.
+Testcontainers manages PostgreSQL, so local CI needs Docker access.

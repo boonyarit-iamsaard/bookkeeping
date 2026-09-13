@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AppHeader } from "@/app/(app)/app-header";
 import { getSession } from "@/core/auth/session";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -8,5 +9,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     redirect("/sign-in");
   }
 
-  return children;
+  return (
+    <>
+      <AppHeader email={session.user.email} />
+      {children}
+    </>
+  );
 }

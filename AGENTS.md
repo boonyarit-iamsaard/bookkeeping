@@ -10,6 +10,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Agent skills
 
+### Database schema changes
+
+Use `db:push` while the domain model is unsettled, including for test and CI
+databases. Do not generate, commit, or apply database migrations until the user
+explicitly asks to switch from `db:push` to migrations. Treat this as a hard rule;
+an agent deciding that the domain model is settled does not authorize the switch.
+
 ### Issue tracker
 
 Issues and specs live as local Markdown under `.scratch/<feature>/`. Before creating, fetching, or updating them, read `docs/agents/issue-tracker.md`.

@@ -16,9 +16,12 @@ jobs:
   ci:
     name: CI
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7.0.1
+
+      - name: Configure CI environment
+        run: cp .env.ci.example .env
 
       - name: Enable corepack
         run: corepack enable
@@ -30,4 +33,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm run ci
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run CI checks
+        run: pnpm run ci

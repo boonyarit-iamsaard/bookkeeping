@@ -5,10 +5,7 @@
   "scripts": {
     "build": "SKIP_ENV_VALIDATION=1 next build",
     "check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-    "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && pnpm types:check && pnpm build",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:migrate:deploy": "drizzle-kit migrate",
+    "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && pnpm types:check && pnpm test && pnpm build && pnpm test:e2e",
     "db:push": "drizzle-kit push",
     "db:start": "docker compose up -d --wait",
     "db:stop": "docker compose down",
@@ -21,6 +18,9 @@
     "lint:md:fix": "markdownlint --fix \"**/*.md\" --ignore-path .gitignore",
     "prepare": "husky || true",
     "start": "next start",
+    "test": "vitest run",
+    "test:e2e": "tsx tests/e2e/run.ts",
+    "test:watch": "vitest",
     "types:check": "next typegen && tsc --noEmit"
   },
   "dependencies": {
@@ -42,7 +42,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
+    "@testcontainers/postgresql": "^12.1.0",
     "@types/node": "^20",
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
@@ -54,7 +56,8 @@
     "prettier": "^3.9.6",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.0"
   },
   "packageManager": "pnpm@10.27.0",
   "lint-staged": {
