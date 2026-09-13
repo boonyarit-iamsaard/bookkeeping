@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CreateWalletForm } from "@/features/wallets/components/create-wallet-form";
 import { buttonVariants } from "@/shared/components/ui/button";
-import { todayInBangkok } from "@/shared/helpers/dates";
+import { APP_TIME_ZONE, todayIn } from "@/shared/helpers/dates";
 
 export const metadata: Metadata = {
   title: "New wallet",
@@ -23,7 +23,9 @@ export default function Page() {
           Cancel
         </Link>
       </div>
-      <CreateWalletForm defaultOpeningDate={todayInBangkok()} />
+      <CreateWalletForm
+        defaultOpeningDate={todayIn({ timeZone: APP_TIME_ZONE })}
+      />
     </main>
   );
 }

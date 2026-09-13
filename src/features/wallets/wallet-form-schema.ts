@@ -1,6 +1,10 @@
 import * as z from "zod";
 import { WALLET_TYPES } from "@/core/database/schema/wallet-type";
-import { parseCalendarDate, todayInBangkok } from "@/shared/helpers/dates";
+import {
+  APP_TIME_ZONE,
+  parseCalendarDate,
+  todayIn,
+} from "@/shared/helpers/dates";
 import type { MoneyParseError } from "@/shared/helpers/money";
 import { parseMoneyInput } from "@/shared/helpers/money";
 
@@ -30,7 +34,7 @@ export const walletFormSchema = z.object({
     .string()
     .refine((value) => parseCalendarDate(value).ok, "Enter the opening date")
     .refine(
-      (value) => value <= todayInBangkok(),
+      (value) => value <= todayIn({ timeZone: APP_TIME_ZONE }),
       "Opening date cannot be in the future",
     ),
 });

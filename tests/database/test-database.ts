@@ -7,8 +7,10 @@ import { testDatabaseUrl } from "./url";
 const ROLLBACK = Symbol("rollback");
 
 /**
- * Registers one connection per test file and runs each test inside a
+ * Registers one connection per test file. `withRollback` runs a test inside a
  * transaction that is always rolled back, so tests never see each other.
+ * `committed` hands out the pooled connection for tests that need more than
+ * one concurrent transaction; those tests isolate themselves by owner.
  */
 export function setupTestDatabase() {
   let connection: DatabaseConnection | undefined;
@@ -21,14 +23,18 @@ export function setupTestDatabase() {
     await connection?.close();
   });
 
-  return async function withRollback(
-    run: (db: Database) => Promise<void>,
-  ): Promise<void> {
+  function committed(): Database {
     if (!connection) {
       throw new Error("Test database connection was not opened");
     }
+    return connection.db;
+  }
+
+  async function withRollback(
+    run: (db: Database) => Promise<void>,
+  ): Promise<void> {
     try {
-      await connection.db.transaction(async (tx) => {
+      await committed().transaction(async (tx) => {
         await run(tx);
         throw ROLLBACK;
       });
@@ -37,7 +43,9 @@ export function setupTestDatabase() {
         throw error;
       }
     }
-  };
+  }
+
+  return { withRollback, committed };
 }
 
 let userSequence = 0;

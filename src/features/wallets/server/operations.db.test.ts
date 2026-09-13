@@ -8,7 +8,7 @@ import {
   setupTestDatabase,
 } from "../../../../tests/database/test-database";
 
-const withRollback = setupTestDatabase();
+const { withRollback } = setupTestDatabase();
 
 describe("wallet operations", () => {
   test("a created wallet is listed with its opening balance as the balance", async () => {
@@ -23,7 +23,7 @@ describe("wallet operations", () => {
         openingDate: "2026-09-01",
       });
 
-      expect(await listWallets(db, owner.id)).toEqual([
+      expect(await listWallets(db, { ownerId: owner.id })).toEqual([
         expect.objectContaining({
           name: "Kasikorn savings",
           type: "bank_account",
@@ -49,11 +49,11 @@ describe("wallet operations", () => {
           openingAmount: 12000n,
           openingDate: "2026-09-14",
         });
-        expect(await listWallets(db, owner.id)).toEqual([
+        expect(await listWallets(db, { ownerId: owner.id })).toEqual([
           expect.objectContaining({ openingAmount: 12000n, balance: 0n }),
         ]);
         vi.setSystemTime(new Date("2026-09-13T17:00:00Z"));
-        expect(await listWallets(db, owner.id)).toEqual([
+        expect(await listWallets(db, { ownerId: owner.id })).toEqual([
           expect.objectContaining({ balance: 12000n }),
         ]);
       });
@@ -75,7 +75,9 @@ describe("wallet operations", () => {
         });
       }
 
-      const types = (await listWallets(db, owner.id)).map((w) => w.type);
+      const types = (await listWallets(db, { ownerId: owner.id })).map(
+        (w) => w.type,
+      );
       expect(types).toEqual(["cash", "bank_account", "e_wallet"]);
     });
   });
@@ -98,7 +100,9 @@ describe("wallet operations", () => {
         openingDate: "2026-09-01",
       });
 
-      const balances = (await listWallets(db, owner.id)).map((w) => w.balance);
+      const balances = (await listWallets(db, { ownerId: owner.id })).map(
+        (w) => w.balance,
+      );
       expect(balances).toEqual([9_999_999_999n, -12_050n]);
     });
   });
@@ -115,7 +119,7 @@ describe("wallet operations", () => {
         openingDate: "2026-09-01",
       });
 
-      expect(await listWallets(db, bob.id)).toEqual([]);
+      expect(await listWallets(db, { ownerId: bob.id })).toEqual([]);
     });
   });
 
@@ -132,7 +136,7 @@ describe("wallet operations", () => {
         });
       }
 
-      const total = (await listWallets(db, owner.id)).reduce(
+      const total = (await listWallets(db, { ownerId: owner.id })).reduce(
         (sum, w) => sum + w.balance,
         0n,
       );

@@ -19,7 +19,7 @@ export default async function Page({ searchParams }: PageProps<"/wallets">) {
   }
 
   const [wallets, { created }] = await Promise.all([
-    listWallets(db, session.user.id),
+    listWallets(db, { ownerId: session.user.id }),
     searchParams,
   ]);
   const createdId = typeof created === "string" ? created : undefined;

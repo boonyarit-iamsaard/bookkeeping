@@ -18,6 +18,7 @@ export function AppHeader({ email }: Readonly<AppHeaderProps>) {
         </Link>
         <nav aria-label="Primary" className="flex items-center gap-1">
           <NavLink href="/wallets">Wallets</NavLink>
+          <NavLink href="/transactions">Transactions</NavLink>
         </nav>
         <div className="ml-auto flex items-center gap-3">
           <span className="hidden truncate text-muted-foreground text-sm sm:inline">
