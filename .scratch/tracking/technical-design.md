@@ -13,4 +13,6 @@ These notes capture the accepted icon-catalog approach and implementation consid
 - Normalize query and tags consistently. Prefer whole-name and whole-token matches before weaker prefix or substring matches, and make ties deterministic.
 - The sample uses the strongest individual tag match, so `car insurance` can tie transport and insurance and favor catalog order. Evaluate such compound names and short-token false positives when implementing ranking; no external semantic model is required.
 - Empty/unmatched queries can return no suggestions while the picker retains its preselected generic icon. Recommendation failure must never prevent saving a category.
+- Confirmed 2026-09-13 (ticket 03): the picker follows the top recommendation for the typed name until the user picks an icon by hand; the generic icon is the preselection only when nothing matches. This refines the spec's "preselect a guaranteed generic icon" wording without weakening the guarantee.
+- Confirmed 2026-09-13 (ticket 03): the shipped catalog holds about 100 stable ids in 12 browsing groups; the original 38 ids are unchanged.
 - Catalog metadata need not be included in financial exports. Export/import is not specified for milestone one; preserving chosen category icons in a future portable backup may require carrying stable icon IDs.

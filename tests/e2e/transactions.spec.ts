@@ -17,10 +17,9 @@ test("quick entry: amount then Save records an expense and moves the wallet bala
   const amount = page.getByLabel("Amount");
   await expect(amount).toBeFocused();
   await expect(page.getByRole("radio", { name: "Expense" })).toBeChecked();
-  await expect(page.getByLabel("Category")).toHaveValue(/.+/);
-  await expect(
-    page.getByLabel("Category").locator("option:checked"),
-  ).toHaveText("Uncategorized");
+  await expect(page.getByRole("button", { name: /^Category/ })).toHaveText(
+    "Uncategorized",
+  );
   await expect(page.getByRole("button", { name: "Today" })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -142,12 +141,15 @@ test("validation names the problem, keeps values, and income switches the catego
   );
 
   await page.getByRole("radio", { name: "Income" }).click();
-  await expect(page.getByLabel("Category")).toContainText("Salary");
-  await expect(
-    page.getByLabel("Category").locator("option:checked"),
-  ).toHaveText("Uncategorized");
+  const category = page.getByRole("button", { name: /^Category/ });
+  await expect(category).toHaveText("Uncategorized");
   await page.getByLabel("Amount").fill("1000");
-  await page.getByLabel("Category").selectOption({ label: "Salary" });
+  await category.click();
+  await page
+    .getByRole("dialog", { name: "Income category" })
+    .getByRole("button", { name: "Salary" })
+    .click();
+  await expect(category).toHaveText("Salary");
   await page.getByRole("button", { name: "Yesterday" }).click();
   await page.getByRole("button", { name: "Save +฿1,000.00 · Cash" }).click();
 

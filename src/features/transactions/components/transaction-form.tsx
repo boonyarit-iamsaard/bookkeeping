@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { CategoryPicker } from "@/features/categories/components/category-picker";
+import type { CreateCategoryActionSuccess } from "@/features/categories/server/actions";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import type {
   CategoryOption,
@@ -17,11 +19,11 @@ import {
   TRANSACTION_TYPES,
 } from "@/features/transactions/transaction-types";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-types";
+import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 import {
   Field,
   FieldDescription,
-  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/shared/components/ui/field";
@@ -78,12 +80,25 @@ function SaveLabel({
 
 export function TransactionForm({
   wallets,
-  categories,
+  categories: initialCategories,
   today: initialToday,
   defaultWalletId,
 }: Readonly<TransactionFormProps>) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  // Categories saved from the panel join the list at once; they are already
+  // committed, so cancelling the transaction cannot lose them.
+  const [categories, setCategories] = useState(initialCategories);
+  function addCategories({
+    category,
+    createdParent,
+  }: Readonly<CreateCategoryActionSuccess>) {
+    setCategories((current) => [
+      ...current,
+      ...(createdParent ? [createdParent] : []),
+      category,
+    ]);
+  }
 
   useEffect(() => {
     const element = formRef.current;
@@ -273,23 +288,30 @@ export function TransactionForm({
                     !field.state.meta.isValid || Boolean(serverError);
                   return (
                     <Field data-invalid={invalid}>
-                      <FieldLabel htmlFor={field.name}>Category</FieldLabel>
-                      <NativeSelect
+                      <FieldLabel id="categoryId-label" htmlFor={field.name}>
+                        Category
+                      </FieldLabel>
+                      <CategoryPicker
                         id={field.name}
-                        name={field.name}
+                        kind={type}
+                        categories={categories}
                         value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => {
+                        onSelect={(categoryId) => {
                           clearFieldError("categoryId");
-                          field.handleChange(event.target.value);
+                          field.handleChange(categoryId);
                         }}
-                        aria-invalid={invalid}
+                        onCreated={(outcome) => {
+                          clearFieldError("categoryId");
+                          addCategories(outcome);
+                          field.handleChange(outcome.category.id);
+                        }}
+                        aria-labelledby="categoryId-label"
                         aria-describedby={
                           invalid ? `${field.name}-error` : undefined
                         }
-                      >
-                        <CategoryOptions categories={categories} kind={type} />
-                      </NativeSelect>
+                        invalid={invalid}
+                        disabled={awaitingReplay}
+                      />
                       <FieldErrors
                         id={`${field.name}-error`}
                         serverError={serverError}
@@ -453,55 +475,6 @@ export function TransactionForm({
         }}
       </form.Subscribe>
     </form>
-  );
-}
-
-interface CategoryOptionsProps {
-  categories: readonly CategoryOption[];
-  kind: TransactionType;
-}
-
-/**
- * Parents with children become a group whose first entry is the parent
- * itself, so either level is one choice away; childless parents stay flat.
- */
-function CategoryOptions({ categories, kind }: Readonly<CategoryOptionsProps>) {
-  const tree = categories.filter((c) => c.kind === kind);
-  const parents = tree.filter((c) => c.parentId === null);
-  return parents.map((parent) => {
-    const children = tree.filter((c) => c.parentId === parent.id);
-    if (children.length === 0) {
-      return (
-        <option key={parent.id} value={parent.id}>
-          {parent.name}
-        </option>
-      );
-    }
-    return (
-      <optgroup key={parent.id} label={parent.name}>
-        <option value={parent.id}>{parent.name}</option>
-        {children.map((child) => (
-          <option key={child.id} value={child.id}>
-            {parent.name} › {child.name}
-          </option>
-        ))}
-      </optgroup>
-    );
-  });
-}
-
-interface FieldErrorsProps {
-  id: string;
-  /** A definitive rejection from the server; it outranks stale local errors. */
-  serverError: string | undefined;
-  errors: Array<{ message?: string } | undefined>;
-}
-
-function FieldErrors({ id, serverError, errors }: Readonly<FieldErrorsProps>) {
-  return serverError ? (
-    <FieldError id={id}>{serverError}</FieldError>
-  ) : (
-    <FieldError id={id} errors={errors} />
   );
 }
 
