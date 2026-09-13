@@ -58,16 +58,24 @@ export default async function Page({
         </Link>
       </div>
       <TransactionForm
-        wallets={wallets.map((wallet) => ({
-          id: wallet.id,
-          name: wallet.name,
-          type: wallet.type,
-          openingDate: wallet.openingDate,
-          balanceLabel: formatMoney({
-            amountInMinorUnits: wallet.balance,
-            currency: wallet.currency,
-          }),
-        }))}
+        wallets={wallets
+          .filter(
+            (wallet) =>
+              !wallet.archivedAt ||
+              wallet.id === transaction.wallet.id ||
+              wallet.id === transaction.destinationWallet?.id,
+          )
+          .map((wallet) => ({
+            id: wallet.id,
+            name: wallet.name,
+            type: wallet.type,
+            openingDate: wallet.openingDate,
+            archived: Boolean(wallet.archivedAt),
+            balanceLabel: formatMoney({
+              amountInMinorUnits: wallet.balance,
+              currency: wallet.currency,
+            }),
+          }))}
         categories={categories}
         today={todayIn({ timeZone: APP_TIME_ZONE })}
         mode={{
@@ -76,7 +84,8 @@ export default async function Page({
             id: transaction.id,
             type: transaction.type,
             walletId: transaction.wallet.id,
-            categoryId: transaction.category.id,
+            categoryId: transaction.category?.id ?? "",
+            destinationWalletId: transaction.destinationWallet?.id ?? "",
             amountText: formatMoneyInput({
               amountInMinorUnits: transaction.amount,
               currency: transaction.currency,

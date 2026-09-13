@@ -33,24 +33,37 @@ export function TransactionDetailView({
       </section>
 
       <dl className="-mx-4 divide-y sm:mx-0">
-        <Row term="Category">
-          <span className="flex items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-              <CategoryIcon
-                iconId={transaction.category.iconId}
-                className="size-5"
-              />
+        {transaction.category && (
+          <Row term="Category">
+            <span className="flex items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                <CategoryIcon
+                  iconId={transaction.category.iconId}
+                  className="size-5"
+                />
+              </span>
+              {categoryLabel(transaction.category)}
             </span>
-            {categoryLabel(transaction.category)}
-          </span>
-        </Row>
-        <Row term="Wallet">
+          </Row>
+        )}
+        <Row term={transaction.destinationWallet ? "From" : "Wallet"}>
           {transaction.wallet.name}
           <span className="text-muted-foreground">
             {" "}
             · {WALLET_TYPE_LABELS[transaction.wallet.type]}
+            {transaction.wallet.archived && " · Archived"}
           </span>
         </Row>
+        {transaction.destinationWallet && (
+          <Row term="To">
+            {transaction.destinationWallet.name}
+            <span className="text-muted-foreground">
+              {" "}
+              · {WALLET_TYPE_LABELS[transaction.destinationWallet.type]}
+              {transaction.destinationWallet.archived && " · Archived"}
+            </span>
+          </Row>
+        )}
         <Row term="Date">{formatCalendarDate(transaction.transactionDate)}</Row>
         <Row term="Note">
           {transaction.note || (

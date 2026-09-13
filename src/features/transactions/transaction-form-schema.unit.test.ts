@@ -6,6 +6,8 @@ import {
 
 const base = {
   type: "expense",
+  currency: "THB",
+  destinationWalletId: "",
   walletId: "wallet-1",
   categoryId: "category-1",
   amount: "120",
@@ -92,4 +94,27 @@ describe("transaction form schema", () => {
       false,
     );
   });
+});
+
+test("transfer submissions require explicit THB and a distinct destination, with no category selection", () => {
+  const schema = createTransactionSubmissionSchema();
+  const input = {
+    ...base,
+    type: "transfer",
+    destinationWalletId: "wallet-2",
+    categoryId: "",
+    submissionKey: "transfer-key",
+  };
+  expect(schema.safeParse(input).success).toBe(true);
+  for (const currency of [undefined, "USD", ""]) {
+    expect(schema.safeParse({ ...input, currency }).success).toBe(false);
+  }
+  for (const destinationWalletId of ["", "wallet-1"]) {
+    const invalid = schema.safeParse({ ...input, destinationWalletId });
+    expect(invalid.error?.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: ["destinationWalletId"] }),
+      ]),
+    );
+  }
 });

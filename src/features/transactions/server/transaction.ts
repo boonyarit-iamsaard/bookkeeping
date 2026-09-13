@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Database } from "@/core/database/database";
 import { categories } from "@/core/database/schema/categories";
@@ -35,7 +35,9 @@ export interface CreateTransactionInput {
   submissionKey: string;
   type: TransactionType;
   walletId: string;
-  categoryId: string;
+  categoryId: string | null;
+  destinationWalletId?: string | null;
+  currency?: "THB";
   /** Integer satang, always positive; the type carries the sign. */
   amount: bigint;
   transactionDate: CalendarDate;
@@ -44,6 +46,11 @@ export interface CreateTransactionInput {
 
 export type CreateTransactionError =
   | { code: "wallet-not-found" }
+  | { code: "destination-wallet-not-found" }
+  | { code: "same-wallet" }
+  | { code: "wallet-archived"; walletId: string }
+  | { code: "invalid-currency" }
+  | { code: "invalid-transfer" }
   | { code: "category-not-found" }
   | { code: "category-kind-mismatch" }
   | { code: "amount-out-of-range" }
@@ -62,7 +69,7 @@ export interface CreateTransactionOutcome {
 const REPLAY = Symbol("replay");
 
 /**
- * Records one income or expense. Validation runs inside the committing
+ * Records one income, expense, or transfer. Validation runs inside the committing
  * transaction against the owner's own wallet and category, and the receipt is
  * committed with the record, so a retry finds both or neither.
  */
@@ -97,6 +104,7 @@ export async function createTransaction(
           type: input.type,
           walletId: input.walletId,
           categoryId: input.categoryId,
+          destinationWalletId: input.destinationWalletId,
           currency: "THB",
           amount: input.amount,
           transactionDate: input.transactionDate,
@@ -197,13 +205,15 @@ async function findReceipt(
   return receipt;
 }
 
-/** The fields every income or expense carries, whether created or edited. */
+/** The fields every transaction carries, whether created or edited. */
 type TransactionFields = Pick<
   CreateTransactionInput,
   | "ownerId"
   | "type"
   | "walletId"
   | "categoryId"
+  | "destinationWalletId"
+  | "currency"
   | "amount"
   | "transactionDate"
   | "note"
@@ -214,6 +224,20 @@ type FieldRejection = Exclude<
   { code: "submission-conflict" }
 >;
 
+interface OwnedTransactionFields extends TransactionFields {
+  /** Wallets an edit may keep even though they are archived: its own. */
+  retainedWalletIds?: readonly string[];
+}
+
+/** The source wallet, plus the destination when the row is a transfer. */
+function walletIdsOf(
+  row: Readonly<{ walletId: string; destinationWalletId?: string | null }>,
+): string[] {
+  return row.destinationWalletId
+    ? [row.walletId, row.destinationWalletId]
+    : [row.walletId];
+}
+
 /**
  * Checks the wallet, category, and date against the owner's own records.
  * Runs inside the committing transaction so the rows it reads are the rows
@@ -221,38 +245,77 @@ type FieldRejection = Exclude<
  */
 async function validateAgainstOwner(
   tx: Database,
-  input: Readonly<TransactionFields>,
+  input: Readonly<OwnedTransactionFields>,
 ): Promise<FieldRejection | undefined> {
-  const [wallet] = await tx
-    .select({ openingDate: wallets.openingDate })
+  if (input.type === "transfer") {
+    if (input.currency !== "THB") {
+      return { code: "invalid-currency" };
+    }
+    if (!input.destinationWalletId || input.categoryId !== null) {
+      return { code: "invalid-transfer" };
+    }
+    if (input.walletId === input.destinationWalletId) {
+      return { code: "same-wallet" };
+    }
+  } else if (input.destinationWalletId) {
+    return { code: "invalid-transfer" };
+  }
+  const walletIds = walletIdsOf(input);
+  // Stable lock order also protects validation against future wallet lifecycle writes.
+  const ownedWallets = await tx
+    .select({
+      id: wallets.id,
+      openingDate: wallets.openingDate,
+      archivedAt: wallets.archivedAt,
+    })
     .from(wallets)
     .where(
-      and(eq(wallets.id, input.walletId), eq(wallets.userId, input.ownerId)),
-    );
-  if (!wallet) {
+      and(inArray(wallets.id, walletIds), eq(wallets.userId, input.ownerId)),
+    )
+    .orderBy(asc(wallets.id))
+    .for("share");
+  if (!ownedWallets.some((wallet) => wallet.id === input.walletId)) {
     return { code: "wallet-not-found" };
   }
-  const [category] = await tx
-    .select({ kind: categories.kind })
-    .from(categories)
-    .where(
-      and(
-        eq(categories.id, input.categoryId),
-        eq(categories.userId, input.ownerId),
-      ),
-    );
-  if (!category) {
-    return { code: "category-not-found" };
+  if (
+    input.destinationWalletId &&
+    !ownedWallets.some((wallet) => wallet.id === input.destinationWalletId)
+  ) {
+    return { code: "destination-wallet-not-found" };
   }
-  if (category.kind !== input.type) {
-    return { code: "category-kind-mismatch" };
+  for (const wallet of ownedWallets) {
+    if (wallet.archivedAt && !input.retainedWalletIds?.includes(wallet.id)) {
+      return { code: "wallet-archived", walletId: wallet.id };
+    }
+  }
+  if (input.type !== "transfer") {
+    if (!input.categoryId) {
+      return { code: "category-not-found" };
+    }
+    const [category] = await tx
+      .select({ kind: categories.kind })
+      .from(categories)
+      .where(
+        and(
+          eq(categories.id, input.categoryId),
+          eq(categories.userId, input.ownerId),
+        ),
+      );
+    if (!category) {
+      return { code: "category-not-found" };
+    }
+    if (category.kind !== input.type) {
+      return { code: "category-kind-mismatch" };
+    }
   }
   const today = todayIn({ timeZone: APP_TIME_ZONE });
   if (input.transactionDate > today) {
     return { code: "future-date", today };
   }
-  if (input.transactionDate < wallet.openingDate) {
-    return { code: "before-opening", openingDate: wallet.openingDate };
+  for (const wallet of ownedWallets) {
+    if (input.transactionDate < wallet.openingDate) {
+      return { code: "before-opening", openingDate: wallet.openingDate };
+    }
   }
   return undefined;
 }
@@ -281,9 +344,17 @@ function fingerprintPayload(input: Readonly<CreateTransactionInput>): string {
     transactionDate: input.transactionDate,
     type: input.type,
     walletId: input.walletId,
+    ...(input.type === "transfer"
+      ? {
+          destinationWalletId: input.destinationWalletId,
+          currency: input.currency,
+        }
+      : {}),
   });
   return createHash("sha256").update(canonical).digest("hex");
 }
+
+const destinationWallets = alias(wallets, "destination_wallets");
 
 const parentCategories = alias(categories, "parent_categories");
 
@@ -299,6 +370,11 @@ function detailQuery(db: Database) {
       walletId: wallets.id,
       walletName: wallets.name,
       walletType: wallets.type,
+      walletArchivedAt: wallets.archivedAt,
+      destinationWalletId: destinationWallets.id,
+      destinationWalletName: destinationWallets.name,
+      destinationWalletType: destinationWallets.type,
+      destinationWalletArchivedAt: destinationWallets.archivedAt,
       categoryId: categories.id,
       categoryName: categories.name,
       categoryIconId: categories.iconId,
@@ -306,7 +382,11 @@ function detailQuery(db: Database) {
     })
     .from(transactions)
     .innerJoin(wallets, eq(wallets.id, transactions.walletId))
-    .innerJoin(categories, eq(categories.id, transactions.categoryId))
+    .leftJoin(
+      destinationWallets,
+      eq(destinationWallets.id, transactions.destinationWalletId),
+    )
+    .leftJoin(categories, eq(categories.id, transactions.categoryId))
     .leftJoin(parentCategories, eq(parentCategories.id, categories.parentId));
 }
 
@@ -321,13 +401,32 @@ function toDetail(row: DetailRow): TransactionDetail {
     transactionDate: row.transactionDate,
     note: row.note,
     recordedAt: row.recordedAt,
-    wallet: { id: row.walletId, name: row.walletName, type: row.walletType },
-    category: {
-      id: row.categoryId,
-      name: row.categoryName,
-      iconId: row.categoryIconId,
-      parentName: row.parentName,
+    wallet: {
+      id: row.walletId,
+      name: row.walletName,
+      type: row.walletType,
+      archived: Boolean(row.walletArchivedAt),
     },
+    destinationWallet:
+      row.destinationWalletId &&
+      row.destinationWalletName &&
+      row.destinationWalletType
+        ? {
+            id: row.destinationWalletId,
+            name: row.destinationWalletName,
+            type: row.destinationWalletType,
+            archived: Boolean(row.destinationWalletArchivedAt),
+          }
+        : null,
+    category:
+      row.categoryId && row.categoryName && row.categoryIconId
+        ? {
+            id: row.categoryId,
+            name: row.categoryName,
+            iconId: row.categoryIconId,
+            parentName: row.parentName,
+          }
+        : null,
   };
 }
 
@@ -388,7 +487,9 @@ export interface UpdateTransactionInput {
   ownerId: string;
   id: string;
   walletId: string;
-  categoryId: string;
+  categoryId: string | null;
+  destinationWalletId?: string | null;
+  currency?: "THB";
   /** Integer satang, always positive; the stored type carries the sign. */
   amount: bigint;
   transactionDate: CalendarDate;
@@ -402,7 +503,9 @@ export type UpdateTransactionError =
 interface SnapshotInput {
   type: TransactionType;
   walletId: string;
-  categoryId: string;
+  categoryId: string | null;
+  destinationWalletId?: string | null;
+  currency?: "THB";
   amount: bigint;
   transactionDate: CalendarDate;
   note: string;
@@ -413,6 +516,9 @@ function snapshotOf(row: Readonly<SnapshotInput>): TransactionSnapshot {
     type: row.type,
     walletId: row.walletId,
     categoryId: row.categoryId,
+    ...(row.type === "transfer"
+      ? { destinationWalletId: row.destinationWalletId }
+      : {}),
     amount: row.amount.toString(),
     transactionDate: row.transactionDate,
     note: row.note,
@@ -427,6 +533,7 @@ function sameSnapshot(
     a.type === b.type &&
     a.walletId === b.walletId &&
     a.categoryId === b.categoryId &&
+    a.destinationWalletId === b.destinationWalletId &&
     a.amount === b.amount &&
     a.transactionDate === b.transactionDate &&
     a.note === b.note
@@ -447,6 +554,7 @@ async function lockCurrentTransaction(
       type: transactions.type,
       walletId: transactions.walletId,
       categoryId: transactions.categoryId,
+      destinationWalletId: transactions.destinationWalletId,
       amount: transactions.amount,
       transactionDate: transactions.transactionDate,
       note: transactions.note,
@@ -459,7 +567,7 @@ async function lockCurrentTransaction(
 }
 
 /**
- * Corrects an income or expense in place. The type is fixed; the wallet,
+ * Corrects a transaction in place. The type is fixed; the wallet,
  * category, amount, date, and note are re-validated against the owner's
  * records inside the committing transaction. The recording time is kept
  * and the before/after snapshots are written with the change, so history
@@ -487,18 +595,22 @@ export async function updateTransaction(
       type: current.type,
       walletId: input.walletId,
       categoryId: input.categoryId,
+      ...(current.type === "transfer"
+        ? { destinationWalletId: input.destinationWalletId }
+        : {}),
       amount: input.amount.toString(),
       transactionDate: input.transactionDate,
       note: input.note,
     } satisfies TransactionSnapshot;
-    if (sameSnapshot(before, after)) {
-      return;
-    }
     rejection = await validateAgainstOwner(tx, {
       ...input,
       type: current.type,
+      retainedWalletIds: walletIdsOf(current),
     });
     if (rejection) {
+      return;
+    }
+    if (sameSnapshot(before, after)) {
       return;
     }
     await tx
@@ -506,6 +618,7 @@ export async function updateTransaction(
       .set({
         walletId: input.walletId,
         categoryId: input.categoryId,
+        destinationWalletId: input.destinationWalletId ?? null,
         amount: input.amount,
         transactionDate: input.transactionDate,
         note: input.note,
@@ -540,7 +653,7 @@ export interface DeleteTransactionError {
 }
 
 /**
- * Soft-deletes an income or expense: it leaves lists, detail, and every
+ * Soft-deletes a transaction: it leaves lists, detail, and every
  * balance, while the row and its receipts stay so a late create retry
  * confirms the original outcome instead of recreating it. Deleting an
  * already-deleted transaction is the same outcome, without new history.

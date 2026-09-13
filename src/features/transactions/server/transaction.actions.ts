@@ -25,6 +25,7 @@ import { err, ok } from "@/shared/helpers/result";
 const TRANSACTION_FORM_FIELDS = [
   "amount",
   "walletId",
+  "destinationWalletId",
   "categoryId",
   "transactionDate",
   "note",
@@ -71,6 +72,8 @@ export async function createTransactionAction(
   // Ownership comes last so nothing in the parsed input can override it.
   const outcome = await createTransaction(db, {
     ...parsed.data,
+    categoryId: parsed.data.categoryId || null,
+    destinationWalletId: parsed.data.destinationWalletId || null,
     ownerId: session.user.id,
   });
   if (!outcome.ok) {
@@ -104,6 +107,8 @@ export async function updateTransactionAction(
 
   const outcome = await updateTransaction(db, {
     ...parsed.data,
+    categoryId: parsed.data.categoryId || null,
+    destinationWalletId: parsed.data.destinationWalletId || null,
     ownerId: session.user.id,
   });
   if (!outcome.ok) {
@@ -185,6 +190,23 @@ function describeRejection(
         field: "walletId",
         message: "That wallet is not available. Choose another wallet.",
       };
+    case "destination-wallet-not-found":
+    case "same-wallet":
+    case "invalid-transfer":
+      return {
+        code: "invalid",
+        field: "destinationWalletId",
+        message:
+          "Choose two different available wallets. Transfers have no category.",
+      };
+    case "wallet-archived":
+      return {
+        code: "invalid",
+        message:
+          "That wallet is archived. Choose an active wallet or retain this transaction’s existing wallets.",
+      };
+    case "invalid-currency":
+      return { code: "invalid", message: "Currency must be THB." };
     case "category-not-found":
     case "category-kind-mismatch":
       return {

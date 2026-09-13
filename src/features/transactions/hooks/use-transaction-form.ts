@@ -21,6 +21,7 @@ export interface WalletOption {
   name: string;
   type: WalletType;
   openingDate: CalendarDate;
+  archived?: boolean;
   /** Pre-formatted on the server; bigint does not cross into the client. */
   balanceLabel: string;
 }
@@ -146,6 +147,19 @@ export function useTransactionForm({
   /** Keeps the category inside the tree that matches the chosen type. */
   function changeType(type: TransactionType) {
     form.setFieldValue("type", type);
+    setFieldErrors({});
+    if (type === "transfer") {
+      form.setFieldValue("categoryId", "");
+      if (!form.getFieldValue("destinationWalletId")) {
+        form.setFieldValue(
+          "destinationWalletId",
+          wallets.find((wallet) => wallet.id !== form.getFieldValue("walletId"))
+            ?.id ?? "",
+        );
+      }
+      return;
+    }
+    form.setFieldValue("destinationWalletId", "");
     const current = categories.find(
       (c) => c.id === form.getFieldValue("categoryId"),
     );

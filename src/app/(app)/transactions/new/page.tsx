@@ -27,11 +27,12 @@ export default async function Page() {
   const ownerId = session.user.id;
 
   await initializeDefaultCategories(db, ownerId);
-  const [wallets, categories, lastUsed] = await Promise.all([
+  const [allWallets, categories, lastUsed] = await Promise.all([
     listWallets(db, { ownerId: ownerId }),
     listCategories(db, ownerId),
     lastUsedWalletId(db, ownerId),
   ]);
+  const wallets = allWallets.filter((wallet) => !wallet.archivedAt);
   // Last-used wallet first; otherwise the first wallet in picker order.
   const defaultWalletId =
     wallets.find((w) => w.id === lastUsed)?.id ?? wallets[0]?.id;

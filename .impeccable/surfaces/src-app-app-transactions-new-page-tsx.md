@@ -13,7 +13,7 @@ related_targets:
 Status: confirmed by the user on 2026-09-12 (form brief), extended at
 build on 2026-09-13 for the basic list and detail, again on 2026-09-13
 for the inline category panel (ticket 03), and again on 2026-09-13 for
-edit and delete (ticket 04). Visitor mode: Operate.
+edit and delete (ticket 04), and wallet transfers (ticket 05). Visitor mode: Operate.
 Platform: web (phone-first, desktop supported). Build path: code-led.
 
 Product truth lives in `PRODUCT.md`, `.scratch/tracking/spec.md`,
@@ -40,7 +40,7 @@ Save. Later, on any device: confirm what was recorded and when.
   `/transactions/[id]` (detail, with an Edit link), `/transactions/[id]/edit`
   (the same form in edit mode). Header gains a Transactions link.
 - Untouched: wallets pages, auth, category management.
-- Anti-goals: no Transfer or Refund controls (tickets 05, 07); no category
+- Anti-goals: no Refund controls (ticket 07); no category
   rename/removal (08); no custom keypad; no celebratory motion; no type
   carried by colour alone; no visible reversal entries for corrections.
 
@@ -90,7 +90,7 @@ Save. Later, on any device: confirm what was recorded and when.
   (`inputmode="decimal"`, autofocus, ฿ prefix, mono at 1.875rem in a 64px
   control: a deliberate step above DESIGN.md's `input-money`, because the
   confirmed form brief pins the amount as the focal moment); segmented
-  Income / Expense; rows Wallet, Category, Date (with Today / Yesterday
+  Income / Expense / Transfer; rows Wallet, Category, Date (with Today / Yesterday
   chips), Note; Save fixed at the bottom safe area, ≥48px, full width.
 - Desktop: same order in a ~448px column; Save inline; Enter submits from
   the amount field; Esc cancels to `/transactions`.
@@ -141,7 +141,7 @@ Cash", tap. The row appears at the top of the list; the detail proves when
 it was recorded.
 
 FIRST VIEWPORT (phone): Cancel · New transaction. Amount block with ฿ at
-row-figure size. Segmented Income / Expense. Wallet row, Category row, Date
+row-figure size. Segmented Income / Expense / Transfer. Wallet row, Category row, Date
 row with chips, Note row. Fixed Save bar.
 
 FORM: Extension of the confirmed form brief; the world is pinned; no roll.
@@ -155,3 +155,34 @@ one batched round plus one confirmation: the delete control moved below
 Save, the fixed type value aligned to the label column, and the sheet took
 safe-area padding. The destructive tint reuses the existing `destructive`
 button variant; no new token.
+
+## Wallet transfers (ticket 05)
+
+Transfer replaces Wallet / Category with From / To in the same form order.
+A 44px swap button beside From exchanges the selected wallets and retains
+focus. To uses the same native select and shows fee guidance; fewer than two
+active wallets instead explains the requirement and links to Create another
+wallet. Save is disabled in that state. Amount, date, and note stay intact
+when the type changes, and the category is hidden for transfers.
+
+The Save button reads the amount on its first line and From → To on its
+second, allowing wallet names to wrap. It keeps the phone safe-area footer
+and the desktop inline position. The existing segmented indicator supplies
+the transition and honors reduced motion. Fields lock during submission
+and uncertain-response replay, including both selectors and swap.
+
+Transfer edit uses a fixed Type label and shows retained archived wallet
+references with an Archived label. Detail has From and To rows; list uses
+the transfer pictogram and names both wallets. Transfer figures have no
+income/expense sign. Delete reads both wallet names back and explains that
+both balance effects are removed.
+
+This is an extension of the existing paper, cobalt, Inter, JetBrains Mono,
+pill controls, and hairline rows. DESIGN.md and its sidecar retain their
+existing tokens; the two-line readback is specific to this form.
+
+Transfer create/edit were inspected at 360px and 1280px, with a 360×420
+viewport check approximating keyboard space. The focused Note remained
+above the reachable Save button without horizontal overflow. The mechanical
+detector returned no findings. Visual and code reviews were performed in
+thread under the user's no-sub-agent instruction.

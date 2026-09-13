@@ -1,5 +1,7 @@
+import { eq, sql } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
 import type { Database } from "@/core/database/database";
+import { wallets } from "@/core/database/schema/wallets";
 import {
   initializeDefaultCategories,
   listCategories,
@@ -952,5 +954,385 @@ describe("correcting transactions", () => {
         walletId: owner.wallet.id,
       }),
     ).toBe(1_200_000n - (final?.amount ?? 0n));
+  });
+});
+
+describe("wallet transfers", () => {
+  test("one transfer subtracts from its source and adds to its destination on its date", async () => {
+    await withRollback(async (db) => {
+      const { owner, wallet } = await setupOwner(db);
+      const destination = await createWallet(db, {
+        ownerId: owner.id,
+        name: "Bank",
+        type: "bank_account",
+        openingAmount: 0n,
+        openingDate: "2026-09-02",
+      });
+      const result = await createTransaction(db, {
+        ownerId: owner.id,
+        submissionKey: freshKey(),
+        type: "transfer",
+        currency: "THB",
+        walletId: wallet.id,
+        destinationWalletId: destination.id,
+        categoryId: null,
+        amount: 1_500_001n,
+        transactionDate: "2026-09-02",
+        note: "Move savings",
+      });
+      expect(result.ok).toBe(true);
+      expect(
+        await listWallets(db, { ownerId: owner.id, asOf: "2026-09-01" }),
+      ).toEqual([
+        expect.objectContaining({ balance: 1_200_000n }),
+        expect.objectContaining({ balance: 0n }),
+      ]);
+      expect(
+        await listWallets(db, { ownerId: owner.id, asOf: "2026-09-02" }),
+      ).toEqual([
+        expect.objectContaining({ balance: -300_001n }),
+        expect.objectContaining({ balance: 1_500_001n }),
+      ]);
+      expect(await listTransactions(db, owner.id)).toEqual([
+        expect.objectContaining({
+          type: "transfer",
+          category: null,
+          wallet: expect.objectContaining({ id: wallet.id }),
+          destinationWallet: expect.objectContaining({ id: destination.id }),
+        }),
+      ]);
+    });
+  });
+});
+
+test("editing a transfer replaces both wallets and deletion removes both effects and retains history", async () => {
+  await withRollback(async (db) => {
+    const { owner, wallet } = await setupOwner(db);
+    const bank = await createWallet(db, {
+      ownerId: owner.id,
+      name: "Bank",
+      type: "bank_account",
+      openingAmount: 0n,
+      openingDate: "2026-09-01",
+    });
+    const cash = await createWallet(db, {
+      ownerId: owner.id,
+      name: "Travel",
+      type: "cash",
+      openingAmount: 0n,
+      openingDate: "2026-09-01",
+    });
+    const input = {
+      ownerId: owner.id,
+      submissionKey: freshKey(),
+      type: "transfer",
+      currency: "THB",
+      walletId: wallet.id,
+      destinationWalletId: bank.id,
+      categoryId: null,
+      amount: 100_000n,
+      transactionDate: "2026-09-02",
+      note: "",
+    } satisfies CreateTransactionInput;
+    const created = await createTransaction(db, input);
+    if (!created.ok) {
+      throw new Error("Transfer failed");
+    }
+    const { id, recordedAt } = created.value.transaction;
+    const edited = await updateTransaction(db, {
+      ...input,
+      id,
+      walletId: bank.id,
+      destinationWalletId: cash.id,
+      amount: 200_001n,
+      transactionDate: "2026-09-03",
+    });
+    expect(edited.ok && edited.value.recordedAt).toEqual(recordedAt);
+    expect(
+      (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+    ).toEqual([1_200_000n, -200_001n, 200_001n]);
+    expect(
+      (await listWallets(db, { ownerId: owner.id, asOf: "2026-09-02" })).map(
+        (w) => w.balance,
+      ),
+    ).toEqual([1_200_000n, 0n, 0n]);
+    expect(await deleteTransaction(db, { ownerId: owner.id, id })).toEqual({
+      ok: true,
+      value: { id },
+    });
+    expect(
+      (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+    ).toEqual([1_200_000n, 0n, 0n]);
+    const history = await listTransactionChanges(db, { ownerId: owner.id, id });
+    expect(history).toEqual([
+      expect.objectContaining({
+        action: "edit",
+        before: expect.objectContaining({
+          walletId: wallet.id,
+          destinationWalletId: bank.id,
+        }),
+        after: expect.objectContaining({
+          walletId: bank.id,
+          destinationWalletId: cash.id,
+          amount: "200001",
+        }),
+      }),
+      expect.objectContaining({ action: "delete", after: null }),
+    ]);
+    const replay = await createTransaction(db, input);
+    expect(replay.ok && replay.value.replayed).toBe(true);
+    expect(await listTransactions(db, owner.id)).toEqual([]);
+  });
+});
+
+test("transfer validation rejects same wallets, foreign wallets, missing currency, and dates outside either wallet's history", async () => {
+  await withRollback(async (db) => {
+    const { owner, wallet } = await setupOwner(db);
+    const bank = await createWallet(db, {
+      ownerId: owner.id,
+      name: "Bank",
+      type: "bank_account",
+      openingAmount: 0n,
+      openingDate: "2026-09-05",
+    });
+    const foreign = await setupOwner(db);
+    const input = {
+      ownerId: owner.id,
+      submissionKey: freshKey(),
+      type: "transfer",
+      currency: "THB",
+      walletId: wallet.id,
+      destinationWalletId: bank.id,
+      categoryId: null,
+      amount: 100n,
+      transactionDate: "2026-09-05",
+      note: "",
+    } satisfies CreateTransactionInput;
+    for (const [changes, code] of [
+      [{ destinationWalletId: wallet.id }, "same-wallet"],
+      [
+        { destinationWalletId: foreign.wallet.id },
+        "destination-wallet-not-found",
+      ],
+      [{ walletId: foreign.wallet.id }, "wallet-not-found"],
+      [{ currency: undefined }, "invalid-currency"],
+      [{ transactionDate: "2026-09-04" }, "before-opening"],
+      [
+        {
+          walletId: bank.id,
+          destinationWalletId: wallet.id,
+          transactionDate: "2026-09-04",
+        },
+        "before-opening",
+      ],
+      [{ transactionDate: "9999-01-01" }, "future-date"],
+      [{ amount: 0n }, "amount-out-of-range"],
+      [{ amount: 10_000_000_000n }, "amount-out-of-range"],
+      [{ categoryId: foreign.groceries.id }, "invalid-transfer"],
+    ] as const) {
+      expect(await createTransaction(db, { ...input, ...changes })).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code }),
+      });
+    }
+    expect(await listTransactions(db, owner.id)).toEqual([]);
+    expect(
+      (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+    ).toEqual([1_200_000n, 0n]);
+  });
+});
+
+test("archived transfer wallets reject creation but existing edits can retain or swap their own archived references", async () => {
+  await withRollback(async (db) => {
+    const { owner, wallet } = await setupOwner(db);
+    const bank = await createWallet(db, {
+      ownerId: owner.id,
+      name: "Bank",
+      type: "bank_account",
+      openingAmount: 0n,
+      openingDate: "2026-09-01",
+    });
+    const other = await createWallet(db, {
+      ownerId: owner.id,
+      name: "Old wallet",
+      type: "cash",
+      openingAmount: 0n,
+      openingDate: "2026-09-01",
+    });
+    const input = {
+      ownerId: owner.id,
+      submissionKey: freshKey(),
+      type: "transfer",
+      currency: "THB",
+      walletId: wallet.id,
+      destinationWalletId: bank.id,
+      categoryId: null,
+      amount: 100n,
+      transactionDate: "2026-09-05",
+      note: "",
+    } satisfies CreateTransactionInput;
+    const created = await createTransaction(db, input);
+    if (!created.ok) {
+      throw new Error("Transfer failed");
+    }
+    await db
+      .update(wallets)
+      .set({ archivedAt: new Date() })
+      .where(eq(wallets.userId, owner.id));
+    const rejected = await createTransaction(db, {
+      ...input,
+      submissionKey: freshKey(),
+    });
+    expect(rejected).toEqual({
+      ok: false,
+      error: expect.objectContaining({ code: "wallet-archived" }),
+    });
+    const id = created.value.transaction.id;
+    expect(
+      (await updateTransaction(db, { ...input, id, amount: 200n })).ok,
+    ).toBe(true);
+    expect(
+      (
+        await updateTransaction(db, {
+          ...input,
+          id,
+          walletId: bank.id,
+          destinationWalletId: wallet.id,
+          amount: 300n,
+        })
+      ).ok,
+    ).toBe(true);
+    expect(
+      await updateTransaction(db, {
+        ...input,
+        id,
+        destinationWalletId: other.id,
+      }),
+    ).toEqual({
+      ok: false,
+      error: expect.objectContaining({ code: "wallet-archived" }),
+    });
+    expect(
+      (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+    ).toEqual([1_200_300n, -300n, 0n]);
+  });
+});
+
+test("simultaneous duplicate transfers commit one pair of effects and changed destinations conflict", async () => {
+  const db = committed();
+  const { owner, wallet } = await setupOwner(db);
+  const bank = await createWallet(db, {
+    ownerId: owner.id,
+    name: "Bank",
+    type: "bank_account",
+    openingAmount: 0n,
+    openingDate: "2026-09-01",
+  });
+  const input = {
+    ownerId: owner.id,
+    submissionKey: freshKey(),
+    type: "transfer",
+    currency: "THB",
+    walletId: wallet.id,
+    destinationWalletId: bank.id,
+    categoryId: null,
+    amount: 9_999_999_999n,
+    transactionDate: "2026-09-05",
+    note: "",
+  } satisfies CreateTransactionInput;
+  const results = await Promise.all(
+    Array.from({ length: 5 }, () => createTransaction(db, input)),
+  );
+  expect(results.every((result) => result.ok)).toBe(true);
+  expect(
+    results.filter((result) => result.ok && !result.value.replayed),
+  ).toHaveLength(1);
+  expect(await listTransactions(db, owner.id)).toHaveLength(1);
+  expect(
+    (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+  ).toEqual([-9_998_799_999n, 9_999_999_999n]);
+  expect(
+    await createTransaction(db, {
+      ...input,
+      walletId: bank.id,
+      destinationWalletId: wallet.id,
+    }),
+  ).toEqual({ ok: false, error: { code: "submission-conflict" } });
+  const again = await createTransaction(db, {
+    ...input,
+    submissionKey: freshKey(),
+  });
+  expect(again.ok && again.value.replayed).toBe(false);
+  expect(
+    (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+  ).toEqual([-19_998_799_998n, 19_999_999_998n]);
+});
+
+test("receipt or history write failures roll back both transfer effects and leave no partial receipt or history", async () => {
+  await withRollback(async (db) => {
+    const { owner, wallet } = await setupOwner(db);
+    const bank = await createWallet(db, {
+      ownerId: owner.id,
+      name: "Bank",
+      type: "bank_account",
+      openingAmount: 0n,
+      openingDate: "2026-09-01",
+    });
+    const input = {
+      ownerId: owner.id,
+      submissionKey: "fail-transfer-receipt",
+      type: "transfer",
+      currency: "THB",
+      walletId: wallet.id,
+      destinationWalletId: bank.id,
+      categoryId: null,
+      amount: 100_000n,
+      transactionDate: "2026-09-05",
+      note: "",
+    } satisfies CreateTransactionInput;
+    // Inject a storage fault at the receipt boundary, after the financial insert.
+    // DDL lives in this rolled-back test transaction and never touches app databases.
+    await db.execute(
+      sql`alter table submission_receipts add constraint fail_transfer_receipt check (key <> 'fail-transfer-receipt')`,
+    );
+    await expect(createTransaction(db, input)).rejects.toThrow();
+    expect(await listTransactions(db, owner.id)).toEqual([]);
+    expect(
+      (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+    ).toEqual([1_200_000n, 0n]);
+    await db.execute(
+      sql`alter table submission_receipts drop constraint fail_transfer_receipt`,
+    );
+    const created = await createTransaction(db, input);
+    if (!created.ok) {
+      throw new Error("Transfer failed after storage recovered");
+    }
+    expect(created.value.replayed).toBe(false);
+    const id = created.value.transaction.id;
+    // A failed audit insert must undo the financial update or soft deletion.
+    await db.execute(
+      sql`alter table transaction_changes add constraint fail_transfer_history check (transaction_id is null) not valid`,
+    );
+    await expect(
+      updateTransaction(db, {
+        ...input,
+        id,
+        walletId: bank.id,
+        destinationWalletId: wallet.id,
+        amount: 200_000n,
+      }),
+    ).rejects.toThrow();
+    await expect(
+      deleteTransaction(db, { ownerId: owner.id, id }),
+    ).rejects.toThrow();
+    expect(await getTransaction(db, { ownerId: owner.id, id })).toEqual(
+      created.value.transaction,
+    );
+    expect(await listTransactionChanges(db, { ownerId: owner.id, id })).toEqual(
+      [],
+    );
+    expect(
+      (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+    ).toEqual([1_100_000n, 100_000n]);
   });
 });

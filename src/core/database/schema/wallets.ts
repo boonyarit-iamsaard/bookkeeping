@@ -32,6 +32,7 @@ export const wallets = pgTable(
     openingAmount: bigint("opening_amount", { mode: "bigint" }).notNull(),
     // The opening balance represents the start of this calendar date.
     openingDate: date("opening_date", { mode: "string" }).notNull(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

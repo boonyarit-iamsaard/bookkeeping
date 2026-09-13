@@ -1,4 +1,4 @@
-import { Plus, ReceiptText } from "lucide-react";
+import { ArrowRightLeft, Plus, ReceiptText } from "lucide-react";
 import Link from "next/link";
 import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
@@ -39,17 +39,34 @@ export function TransactionList({
             className="flex min-h-16 items-center gap-4 px-4 py-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset sm:px-0"
           >
             <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
-              <CategoryIcon
-                iconId={transaction.category.iconId}
-                className="size-5"
-              />
+              {transaction.category ? (
+                <CategoryIcon
+                  iconId={transaction.category.iconId}
+                  className="size-5"
+                />
+              ) : (
+                <ArrowRightLeft
+                  aria-hidden="true"
+                  strokeWidth={1.75}
+                  className="size-5"
+                />
+              )}
             </span>
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 font-medium leading-snug">
-                {categoryLabel(transaction.category)}
+                {transaction.category
+                  ? categoryLabel(transaction.category)
+                  : "Transfer"}
               </p>
+              {transaction.destinationWallet && (
+                <p className="wrap-break-word text-muted-foreground text-sm">
+                  {transaction.wallet.name} →{" "}
+                  {transaction.destinationWallet.name}
+                </p>
+              )}
               <p className="truncate text-muted-foreground text-sm">
-                {transaction.wallet.name} ·{" "}
+                {!transaction.destinationWallet &&
+                  `${transaction.wallet.name} · `}
                 {formatCalendarDate(transaction.transactionDate)}
                 {transaction.note && ` · ${transaction.note}`}
               </p>

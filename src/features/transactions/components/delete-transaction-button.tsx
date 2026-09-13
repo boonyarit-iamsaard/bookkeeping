@@ -23,6 +23,7 @@ interface DeleteTransactionButtonProps {
     transactionDate: CalendarDate;
   };
   walletName: string | undefined;
+  destinationWalletName?: string;
   disabled?: boolean;
 }
 
@@ -42,6 +43,7 @@ const LOST_RESPONSE =
 export function DeleteTransactionButton({
   transaction,
   walletName,
+  destinationWalletName,
   disabled,
 }: Readonly<DeleteTransactionButtonProps>) {
   const router = useRouter();
@@ -77,7 +79,6 @@ export function DeleteTransactionButton({
       // Already gone: the goal state holds, so report it as done.
       router.push("/transactions?deleted=1");
       router.refresh();
-      return;
     }
   }
 
@@ -125,12 +126,15 @@ export function DeleteTransactionButton({
                     <span className="money font-medium text-foreground">
                       {figure}
                     </span>
-                    {walletName && ` · ${walletName}`} on{" "}
+                    {walletName && ` · ${walletName}`}
+                    {destinationWalletName && ` → ${destinationWalletName}`} on{" "}
                     {formatCalendarDate(transaction.transactionDate)}{" "}
                   </>
                 )}
-                will leave the list and the wallet balance. This can't be
-                undone.
+                {transaction.type === "transfer"
+                  ? "will leave the list and both wallet balances."
+                  : "will leave the list and the wallet balance."}{" "}
+                This can't be undone.
               </AlertDialog.Description>
             </div>
             {state.name === "failed" && (

@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
 import type { Database } from "@/core/database/database";
 import { transactions } from "@/core/database/schema/transactions";
 import { wallets } from "@/core/database/schema/wallets";
@@ -44,6 +44,7 @@ export async function createWallet(
     currency: "THB",
     openingAmount: row.openingAmount,
     openingDate: row.openingDate,
+    archivedAt: row.archivedAt,
     balance:
       row.openingDate <= todayIn({ timeZone: APP_TIME_ZONE })
         ? row.openingAmount
@@ -72,6 +73,7 @@ export async function listWallets(
   const movement = sql<string>`coalesce(sum(case ${transactions.type}
     when 'income' then ${transactions.amount}
     when 'expense' then -${transactions.amount}
+    when 'transfer' then case when ${transactions.walletId} = ${wallets.id} then -${transactions.amount} else ${transactions.amount} end
     else 0 end), 0)`;
   const rows = await db
     .select({
@@ -80,13 +82,17 @@ export async function listWallets(
       type: wallets.type,
       openingAmount: wallets.openingAmount,
       openingDate: wallets.openingDate,
+      archivedAt: wallets.archivedAt,
       movement,
     })
     .from(wallets)
     .leftJoin(
       transactions,
       and(
-        eq(transactions.walletId, wallets.id),
+        or(
+          eq(transactions.walletId, wallets.id),
+          eq(transactions.destinationWalletId, wallets.id),
+        ),
         isNull(transactions.deletedAt),
         lte(transactions.transactionDate, asOf),
       ),
@@ -101,6 +107,7 @@ export async function listWallets(
     currency: "THB",
     openingAmount: row.openingAmount,
     openingDate: row.openingDate,
+    archivedAt: row.archivedAt,
     balance:
       row.openingDate <= asOf ? row.openingAmount + BigInt(row.movement) : 0n,
   }));

@@ -29,6 +29,12 @@ Money returned for an expense, reducing expenses and increasing the balance of t
 **Transfer**:
 Movement of money between two holdings owned by the same user.
 
+**Source wallet**:
+The wallet a transfer takes money from; shown as "From".
+
+**Destination wallet**:
+The wallet a transfer adds money to; shown as "To".
+
 **Parent category**:
 A category at the first level of an income or expense category tree, selectable directly on a transaction or used to group child categories.
 

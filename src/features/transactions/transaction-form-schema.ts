@@ -41,9 +41,13 @@ interface TransactionFormSchemaOptions {
 
 function transactionFields() {
   return {
-    type: z.enum(TRANSACTION_TYPES, { error: "Choose income or expense" }),
+    type: z.enum(TRANSACTION_TYPES, {
+      error: "Choose income, expense, or transfer",
+    }),
     walletId: z.string().min(1, "Choose a wallet"),
-    categoryId: z.string().min(1, "Choose a category"),
+    currency: z.literal("THB", { error: "Currency must be THB" }),
+    destinationWalletId: z.string().default(""),
+    categoryId: z.string(),
     amount: z.string().transform((raw, ctx) => {
       const result = parseMoneyInput({ text: raw, currency: "THB" });
       if (!result.ok) {
@@ -85,20 +89,51 @@ function transactionFields() {
   };
 }
 
-function openingDateCheck(
+function transactionFieldCheck(
   walletOpeningDates: Readonly<Record<string, CalendarDate>>,
 ) {
   return (
-    value: { walletId: string; transactionDate: string },
+    value: {
+      type: string;
+      walletId: string;
+      destinationWalletId: string;
+      categoryId: string;
+      transactionDate: string;
+    },
     ctx: z.RefinementCtx,
   ) => {
-    const openingDate = walletOpeningDates[value.walletId];
-    if (openingDate && value.transactionDate < openingDate) {
+    if (value.type === "transfer") {
+      if (
+        !value.destinationWalletId ||
+        value.destinationWalletId === value.walletId
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["destinationWalletId"],
+          message: "Choose a different destination wallet",
+        });
+      }
+    } else if (!value.categoryId) {
       ctx.addIssue({
         code: "custom",
-        path: ["transactionDate"],
-        message: `This wallet opened on ${formatCalendarDate(openingDate)}; earlier dates are not tracked`,
+        path: ["categoryId"],
+        message: "Choose a category",
       });
+    }
+    const ids =
+      value.type === "transfer"
+        ? [value.walletId, value.destinationWalletId]
+        : [value.walletId];
+    for (const id of ids) {
+      const openingDate = walletOpeningDates[id];
+      if (openingDate && value.transactionDate < openingDate) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["transactionDate"],
+          message: `This wallet opened on ${formatCalendarDate(openingDate)}; earlier dates are not tracked`,
+        });
+        break;
+      }
     }
   };
 }
@@ -112,15 +147,17 @@ export function createTransactionFormSchema({
 }: Readonly<TransactionFormSchemaOptions> = {}) {
   return z
     .object(transactionFields())
-    .superRefine(openingDateCheck(walletOpeningDates));
+    .superRefine(transactionFieldCheck(walletOpeningDates));
 }
 
 /** What the client actually sends: the form values plus the submission key. */
 export function createTransactionSubmissionSchema() {
-  return z.object({
-    ...transactionFields(),
-    submissionKey: z.string().min(1),
-  });
+  return z
+    .object({
+      ...transactionFields(),
+      submissionKey: z.string().min(1),
+    })
+    .superRefine(transactionFieldCheck({}));
 }
 
 /**

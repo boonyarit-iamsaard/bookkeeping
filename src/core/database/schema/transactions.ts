@@ -38,9 +38,13 @@ export const transactions = pgTable(
     walletId: uuid("wallet_id")
       .notNull()
       .references(() => wallets.id, { onDelete: "restrict" }),
-    categoryId: uuid("category_id")
-      .notNull()
-      .references(() => categories.id, { onDelete: "restrict" }),
+    destinationWalletId: uuid("destination_wallet_id").references(
+      () => wallets.id,
+      { onDelete: "restrict" },
+    ),
+    categoryId: uuid("category_id").references(() => categories.id, {
+      onDelete: "restrict",
+    }),
     currency: text("currency").notNull().default("THB"),
     // Integer satang, always positive; the type carries the sign.
     amount: bigint("amount", { mode: "bigint" }).notNull(),
@@ -65,6 +69,17 @@ export const transactions = pgTable(
       table.transactionDate,
     ),
     index("transactions_wallet_id_idx").on(table.walletId),
+    index("transactions_destination_wallet_id_idx").on(
+      table.destinationWalletId,
+    ),
+    check(
+      "transactions_wallet_shape",
+      sql`
+      (${table.type} = 'transfer' and ${table.destinationWalletId} is not null
+        and ${table.destinationWalletId} <> ${table.walletId} and ${table.categoryId} is null)
+      or (${table.type} <> 'transfer' and ${table.destinationWalletId} is null and ${table.categoryId} is not null)
+    `,
+    ),
     index("transactions_category_id_idx").on(table.categoryId),
     check("transactions_currency_thb", sql`${table.currency} = 'THB'`),
     check(

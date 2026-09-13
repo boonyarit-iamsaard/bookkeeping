@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowDownUp } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -56,6 +57,7 @@ export interface EditableTransaction {
   type: TransactionType;
   walletId: string;
   categoryId: string;
+  destinationWalletId: string;
   /** The stored amount in baht text, e.g. "120.00", exactly as saved. */
   amountText: string;
   transactionDate: CalendarDate;
@@ -91,6 +93,8 @@ function initialValuesFor({
     const { transaction } = mode;
     return {
       type: transaction.type,
+      currency: "THB",
+      destinationWalletId: transaction.destinationWalletId,
       walletId: transaction.walletId,
       categoryId: transaction.categoryId,
       amount: transaction.amountText,
@@ -100,6 +104,8 @@ function initialValuesFor({
   }
   return {
     type: "expense",
+    currency: "THB",
+    destinationWalletId: "",
     walletId: mode.defaultWalletId,
     categoryId: uncategorizedFor(categories, "expense"),
     amount: "",
@@ -121,10 +127,16 @@ interface SaveLabelProps {
   type: TransactionType;
   amountText: string;
   walletName: string | undefined;
+  destinationWalletName?: string;
 }
 
 /** "Save −฿120.00 · Cash" once the amount parses; plain "Save" before that. */
-function SaveLabel({ type, amountText, walletName }: Readonly<SaveLabelProps>) {
+function SaveLabel({
+  type,
+  amountText,
+  walletName,
+  destinationWalletName,
+}: Readonly<SaveLabelProps>) {
   const parsed = parseMoneyInput({ text: amountText, currency: "THB" });
   if (!parsed.ok || parsed.value <= 0n || !walletName) {
     return "Save";
@@ -133,6 +145,21 @@ function SaveLabel({ type, amountText, walletName }: Readonly<SaveLabelProps>) {
     amountInMinorUnits: parsed.value,
     currency: "THB",
   });
+  if (type === "transfer" && destinationWalletName) {
+    return (
+      <span className="flex min-w-0 flex-col items-center gap-1 py-2">
+        <span>
+          Save{" "}
+          <span className="money" translate="no">
+            {figure}
+          </span>
+        </span>
+        <span className="wrap-break-word w-full whitespace-normal font-normal text-sm">
+          {walletName} → {destinationWalletName}
+        </span>
+      </span>
+    );
+  }
   return (
     <>
       Save{" "}
@@ -237,172 +264,63 @@ export function TransactionForm({
         </output>
       )}
 
-      <fieldset disabled={awaitingReplay} className="contents">
-        <FieldGroup>
-          <form.Field name="amount">
-            {(field) => {
-              const serverError = fieldErrors.amount;
-              const invalid = !field.state.meta.isValid || Boolean(serverError);
-              return (
-                <Field data-invalid={invalid}>
-                  <FieldLabel htmlFor={field.name}>Amount</FieldLabel>
-                  <div className="relative">
-                    <span
-                      aria-hidden="true"
-                      className="money pointer-events-none absolute inset-y-0 left-5 flex items-center text-muted-foreground text-xl"
-                    >
-                      ฿
-                    </span>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      type="text"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      // A new entry starts at the amount with the keyboard up;
-                      // an edit waits to hear which field is wrong.
-                      autoFocus={!editing}
-                      enterKeyHint="done"
-                      placeholder="0.00"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => {
-                        clearFieldError("amount");
-                        field.handleChange(event.target.value);
-                      }}
-                      aria-invalid={invalid}
-                      aria-describedby={
-                        invalid
-                          ? "amount-description amount-error"
-                          : "amount-description"
-                      }
-                      className="money h-16 pr-16 pl-11 text-3xl text-foreground md:text-3xl"
-                    />
-                    <span
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-y-0 right-5 flex items-center font-medium text-muted-foreground text-sm"
-                    >
-                      THB
-                    </span>
-                  </div>
-                  <FieldDescription id="amount-description">
-                    In Thai baht, to the satang.
-                  </FieldDescription>
-                  <FieldErrors
-                    id={`${field.name}-error`}
-                    serverError={serverError}
-                    errors={field.state.meta.errors}
-                  />
-                </Field>
-              );
-            }}
-          </form.Field>
-
-          {editing ? (
-            <Field>
-              <span
-                data-slot="field-label"
-                className="flex select-none items-center gap-2 font-medium text-sm leading-none"
-              >
-                Type
-              </span>
-              <p className="flex h-11 items-center font-medium">
-                {TRANSACTION_TYPE_LABELS[editing.type]}
-              </p>
-              <FieldDescription>
-                The type is fixed once saved. To change it, delete this
-                transaction and record it again.
-              </FieldDescription>
-            </Field>
-          ) : (
-            <form.Field name="type">
-              {(field) => (
-                <Field>
-                  <FieldLabel id="transaction-type-label">Type</FieldLabel>
-                  <SegmentedControl
-                    name={field.name}
-                    aria-labelledby="transaction-type-label"
-                    options={TYPE_OPTIONS}
-                    value={field.state.value}
-                    onValueChange={changeType}
-                  />
-                </Field>
-              )}
-            </form.Field>
-          )}
-
-          <form.Field name="walletId">
-            {(field) => {
-              const serverError = fieldErrors.walletId;
-              const invalid = !field.state.meta.isValid || Boolean(serverError);
-              return (
-                <Field data-invalid={invalid}>
-                  <FieldLabel htmlFor={field.name}>Wallet</FieldLabel>
-                  <NativeSelect
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => {
-                      clearFieldError("walletId");
-                      clearFieldError("transactionDate");
-                      field.handleChange(event.target.value);
-                    }}
-                    aria-invalid={invalid}
-                    aria-describedby={
-                      invalid ? `${field.name}-error` : undefined
-                    }
-                  >
-                    {wallets.map((wallet) => (
-                      <option key={wallet.id} value={wallet.id}>
-                        {wallet.name} · {WALLET_TYPE_LABELS[wallet.type]} ·{" "}
-                        {wallet.balanceLabel}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                  <FieldErrors
-                    id={`${field.name}-error`}
-                    serverError={serverError}
-                    errors={field.state.meta.errors}
-                  />
-                </Field>
-              );
-            }}
-          </form.Field>
-
-          <form.Subscribe selector={(state) => state.values.type}>
-            {(type) => (
-              <form.Field name="categoryId">
+      <form.Subscribe selector={(state) => state.isSubmitting}>
+        {(isSubmitting) => (
+          <fieldset
+            disabled={awaitingReplay || isSubmitting}
+            className="contents"
+          >
+            <FieldGroup>
+              <form.Field name="amount">
                 {(field) => {
-                  const serverError = fieldErrors.categoryId;
+                  const serverError = fieldErrors.amount;
                   const invalid =
                     !field.state.meta.isValid || Boolean(serverError);
                   return (
                     <Field data-invalid={invalid}>
-                      <FieldLabel id="categoryId-label" htmlFor={field.name}>
-                        Category
-                      </FieldLabel>
-                      <CategoryPicker
-                        id={field.name}
-                        kind={type}
-                        categories={categories}
-                        value={field.state.value}
-                        onSelect={(categoryId) => {
-                          clearFieldError("categoryId");
-                          field.handleChange(categoryId);
-                        }}
-                        onCreated={(outcome) => {
-                          clearFieldError("categoryId");
-                          addCategories(outcome);
-                          field.handleChange(outcome.category.id);
-                        }}
-                        aria-labelledby="categoryId-label"
-                        aria-describedby={
-                          invalid ? `${field.name}-error` : undefined
-                        }
-                        invalid={invalid}
-                        disabled={awaitingReplay}
-                      />
+                      <FieldLabel htmlFor={field.name}>Amount</FieldLabel>
+                      <div className="relative">
+                        <span
+                          aria-hidden="true"
+                          className="money pointer-events-none absolute inset-y-0 left-5 flex items-center text-muted-foreground text-xl"
+                        >
+                          ฿
+                        </span>
+                        <Input
+                          id={field.name}
+                          name={field.name}
+                          type="text"
+                          inputMode="decimal"
+                          autoComplete="off"
+                          // A new entry starts at the amount with the keyboard up;
+                          // an edit waits to hear which field is wrong.
+                          autoFocus={!editing}
+                          enterKeyHint="done"
+                          placeholder="0.00"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(event) => {
+                            clearFieldError("amount");
+                            field.handleChange(event.target.value);
+                          }}
+                          aria-invalid={invalid}
+                          aria-describedby={
+                            invalid
+                              ? "amount-description amount-error"
+                              : "amount-description"
+                          }
+                          className="money h-16 pr-16 pl-11 text-3xl text-foreground md:text-3xl"
+                        />
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-y-0 right-5 flex items-center font-medium text-muted-foreground text-sm"
+                        >
+                          THB
+                        </span>
+                      </div>
+                      <FieldDescription id="amount-description">
+                        In Thai baht, to the satang.
+                      </FieldDescription>
                       <FieldErrors
                         id={`${field.name}-error`}
                         serverError={serverError}
@@ -412,110 +330,342 @@ export function TransactionForm({
                   );
                 }}
               </form.Field>
-            )}
-          </form.Subscribe>
 
-          <form.Field name="transactionDate">
-            {(field) => {
-              const serverError = fieldErrors.transactionDate;
-              const invalid = !field.state.meta.isValid || Boolean(serverError);
-              function pick(date: CalendarDate) {
-                clearFieldError("transactionDate");
-                field.handleChange(date);
-              }
-              return (
-                <Field data-invalid={invalid}>
-                  <FieldLabel htmlFor={field.name}>Date</FieldLabel>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    type="date"
-                    max={today}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => pick(event.target.value)}
-                    aria-invalid={invalid}
-                    aria-describedby={
-                      invalid ? `${field.name}-error` : undefined
-                    }
-                    className="h-11 text-foreground"
-                  />
-                  <div className="flex gap-2">
-                    <DateChip
-                      selected={field.state.value === today}
-                      onClick={() => pick(today)}
-                    >
-                      Today
-                    </DateChip>
-                    <DateChip
-                      selected={field.state.value === yesterday}
-                      onClick={() => pick(yesterday)}
-                    >
-                      Yesterday
-                    </DateChip>
-                  </div>
-                  <FieldErrors
-                    id={`${field.name}-error`}
-                    serverError={serverError}
-                    errors={field.state.meta.errors}
-                  />
-                </Field>
-              );
-            }}
-          </form.Field>
-
-          <form.Field name="note">
-            {(field) => {
-              const serverError = fieldErrors.note;
-              const invalid = !field.state.meta.isValid || Boolean(serverError);
-              const remaining = MAX_NOTE_LENGTH - field.state.value.length;
-              return (
-                <Field data-invalid={invalid}>
-                  <FieldLabel htmlFor={field.name}>
-                    Note{" "}
-                    <span className="font-normal text-muted-foreground">
-                      (optional)
-                    </span>
-                  </FieldLabel>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    type="text"
-                    autoComplete="off"
-                    placeholder="Weekly shop"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => {
-                      clearFieldError("note");
-                      field.handleChange(event.target.value);
-                    }}
-                    aria-invalid={invalid}
-                    aria-describedby={
-                      invalid
-                        ? "note-description note-error"
-                        : "note-description"
-                    }
-                    className="h-11 text-foreground"
-                  />
-                  <FieldDescription
-                    id="note-description"
-                    className={cn(remaining < 0 && "text-destructive")}
+              {editing ? (
+                <Field>
+                  <span
+                    data-slot="field-label"
+                    className="flex select-none items-center gap-2 font-medium text-sm leading-none"
                   >
-                    {remaining < 0
-                      ? `${-remaining} over the ${MAX_NOTE_LENGTH}-character limit`
-                      : `${remaining} characters left`}
+                    Type
+                  </span>
+                  <p className="flex h-11 items-center font-medium">
+                    {TRANSACTION_TYPE_LABELS[editing.type]}
+                  </p>
+                  <FieldDescription>
+                    The type is fixed once saved. To change it, delete this
+                    transaction and record it again.
                   </FieldDescription>
-                  <FieldErrors
-                    id={`${field.name}-error`}
-                    serverError={serverError}
-                    errors={field.state.meta.errors}
-                  />
                 </Field>
-              );
-            }}
-          </form.Field>
-        </FieldGroup>
-      </fieldset>
+              ) : (
+                <form.Field name="type">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel id="transaction-type-label">Type</FieldLabel>
+                      <SegmentedControl
+                        name={field.name}
+                        aria-labelledby="transaction-type-label"
+                        options={TYPE_OPTIONS}
+                        value={field.state.value}
+                        onValueChange={changeType}
+                      />
+                    </Field>
+                  )}
+                </form.Field>
+              )}
+
+              <form.Subscribe selector={(state) => state.values.type}>
+                {(type) => (
+                  <form.Field name="walletId">
+                    {(field) => {
+                      const serverError = fieldErrors.walletId;
+                      const invalid =
+                        !field.state.meta.isValid || Boolean(serverError);
+                      return (
+                        <Field data-invalid={invalid}>
+                          <FieldLabel htmlFor={field.name}>
+                            {type === "transfer" ? "From" : "Wallet"}
+                          </FieldLabel>
+                          <div className="flex items-center gap-2">
+                            <NativeSelect
+                              id={field.name}
+                              name={field.name}
+                              value={field.state.value}
+                              onBlur={field.handleBlur}
+                              onChange={(event) => {
+                                clearFieldError("walletId");
+                                clearFieldError("transactionDate");
+                                field.handleChange(event.target.value);
+                              }}
+                              aria-invalid={invalid}
+                              aria-describedby={
+                                invalid ? `${field.name}-error` : undefined
+                              }
+                            >
+                              <option value="" disabled>
+                                Choose a wallet
+                              </option>
+                              {wallets.map((wallet) => (
+                                <option key={wallet.id} value={wallet.id}>
+                                  {wallet.name} ·{" "}
+                                  {WALLET_TYPE_LABELS[wallet.type]} ·{" "}
+                                  {wallet.balanceLabel}
+                                  {wallet.archived ? " · Archived" : ""}
+                                </option>
+                              ))}
+                            </NativeSelect>
+                            {type === "transfer" && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-11 w-11 shrink-0"
+                                aria-label="Swap wallets"
+                                onClick={() => {
+                                  const from = form.getFieldValue("walletId");
+                                  const to = form.getFieldValue(
+                                    "destinationWalletId",
+                                  );
+                                  // Nothing to exchange until both sides are chosen.
+                                  if (!from || !to) {
+                                    return;
+                                  }
+                                  form.setFieldValue("walletId", to);
+                                  form.setFieldValue(
+                                    "destinationWalletId",
+                                    from,
+                                  );
+                                  clearFieldError("walletId");
+                                  clearFieldError("destinationWalletId");
+                                  clearFieldError("transactionDate");
+                                }}
+                              >
+                                <ArrowDownUp
+                                  aria-hidden="true"
+                                  strokeWidth={1.75}
+                                />
+                              </Button>
+                            )}
+                          </div>
+                          <FieldErrors
+                            id={`${field.name}-error`}
+                            serverError={serverError}
+                            errors={field.state.meta.errors}
+                          />
+                        </Field>
+                      );
+                    }}
+                  </form.Field>
+                )}
+              </form.Subscribe>
+
+              <form.Subscribe selector={(state) => state.values.type}>
+                {(type) =>
+                  type === "transfer" ? (
+                    <form.Field name="destinationWalletId">
+                      {(field) => {
+                        const serverError = fieldErrors.destinationWalletId;
+                        const invalid =
+                          !field.state.meta.isValid || Boolean(serverError);
+                        return (
+                          <Field data-invalid={invalid}>
+                            <FieldLabel htmlFor={field.name}>To</FieldLabel>
+                            <NativeSelect
+                              id={field.name}
+                              name={field.name}
+                              value={field.state.value}
+                              onBlur={field.handleBlur}
+                              onChange={(event) => {
+                                clearFieldError("destinationWalletId");
+                                clearFieldError("transactionDate");
+                                field.handleChange(event.target.value);
+                              }}
+                              aria-invalid={invalid}
+                              aria-describedby={
+                                invalid
+                                  ? `${field.name}-error`
+                                  : "transfer-description"
+                              }
+                            >
+                              <option value="" disabled>
+                                Choose a destination wallet
+                              </option>
+                              {wallets.map((wallet) => (
+                                <option key={wallet.id} value={wallet.id}>
+                                  {wallet.name} ·{" "}
+                                  {WALLET_TYPE_LABELS[wallet.type]} ·{" "}
+                                  {wallet.balanceLabel}
+                                  {wallet.archived ? " · Archived" : ""}
+                                </option>
+                              ))}
+                            </NativeSelect>
+                            <FieldDescription id="transfer-description">
+                              {wallets.length < 2 ? (
+                                <>
+                                  Transfers need two active wallets.{" "}
+                                  <Link
+                                    href="/wallets/new"
+                                    className="underline underline-offset-4"
+                                  >
+                                    Create another wallet
+                                  </Link>
+                                  .
+                                </>
+                              ) : (
+                                "Record any transfer fee as a separate expense."
+                              )}
+                            </FieldDescription>
+                            <FieldErrors
+                              id={`${field.name}-error`}
+                              serverError={serverError}
+                              errors={field.state.meta.errors}
+                            />
+                          </Field>
+                        );
+                      }}
+                    </form.Field>
+                  ) : (
+                    <form.Field name="categoryId">
+                      {(field) => {
+                        const serverError = fieldErrors.categoryId;
+                        const invalid =
+                          !field.state.meta.isValid || Boolean(serverError);
+                        return (
+                          <Field data-invalid={invalid}>
+                            <FieldLabel
+                              id="categoryId-label"
+                              htmlFor={field.name}
+                            >
+                              Category
+                            </FieldLabel>
+                            <CategoryPicker
+                              id={field.name}
+                              kind={type}
+                              categories={categories}
+                              value={field.state.value}
+                              onSelect={(categoryId) => {
+                                clearFieldError("categoryId");
+                                field.handleChange(categoryId);
+                              }}
+                              onCreated={(outcome) => {
+                                clearFieldError("categoryId");
+                                addCategories(outcome);
+                                field.handleChange(outcome.category.id);
+                              }}
+                              aria-labelledby="categoryId-label"
+                              aria-describedby={
+                                invalid ? `${field.name}-error` : undefined
+                              }
+                              invalid={invalid}
+                              disabled={awaitingReplay || isSubmitting}
+                            />
+                            <FieldErrors
+                              id={`${field.name}-error`}
+                              serverError={serverError}
+                              errors={field.state.meta.errors}
+                            />
+                          </Field>
+                        );
+                      }}
+                    </form.Field>
+                  )
+                }
+              </form.Subscribe>
+
+              <form.Field name="transactionDate">
+                {(field) => {
+                  const serverError = fieldErrors.transactionDate;
+                  const invalid =
+                    !field.state.meta.isValid || Boolean(serverError);
+                  function pick(date: CalendarDate) {
+                    clearFieldError("transactionDate");
+                    field.handleChange(date);
+                  }
+                  return (
+                    <Field data-invalid={invalid}>
+                      <FieldLabel htmlFor={field.name}>Date</FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        type="date"
+                        max={today}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => pick(event.target.value)}
+                        aria-invalid={invalid}
+                        aria-describedby={
+                          invalid ? `${field.name}-error` : undefined
+                        }
+                        className="h-11 text-foreground"
+                      />
+                      <div className="flex gap-2">
+                        <DateChip
+                          selected={field.state.value === today}
+                          onClick={() => pick(today)}
+                        >
+                          Today
+                        </DateChip>
+                        <DateChip
+                          selected={field.state.value === yesterday}
+                          onClick={() => pick(yesterday)}
+                        >
+                          Yesterday
+                        </DateChip>
+                      </div>
+                      <FieldErrors
+                        id={`${field.name}-error`}
+                        serverError={serverError}
+                        errors={field.state.meta.errors}
+                      />
+                    </Field>
+                  );
+                }}
+              </form.Field>
+
+              <form.Field name="note">
+                {(field) => {
+                  const serverError = fieldErrors.note;
+                  const invalid =
+                    !field.state.meta.isValid || Boolean(serverError);
+                  const remaining = MAX_NOTE_LENGTH - field.state.value.length;
+                  return (
+                    <Field data-invalid={invalid}>
+                      <FieldLabel htmlFor={field.name}>
+                        Note{" "}
+                        <span className="font-normal text-muted-foreground">
+                          (optional)
+                        </span>
+                      </FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        type="text"
+                        autoComplete="off"
+                        placeholder="Weekly shop"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => {
+                          clearFieldError("note");
+                          field.handleChange(event.target.value);
+                        }}
+                        aria-invalid={invalid}
+                        aria-describedby={
+                          invalid
+                            ? "note-description note-error"
+                            : "note-description"
+                        }
+                        className="h-11 text-foreground"
+                      />
+                      <FieldDescription
+                        id="note-description"
+                        className={cn(remaining < 0 && "text-destructive")}
+                      >
+                        {remaining < 0
+                          ? `${-remaining} over the ${MAX_NOTE_LENGTH}-character limit`
+                          : `${remaining} characters left`}
+                      </FieldDescription>
+                      <FieldErrors
+                        id={`${field.name}-error`}
+                        serverError={serverError}
+                        errors={field.state.meta.errors}
+                      />
+                    </Field>
+                  );
+                }}
+              </form.Field>
+            </FieldGroup>
+          </fieldset>
+        )}
+      </form.Subscribe>
 
       <form.Subscribe
         selector={(state) => ({
@@ -523,15 +673,19 @@ export function TransactionForm({
           type: state.values.type,
           amount: state.values.amount,
           walletId: state.values.walletId,
+          destinationWalletId: state.values.destinationWalletId,
         })}
       >
-        {({ isSubmitting, type, amount, walletId }) => {
+        {({ isSubmitting, type, amount, walletId, destinationWalletId }) => {
           const walletName = wallets.find((w) => w.id === walletId)?.name;
           let label: React.ReactNode = (
             <SaveLabel
               type={type}
               amountText={amount}
               walletName={walletName}
+              destinationWalletName={
+                wallets.find((w) => w.id === destinationWalletId)?.name
+              }
             />
           );
           if (isSubmitting) {
@@ -545,8 +699,13 @@ export function TransactionForm({
                 <Button
                   type="submit"
                   size="lg"
-                  disabled={isSubmitting}
-                  className="h-12 w-full text-base"
+                  disabled={
+                    isSubmitting || (type === "transfer" && wallets.length < 2)
+                  }
+                  className={cn(
+                    "min-h-12 w-full text-base",
+                    type === "transfer" ? "h-auto" : "h-12",
+                  )}
                 >
                   {label}
                 </Button>
@@ -575,6 +734,9 @@ export function TransactionForm({
           <DeleteTransactionButton
             transaction={editing}
             walletName={wallets.find((w) => w.id === editing.walletId)?.name}
+            destinationWalletName={
+              wallets.find((w) => w.id === editing.destinationWalletId)?.name
+            }
             disabled={awaitingReplay}
           />
         </footer>

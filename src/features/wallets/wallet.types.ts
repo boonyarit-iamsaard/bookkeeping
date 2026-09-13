@@ -18,6 +18,7 @@ export interface WalletSummary {
   currency: "THB";
   openingAmount: bigint;
   openingDate: CalendarDate;
+  archivedAt: Date | null;
   /** Derived: opening balance plus current transactions through `asOf`. */
   balance: bigint;
 }
