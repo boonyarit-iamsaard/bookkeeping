@@ -105,7 +105,7 @@ export function CategoryPicker({
         <Dialog.Viewport className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
           <Dialog.Popup
             className={cn(
-              "flex max-h-[min(100%,calc(100dvh-3rem))] w-full flex-col bg-background text-foreground outline-none",
+              "flex max-h-[min(100%,calc(100dvh-3rem))] w-full flex-col overflow-hidden bg-background text-foreground outline-none",
               "rounded-t-xl transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] data-ending-style:translate-y-full data-starting-style:translate-y-full motion-reduce:transition-none",
               "sm:h-[36rem] sm:max-w-md sm:rounded-xl sm:border sm:duration-200 sm:data-ending-style:translate-y-2 sm:data-starting-style:translate-y-2 sm:data-ending-style:scale-[0.98] sm:data-starting-style:scale-[0.98] sm:data-ending-style:opacity-0 sm:data-starting-style:opacity-0",
             )}
