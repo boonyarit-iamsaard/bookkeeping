@@ -66,7 +66,7 @@ export default async function Page() {
           }))}
           categories={categories}
           today={todayIn({ timeZone: APP_TIME_ZONE })}
-          defaultWalletId={defaultWalletId}
+          mode={{ kind: "create", defaultWalletId }}
         />
       ) : (
         <NoWallet />

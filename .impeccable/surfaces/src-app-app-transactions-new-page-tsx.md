@@ -5,13 +5,15 @@ primary_target: "src/app/(app)/transactions/new/page.tsx"
 related_targets:
   - "src/app/(app)/transactions/page.tsx"
   - "src/app/(app)/transactions/[id]/page.tsx"
+  - "src/app/(app)/transactions/[id]/edit/page.tsx"
 ---
 
-# Surface brief: transactions (create, list, detail)
+# Surface brief: transactions (create, edit, list, detail)
 
 Status: confirmed by the user on 2026-09-12 (form brief), extended at
-build on 2026-09-13 for the basic list and detail, and again on 2026-09-13
-for the inline category panel (ticket 03). Visitor mode: Operate.
+build on 2026-09-13 for the basic list and detail, again on 2026-09-13
+for the inline category panel (ticket 03), and again on 2026-09-13 for
+edit and delete (ticket 04). Visitor mode: Operate.
 Platform: web (phone-first, desktop supported). Build path: code-led.
 
 Product truth lives in `PRODUCT.md`, `.scratch/tracking/spec.md`,
@@ -35,11 +37,12 @@ Save. Later, on any device: confirm what was recorded and when.
 ## Scope and boundaries
 
 - Routes: `/transactions` (basic list, newest date first), `/transactions/new`,
-  `/transactions/[id]` (detail). Header gains a Transactions link.
+  `/transactions/[id]` (detail, with an Edit link), `/transactions/[id]/edit`
+  (the same form in edit mode). Header gains a Transactions link.
 - Untouched: wallets pages, auth, category management.
-- Anti-goals: no Transfer or Refund controls (tickets 05, 07); no edit/delete
-  (04); no category rename/removal (08); no custom keypad; no celebratory
-  motion; no type carried by colour alone.
+- Anti-goals: no Transfer or Refund controls (tickets 05, 07); no category
+  rename/removal (08); no custom keypad; no celebratory motion; no type
+  carried by colour alone; no visible reversal entries for corrections.
 
 ## States and ranges
 
@@ -61,6 +64,25 @@ Save. Later, on any device: confirm what was recorded and when.
   previous save is being checked, Save becomes "Check and retry"; the same
   key and snapshot are replayed. Definitive rejection unlocks the form.
 - In flight: Save disabled, "Saving…".
+- Edit (`/transactions/[id]/edit`): title "Edit expense" / "Edit income";
+  the amount loads as saved ("120.00") without autofocus; the Type row is a
+  fixed value with "The type is fixed once saved. To change it, delete this
+  transaction and record it again."; the same Wallet, Category, Date, Note
+  rows and validation; Cancel and Esc return to the detail. After Save, a
+  hairline-topped footer reads "Recorded 13 Sep 2026, 14:32 Bangkok time.
+  Editing keeps this original recording time." followed by the one
+  destructive control, "Delete expense" (Signal Red tint, trash pictogram),
+  kept below the primary action so the two never sit adjacent.
+- Delete confirmation: an alert dialog (phone: bottom sheet with safe-area
+  padding; desktop: centred 448px dialog) titled "Delete this expense?",
+  reading the saved line back ("−฿120.00 · Cash on 13 Sep 2026 will leave
+  the list and the wallet balance. This can't be undone."), with "Delete"
+  (48px on phone) and "Keep it". A lost response shows an error bar inside
+  the dialog; deleting twice is harmless. Success returns to
+  `/transactions?deleted=1`, where a muted notice reads "Transaction
+  deleted." above the list; a deleted record is not found on detail/edit.
+- Edit success returns to `/transactions?saved=<id>` with the row fading in,
+  exactly like a create.
 
 ## Interaction and layout
 
@@ -128,3 +150,8 @@ FINISH: reviewed in one batched phone/desktop inspection; DESIGN.md
 unchanged (ordinary extension); surface brief recorded here. The category
 panel (2026-09-13) was inspected at 360px, 412px, and 1280px in one batched
 round; it adds no shadow (a scrim plus a hairline ring) and no second accent.
+Edit and delete (2026-09-13) were inspected at 360px, 412px, and 1280px in
+one batched round plus one confirmation: the delete control moved below
+Save, the fixed type value aligned to the label column, and the sheet took
+safe-area padding. The destructive tint reuses the existing `destructive`
+button variant; no new token.

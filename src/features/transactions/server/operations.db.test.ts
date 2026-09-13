@@ -4,10 +4,14 @@ import {
   initializeDefaultCategories,
   listCategories,
 } from "@/features/categories/server/operations";
+import type { CreateTransactionInput } from "@/features/transactions/server/operations";
 import {
   createTransaction,
+  deleteTransaction,
   getTransaction,
+  listTransactionChanges,
   listTransactions,
+  updateTransaction,
 } from "@/features/transactions/server/operations";
 import {
   createWallet,
@@ -465,5 +469,434 @@ describe("submission receipts", () => {
     expect(await listTransactions(db, owner.id)).toHaveLength(1);
     const [summary] = await listWallets(db, { ownerId: owner.id });
     expect(summary?.balance).toBe(1_150_000n);
+  });
+});
+
+/** A committed ฿500 expense on 2 Sep; the wallet then holds ฿11,500. */
+async function recordExpense(
+  db: Database,
+  owner: Awaited<ReturnType<typeof setupOwner>>,
+  overrides: Partial<CreateTransactionInput> = {},
+) {
+  const input: CreateTransactionInput = {
+    ownerId: owner.owner.id,
+    submissionKey: freshKey(),
+    type: "expense",
+    walletId: owner.wallet.id,
+    categoryId: owner.groceries.id,
+    amount: 50_000n,
+    transactionDate: "2026-09-02",
+    note: "Weekly shop",
+    ...overrides,
+  };
+  const saved = await createTransaction(db, input);
+  if (!saved.ok) {
+    throw new Error(`Expected the expense to save, got ${saved.error.code}`);
+  }
+  return { input, transaction: saved.value.transaction };
+}
+
+async function balanceOf(
+  db: Database,
+  ownerId: string,
+  walletId: string,
+  asOf?: string,
+) {
+  const summaries = await listWallets(db, { ownerId, asOf });
+  const found = summaries.find((w) => w.id === walletId);
+  if (!found) {
+    throw new Error("Wallet not listed");
+  }
+  return found.balance;
+}
+
+describe("correcting transactions", () => {
+  test("an edit replaces every financial effect, keeps the recording time, and leaves one history entry", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const savings = await createWallet(db, {
+        ownerId: owner.owner.id,
+        name: "Savings",
+        type: "bank_account",
+        openingAmount: 0n,
+        openingDate: "2026-09-03",
+      });
+      const { transaction } = await recordExpense(db, owner);
+      const cashBefore = await balanceOf(db, owner.owner.id, owner.wallet.id);
+      expect(cashBefore).toBe(1_150_000n);
+
+      const updated = await updateTransaction(db, {
+        ownerId: owner.owner.id,
+        id: transaction.id,
+        walletId: savings.id,
+        categoryId: owner.expenseUncategorized.id,
+        amount: 75_050n,
+        transactionDate: "2026-09-04",
+        note: "Corrected",
+      });
+
+      if (!updated.ok) {
+        throw new Error(`Expected the edit to save, got ${updated.error.code}`);
+      }
+      expect(updated.value).toEqual(
+        expect.objectContaining({
+          id: transaction.id,
+          type: "expense",
+          amount: 75_050n,
+          transactionDate: "2026-09-04",
+          note: "Corrected",
+          recordedAt: transaction.recordedAt,
+          wallet: expect.objectContaining({ id: savings.id }),
+          category: expect.objectContaining({ name: "Uncategorized" }),
+        }),
+      );
+      expect(await balanceOf(db, owner.owner.id, owner.wallet.id)).toBe(
+        1_200_000n,
+      );
+      expect(await balanceOf(db, owner.owner.id, savings.id)).toBe(-75_050n);
+      expect(
+        await balanceOf(db, owner.owner.id, savings.id, "2026-09-03"),
+      ).toBe(0n);
+      expect(
+        await listTransactionChanges(db, {
+          ownerId: owner.owner.id,
+          id: transaction.id,
+        }),
+      ).toEqual([
+        expect.objectContaining({
+          action: "edit",
+          before: {
+            type: "expense",
+            walletId: owner.wallet.id,
+            categoryId: owner.groceries.id,
+            amount: "50000",
+            transactionDate: "2026-09-02",
+            note: "Weekly shop",
+          },
+          after: {
+            type: "expense",
+            walletId: savings.id,
+            categoryId: owner.expenseUncategorized.id,
+            amount: "75050",
+            transactionDate: "2026-09-04",
+            note: "Corrected",
+          },
+        }),
+      ]);
+      // No visible reversal entry: the list still holds exactly one row.
+      expect(await listTransactions(db, owner.owner.id)).toHaveLength(1);
+    });
+  });
+
+  test("saving an edit that changes nothing succeeds without a history entry", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const { input, transaction } = await recordExpense(db, owner);
+      const unchanged = await updateTransaction(db, {
+        ownerId: owner.owner.id,
+        id: transaction.id,
+        walletId: input.walletId,
+        categoryId: input.categoryId,
+        amount: input.amount,
+        transactionDate: input.transactionDate,
+        note: input.note,
+      });
+      expect(unchanged.ok).toBe(true);
+      expect(
+        await listTransactionChanges(db, {
+          ownerId: owner.owner.id,
+          id: transaction.id,
+        }),
+      ).toEqual([]);
+    });
+  });
+
+  test("rejected edits change nothing and record no history", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const late = await createWallet(db, {
+        ownerId: owner.owner.id,
+        name: "Late",
+        type: "e_wallet",
+        openingAmount: 0n,
+        openingDate: "2026-09-05",
+      });
+      const { transaction } = await recordExpense(db, owner);
+      const valid = {
+        ownerId: owner.owner.id,
+        id: transaction.id,
+        walletId: owner.wallet.id,
+        categoryId: owner.groceries.id,
+        amount: 50_000n,
+        transactionDate: "2026-09-02",
+        note: "Weekly shop",
+      };
+
+      const attempts = [
+        [{ ...valid, amount: 0n }, { code: "amount-out-of-range" }],
+        [
+          { ...valid, amount: 10_000_000_000n },
+          { code: "amount-out-of-range" },
+        ],
+        [{ ...valid, note: "x".repeat(201) }, { code: "note-too-long" }],
+        [
+          { ...valid, transactionDate: "2026-08-31" },
+          { code: "before-opening", openingDate: "2026-09-01" },
+        ],
+        // Moving to a wallet that opened after the transaction's date.
+        [
+          { ...valid, walletId: late.id },
+          { code: "before-opening", openingDate: "2026-09-05" },
+        ],
+        [
+          { ...valid, categoryId: owner.salary.id },
+          { code: "category-kind-mismatch" },
+        ],
+      ] as const;
+      for (const [attempt, error] of attempts) {
+        expect(await updateTransaction(db, attempt)).toEqual({
+          ok: false,
+          error,
+        });
+      }
+      await withClock("2026-09-13T16:30:00Z", async () => {
+        expect(
+          await updateTransaction(db, {
+            ...valid,
+            transactionDate: "2026-09-14",
+          }),
+        ).toEqual({
+          ok: false,
+          error: { code: "future-date", today: "2026-09-13" },
+        });
+      });
+
+      const current = await getTransaction(db, {
+        ownerId: owner.owner.id,
+        id: transaction.id,
+      });
+      expect(current).toEqual(transaction);
+      expect(await balanceOf(db, owner.owner.id, owner.wallet.id)).toBe(
+        1_150_000n,
+      );
+      expect(
+        await listTransactionChanges(db, {
+          ownerId: owner.owner.id,
+          id: transaction.id,
+        }),
+      ).toEqual([]);
+    });
+  });
+
+  test("another user cannot edit, delete, or read the history of a transaction", async () => {
+    await withRollback(async (db) => {
+      const alice = await setupOwner(db);
+      const bob = await setupOwner(db);
+      const { transaction } = await recordExpense(db, alice);
+
+      expect(
+        await updateTransaction(db, {
+          ownerId: bob.owner.id,
+          id: transaction.id,
+          walletId: bob.wallet.id,
+          categoryId: bob.groceries.id,
+          amount: 1n,
+          transactionDate: "2026-09-02",
+          note: "",
+        }),
+      ).toEqual({ ok: false, error: { code: "transaction-not-found" } });
+      // Bob's own wallet and category cannot be attached to Alice's record,
+      // nor can Alice's record be moved onto Bob's wallet.
+      expect(
+        await updateTransaction(db, {
+          ownerId: alice.owner.id,
+          id: transaction.id,
+          walletId: bob.wallet.id,
+          categoryId: alice.groceries.id,
+          amount: 1n,
+          transactionDate: "2026-09-02",
+          note: "",
+        }),
+      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      expect(
+        await updateTransaction(db, {
+          ownerId: alice.owner.id,
+          id: transaction.id,
+          walletId: alice.wallet.id,
+          categoryId: bob.groceries.id,
+          amount: 1n,
+          transactionDate: "2026-09-02",
+          note: "",
+        }),
+      ).toEqual({ ok: false, error: { code: "category-not-found" } });
+      expect(
+        await deleteTransaction(db, {
+          ownerId: bob.owner.id,
+          id: transaction.id,
+        }),
+      ).toEqual({ ok: false, error: { code: "transaction-not-found" } });
+      expect(
+        await listTransactionChanges(db, {
+          ownerId: bob.owner.id,
+          id: transaction.id,
+        }),
+      ).toEqual([]);
+
+      expect(
+        await getTransaction(db, {
+          ownerId: alice.owner.id,
+          id: transaction.id,
+        }),
+      ).toEqual(transaction);
+      expect(await balanceOf(db, alice.owner.id, alice.wallet.id)).toBe(
+        1_150_000n,
+      );
+    });
+  });
+
+  test("deletion removes the transaction from lists, detail, and every balance, and records history", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const { transaction } = await recordExpense(db, owner);
+      const { transaction: kept } = await recordExpense(db, owner, {
+        amount: 100n,
+        transactionDate: "2026-09-03",
+      });
+
+      const deleted = await deleteTransaction(db, {
+        ownerId: owner.owner.id,
+        id: transaction.id,
+      });
+
+      expect(deleted).toEqual({ ok: true, value: { id: transaction.id } });
+      expect(
+        await getTransaction(db, {
+          ownerId: owner.owner.id,
+          id: transaction.id,
+        }),
+      ).toBeUndefined();
+      expect(
+        (await listTransactions(db, owner.owner.id)).map((t) => t.id),
+      ).toEqual([kept.id]);
+      expect(await balanceOf(db, owner.owner.id, owner.wallet.id)).toBe(
+        1_199_900n,
+      );
+      expect(
+        await balanceOf(db, owner.owner.id, owner.wallet.id, "2026-09-02"),
+      ).toBe(1_200_000n);
+      expect(
+        await listTransactionChanges(db, {
+          ownerId: owner.owner.id,
+          id: transaction.id,
+        }),
+      ).toEqual([
+        expect.objectContaining({
+          action: "delete",
+          before: expect.objectContaining({ amount: "50000" }),
+          after: null,
+        }),
+      ]);
+
+      // Deleting again is the same outcome, not a second history entry;
+      // editing a deleted transaction is not possible.
+      expect(
+        await deleteTransaction(db, {
+          ownerId: owner.owner.id,
+          id: transaction.id,
+        }),
+      ).toEqual({ ok: true, value: { id: transaction.id } });
+      expect(
+        await updateTransaction(db, {
+          ownerId: owner.owner.id,
+          id: transaction.id,
+          walletId: owner.wallet.id,
+          categoryId: owner.groceries.id,
+          amount: 1n,
+          transactionDate: "2026-09-02",
+          note: "",
+        }),
+      ).toEqual({ ok: false, error: { code: "transaction-not-found" } });
+      expect(
+        await listTransactionChanges(db, {
+          ownerId: owner.owner.id,
+          id: transaction.id,
+        }),
+      ).toHaveLength(1);
+    });
+  });
+
+  test("a late create retry after an edit or deletion confirms the current outcome", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const { input, transaction } = await recordExpense(db, owner);
+      await updateTransaction(db, {
+        ownerId: owner.owner.id,
+        id: transaction.id,
+        walletId: owner.wallet.id,
+        categoryId: owner.groceries.id,
+        amount: 60_000n,
+        transactionDate: "2026-09-02",
+        note: "Weekly shop",
+      });
+
+      const afterEdit = await createTransaction(db, input);
+      expect(afterEdit.ok && afterEdit.value.replayed).toBe(true);
+      expect(afterEdit.ok && afterEdit.value.transaction.amount).toBe(60_000n);
+      expect(await listTransactions(db, owner.owner.id)).toHaveLength(1);
+
+      await deleteTransaction(db, {
+        ownerId: owner.owner.id,
+        id: transaction.id,
+      });
+      const afterDelete = await createTransaction(db, input);
+      expect(afterDelete.ok && afterDelete.value.replayed).toBe(true);
+      expect(afterDelete.ok && afterDelete.value.transaction.id).toBe(
+        transaction.id,
+      );
+      expect(await listTransactions(db, owner.owner.id)).toEqual([]);
+      expect(await balanceOf(db, owner.owner.id, owner.wallet.id)).toBe(
+        1_200_000n,
+      );
+    });
+  });
+
+  test("simultaneous edits serialize: every one lands in history and the balance matches the last", async () => {
+    const db = committed();
+    const owner = await setupOwner(db);
+    const { transaction } = await recordExpense(db, owner);
+    const amounts = [1_000n, 2_000n, 3_000n, 4_000n, 5_000n];
+
+    const outcomes = await Promise.all(
+      amounts.map((amount) =>
+        updateTransaction(db, {
+          ownerId: owner.owner.id,
+          id: transaction.id,
+          walletId: owner.wallet.id,
+          categoryId: owner.groceries.id,
+          amount,
+          transactionDate: "2026-09-02",
+          note: "Weekly shop",
+        }),
+      ),
+    );
+
+    expect(outcomes.every((o) => o.ok)).toBe(true);
+    const history = await listTransactionChanges(db, {
+      ownerId: owner.owner.id,
+      id: transaction.id,
+    });
+    expect(history).toHaveLength(5);
+    // Each entry starts where the previous one ended.
+    for (let i = 1; i < history.length; i += 1) {
+      expect(history[i]?.before).toEqual(history[i - 1]?.after);
+    }
+    const final = await getTransaction(db, {
+      ownerId: owner.owner.id,
+      id: transaction.id,
+    });
+    expect(final?.amount).toBe(BigInt(history[4]?.after?.amount ?? "0"));
+    expect(await balanceOf(db, owner.owner.id, owner.wallet.id)).toBe(
+      1_200_000n - (final?.amount ?? 0n),
+    );
   });
 });

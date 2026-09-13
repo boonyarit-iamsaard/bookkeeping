@@ -4,6 +4,7 @@ import {
   check,
   date,
   index,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -98,6 +99,63 @@ export const submissionReceipts = pgTable(
       table.userId,
       table.operation,
       table.key,
+    ),
+  ],
+);
+
+export const TRANSACTION_CHANGE_ACTIONS = ["edit", "delete"] as const;
+export type TransactionChangeAction =
+  (typeof TRANSACTION_CHANGE_ACTIONS)[number];
+
+export const transactionChangeActionEnum = pgEnum(
+  "transaction_change_action",
+  TRANSACTION_CHANGE_ACTIONS,
+);
+
+/**
+ * The fields of a transaction that carry financial or descriptive meaning,
+ * frozen as they stood before and after a change. Amounts are decimal
+ * strings because JSON has no bigint. Transfer and refund corrections can
+ * extend this shape without a new table.
+ */
+export interface TransactionSnapshot {
+  type: (typeof TRANSACTION_TYPES)[number];
+  walletId: string;
+  categoryId: string;
+  amount: string;
+  transactionDate: string;
+  note: string;
+}
+
+/**
+ * Internal change history: one row per successful edit or deletion, written
+ * in the same database transaction as the change itself. Never shown in
+ * normal views and never part of any balance.
+ */
+export const transactionChanges = pgTable(
+  "transaction_changes",
+  {
+    id: uuid("id").default(sql`uuidv7()`).primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    transactionId: uuid("transaction_id")
+      .notNull()
+      .references(() => transactions.id, { onDelete: "cascade" }),
+    action: transactionChangeActionEnum("action").notNull(),
+    before: jsonb("before").$type<TransactionSnapshot>().notNull(),
+    // Null once the transaction is deleted.
+    after: jsonb("after").$type<TransactionSnapshot>(),
+    // The instant of the write itself, not the transaction's start: edits
+    // that waited on the row lock must sort after the one they waited for.
+    changedAt: timestamp("changed_at", { withTimezone: true })
+      .default(sql`clock_timestamp()`)
+      .notNull(),
+  },
+  (table) => [
+    index("transaction_changes_transaction_id_idx").on(
+      table.transactionId,
+      table.changedAt,
     ),
   ],
 );

@@ -123,6 +123,15 @@ export function createTransactionSubmissionSchema() {
   });
 }
 
+/**
+ * An edit carries the record's id and every field but the type, which is
+ * fixed once saved; a `type` in the payload is dropped, never applied.
+ */
+export function updateTransactionSubmissionSchema() {
+  const { type: _fixed, ...editable } = transactionFields();
+  return z.object({ ...editable, id: z.string().min(1) });
+}
+
 export type TransactionFormInput = z.input<
   ReturnType<typeof createTransactionFormSchema>
 >;

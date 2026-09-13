@@ -5,13 +5,23 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
 import type { CreateCategoryActionSuccess } from "@/features/categories/server/actions";
+import { DeleteTransactionButton } from "@/features/transactions/components/delete-transaction-button";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import type {
   CategoryOption,
+  SaveTransaction,
   WalletOption,
 } from "@/features/transactions/hooks/use-transaction-form";
-import { useTransactionForm } from "@/features/transactions/hooks/use-transaction-form";
+import {
+  uncategorizedFor,
+  useTransactionForm,
+} from "@/features/transactions/hooks/use-transaction-form";
 import { MAX_NOTE_LENGTH } from "@/features/transactions/money-limits";
+import {
+  createTransactionAction,
+  updateTransactionAction,
+} from "@/features/transactions/server/actions";
+import type { TransactionFormInput } from "@/features/transactions/transaction-form-schema";
 import type { TransactionType } from "@/features/transactions/transaction-types";
 import {
   TRANSACTION_TYPE_LABELS,
@@ -40,12 +50,65 @@ const TYPE_OPTIONS = TRANSACTION_TYPES.map((value) => ({
   label: TRANSACTION_TYPE_LABELS[value],
 }));
 
+/** An existing income or expense as the edit form loads it. */
+export interface EditableTransaction {
+  id: string;
+  type: TransactionType;
+  walletId: string;
+  categoryId: string;
+  /** The stored amount in baht text, e.g. "120.00", exactly as saved. */
+  amountText: string;
+  transactionDate: CalendarDate;
+  note: string;
+  /** "13 Sep 2026, 14:32", already in Bangkok time. */
+  recordedLabel: string;
+}
+
+export type TransactionFormMode =
+  | { kind: "create"; defaultWalletId: string }
+  | { kind: "edit"; transaction: EditableTransaction };
+
 interface TransactionFormProps {
   wallets: readonly WalletOption[];
   categories: readonly CategoryOption[];
   /** Today in Asia/Bangkok, computed on the server. */
   today: CalendarDate;
-  defaultWalletId: string;
+  mode: TransactionFormMode;
+}
+
+function initialValuesFor(
+  mode: TransactionFormMode,
+  categories: readonly CategoryOption[],
+  today: CalendarDate,
+): TransactionFormInput {
+  if (mode.kind === "edit") {
+    const { transaction } = mode;
+    return {
+      type: transaction.type,
+      walletId: transaction.walletId,
+      categoryId: transaction.categoryId,
+      amount: transaction.amountText,
+      transactionDate: transaction.transactionDate,
+      note: transaction.note,
+    };
+  }
+  return {
+    type: "expense",
+    walletId: mode.defaultWalletId,
+    categoryId: uncategorizedFor(categories, "expense"),
+    amount: "",
+    transactionDate: today,
+    note: "",
+  };
+}
+
+function saveFor(mode: TransactionFormMode): SaveTransaction {
+  if (mode.kind === "edit") {
+    const { id } = mode.transaction;
+    return (values) => updateTransactionAction({ ...values, id });
+  }
+  return (values, submissionKey) =>
+    createTransactionAction({ ...values, submissionKey });
 }
 
 /** "Save −฿120.00 · Cash" once the amount parses; plain "Save" before that. */
@@ -82,10 +145,13 @@ export function TransactionForm({
   wallets,
   categories: initialCategories,
   today: initialToday,
-  defaultWalletId,
+  mode,
 }: Readonly<TransactionFormProps>) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const editing = mode.kind === "edit" ? mode.transaction : undefined;
+  // Cancel leaves an edit where it began, on the record's detail.
+  const cancelHref = editing ? `/transactions/${editing.id}` : "/transactions";
   // Categories saved from the panel join the list at once; they are already
   // committed, so cancelling the transaction cannot lose them.
   const [categories, setCategories] = useState(initialCategories);
@@ -113,12 +179,12 @@ export function TransactionForm({
         element?.contains(event.target)
       ) {
         event.preventDefault();
-        router.push("/transactions");
+        router.push(cancelHref);
       }
     }
     document.addEventListener("keydown", cancelOnEscape);
     return () => document.removeEventListener("keydown", cancelOnEscape);
-  }, [router]);
+  }, [router, cancelHref]);
   const {
     form,
     notice,
@@ -129,8 +195,8 @@ export function TransactionForm({
   } = useTransactionForm({
     wallets,
     categories,
-    today: initialToday,
-    defaultWalletId,
+    initialValues: initialValuesFor(mode, categories, initialToday),
+    save: saveFor(mode),
   });
   const today = useBangkokToday(initialToday);
   const yesterday = addDays(today, -1);
@@ -160,8 +226,9 @@ export function TransactionForm({
             The response to your last save was lost.
           </span>
           <span className="mt-1 block text-muted-foreground">
-            It may already be recorded. Retry to check the same entry; nothing
-            will be saved twice, and the fields stay locked until then.
+            {editing
+              ? "It may already be saved. Retry to check the same changes; nothing will be applied twice, and the fields stay locked until then."
+              : "It may already be recorded. Retry to check the same entry; nothing will be saved twice, and the fields stay locked until then."}
           </span>
         </output>
       )}
@@ -188,7 +255,9 @@ export function TransactionForm({
                       type="text"
                       inputMode="decimal"
                       autoComplete="off"
-                      autoFocus
+                      // A new entry starts at the amount with the keyboard up;
+                      // an edit waits to hear which field is wrong.
+                      autoFocus={!editing}
                       enterKeyHint="done"
                       placeholder="0.00"
                       value={field.state.value}
@@ -225,20 +294,38 @@ export function TransactionForm({
             }}
           </form.Field>
 
-          <form.Field name="type">
-            {(field) => (
-              <Field>
-                <FieldLabel id="transaction-type-label">Type</FieldLabel>
-                <SegmentedControl
-                  name={field.name}
-                  aria-labelledby="transaction-type-label"
-                  options={TYPE_OPTIONS}
-                  value={field.state.value}
-                  onValueChange={changeType}
-                />
-              </Field>
-            )}
-          </form.Field>
+          {editing ? (
+            <Field>
+              <span
+                data-slot="field-label"
+                className="flex select-none items-center gap-2 font-medium text-sm leading-none"
+              >
+                Type
+              </span>
+              <p className="flex h-11 items-center font-medium">
+                {TRANSACTION_TYPE_LABELS[editing.type]}
+              </p>
+              <FieldDescription>
+                The type is fixed once saved. To change it, delete this
+                transaction and record it again.
+              </FieldDescription>
+            </Field>
+          ) : (
+            <form.Field name="type">
+              {(field) => (
+                <Field>
+                  <FieldLabel id="transaction-type-label">Type</FieldLabel>
+                  <SegmentedControl
+                    name={field.name}
+                    aria-labelledby="transaction-type-label"
+                    options={TYPE_OPTIONS}
+                    value={field.state.value}
+                    onValueChange={changeType}
+                  />
+                </Field>
+              )}
+            </form.Field>
+          )}
 
           <form.Field name="walletId">
             {(field) => {
@@ -460,7 +547,7 @@ export function TransactionForm({
                   {label}
                 </Button>
                 <Link
-                  href="/transactions"
+                  href={cancelHref}
                   className={buttonVariants({
                     variant: "ghost",
                     size: "lg",
@@ -474,6 +561,20 @@ export function TransactionForm({
           );
         }}
       </form.Subscribe>
+
+      {editing && (
+        <footer className="flex flex-col gap-6 border-t pt-6">
+          <p className="text-muted-foreground text-sm leading-normal">
+            Recorded {editing.recordedLabel} Bangkok time. Editing keeps this
+            original recording time.
+          </p>
+          <DeleteTransactionButton
+            transaction={editing}
+            walletName={wallets.find((w) => w.id === editing.walletId)?.name}
+            disabled={awaitingReplay}
+          />
+        </footer>
+      )}
     </form>
   );
 }

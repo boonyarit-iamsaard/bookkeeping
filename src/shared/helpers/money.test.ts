@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { formatMoney, parseMoneyInput } from "@/shared/helpers/money";
+import {
+  formatMoney,
+  formatMoneyInput,
+  parseMoneyInput,
+} from "@/shared/helpers/money";
 
 describe("parseMoneyInput", () => {
   test("parses whole baht into satang exactly", () => {
@@ -118,5 +122,24 @@ describe("formatMoney", () => {
     expect(
       formatMoney({ amountInMinorUnits: 9_999_999_999n, currency: "THB" }),
     ).toBe("฿99,999,999.99");
+  });
+});
+
+describe("formatMoneyInput", () => {
+  test("renders plain input text that parses back to the same satang", () => {
+    for (const amount of [1n, 110n, 1_200_000n, 9_999_999_999n]) {
+      const text = formatMoneyInput({
+        amountInMinorUnits: amount,
+        currency: "THB",
+      });
+      expect(text).not.toMatch(/[฿,]/);
+      expect(parseMoneyInput({ text, currency: "THB" })).toEqual({
+        ok: true,
+        value: amount,
+      });
+    }
+    expect(
+      formatMoneyInput({ amountInMinorUnits: 12_050n, currency: "THB" }),
+    ).toBe("120.50");
   });
 });

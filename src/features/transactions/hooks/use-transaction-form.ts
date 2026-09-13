@@ -5,15 +5,16 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { CategorySummary } from "@/features/categories/server/operations";
 import type {
-  CreateTransactionActionError,
+  TransactionActionError,
+  TransactionActionSuccess,
   TransactionFormField,
 } from "@/features/transactions/server/actions";
-import { createTransactionAction } from "@/features/transactions/server/actions";
 import type { TransactionFormInput } from "@/features/transactions/transaction-form-schema";
 import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
 import type { TransactionType } from "@/features/transactions/transaction-types";
 import type { WalletType } from "@/features/wallets/wallet-types";
 import type { CalendarDate } from "@/shared/helpers/dates";
+import type { Result } from "@/shared/helpers/result";
 
 export interface WalletOption {
   id: string;
@@ -26,12 +27,17 @@ export interface WalletOption {
 
 export type CategoryOption = CategorySummary;
 
+/** Runs the save; the key stays the same when a lost response is replayed. */
+export type SaveTransaction = (
+  values: TransactionFormInput,
+  submissionKey: string,
+) => Promise<Result<TransactionActionSuccess, TransactionActionError>>;
+
 interface UseTransactionFormOptions {
   wallets: readonly WalletOption[];
   categories: readonly CategoryOption[];
-  /** Today in Asia/Bangkok, computed on the server. */
-  today: CalendarDate;
-  defaultWalletId: string;
+  initialValues: TransactionFormInput;
+  save: SaveTransaction;
 }
 
 /** The exact submission a retry must replay: same key, same values. */
@@ -45,7 +51,7 @@ export type ServerNotice =
   /** The response was lost; nothing may change until the key is replayed. */
   | { kind: "uncertain" };
 
-function uncategorizedFor(
+export function uncategorizedFor(
   categories: readonly CategoryOption[],
   type: TransactionType,
 ): string {
@@ -59,8 +65,8 @@ function uncategorizedFor(
 export function useTransactionForm({
   wallets,
   categories,
-  today,
-  defaultWalletId,
+  initialValues,
+  save,
 }: Readonly<UseTransactionFormOptions>) {
   const router = useRouter();
   const [notice, setNotice] = useState<ServerNotice | null>(null);
@@ -79,17 +85,8 @@ export function useTransactionForm({
     [wallets],
   );
 
-  const defaultValues: TransactionFormInput = {
-    type: "expense",
-    walletId: defaultWalletId,
-    categoryId: uncategorizedFor(categories, "expense"),
-    amount: "",
-    transactionDate: today,
-    note: "",
-  };
-
   const form = useForm({
-    defaultValues,
+    defaultValues: initialValues,
     validationLogic: revalidateLogic(),
     validators: {
       onDynamic: schema,
@@ -103,11 +100,10 @@ export function useTransactionForm({
         key: crypto.randomUUID(),
         values: value,
       };
-      const payload = { ...submission.values, submissionKey: submission.key };
 
-      let result: Awaited<ReturnType<typeof createTransactionAction>>;
+      let result: Awaited<ReturnType<SaveTransaction>>;
       try {
-        result = await createTransactionAction(payload);
+        result = await save(submission.values, submission.key);
       } catch {
         setPending(submission);
         setNotice({ kind: "uncertain" });
@@ -128,7 +124,7 @@ export function useTransactionForm({
     },
   });
 
-  function applyRejection(error: CreateTransactionActionError) {
+  function applyRejection(error: TransactionActionError) {
     switch (error.code) {
       case "unauthenticated":
         router.push("/sign-in");
@@ -141,6 +137,7 @@ export function useTransactionForm({
         }
         return;
       case "conflict":
+      case "not-found":
         setNotice({ kind: "error", message: error.message });
         return;
     }

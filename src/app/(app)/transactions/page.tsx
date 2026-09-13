@@ -20,11 +20,12 @@ export default async function Page({
     redirect("/sign-in");
   }
 
-  const [transactions, { saved }] = await Promise.all([
+  const [transactions, { saved, deleted }] = await Promise.all([
     listTransactions(db, session.user.id),
     searchParams,
   ]);
   const savedId = typeof saved === "string" ? saved : undefined;
+  const justDeleted = deleted === "1";
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8">
@@ -40,6 +41,14 @@ export default async function Page({
           </Link>
         )}
       </div>
+      {justDeleted && (
+        <output className="rounded-xl border bg-muted px-4 py-3 text-sm leading-normal">
+          <span className="font-medium">Transaction deleted.</span>{" "}
+          <span className="text-muted-foreground">
+            It no longer counts toward any wallet balance.
+          </span>
+        </output>
+      )}
       <TransactionList transactions={transactions} savedId={savedId} />
     </main>
   );

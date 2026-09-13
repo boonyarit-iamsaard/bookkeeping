@@ -1,11 +1,16 @@
 import { createHash } from "node:crypto";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Database } from "@/core/database/database";
 import { categories } from "@/core/database/schema/categories";
 import type { TransactionType } from "@/core/database/schema/transaction-type";
+import type {
+  TransactionChangeAction,
+  TransactionSnapshot,
+} from "@/core/database/schema/transactions";
 import {
   submissionReceipts,
+  transactionChanges,
   transactions,
 } from "@/core/database/schema/transactions";
 import type { WalletType } from "@/core/database/schema/wallet-type";
@@ -97,43 +102,8 @@ export async function createTransaction(
   let rejection: CreateTransactionError | undefined;
   try {
     await db.transaction(async (tx) => {
-      const [wallet] = await tx
-        .select({ openingDate: wallets.openingDate })
-        .from(wallets)
-        .where(
-          and(
-            eq(wallets.id, input.walletId),
-            eq(wallets.userId, input.ownerId),
-          ),
-        );
-      if (!wallet) {
-        rejection = { code: "wallet-not-found" };
-        return;
-      }
-      const [category] = await tx
-        .select({ kind: categories.kind })
-        .from(categories)
-        .where(
-          and(
-            eq(categories.id, input.categoryId),
-            eq(categories.userId, input.ownerId),
-          ),
-        );
-      if (!category) {
-        rejection = { code: "category-not-found" };
-        return;
-      }
-      if (category.kind !== input.type) {
-        rejection = { code: "category-kind-mismatch" };
-        return;
-      }
-      const today = todayIn({ timeZone: APP_TIME_ZONE });
-      if (input.transactionDate > today) {
-        rejection = { code: "future-date", today };
-        return;
-      }
-      if (input.transactionDate < wallet.openingDate) {
-        rejection = { code: "before-opening", openingDate: wallet.openingDate };
+      rejection = await validateAgainstOwner(tx, input);
+      if (rejection) {
         return;
       }
 
@@ -244,9 +214,69 @@ async function findReceipt(
   return receipt;
 }
 
+/** The fields every income or expense carries, whether created or edited. */
+type TransactionFields = Pick<
+  CreateTransactionInput,
+  | "ownerId"
+  | "type"
+  | "walletId"
+  | "categoryId"
+  | "amount"
+  | "transactionDate"
+  | "note"
+>;
+
+type FieldRejection = Exclude<
+  CreateTransactionError,
+  { code: "submission-conflict" }
+>;
+
+/**
+ * Checks the wallet, category, and date against the owner's own records.
+ * Runs inside the committing transaction so the rows it reads are the rows
+ * the write lands on.
+ */
+async function validateAgainstOwner(
+  tx: Database,
+  input: Readonly<TransactionFields>,
+): Promise<FieldRejection | undefined> {
+  const [wallet] = await tx
+    .select({ openingDate: wallets.openingDate })
+    .from(wallets)
+    .where(
+      and(eq(wallets.id, input.walletId), eq(wallets.userId, input.ownerId)),
+    );
+  if (!wallet) {
+    return { code: "wallet-not-found" };
+  }
+  const [category] = await tx
+    .select({ kind: categories.kind })
+    .from(categories)
+    .where(
+      and(
+        eq(categories.id, input.categoryId),
+        eq(categories.userId, input.ownerId),
+      ),
+    );
+  if (!category) {
+    return { code: "category-not-found" };
+  }
+  if (category.kind !== input.type) {
+    return { code: "category-kind-mismatch" };
+  }
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  if (input.transactionDate > today) {
+    return { code: "future-date", today };
+  }
+  if (input.transactionDate < wallet.openingDate) {
+    return { code: "before-opening", openingDate: wallet.openingDate };
+  }
+  return undefined;
+}
+
 function validateShape(
-  input: Readonly<CreateTransactionInput>,
-): CreateTransactionError | undefined {
+  input: Readonly<Pick<TransactionFields, "amount" | "note">>,
+): FieldRejection | undefined {
   if (
     input.amount < MIN_TRANSACTION_AMOUNT ||
     input.amount > MAX_TRANSACTION_AMOUNT
@@ -368,4 +398,240 @@ export async function lastUsedWalletId(
     .orderBy(desc(transactions.recordedAt), desc(transactions.id))
     .limit(1);
   return row?.walletId;
+}
+
+export interface UpdateTransactionInput {
+  /** Always the session user; never a client-supplied identifier. */
+  ownerId: string;
+  id: string;
+  walletId: string;
+  categoryId: string;
+  /** Integer satang, always positive; the stored type carries the sign. */
+  amount: bigint;
+  transactionDate: CalendarDate;
+  note: string;
+}
+
+export type UpdateTransactionError =
+  /** Also covers another owner's record and a deleted one. */
+  { code: "transaction-not-found" } | FieldRejection;
+
+function snapshotOf(row: {
+  type: TransactionType;
+  walletId: string;
+  categoryId: string;
+  amount: bigint;
+  transactionDate: CalendarDate;
+  note: string;
+}): TransactionSnapshot {
+  return {
+    type: row.type,
+    walletId: row.walletId,
+    categoryId: row.categoryId,
+    amount: row.amount.toString(),
+    transactionDate: row.transactionDate,
+    note: row.note,
+  };
+}
+
+function sameSnapshot(a: TransactionSnapshot, b: TransactionSnapshot) {
+  return (
+    a.type === b.type &&
+    a.walletId === b.walletId &&
+    a.categoryId === b.categoryId &&
+    a.amount === b.amount &&
+    a.transactionDate === b.transactionDate &&
+    a.note === b.note
+  );
+}
+
+/**
+ * Locks the owner's current (undeleted) transaction for the rest of the
+ * transaction, so concurrent edits and deletions apply one after another.
+ */
+async function lockCurrentTransaction(
+  tx: Database,
+  { ownerId, id }: Readonly<{ ownerId: string; id: string }>,
+) {
+  const [row] = await tx
+    .select({
+      id: transactions.id,
+      type: transactions.type,
+      walletId: transactions.walletId,
+      categoryId: transactions.categoryId,
+      amount: transactions.amount,
+      transactionDate: transactions.transactionDate,
+      note: transactions.note,
+      deletedAt: transactions.deletedAt,
+    })
+    .from(transactions)
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
+    .for("update");
+  return row;
+}
+
+/**
+ * Corrects an income or expense in place. The type is fixed; the wallet,
+ * category, amount, date, and note are re-validated against the owner's
+ * records inside the committing transaction. The recording time is kept
+ * and the before/after snapshots are written with the change, so history
+ * and balances can never disagree. An edit that changes nothing succeeds
+ * and leaves no history.
+ */
+export async function updateTransaction(
+  db: Database,
+  input: Readonly<UpdateTransactionInput>,
+): Promise<Result<TransactionDetail, UpdateTransactionError>> {
+  const invalid = validateShape(input);
+  if (invalid) {
+    return err(invalid);
+  }
+
+  let rejection: UpdateTransactionError | undefined;
+  await db.transaction(async (tx) => {
+    const current = await lockCurrentTransaction(tx, input);
+    if (!current || current.deletedAt) {
+      rejection = { code: "transaction-not-found" };
+      return;
+    }
+    const before = snapshotOf(current);
+    const after: TransactionSnapshot = {
+      type: current.type,
+      walletId: input.walletId,
+      categoryId: input.categoryId,
+      amount: input.amount.toString(),
+      transactionDate: input.transactionDate,
+      note: input.note,
+    };
+    if (sameSnapshot(before, after)) {
+      return;
+    }
+    rejection = await validateAgainstOwner(tx, {
+      ...input,
+      type: current.type,
+    });
+    if (rejection) {
+      return;
+    }
+    await tx
+      .update(transactions)
+      .set({
+        walletId: input.walletId,
+        categoryId: input.categoryId,
+        amount: input.amount,
+        transactionDate: input.transactionDate,
+        note: input.note,
+      })
+      .where(eq(transactions.id, current.id));
+    await recordChange(tx, {
+      ownerId: input.ownerId,
+      transactionId: current.id,
+      action: "edit",
+      before,
+      after,
+    });
+  });
+
+  if (rejection) {
+    return err(rejection);
+  }
+  const transaction = await getTransaction(db, input);
+  if (!transaction) {
+    throw new Error("Edited transaction could not be read back");
+  }
+  return ok(transaction);
+}
+
+interface DeleteTransactionOptions {
+  ownerId: string;
+  id: string;
+}
+
+export type DeleteTransactionError = { code: "transaction-not-found" };
+
+/**
+ * Soft-deletes an income or expense: it leaves lists, detail, and every
+ * balance, while the row and its receipts stay so a late create retry
+ * confirms the original outcome instead of recreating it. Deleting an
+ * already-deleted transaction is the same outcome, without new history.
+ */
+export async function deleteTransaction(
+  db: Database,
+  { ownerId, id }: Readonly<DeleteTransactionOptions>,
+): Promise<Result<{ id: string }, DeleteTransactionError>> {
+  let found = false;
+  await db.transaction(async (tx) => {
+    const current = await lockCurrentTransaction(tx, { ownerId, id });
+    if (!current) {
+      return;
+    }
+    found = true;
+    if (current.deletedAt) {
+      return;
+    }
+    await tx
+      .update(transactions)
+      .set({ deletedAt: new Date() })
+      .where(eq(transactions.id, current.id));
+    await recordChange(tx, {
+      ownerId,
+      transactionId: current.id,
+      action: "delete",
+      before: snapshotOf(current),
+      after: null,
+    });
+  });
+  return found ? ok({ id }) : err({ code: "transaction-not-found" });
+}
+
+interface RecordChangeInput {
+  ownerId: string;
+  transactionId: string;
+  action: TransactionChangeAction;
+  before: TransactionSnapshot;
+  after: TransactionSnapshot | null;
+}
+
+async function recordChange(tx: Database, input: Readonly<RecordChangeInput>) {
+  await tx.insert(transactionChanges).values({
+    userId: input.ownerId,
+    transactionId: input.transactionId,
+    action: input.action,
+    before: input.before,
+    after: input.after,
+  });
+}
+
+export interface TransactionChange {
+  action: TransactionChangeAction;
+  before: TransactionSnapshot;
+  after: TransactionSnapshot | null;
+  changedAt: Date;
+}
+
+interface ListTransactionChangesOptions {
+  ownerId: string;
+  id: string;
+}
+
+/** The internal change history of one transaction, oldest first. Not for normal views. */
+export async function listTransactionChanges(
+  db: Database,
+  { ownerId, id }: Readonly<ListTransactionChangesOptions>,
+): Promise<readonly TransactionChange[]> {
+  return db
+    .select({
+      action: transactionChanges.action,
+      before: transactionChanges.before,
+      after: transactionChanges.after,
+      changedAt: transactionChanges.changedAt,
+    })
+    .from(transactionChanges)
+    .where(
+      and(
+        eq(transactionChanges.transactionId, id),
+        eq(transactionChanges.userId, ownerId),
+      ),
+    )
+    .orderBy(asc(transactionChanges.changedAt), asc(transactionChanges.id));
 }

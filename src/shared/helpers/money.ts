@@ -94,3 +94,21 @@ export function formatMoney(amount: Readonly<MoneyAmount>): string {
   const { sign, symbol, whole, fraction } = formatMoneyParts(amount);
   return `${sign}${symbol}${whole}.${fraction}`;
 }
+
+/**
+ * Formats integer satang as plain input text, "120.50", with no symbol or
+ * grouping, so a stored amount loads into a form and parses back unchanged.
+ */
+export function formatMoneyInput({
+  amountInMinorUnits,
+  currency,
+}: Readonly<MoneyAmount>): string {
+  const { minorUnitsPerMajorUnit } = CURRENCIES[currency];
+  const negative = amountInMinorUnits < 0n;
+  const magnitude = negative ? -amountInMinorUnits : amountInMinorUnits;
+  const whole = (magnitude / minorUnitsPerMajorUnit).toString();
+  const fraction = (magnitude % minorUnitsPerMajorUnit)
+    .toString()
+    .padStart(2, "0");
+  return `${negative ? "-" : ""}${whole}.${fraction}`;
+}

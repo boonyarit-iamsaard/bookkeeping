@@ -17,6 +17,7 @@ import {
 } from "@/core/database/schema/categories";
 import {
   submissionReceipts,
+  transactionChanges,
   transactions,
   transactionsRelations,
 } from "@/core/database/schema/transactions";
@@ -37,6 +38,7 @@ const schema = {
   transactions,
   transactionsRelations,
   submissionReceipts,
+  transactionChanges,
 };
 
 /**

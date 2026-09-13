@@ -1,3 +1,4 @@
+import { Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -32,12 +33,21 @@ export default async function Page({
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8">
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-semibold text-2xl tracking-tight">Transaction</h1>
-        <Link
-          href="/transactions"
-          className={buttonVariants({ variant: "ghost" })}
-        >
-          Back to list
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/transactions"
+            className={buttonVariants({ variant: "ghost" })}
+          >
+            Back to list
+          </Link>
+          <Link
+            href={`/transactions/${transaction.id}/edit`}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            <Pencil data-icon="inline-start" strokeWidth={1.75} />
+            Edit
+          </Link>
+        </div>
       </div>
       <TransactionDetailView transaction={transaction} />
     </main>
