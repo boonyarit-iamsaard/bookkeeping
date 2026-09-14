@@ -324,7 +324,7 @@ A 14px-corner box with a 1px dashed Hairline border, 24px padding (32px from 640
 
 ### Navigation
 
-A 56px header with a bottom hairline on Paper: the wordmark (Body 600, tight tracking, 6px focus corner), a nav list of capsule links (`nav-link`: Label typography, 12px/6px padding, Graphite; Ink when current via `aria-current="page"`; Mist on hover), and on the right the user's email in Caption Graphite (hidden below 640px) beside the outline Sign out button. No active underline, no icon, no fill on the current item.
+A 56px header with a bottom hairline on Paper: the wordmark (Body 600, tight tracking, 6px focus corner), a nav list of capsule links (`nav-link`: Label typography, 12px/6px padding, Graphite; Ink when current via `aria-current="page"`; Mist on hover), and on the right the user's email in Caption Graphite (hidden below 640px) beside the outline Sign out button. No active underline, no icon, no fill on the current item. Below 640px Sign out becomes an icon and the wordmark is omitted, so Wallets, Transactions, and Categories fit a 360px phone.
 
 ## Do's and Don'ts
 
@@ -362,3 +362,20 @@ Archived wallets retain their figures in the wallet list and its total. With
 no active wallets, transaction entry offers creation or wallet management for
 unarchiving. Existing transaction wallet labels include Archived in list,
 detail, and edit states.
+
+### Category management
+
+`/categories` shows both trees behind the Expense | Income segmented control,
+as hairline rows in the 672px column: parents lead with the 40px disc and a
+Body 500 name; children sit beneath with a 32px disc, a › marker and an 8px
+indent; a row's current entry count appears in Caption on the right only when
+it has any. Every row is a button to the edit sheet (bottom sheet on phone, a
+content-height dialog from 640px): Name, the icon picker with recommendations
+and browse, one cobalt Save changes, then beneath a hairline the Remove
+section, which states the count and destination in prose before "Remove…"
+expands to a destructive confirm beside "Keep it". A parent with children
+shows why it stays instead of a disabled control; Uncategorized shows a
+read-only name with its reason and no removal. New category opens the same
+create form the transaction picker uses. After any change the sheet closes,
+the list re-reads from the server, and a status line under the title says
+what happened; after a removal that line takes focus.

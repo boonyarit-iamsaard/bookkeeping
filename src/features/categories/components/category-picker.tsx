@@ -18,6 +18,7 @@ import { CreateCategoryForm } from "@/features/categories/components/create-cate
 import type { CreateCategoryActionSuccess } from "@/features/categories/server/category.actions";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { SheetPortal } from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/helpers/cn";
 
 interface CategoryPickerProps {
@@ -102,61 +103,50 @@ export function CategoryPicker({
         />
       </Dialog.Trigger>
 
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30 transition-opacity duration-200 ease-out data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none" />
-        <Dialog.Viewport className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
-          <Dialog.Popup
-            className={cn(
-              "flex max-h-[min(100%,calc(100dvh-3rem))] w-full flex-col overflow-hidden bg-background text-foreground outline-none",
-              "rounded-t-xl transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] data-ending-style:translate-y-full data-starting-style:translate-y-full motion-reduce:transition-none",
-              "sm:h-[36rem] sm:max-w-md sm:rounded-xl sm:border sm:duration-200 sm:data-ending-style:translate-y-2 sm:data-starting-style:translate-y-2 sm:data-ending-style:scale-[0.98] sm:data-starting-style:scale-[0.98] sm:data-ending-style:opacity-0 sm:data-starting-style:opacity-0",
-            )}
-          >
-            {view.name === "search" ? (
-              <SearchView
-                kind={kind}
-                categories={categories}
-                value={value}
-                query={query}
-                onQueryChange={setQuery}
-                onSelect={choose}
-                onCreate={(initialName, initialParentId) =>
-                  setView({ name: "create", initialName, initialParentId })
-                }
-              />
-            ) : (
-              <>
-                <header className="flex h-14 shrink-0 items-center gap-2 px-2 sm:px-4">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-lg"
-                    aria-label="Back to search"
-                    onClick={() => setView({ name: "search" })}
-                    className="size-11"
-                  >
-                    <ArrowLeft strokeWidth={1.75} className="size-5" />
-                  </Button>
-                  <Dialog.Title className="flex-1 font-semibold text-lg">
-                    New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
-                  </Dialog.Title>
-                </header>
-                <CreateCategoryForm
-                  kind={kind}
-                  categories={categories}
-                  initialName={view.initialName}
-                  initialParentId={view.initialParentId}
-                  onCreated={(outcome) => {
-                    onCreated(outcome);
-                    setOpen(false);
-                  }}
-                  onCancel={() => setView({ name: "search" })}
-                />
-              </>
-            )}
-          </Dialog.Popup>
-        </Dialog.Viewport>
-      </Dialog.Portal>
+      <SheetPortal>
+        {view.name === "search" ? (
+          <SearchView
+            kind={kind}
+            categories={categories}
+            value={value}
+            query={query}
+            onQueryChange={setQuery}
+            onSelect={choose}
+            onCreate={(initialName, initialParentId) =>
+              setView({ name: "create", initialName, initialParentId })
+            }
+          />
+        ) : (
+          <>
+            <header className="flex h-14 shrink-0 items-center gap-2 px-2 sm:px-4">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-lg"
+                aria-label="Back to search"
+                onClick={() => setView({ name: "search" })}
+                className="size-11"
+              >
+                <ArrowLeft strokeWidth={1.75} className="size-5" />
+              </Button>
+              <Dialog.Title className="flex-1 font-semibold text-lg">
+                New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
+              </Dialog.Title>
+            </header>
+            <CreateCategoryForm
+              kind={kind}
+              categories={categories}
+              initialName={view.initialName}
+              initialParentId={view.initialParentId}
+              onCreated={(outcome) => {
+                onCreated(outcome);
+                setOpen(false);
+              }}
+              onCancel={() => setView({ name: "search" })}
+            />
+          </>
+        )}
+      </SheetPortal>
     </Dialog.Root>
   );
 }

@@ -13,7 +13,8 @@ export const NO_PARENT = "";
 /** The parent select's value for "create the parent along with it". */
 export const NEW_PARENT = "new";
 
-const nameField = z
+/** Trimmed, then bounded: the one name rule for creation and renaming. */
+export const categoryNameSchema = z
   .string()
   .transform(normalizeCategoryName)
   .pipe(
@@ -22,6 +23,7 @@ const nameField = z
       .min(1, CATEGORY_MESSAGES.blankName)
       .max(MAX_CATEGORY_NAME_LENGTH, CATEGORY_MESSAGES.nameTooLong),
   );
+const nameField = categoryNameSchema;
 
 const iconField = z.string().refine(isIconId, CATEGORY_MESSAGES.unknownIcon);
 
@@ -61,6 +63,14 @@ export const categoryFormSchema = z
   });
 
 export type CategoryFormInput = z.input<typeof categoryFormSchema>;
+
+/** What the edit sheet holds: the name and icon; level and parent are fixed. */
+export const editCategoryFormSchema = z.object({
+  name: nameField,
+  iconId: iconField,
+});
+
+export type EditCategoryFormInput = z.input<typeof editCategoryFormSchema>;
 
 /** What the client actually sends: the tree plus an explicit parent choice. */
 export const createCategorySubmissionSchema = z.object({

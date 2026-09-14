@@ -438,7 +438,12 @@ async function lockOwnedWallets(
   return ok(ownedWallets);
 }
 
-/** Income and expenses need one of the owner's categories of the same kind. */
+/**
+ * Income and expenses need one of the owner's categories of the same kind.
+ * The share lock holds the category's removal until this write lands, and
+ * a removal already under way makes the category vanish here instead of
+ * failing the foreign key.
+ */
 async function validateCategory(
   tx: Database,
   input: Readonly<TransactionFields>,
@@ -457,7 +462,8 @@ async function validateCategory(
         eq(categories.id, input.categoryId),
         eq(categories.userId, input.ownerId),
       ),
-    );
+    )
+    .for("share");
   if (!category) {
     return { code: "category-not-found" };
   }

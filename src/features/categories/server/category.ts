@@ -165,9 +165,9 @@ export interface CreateCategoryOutcome {
   createdParent?: CategorySummary;
 }
 
-const UNIQUE_VIOLATION = "23505";
-const PARENT_NAME_INDEX = "categories_parent_name_unique";
-const CHILD_NAME_INDEX = "categories_child_name_unique";
+export const UNIQUE_VIOLATION = "23505";
+export const PARENT_NAME_INDEX = "categories_parent_name_unique";
+export const CHILD_NAME_INDEX = "categories_child_name_unique";
 
 /**
  * Creates a parent, a child under an existing parent, or a child together
@@ -207,6 +207,8 @@ export async function createCategory(
       let parent: CategorySummary | undefined;
       let createdParent: CategorySummary | undefined;
       if (input.parent && "existingId" in input.parent) {
+        // A share lock holds the parent's removal until this child lands,
+        // and a removal already under way makes the parent vanish here.
         const [row] = await tx
           .select(summaryColumns)
           .from(categories)
@@ -216,7 +218,8 @@ export async function createCategory(
               eq(categories.userId, input.ownerId),
               eq(categories.kind, input.kind),
             ),
-          );
+          )
+          .for("share");
         if (!row) {
           return err({ code: "parent-not-found" });
         }
@@ -255,10 +258,16 @@ export async function createCategory(
   }
 }
 
-function validateName(
+/** The two shape rules every category name obeys, on creation or rename. */
+export type NameRejection = Extract<
+  CreateCategoryError,
+  { code: "blank-name" | "name-too-long" }
+>;
+
+export function validateName(
   name: string,
   field: "name" | "parentName",
-): CreateCategoryError | undefined {
+): NameRejection | undefined {
   if (name.length === 0) {
     return { code: "blank-name", field };
   }
@@ -268,7 +277,7 @@ function validateName(
   return undefined;
 }
 
-const summaryColumns = {
+export const summaryColumns = {
   id: categories.id,
   kind: categories.kind,
   parentId: categories.parentId,
@@ -348,7 +357,7 @@ interface DatabaseErrorShape {
 }
 
 /** Drizzle wraps driver errors; the Postgres detail is on `cause`. */
-function databaseError(error: unknown): DatabaseErrorShape | undefined {
+export function databaseError(error: unknown): DatabaseErrorShape | undefined {
   if (!(error instanceof Error)) {
     return undefined;
   }
