@@ -270,12 +270,13 @@ The system is flat and tonal. Depth is conveyed by hairlines (dividers, header r
 ### Shadow Vocabulary
 
 - **Indicator lift** (`box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 1px 6px rgba(0,0,0,0.06)`): the selected-segment indicator only. A real offset-plus-blur shadow, soft enough to be ambient.
+- **Popover lift** (`box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08)`): the floating list of a Select or dropdown menu, which has no backdrop and must separate from the page it covers. Always paired with a 1px Hairline border.
 
 ### Named Rules
 
 **The Hairline Rule.** Structure is drawn with 1px Hairline strokes, not with shadows, fills, or card shells. A list is rows separated by hairlines; a header is a bar with one hairline beneath.
 
-**The One Lift Rule.** Shadows exist only where a control physically sits on a track (the segmented indicator). Do not add elevation to buttons, rows, inputs, or containers.
+**The One Lift Rule.** Shadows exist only where something physically sits above its surroundings: the segmented indicator on its track, and a floating popover over the page. Do not add elevation to buttons, rows, inputs, or containers.
 
 ## Shapes
 
@@ -301,10 +302,15 @@ Controls are tactile and quiet: capsules on a flat page, a 3px cobalt halo on fo
 - **Style:** capsule, 1px Hairline stroke, Hairline fill at 30%, Ink text, Graphite placeholder. Height 44px in this build (`h-11`; the primitive default is 36px), Body-size text on phone and Label-size from 768px.
 - **Money input** (`input-money`): 48px tall, `money` utility at Row Figure size, `inputmode="decimal"`, a Graphite ฿ pinned 16px from the left (36px left padding) and a Graphite "THB" in Label weight pinned 16px from the right (64px right padding). Placeholder `0.00`.
 - **Date input:** native `type="date"`, same capsule; a Caption description beneath echoes the chosen date in prose.
+- **Select** (shadcn Base UI `Select`, `ui/select.tsx`): the same 44px capsule as an input, with a 16px Graphite chevron that turns while open. The list drops 8px beneath at the trigger's width in a 14px-corner Paper box with a Hairline border and the Popover lift, capped at 26rem and 16px from viewport edges; items are 40px minimum with a 10px inner corner, Mist when highlighted, and a Cobalt check on the selected one. Option content is rich where it helps the choice: wallet options lead with a 32px Mist disc and stack type · balance in Caption beneath the name; category options show the pictogram; filter lists group by tree with children indented behind a › marker. "All …" and "None" are real first items, not placeholders, so a choice can be undone from the same list. Placeholders ("Choose a wallet") are Graphite.
 - **Field anatomy:** Label (Label typography) → control → optional Caption description in Graphite → error. 12px between each.
 - **Focus:** Cobalt border plus 3px Cobalt ring at 50%.
 - **Error:** the field's label turns Signal Red; the control takes a Signal Red border and a 3px Signal Red ring at 20%; the error message is Caption in Signal Red with `role="alert"`, rendered under the description, values preserved.
 - **Server error bar** (`error-bar`): 14px-corner box, Signal Red text on Signal Red at 5%, 1px Signal Red border at 30%, 12px/16px padding, above the fields.
+
+### Dropdown Menu
+
+shadcn Base UI `Menu` (`ui/dropdown-menu.tsx`) for actions, never for values. The same floating box as the Select list, aligned to the trigger's end and 8px below, 224px minimum; items 40px with a 10px inner corner and Graphite 16px Lucide icons; group labels in Caption. Used once: the header account menu, whose trigger is an outline capsule holding a 28px Mist initial disc, the email (from 640px) and a chevron, and whose list names the signed-in account above Sign out.
 
 ### Segmented Control (signature)
 

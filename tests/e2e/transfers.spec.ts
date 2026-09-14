@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
@@ -35,12 +36,8 @@ test("transfer From → To and swap survive a lost response, then edit and delet
     .boundingBox();
   await page.getByRole("radio", { name: "Transfer" }).click();
   await expect(page.getByRole("button", { name: /^Category/ })).toHaveCount(0);
-  await expect(
-    page.getByLabel("From", { exact: true }).locator("option:checked"),
-  ).toContainText("Cash");
-  await expect(
-    page.getByLabel("To", { exact: true }).locator("option:checked"),
-  ).toContainText("Savings");
+  await expect(page.getByLabel("From", { exact: true })).toContainText("Cash");
+  await expect(page.getByLabel("To", { exact: true })).toContainText("Savings");
   const dateAfter = await page
     .getByLabel("Date", { exact: true })
     .boundingBox();
@@ -51,12 +48,10 @@ test("transfer From → To and swap survive a lost response, then edit and delet
   await expect(
     page.getByRole("button", { name: "Swap wallets" }),
   ).toBeFocused();
-  await expect(
-    page.getByLabel("From", { exact: true }).locator("option:checked"),
-  ).toContainText("Savings");
-  await expect(
-    page.getByLabel("To", { exact: true }).locator("option:checked"),
-  ).toContainText("Cash");
+  await expect(page.getByLabel("From", { exact: true })).toContainText(
+    "Savings",
+  );
+  await expect(page.getByLabel("To", { exact: true })).toContainText("Cash");
   await page.getByLabel("Date", { exact: true }).fill("2026-09-04");
   await page
     .getByRole("button", { name: "Save ฿1,000.01 Savings → Cash" })
@@ -65,15 +60,13 @@ test("transfer From → To and swap survive a lost response, then edit and delet
     "5 Sep 2026",
   );
   await page.getByLabel("Date", { exact: true }).fill("2026-09-05");
-  const fromId = await page.getByLabel("From", { exact: true }).inputValue();
-  await page.getByLabel("To", { exact: true }).selectOption(fromId);
+  // The same wallet on both sides: pick From's current choice under To.
+  await chooseOption(page.getByLabel("To", { exact: true }), "Savings");
   await page.getByRole("button", { name: /^Save/ }).click();
   await expect(page.locator("#destinationWalletId-error")).toContainText(
     "different destination",
   );
-  await page
-    .getByLabel("To", { exact: true })
-    .selectOption({ label: "Cash · Cash · ฿12,000.00" });
+  await chooseOption(page.getByLabel("To", { exact: true }), "Cash");
   await expect(
     page.getByRole("button", { name: "Save ฿1,000.01 Savings → Cash" }),
   ).toBeEnabled();

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
@@ -66,9 +67,7 @@ test("a linked refund starts from the expense, falls back when the original wall
   await expect(page.getByText("Follows the expense’s category")).toBeVisible();
   await expect(page.getByLabel("Amount")).toHaveValue("500.00");
   await expect(page.getByLabel("Amount")).toBeFocused();
-  await expect(
-    page.getByLabel("Received in").locator("option:checked"),
-  ).toContainText("Cash");
+  await expect(page.getByLabel("Received in")).toContainText("Cash");
   await page.getByLabel("Amount").fill("600");
   await page.getByRole("button", { name: "Save +฿600.00 · Cash" }).click();
   await expect(page.locator("#amount-error")).toContainText(
@@ -121,8 +120,12 @@ test("a linked refund starts from the expense, falls back when the original wall
     page.getByRole("heading", { name: "Record refund" }),
   ).toBeVisible({ timeout: 15_000 });
   const receivingWallet = page.getByLabel("Received in");
-  await expect(receivingWallet).toHaveValue("");
-  await expect(receivingWallet.locator("option")).toHaveCount(2);
+  await expect(receivingWallet).toContainText("Choose an active wallet");
+  // Only the active wallet is offered; the archived original is absent.
+  await receivingWallet.click();
+  await expect(page.getByRole("option")).toHaveCount(1);
+  await expect(page.getByRole("option", { name: /^Bank/ })).toBeVisible();
+  await page.keyboard.press("Escape");
   await expect(
     page.getByText("Cash, the expense’s wallet, is archived"),
   ).toBeVisible();
@@ -137,7 +140,7 @@ test("a linked refund starts from the expense, falls back when the original wall
       fullPage: true,
     });
   }
-  await receivingWallet.selectOption({ label: "Bank · Cash · ฿0.00" });
+  await chooseOption(receivingWallet, "Bank");
   await page.getByLabel("Amount").fill("50");
   await page.getByLabel("Date", { exact: true }).fill("2026-09-02");
   await page.getByRole("button", { name: "Save +฿50.00 · Bank" }).click();

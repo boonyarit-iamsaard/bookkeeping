@@ -1,6 +1,8 @@
 import Form from "next/form";
 import Link from "next/link";
 import type { CategorySummary } from "@/features/categories/category.types";
+import type { FilterOptionGroup } from "@/features/transactions/components/filter-select";
+import { FilterSelect } from "@/features/transactions/components/filter-select";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPES,
@@ -15,8 +17,25 @@ interface HistoryFiltersProps {
   values: Readonly<Record<string, string | string[] | undefined>>;
 }
 
-const selectClassName =
-  "h-11 w-full min-w-0 rounded-4xl border border-input bg-input/30 px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm";
+/** Each tree as a group: parents first, their children indented beneath. */
+function categoryGroups(
+  categories: readonly CategorySummary[],
+): FilterOptionGroup[] {
+  return (["expense", "income"] as const).flatMap((kind) => {
+    const parents = categories.filter(
+      (category) => category.kind === kind && category.parentId === null,
+    );
+    const options = parents.flatMap((parent) => [
+      { value: parent.id, label: parent.name },
+      ...categories
+        .filter((category) => category.parentId === parent.id)
+        .map((child) => ({ value: child.id, label: child.name, indent: true })),
+    ]);
+    return options.length > 0
+      ? [{ label: kind === "expense" ? "Expense" : "Income", options }]
+      : [];
+  });
+}
 
 export function HistoryFilters({
   wallets,
@@ -69,59 +88,48 @@ export function HistoryFilters({
           </label>
           <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
             <label htmlFor="history-walletId">Filter wallet</label>
-            <select
+            <FilterSelect
               id="history-walletId"
               name="walletId"
               defaultValue={value("walletId")}
-              className={selectClassName}
-            >
-              <option value="">All wallets</option>
-              {wallets.map((wallet) => (
-                <option key={wallet.id} value={wallet.id}>
-                  {wallet.name}
-                  {wallet.archivedAt ? " (Archived)" : ""}
-                </option>
-              ))}
-            </select>
+              allLabel="All wallets"
+              groups={[
+                {
+                  options: wallets.map((wallet) => ({
+                    value: wallet.id,
+                    label: wallet.name,
+                    hint: wallet.archivedAt ? "Archived" : undefined,
+                  })),
+                },
+              ]}
+            />
           </div>
           <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
             <label htmlFor="history-categoryId">Filter category</label>
-            <select
+            <FilterSelect
               id="history-categoryId"
               name="categoryId"
               defaultValue={value("categoryId")}
-              className={selectClassName}
-            >
-              <option value="">All categories</option>
-              {categories.map((category) => {
-                const parent = categories.find(
-                  (candidate) => candidate.id === category.parentId,
-                );
-                return (
-                  <option key={category.id} value={category.id}>
-                    {category.kind === "expense" ? "Expense" : "Income"} ·{" "}
-                    {parent ? `${parent.name} › ` : ""}
-                    {category.name}
-                  </option>
-                );
-              })}
-            </select>
+              allLabel="All categories"
+              groups={categoryGroups(categories)}
+            />
           </div>
           <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
             <label htmlFor="history-type">Type</label>
-            <select
+            <FilterSelect
               id="history-type"
               name="type"
               defaultValue={value("type")}
-              className={selectClassName}
-            >
-              <option value="">All types</option>
-              {TRANSACTION_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {TRANSACTION_TYPE_LABELS[type]}
-                </option>
-              ))}
-            </select>
+              allLabel="All types"
+              groups={[
+                {
+                  options: TRANSACTION_TYPES.map((type) => ({
+                    value: type,
+                    label: TRANSACTION_TYPE_LABELS[type],
+                  })),
+                },
+              ]}
+            />
           </div>
         </div>
         <div className="flex flex-wrap gap-3">

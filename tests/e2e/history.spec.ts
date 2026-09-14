@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { APP_TIME_ZONE, addDays, todayIn } from "@/shared/helpers/dates";
+import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
@@ -40,7 +41,7 @@ test("filters and reports work together with dated wallet balances", async ({
     throw new Error("Missing saved expense link");
   }
   await page.getByText("Filter history", { exact: true }).click();
-  await page.getByLabel("Type", { exact: true }).selectOption("income");
+  await chooseOption(page.getByLabel("Type", { exact: true }), "Income");
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page.getByText("No matching transactions")).toBeVisible();
   await page.getByRole("link", { name: "Clear filters" }).click();
@@ -50,11 +51,10 @@ test("filters and reports work together with dated wallet balances", async ({
   const today = todayIn({ timeZone: APP_TIME_ZONE });
   await page.getByLabel("From date").fill(addDays(today, -1));
   await page.getByLabel("To date").fill(today);
-  await page.getByLabel("Filter wallet").selectOption({ label: "Cash" });
-  await page.getByLabel("Type", { exact: true }).selectOption("expense");
-  await page
-    .getByLabel("Filter category")
-    .selectOption({ label: "Expense · Uncategorized" });
+  await chooseOption(page.getByLabel("Filter wallet"), "Cash");
+  await chooseOption(page.getByLabel("Type", { exact: true }), "Expense");
+  // The first Uncategorized listed is the expense tree's.
+  await chooseOption(page.getByLabel("Filter category"), "Uncategorized");
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
   await expect(page.getByText(/Recorded .*Bangkok/)).toBeVisible();

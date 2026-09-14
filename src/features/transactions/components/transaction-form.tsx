@@ -36,6 +36,7 @@ import type {
   LinkedExpenseLimits,
   TransactionFormInput,
 } from "@/features/transactions/transaction-form-schema";
+import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet.types";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
@@ -46,8 +47,14 @@ import {
   FieldLabel,
 } from "@/shared/components/ui/field";
 import { Input } from "@/shared/components/ui/input";
-import { NativeSelect } from "@/shared/components/ui/native-select";
 import { SegmentedControl } from "@/shared/components/ui/segmented-control";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { cn } from "@/shared/helpers/cn";
 import type { CalendarDate } from "@/shared/helpers/dates";
 import { addDays, formatCalendarDate } from "@/shared/helpers/dates";
@@ -464,15 +471,21 @@ export function TransactionForm({
                                 : "Wallet"}
                           </FieldLabel>
                           <div className="flex items-center gap-2">
-                            <NativeSelect
+                            <WalletSelect
                               id={field.name}
                               name={field.name}
+                              wallets={wallets}
                               value={field.state.value}
+                              placeholder={
+                                type === "refund"
+                                  ? "Choose an active wallet"
+                                  : "Choose a wallet"
+                              }
                               onBlur={field.handleBlur}
-                              onChange={(event) => {
+                              onValueChange={(next) => {
                                 clearFieldError("walletId");
                                 clearFieldError("transactionDate");
-                                field.handleChange(event.target.value);
+                                field.handleChange(next);
                               }}
                               aria-invalid={invalid}
                               aria-describedby={
@@ -483,21 +496,7 @@ export function TransactionForm({
                                   .filter(Boolean)
                                   .join(" ") || undefined
                               }
-                            >
-                              <option value="" disabled>
-                                {type === "refund"
-                                  ? "Choose an active wallet"
-                                  : "Choose a wallet"}
-                              </option>
-                              {wallets.map((wallet) => (
-                                <option key={wallet.id} value={wallet.id}>
-                                  {wallet.name} ·{" "}
-                                  {WALLET_TYPE_LABELS[wallet.type]} ·{" "}
-                                  {wallet.balanceLabel}
-                                  {wallet.archived ? " · Archived" : ""}
-                                </option>
-                              ))}
-                            </NativeSelect>
+                            />
                             {type === "transfer" && (
                               <Button
                                 type="button"
@@ -582,15 +581,17 @@ export function TransactionForm({
                         return (
                           <Field data-invalid={invalid}>
                             <FieldLabel htmlFor={field.name}>To</FieldLabel>
-                            <NativeSelect
+                            <WalletSelect
                               id={field.name}
                               name={field.name}
-                              value={field.state.value}
+                              wallets={wallets}
+                              value={field.state.value ?? ""}
+                              placeholder="Choose a destination wallet"
                               onBlur={field.handleBlur}
-                              onChange={(event) => {
+                              onValueChange={(next) => {
                                 clearFieldError("destinationWalletId");
                                 clearFieldError("transactionDate");
-                                field.handleChange(event.target.value);
+                                field.handleChange(next);
                               }}
                               aria-invalid={invalid}
                               aria-describedby={
@@ -598,19 +599,7 @@ export function TransactionForm({
                                   ? `${field.name}-error`
                                   : "transfer-description"
                               }
-                            >
-                              <option value="" disabled>
-                                Choose a destination wallet
-                              </option>
-                              {wallets.map((wallet) => (
-                                <option key={wallet.id} value={wallet.id}>
-                                  {wallet.name} ·{" "}
-                                  {WALLET_TYPE_LABELS[wallet.type]} ·{" "}
-                                  {wallet.balanceLabel}
-                                  {wallet.archived ? " · Archived" : ""}
-                                </option>
-                              ))}
-                            </NativeSelect>
+                            />
                             <FieldDescription id="transfer-description">
                               {wallets.length < 2 ? (
                                 <>
@@ -960,5 +949,102 @@ function DateChip({ selected, onClick, children }: Readonly<DateChipProps>) {
     >
       {children}
     </Button>
+  );
+}
+
+interface WalletSelectProps {
+  id: string;
+  name: string;
+  wallets: readonly WalletOption[];
+  /** The form's value; "" means nothing chosen yet. */
+  value: string;
+  placeholder: string;
+  onValueChange: (value: string) => void;
+  onBlur: () => void;
+  "aria-invalid": boolean;
+  "aria-describedby": string | undefined;
+}
+
+/**
+ * A wallet choice. The closed trigger shows the wallet's pictogram and name
+ * so the capture scene reads at a glance; the open list adds type, balance
+ * and Archived beneath each name so the money can be checked before moving.
+ */
+function WalletSelect({
+  id,
+  name,
+  wallets,
+  value,
+  placeholder,
+  onValueChange,
+  onBlur,
+  ...aria
+}: Readonly<WalletSelectProps>) {
+  const byId = new Map(wallets.map((wallet) => [wallet.id, wallet]));
+  return (
+    <Select
+      name={name}
+      value={value || null}
+      onValueChange={(next) => onValueChange(next ?? "")}
+    >
+      <SelectTrigger id={id} onBlur={onBlur} {...aria}>
+        <SelectValue>
+          {(selected: string | null) => {
+            const wallet = selected ? byId.get(selected) : undefined;
+            if (!wallet) {
+              return (
+                <span className="truncate text-muted-foreground">
+                  {placeholder}
+                </span>
+              );
+            }
+            return (
+              <>
+                <WalletTypeIcon type={wallet.type} className="size-4" />
+                <span className="truncate">{wallet.name}</span>
+                {wallet.archived && (
+                  <span className="shrink-0 text-muted-foreground">
+                    · Archived
+                  </span>
+                )}
+              </>
+            );
+          }}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {wallets.map((wallet) => (
+          <SelectItem
+            key={wallet.id}
+            value={wallet.id}
+            label={wallet.name}
+            className="min-h-14"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
+                <WalletTypeIcon type={wallet.type} className="size-4" />
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate font-medium">
+                  {wallet.name}
+                  {wallet.archived && (
+                    <span className="font-normal text-muted-foreground">
+                      {" "}
+                      · Archived
+                    </span>
+                  )}
+                </span>
+                <span className="truncate text-muted-foreground text-xs">
+                  {WALLET_TYPE_LABELS[wallet.type]} ·{" "}
+                  <span className="money" translate="no">
+                    {wallet.balanceLabel}
+                  </span>
+                </span>
+              </span>
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

@@ -36,8 +36,8 @@ test("quick entry: amount then Save records an expense and moves the wallet bala
     "true",
   );
 
-  await expect(page.getByLabel("Wallet").locator("option:checked")).toHaveText(
-    "Cash · Cash · ฿12,000.00",
+  await expect(page.getByLabel("Wallet", { exact: true })).toContainText(
+    "Cash",
   );
   await amount.fill("120");
   const save = page.getByRole("button", { name: "Save −฿120.00 · Cash" });

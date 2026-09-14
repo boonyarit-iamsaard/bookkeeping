@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
@@ -46,7 +47,10 @@ test("search picks either level, and a missing parent and child are created with
     "Bubble tea",
   );
   await expect(create.getByRole("radio", { name: "Coffee" })).toBeChecked();
-  await create.getByLabel("Parent").selectOption({ label: "New parent…" });
+  await chooseOption(
+    create.getByLabel("Parent", { exact: true }),
+    "New parent…",
+  );
   const parentName = create.getByLabel("Parent name");
   await expect(parentName).toBeFocused();
   await parentName.fill("Drinks");

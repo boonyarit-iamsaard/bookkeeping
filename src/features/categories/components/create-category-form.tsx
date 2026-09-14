@@ -1,5 +1,6 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useId } from "react";
 import type {
   CategoryKind,
@@ -12,6 +13,7 @@ import {
 } from "@/features/categories/category-form-schema";
 import { MAX_CATEGORY_NAME_LENGTH } from "@/features/categories/category-name";
 import { topLevelParents } from "@/features/categories/category-search";
+import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { IconPicker } from "@/features/categories/components/icon-picker";
 import { useCreateCategoryForm } from "@/features/categories/hooks/use-create-category-form";
 import type { CreateCategoryActionSuccess } from "@/features/categories/server/category.actions";
@@ -24,7 +26,14 @@ import {
   FieldLabel,
 } from "@/shared/components/ui/field";
 import { Input } from "@/shared/components/ui/input";
-import { NativeSelect } from "@/shared/components/ui/native-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 
 interface CreateCategoryFormProps {
   kind: CategoryKind;
@@ -140,33 +149,103 @@ export function CreateCategoryForm({
               return (
                 <Field data-invalid={invalid}>
                   <FieldLabel htmlFor={parentId}>Parent</FieldLabel>
-                  <NativeSelect
-                    id={parentId}
+                  <Select
                     name={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => {
-                      clearFieldError("parent");
-                      field.handleChange(event.target.value);
-                    }}
-                    aria-invalid={invalid}
-                    aria-describedby={
-                      invalid
-                        ? `${parentId}-description ${parentId}-error`
-                        : `${parentId}-description`
+                    value={
+                      field.state.value === NO_PARENT ? null : field.state.value
                     }
+                    onValueChange={(next) => {
+                      clearFieldError("parent");
+                      field.handleChange(next ?? NO_PARENT);
+                    }}
                   >
-                    <option value={NO_PARENT}>
-                      None · a new {CATEGORY_KIND_LABELS[kind].toLowerCase()}{" "}
-                      parent category
-                    </option>
-                    {parents.map((parent) => (
-                      <option key={parent.id} value={parent.id}>
-                        {parent.name}
-                      </option>
-                    ))}
-                    <option value={NEW_PARENT}>New parent…</option>
-                  </NativeSelect>
+                    <SelectTrigger
+                      id={parentId}
+                      onBlur={field.handleBlur}
+                      aria-invalid={invalid}
+                      aria-describedby={
+                        invalid
+                          ? `${parentId}-description ${parentId}-error`
+                          : `${parentId}-description`
+                      }
+                    >
+                      <SelectValue>
+                        {(selected: string | null) => {
+                          if (selected === NEW_PARENT) {
+                            return "New parent…";
+                          }
+                          const parent = parents.find(
+                            (candidate) => candidate.id === selected,
+                          );
+                          if (parent) {
+                            return (
+                              <>
+                                <CategoryIcon
+                                  iconId={parent.iconId}
+                                  className="size-4"
+                                />
+                                <span className="truncate">{parent.name}</span>
+                              </>
+                            );
+                          }
+                          return (
+                            <span className="truncate">
+                              None
+                              <span className="text-muted-foreground">
+                                {" "}
+                                · a new{" "}
+                                {CATEGORY_KIND_LABELS[kind].toLowerCase()}{" "}
+                                parent category
+                              </span>
+                            </span>
+                          );
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={null} label="None">
+                        <span>
+                          None
+                          <span className="font-normal text-muted-foreground">
+                            {" "}
+                            · a new {CATEGORY_KIND_LABELS[kind].toLowerCase()}{" "}
+                            parent category
+                          </span>
+                        </span>
+                      </SelectItem>
+                      {parents.length > 0 && <SelectSeparator />}
+                      {parents.map((parent) => (
+                        <SelectItem
+                          key={parent.id}
+                          value={parent.id}
+                          label={parent.name}
+                        >
+                          <span className="flex items-center gap-3">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
+                              <CategoryIcon
+                                iconId={parent.iconId}
+                                className="size-4"
+                              />
+                            </span>
+                            <span className="truncate">{parent.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                      <SelectSeparator />
+                      <SelectItem value={NEW_PARENT} label="New parent…">
+                        <span className="flex items-center gap-3">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
+                            <Plus
+                              aria-hidden="true"
+                              strokeWidth={1.75}
+                              className="size-4"
+                            />
+                          </span>
+                          New parent…
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FieldDescription id={`${parentId}-description`}>
                     Parent categories group child categories; there is no third
                     level.
