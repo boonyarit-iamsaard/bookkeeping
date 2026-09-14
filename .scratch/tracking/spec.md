@@ -1,6 +1,6 @@
 # Personal finance: tracking milestone
 
-Status: ready-for-agent
+Status: done
 
 Product direction and transaction-form brief confirmed on 2026-09-12.
 This specification consolidates those decisions for implementation planning.
@@ -331,6 +331,10 @@ isolated data; sharing is outside scope.
 - Export/import, public launch/deployment planning, gamification, celebratory motion.
 
 ## Further Notes
+
+- Tracking milestone acceptance completed on 2026-09-14; see
+  [milestone verification](milestone-verification.md) for criterion coverage and
+  final check results.
 
 - Authorities: confirmed product record, glossary, balance-model ADR, transaction-form
   brief, and icon notes. This spec replaces interview rounds without reopening

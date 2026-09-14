@@ -129,3 +129,21 @@ export interface TransactionChange {
   after: TransactionSnapshot | null;
   changedAt: Date;
 }
+
+export interface TransactionFilters {
+  from?: CalendarDate;
+  to?: CalendarDate;
+  walletId?: string;
+  categoryId?: string;
+  type?: TransactionType;
+}
+
+export interface MonthlySummary {
+  month: string;
+  income: bigint;
+  grossExpenses: bigint;
+  refunds: bigint;
+  netExpenses: bigint;
+  net: bigint;
+  transactionCount: number;
+}

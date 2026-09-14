@@ -191,6 +191,7 @@ function describeRefunds(refunds: readonly RefundSummary[]): string {
 function revalidateTransactionPages(id?: string) {
   revalidatePath("/transactions");
   revalidatePath("/wallets");
+  revalidatePath("/dashboard");
   revalidatePath("/transactions/[id]", "page");
   revalidatePath("/transactions/[id]/edit", "page");
   revalidatePath("/transactions/[id]/refund", "page");

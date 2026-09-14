@@ -37,6 +37,16 @@ export default async function Page({
           </Link>
         )}
       </div>
+      <Link
+        href="/dashboard"
+        className={buttonVariants({
+          variant: "outline",
+          size: "lg",
+          className: "self-start",
+        })}
+      >
+        Monthly summary & balances
+      </Link>
       <WalletList wallets={wallets} createdId={createdId} />
     </main>
   );

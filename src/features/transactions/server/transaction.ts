@@ -1,5 +1,16 @@
 import { createHash } from "node:crypto";
-import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { Database } from "@/core/database/database";
 import { categories } from "@/core/database/schema/categories";
@@ -21,6 +32,7 @@ import type {
   TransactionChange,
   TransactionChangeAction,
   TransactionDetail,
+  TransactionFilters,
   TransactionSnapshot,
   TransactionType,
 } from "@/features/transactions/transaction.types";
@@ -631,14 +643,45 @@ function toDetail(row: DetailRow): TransactionDetail {
   };
 }
 
-/** Current transactions, newest transaction date first; recording order only breaks ties. */
+export interface ListTransactionsOptions extends TransactionFilters {
+  /** Derived from the authenticated session at the edge. */
+  ownerId: string;
+}
+
+/** Current financial history, newest transaction date first. */
 export async function listTransactions(
   db: Database,
-  ownerId: string,
+  filters: Readonly<ListTransactionsOptions>,
 ): Promise<readonly TransactionDetail[]> {
   const rows = await detailQuery(db)
     .where(
-      and(eq(transactions.userId, ownerId), isNull(transactions.deletedAt)),
+      and(
+        eq(transactions.userId, filters.ownerId),
+        isNull(transactions.deletedAt),
+        filters.from
+          ? gte(transactions.transactionDate, filters.from)
+          : undefined,
+        filters.to ? lte(transactions.transactionDate, filters.to) : undefined,
+        filters.type ? eq(transactions.type, filters.type) : undefined,
+        filters.walletId
+          ? and(
+              eq(wallets.userId, filters.ownerId),
+              or(
+                eq(transactions.walletId, filters.walletId),
+                eq(transactions.destinationWalletId, filters.walletId),
+              ),
+            )
+          : undefined,
+        filters.categoryId
+          ? and(
+              eq(categories.userId, filters.ownerId),
+              or(
+                eq(categories.id, filters.categoryId),
+                eq(categories.parentId, filters.categoryId),
+              ),
+            )
+          : undefined,
+      ),
     )
     .orderBy(
       desc(transactions.transactionDate),

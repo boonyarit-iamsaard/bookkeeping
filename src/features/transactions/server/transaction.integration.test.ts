@@ -97,7 +97,7 @@ describe("recording income and expenses", () => {
       const [summary] = await listWallets(db, { ownerId: owner.id });
       expect(summary?.balance).toBe(1_250_000n);
 
-      const listed = await listTransactions(db, owner.id);
+      const listed = await listTransactions(db, { ownerId: owner.id });
       expect(listed.map((t) => [t.type, t.amount, t.transactionDate])).toEqual([
         ["income", 100_000n, "2026-09-03"],
         ["expense", 50_000n, "2026-09-02"],
@@ -191,7 +191,7 @@ describe("recording income and expenses", () => {
         note: "x".repeat(201),
       });
       expect(rejected).toEqual({ ok: false, error: { code: "note-too-long" } });
-      expect(await listTransactions(db, owner.id)).toEqual([]);
+      expect(await listTransactions(db, { ownerId: owner.id })).toEqual([]);
     });
   });
 
@@ -319,7 +319,7 @@ describe("recording income and expenses", () => {
           id: saved.value.transaction.id,
         }),
       ).toBeUndefined();
-      expect(await listTransactions(db, bob.owner.id)).toEqual([]);
+      expect(await listTransactions(db, { ownerId: bob.owner.id })).toEqual([]);
       const [aliceWallet] = await listWallets(db, { ownerId: alice.owner.id });
       expect(aliceWallet?.balance).toBe(1_199_900n);
     });
@@ -382,7 +382,7 @@ describe("submission receipts", () => {
       expect(intentional.value.transaction.id).not.toBe(
         first.value.transaction.id,
       );
-      expect(await listTransactions(db, owner.id)).toHaveLength(2);
+      expect(await listTransactions(db, { ownerId: owner.id })).toHaveLength(2);
       const [summary] = await listWallets(db, { ownerId: owner.id });
       expect(summary?.balance).toBe(1_176_000n);
     });
@@ -412,7 +412,7 @@ describe("submission receipts", () => {
         ok: false,
         error: { code: "submission-conflict" },
       });
-      const listed = await listTransactions(db, owner.id);
+      const listed = await listTransactions(db, { ownerId: owner.id });
       expect(listed.map((t) => t.amount)).toEqual([12_000n]);
     });
   });
@@ -467,7 +467,7 @@ describe("submission receipts", () => {
     }
     expect(ids.size).toBe(1);
     expect(outcomes.filter((o) => o.ok && !o.value.replayed)).toHaveLength(1);
-    expect(await listTransactions(db, owner.id)).toHaveLength(1);
+    expect(await listTransactions(db, { ownerId: owner.id })).toHaveLength(1);
     const [summary] = await listWallets(db, { ownerId: owner.id });
     expect(summary?.balance).toBe(1_150_000n);
   });
@@ -613,7 +613,9 @@ describe("correcting transactions", () => {
         }),
       ]);
       // No visible reversal entry: the list still holds exactly one row.
-      expect(await listTransactions(db, owner.owner.id)).toHaveLength(1);
+      expect(
+        await listTransactions(db, { ownerId: owner.owner.id }),
+      ).toHaveLength(1);
     });
   });
 
@@ -817,7 +819,9 @@ describe("correcting transactions", () => {
         }),
       ).toBeUndefined();
       expect(
-        (await listTransactions(db, owner.owner.id)).map((t) => t.id),
+        (await listTransactions(db, { ownerId: owner.owner.id })).map(
+          (t) => t.id,
+        ),
       ).toEqual([kept.id]);
       expect(
         await balanceOf({
@@ -892,7 +896,9 @@ describe("correcting transactions", () => {
       const afterEdit = await createTransaction(db, input);
       expect(afterEdit.ok && afterEdit.value.replayed).toBe(true);
       expect(afterEdit.ok && afterEdit.value.transaction.amount).toBe(60_000n);
-      expect(await listTransactions(db, owner.owner.id)).toHaveLength(1);
+      expect(
+        await listTransactions(db, { ownerId: owner.owner.id }),
+      ).toHaveLength(1);
 
       await deleteTransaction(db, {
         ownerId: owner.owner.id,
@@ -903,7 +909,9 @@ describe("correcting transactions", () => {
       expect(afterDelete.ok && afterDelete.value.transaction.id).toBe(
         transaction.id,
       );
-      expect(await listTransactions(db, owner.owner.id)).toEqual([]);
+      expect(await listTransactions(db, { ownerId: owner.owner.id })).toEqual(
+        [],
+      );
       expect(
         await balanceOf({
           db,
@@ -995,7 +1003,7 @@ describe("wallet transfers", () => {
         expect.objectContaining({ balance: -300_001n }),
         expect.objectContaining({ balance: 1_500_001n }),
       ]);
-      expect(await listTransactions(db, owner.id)).toEqual([
+      expect(await listTransactions(db, { ownerId: owner.id })).toEqual([
         expect.objectContaining({
           type: "transfer",
           category: null,
@@ -1083,7 +1091,7 @@ test("editing a transfer replaces both wallets and deletion removes both effects
     ]);
     const replay = await createTransaction(db, input);
     expect(replay.ok && replay.value.replayed).toBe(true);
-    expect(await listTransactions(db, owner.id)).toEqual([]);
+    expect(await listTransactions(db, { ownerId: owner.id })).toEqual([]);
   });
 });
 
@@ -1137,7 +1145,7 @@ test("transfer validation rejects same wallets, foreign wallets, missing currenc
         error: expect.objectContaining({ code }),
       });
     }
-    expect(await listTransactions(db, owner.id)).toEqual([]);
+    expect(await listTransactions(db, { ownerId: owner.id })).toEqual([]);
     expect(
       (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
     ).toEqual([1_200_000n, 0n]);
@@ -1249,7 +1257,7 @@ test("simultaneous duplicate transfers commit one pair of effects and changed de
   expect(
     results.filter((result) => result.ok && !result.value.replayed),
   ).toHaveLength(1);
-  expect(await listTransactions(db, owner.id)).toHaveLength(1);
+  expect(await listTransactions(db, { ownerId: owner.id })).toHaveLength(1);
   expect(
     (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
   ).toEqual([-9_998_799_999n, 9_999_999_999n]);
@@ -1298,7 +1306,7 @@ test("receipt or history write failures roll back both transfer effects and leav
       sql`alter table submission_receipts add constraint fail_transfer_receipt check (key <> 'fail-transfer-receipt')`,
     );
     await expect(createTransaction(db, input)).rejects.toThrow();
-    expect(await listTransactions(db, owner.id)).toEqual([]);
+    expect(await listTransactions(db, { ownerId: owner.id })).toEqual([]);
     expect(
       (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
     ).toEqual([1_200_000n, 0n]);
@@ -1433,7 +1441,10 @@ describe("linked refunds", () => {
         (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
       ).toEqual([1_200_000n]);
       expect(
-        (await listTransactions(db, owner.id)).map((t) => [t.type, t.amount]),
+        (await listTransactions(db, { ownerId: owner.id })).map((t) => [
+          t.type,
+          t.amount,
+        ]),
       ).toEqual([
         ["refund", 40_000n],
         ["refund", 10_000n],
@@ -1722,7 +1733,7 @@ describe("linked refunds", () => {
       });
       expect(corrected.ok).toBe(true);
       expect(
-        (await listTransactions(db, owner.id)).map((t) => [
+        (await listTransactions(db, { ownerId: owner.id })).map((t) => [
           t.type,
           t.category?.name,
         ]),

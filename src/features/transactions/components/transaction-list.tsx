@@ -4,9 +4,14 @@ import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { SignedMoney } from "@/features/transactions/components/signed-money";
 import type { TransactionDetail } from "@/features/transactions/transaction.types";
+import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction.types";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
-import { formatCalendarDate } from "@/shared/helpers/dates";
+import {
+  APP_TIME_ZONE,
+  formatCalendarDate,
+  formatInstant,
+} from "@/shared/helpers/dates";
 
 interface TransactionListProps {
   transactions: readonly TransactionDetail[];
@@ -36,7 +41,7 @@ export function TransactionList({
         >
           <Link
             href={`/transactions/${transaction.id}`}
-            className="flex min-h-16 items-center gap-4 px-4 py-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset sm:px-0"
+            className="flex min-h-16 flex-wrap items-center gap-4 px-4 py-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset sm:px-0"
           >
             <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
               {transaction.category ? (
@@ -52,14 +57,15 @@ export function TransactionList({
                 />
               )}
             </span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-32 flex-1">
               <p className="line-clamp-2 font-medium leading-snug">
-                {transaction.refundOf && (
-                  <span className="text-muted-foreground">Refund · </span>
-                )}
+                <span className="text-muted-foreground">
+                  {TRANSACTION_TYPE_LABELS[transaction.type]}
+                  {transaction.category ? " · " : ""}
+                </span>
                 {transaction.category
                   ? categoryLabel(transaction.category)
-                  : "Transfer"}
+                  : ""}
               </p>
               {transaction.destinationWallet && (
                 <p className="wrap-break-word text-muted-foreground text-sm">
@@ -75,12 +81,28 @@ export function TransactionList({
                 {formatCalendarDate(transaction.transactionDate)}
                 {transaction.note && ` · ${transaction.note}`}
               </p>
+              <p className="text-muted-foreground text-xs">
+                Recorded{" "}
+                {formatInstant({
+                  instant: transaction.recordedAt,
+                  timeZone: APP_TIME_ZONE,
+                })}{" "}
+                · Bangkok
+              </p>
             </div>
             <SignedMoney
               transaction={transaction}
-              className="shrink-0 text-lg"
+              className="ml-auto shrink-0 text-lg"
             />
           </Link>
+          {transaction.refundOf && (
+            <Link
+              href={`/transactions/${transaction.refundOf.id}`}
+              className="mb-3 ml-18 inline-flex min-h-11 items-center rounded-sm text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              View original expense
+            </Link>
+          )}
         </li>
       ))}
     </ul>

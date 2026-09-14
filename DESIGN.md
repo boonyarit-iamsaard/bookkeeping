@@ -379,3 +379,24 @@ read-only name with its reason and no removal. New category opens the same
 create form the transaction picker uses. After any change the sheet closes,
 the list re-reads from the server, and a status line under the title says
 what happened; after a removal that line takes focus.
+
+### History and financial reports
+
+`/transactions` keeps the divided rows and adds inclusive From/To dates,
+wallet, category and type filters. Native controls are labeled, 44px tall,
+and stack on phone; date and selection pairs use two columns from 640px.
+Filters sit behind a native keyboard-accessible disclosure, open when filters
+are active so saved rows remain immediately visible in normal history.
+Apply filters and Clear filters are neutral actions. Financial date and
+original Bangkok recording time occupy separate lines. Type words and signs
+carry meaning; refunds have a separate link to the original expense. Long
+amounts may wrap beneath the description instead of squeezing it.
+
+`/dashboard` reviews a chosen month and balance date. Monthly income, gross
+expenses, refunds, net expenses and net use a divided definition list with
+right-aligned tabular THB figures; net has stronger weight. Wallet rows show
+current and selected-date balances, stacked on phone and paired on desktop,
+including an overall row and archived labels. History and wallets link to the
+report, keeping the narrow phone navigation intact. Empty, loading and error
+states use text and neutral skeletons; loading never presents sample money.
+GET filter values remain in the URL and validation retains editable controls.

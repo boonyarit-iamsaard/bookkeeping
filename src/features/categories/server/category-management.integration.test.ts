@@ -228,7 +228,7 @@ describe("removing categories", () => {
         (await getTransaction(db, { ...owned, id: untouched.id }))?.category
           ?.id,
       ).toBe(restaurants.id);
-      expect(await listTransactions(db, owner.id)).toHaveLength(3);
+      expect(await listTransactions(db, { ownerId: owner.id })).toHaveLength(3);
     });
   });
 

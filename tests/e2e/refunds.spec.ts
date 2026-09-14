@@ -96,6 +96,10 @@ test("a linked refund starts from the expense, falls back when the original wall
   await expect(rows).toHaveCount(2);
   await expect(rows.first()).toContainText("Refund · Uncategorized");
   await expect(rows.first()).toContainText("+฿100.00");
+  await expect(
+    rows.first().getByRole("link", { name: "View original expense" }),
+  ).toHaveAttribute("href", `/transactions/${expenseId}`);
+
   await page.goto("/wallets");
   await expect(
     page.getByRole("listitem").filter({ hasText: /^Cash/ }),
