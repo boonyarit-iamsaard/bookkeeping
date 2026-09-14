@@ -17,6 +17,7 @@ import {
   updateTransaction,
 } from "@/features/transactions/server/transaction";
 import { createWallet, listWallets } from "@/features/wallets/server/wallet";
+import { setWalletArchived } from "@/features/wallets/server/wallet-lifecycle";
 import {
   createTestUser,
   setupTestDatabase,
@@ -1880,6 +1881,156 @@ describe("linked refunds", () => {
         : { ok: true, value: expect.anything() },
     );
   });
+
+  for (const operation of ["create", "edit"] as const) {
+    for (const conflict of ["amount", "date", "delete", "archive"] as const) {
+      test(`refund ${operation} racing ${conflict} preserves financial constraints and history`, async () => {
+        const db = committed();
+        const context = await setupExpense(db);
+        const { owner, wallet, expense } = context;
+        const receiver = await createWallet(db, {
+          ownerId: owner.id,
+          name: "Refund receiver",
+          type: "bank_account",
+          openingAmount: 0n,
+          openingDate: "2026-09-01",
+        });
+        const existing =
+          operation === "edit"
+            ? await createTransaction(db, refundInput(context, 10_000n))
+            : undefined;
+        if (existing && !existing.ok) {
+          throw new Error("Initial refund failed");
+        }
+        const refundId = existing?.ok
+          ? existing.value.transaction.id
+          : undefined;
+        const refundWrite = refundId
+          ? updateTransaction(db, {
+              ownerId: owner.id,
+              id: refundId,
+              walletId: receiver.id,
+              categoryId: null,
+              amount: 40_000n,
+              transactionDate: "2026-09-03",
+              note: "Corrected refund",
+            })
+          : createTransaction(db, {
+              ...refundInput(context, 40_000n),
+              walletId: receiver.id,
+            });
+        const competingWrite =
+          conflict === "archive"
+            ? setWalletArchived(db, {
+                ownerId: owner.id,
+                id: receiver.id,
+                archived: true,
+              })
+            : conflict === "delete"
+              ? deleteTransaction(db, { ownerId: owner.id, id: expense.id })
+              : updateTransaction(db, {
+                  ownerId: owner.id,
+                  id: expense.id,
+                  walletId: wallet.id,
+                  categoryId: expense.category?.id ?? null,
+                  amount: conflict === "amount" ? 30_000n : expense.amount,
+                  transactionDate:
+                    conflict === "date"
+                      ? "2026-09-04"
+                      : expense.transactionDate,
+                  note: expense.note,
+                });
+        const [refundResult, competingResult] = await Promise.all([
+          refundWrite,
+          competingWrite,
+        ]);
+        if (conflict === "archive") {
+          expect(competingResult.ok).toBe(true);
+          if (!refundResult.ok) {
+            expect(refundResult.error).toEqual({
+              code: "wallet-archived",
+              walletId: receiver.id,
+            });
+          }
+          expect(
+            await createTransaction(db, {
+              ...refundInput(context, 1n),
+              walletId: receiver.id,
+            }),
+          ).toEqual({
+            ok: false,
+            error: { code: "wallet-archived", walletId: receiver.id },
+          });
+        } else if (
+          operation === "edit" &&
+          (conflict === "date" || conflict === "delete")
+        ) {
+          // Even the old refund blocks these expense changes.
+          expect(refundResult.ok).toBe(true);
+          expect(competingResult.ok).toBe(false);
+        } else {
+          expect(
+            [refundResult.ok, competingResult.ok].filter(Boolean),
+          ).toHaveLength(1);
+        }
+        const current = await getTransaction(db, {
+          ownerId: owner.id,
+          id: expense.id,
+        });
+        const summary = await getExpenseRefunds(db, {
+          ownerId: owner.id,
+          id: expense.id,
+        });
+        const expectedTotal = refundResult.ok
+          ? 40_000n
+          : operation === "edit"
+            ? 10_000n
+            : 0n;
+        if (current && summary) {
+          expect(summary.refundedTotal).toBe(expectedTotal);
+          expect(current.amount >= summary.refundedTotal).toBe(true);
+          expect(
+            summary.refunds.every(
+              (refund) => refund.transactionDate >= current.transactionDate,
+            ),
+          ).toBe(true);
+        } else {
+          expect(conflict).toBe("delete");
+          expect(competingResult.ok).toBe(true);
+          expect(expectedTotal).toBe(0n);
+        }
+        const balances = await listWallets(db, { ownerId: owner.id });
+        expect(
+          balances.find((entry) => entry.id === receiver.id)?.balance,
+        ).toBe(refundResult.ok ? 40_000n : 0n);
+        expect(balances.find((entry) => entry.id === wallet.id)?.balance).toBe(
+          1_200_000n -
+            (current?.amount ?? 0n) +
+            (!refundResult.ok && operation === "edit" ? 10_000n : 0n),
+        );
+        expect(
+          await listTransactionChanges(db, {
+            ownerId: owner.id,
+            id: expense.id,
+          }),
+        ).toHaveLength(competingResult.ok && conflict !== "archive" ? 1 : 0);
+        if (refundId) {
+          expect(
+            await listTransactionChanges(db, {
+              ownerId: owner.id,
+              id: refundId,
+            }),
+          ).toHaveLength(refundResult.ok ? 1 : 0);
+          expect(
+            (await getTransaction(db, { ownerId: owner.id, id: refundId }))
+              ?.recordedAt,
+          ).toEqual(
+            existing?.ok ? existing.value.transaction.recordedAt : undefined,
+          );
+        }
+      });
+    }
+  }
 
   test("a failed history write rolls back refund corrections and expense guards leave no partial effect", async () => {
     await withRollback(async (db) => {

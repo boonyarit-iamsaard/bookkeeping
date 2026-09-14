@@ -16,6 +16,7 @@ import {
 } from "@/features/transactions/money-limits";
 import type {
   ExpenseRefunds,
+  LinkedExpense,
   RefundSummary,
   TransactionChange,
   TransactionChangeAction,
@@ -310,12 +311,6 @@ function validateRefundShape(
   return undefined;
 }
 
-interface RefundedExpense {
-  id: string;
-  amount: bigint;
-  transactionDate: CalendarDate;
-}
-
 /**
  * Exclusively locks the owner's current expense behind a refund for the rest
  * of the transaction. Concurrent refunds queue here, and so do the expense's
@@ -324,7 +319,7 @@ interface RefundedExpense {
 async function lockRefundedExpense(
   tx: Database,
   input: Readonly<TransactionFields>,
-): Promise<Result<RefundedExpense | undefined, FieldRejection>> {
+): Promise<Result<LinkedExpense | undefined, FieldRejection>> {
   if (input.type !== "refund" || !input.refundOfTransactionId) {
     return ok(undefined);
   }
@@ -352,7 +347,7 @@ async function lockRefundedExpense(
 
 interface RefundCheck {
   input: Readonly<OwnedTransactionFields>;
-  expense: Readonly<RefundedExpense>;
+  expense: Readonly<LinkedExpense>;
 }
 
 /** The refund lands on or after its expense and within what is left to refund. */

@@ -23,7 +23,10 @@ import {
   createTransactionAction,
   updateTransactionAction,
 } from "@/features/transactions/server/transaction.actions";
-import type { TransactionType } from "@/features/transactions/transaction.types";
+import type {
+  LinkedExpenseView,
+  TransactionType,
+} from "@/features/transactions/transaction.types";
 import {
   CREATABLE_TRANSACTION_TYPES,
   TRANSACTION_TYPE_LABELS,
@@ -54,24 +57,6 @@ const TYPE_OPTIONS = CREATABLE_TRANSACTION_TYPES.map((value) => ({
   value,
   label: TRANSACTION_TYPE_LABELS[value],
 }));
-
-/**
- * The expense a refund is linked to, as the form shows it. Figures arrive
- * pre-formatted; bigint does not cross into the client.
- */
-export interface LinkedExpenseView {
-  id: string;
-  /** "฿500.00" */
-  amountLabel: string;
-  transactionDate: CalendarDate;
-  categoryLabel: string;
-  categoryIconId: string;
-  wallet: { id: string; name: string; archived: boolean };
-  /** What is left to refund, excluding the refund being edited: "300.00". */
-  remainingText: string;
-  /** The same figure for reading: "฿300.00". */
-  remainingLabel: string;
-}
 
 /** An existing transaction as the edit form loads it. */
 export interface EditableTransaction {
@@ -159,7 +144,7 @@ function initialValuesFor({
 
 /** The limits the schema checks inline for a linked refund. */
 function limitsOf(
-  linked: LinkedExpenseView | undefined,
+  linked: Readonly<LinkedExpenseView> | undefined,
 ): LinkedExpenseLimits | undefined {
   if (!linked) {
     return undefined;
@@ -896,7 +881,11 @@ export function TransactionForm({
   );
 }
 
-function FixedLabel({ children }: Readonly<{ children: React.ReactNode }>) {
+interface FixedLabelProps {
+  children: React.ReactNode;
+}
+
+function FixedLabel({ children }: Readonly<FixedLabelProps>) {
   return (
     <span
       data-slot="field-label"

@@ -1,7 +1,7 @@
 import { categoryLabel } from "@/features/categories/category-search";
-import type { LinkedExpenseView } from "@/features/transactions/components/transaction-form";
 import type {
   ExpenseRefunds,
+  LinkedExpenseView,
   TransactionDetail,
 } from "@/features/transactions/transaction.types";
 import { formatMoney, formatMoneyInput } from "@/shared/helpers/money";
