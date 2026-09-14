@@ -4,7 +4,7 @@
 
 **Blocked by:** 03: Create categories within transaction entry; 07: Record and correct linked refunds.
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## Acceptance criteria
 
@@ -23,3 +23,36 @@
 ## Scope and handoff
 
 This ticket implements the accepted removal rules, not category archiving or reparenting. Reports verify these current-category relationships in 09. Covers spec criteria 1, 6, 15–19, 23–25 for category lifecycle and refund consistency.
+
+## Comments
+
+2026-09-14 — Implemented on `main` (`e5aa04d`). No schema change.
+
+- Operations (`server/category-management.ts`): `updateCategory` renames
+  and/or re-icons in one update guarded by
+  `is_protected = false or name = current`, so Uncategorized takes a new icon
+  but never a new name; the partial unique indexes report duplicates.
+  `removeCategory` moves every transaction row (retained deleted ones
+  included) to the fallback, then deletes: parent for a child, the tree's
+  Uncategorized for a childless parent; a parent with any child is refused.
+  Refunds follow because they never store a category (07).
+- Serialization: `validateCategory` (transactions) and the parent lookup in
+  `createCategory` now take `FOR SHARE`, so an in-flight assignment or
+  child creation holds the removal until it lands, and a removal already
+  committed makes the category vanish as `category-not-found` /
+  `parent-not-found` rather than a foreign-key fault. Removal locks
+  transaction rows before the category row, the order edits use, so the two
+  never deadlock; the restrict foreign keys (`23001`) are the final word and
+  map to `has-children` / `in-use` with nothing changed.
+- `transaction_changes` snapshots keep a removed category's id as internal
+  history JSON, as wallet snapshots do; no live reference is orphaned.
+- UI: `/categories` (nav link added) with Expense | Income segmented rows,
+  usage counts, and a per-row edit sheet (rename, icon, removal with the
+  count and destination stated before the destructive confirm). New
+  category reuses `CreateCategoryForm`; the sheet shell is now
+  `shared/components/ui/sheet.tsx`, shared with the picker. The wordmark is
+  omitted below 640px so three nav links fit a 360px phone.
+- Tests: `category-management.integration.test.ts` (rename/icon, protected,
+  uniqueness, ownership, both fallbacks, re-initialization, concurrent
+  removal vs child creation and vs assignment, usage counts) and
+  `tests/e2e/category-management.spec.ts` on desktop and phone.
