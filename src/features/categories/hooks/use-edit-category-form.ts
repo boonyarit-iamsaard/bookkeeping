@@ -9,6 +9,7 @@ import { editCategoryFormSchema } from "@/features/categories/category-form-sche
 import type {
   ManageCategoryActionError,
   ManageCategoryActionSuccess,
+  ManageCategoryInput,
 } from "@/features/categories/server/category.actions";
 import { manageCategoryAction } from "@/features/categories/server/category.actions";
 
@@ -47,48 +48,30 @@ export function useEditCategoryForm({
     defaultValues,
     validationLogic: revalidateLogic(),
     validators: { onDynamic: editCategoryFormSchema },
-    onSubmit: async ({ value }) => {
-      setServerError(null);
-      setFieldErrors({});
-      let result: Awaited<ReturnType<typeof manageCategoryAction>>;
-      try {
-        result = await manageCategoryAction({
-          id: category.id,
-          operation: "update",
-          ...value,
-        });
-      } catch {
-        setServerError(CONNECTION_MESSAGE);
-        return;
-      }
-      if (!result.ok) {
-        applyRejection(result.error);
-        return;
-      }
-      onDone(result.value);
-    },
+    onSubmit: ({ value }) =>
+      send({ id: category.id, operation: "update", ...value }),
   });
 
   function remove() {
+    startRemoval(() => send({ id: category.id, operation: "remove" }));
+  }
+
+  /** One round trip for either button; the answer lands in the same places. */
+  async function send(input: ManageCategoryInput) {
     setServerError(null);
     setFieldErrors({});
-    startRemoval(async () => {
-      let result: Awaited<ReturnType<typeof manageCategoryAction>>;
-      try {
-        result = await manageCategoryAction({
-          id: category.id,
-          operation: "remove",
-        });
-      } catch {
-        setServerError(CONNECTION_MESSAGE);
-        return;
-      }
-      if (!result.ok) {
-        applyRejection(result.error);
-        return;
-      }
-      onDone(result.value);
-    });
+    let result: Awaited<ReturnType<typeof manageCategoryAction>>;
+    try {
+      result = await manageCategoryAction(input);
+    } catch {
+      setServerError(CONNECTION_MESSAGE);
+      return;
+    }
+    if (!result.ok) {
+      applyRejection(result.error);
+      return;
+    }
+    onDone(result.value);
   }
 
   function applyRejection(error: ManageCategoryActionError) {

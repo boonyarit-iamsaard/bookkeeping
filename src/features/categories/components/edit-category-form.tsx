@@ -250,12 +250,6 @@ function removalExplanation(
   if (category.isProtected) {
     return "Uncategorized cannot be removed or renamed. Removed parents hand their entries here, so it always exists. Its icon can change.";
   }
-  const entries = entriesLabel(removal.entries);
-  if (removal.parentName) {
-    return removal.entries === 0
-      ? `${category.name} has no entries. Removing it changes nothing else.`
-      : `Removing ${category.name} moves its ${entries}, and any refunds linked to them, to ${removal.parentName}.`;
-  }
   if (removal.childCount > 0) {
     const children =
       removal.childCount === 1
@@ -263,7 +257,9 @@ function removalExplanation(
         : `${removal.childCount} child categories`;
     return `A parent with children stays. Remove its ${children} first; each one's entries move up to ${category.name} as you go.`;
   }
-  return removal.entries === 0
-    ? `${category.name} has no entries. Removing it changes nothing else.`
-    : `Removing ${category.name} moves its ${entries}, and any refunds linked to them, to Uncategorized.`;
+  if (removal.entries === 0) {
+    return `${category.name} has no entries. Removing it changes nothing else.`;
+  }
+  const destination = removal.parentName ?? "Uncategorized";
+  return `Removing ${category.name} moves its ${entriesLabel(removal.entries)}, and any refunds linked to them, to ${destination}.`;
 }

@@ -6,11 +6,9 @@ import type { CategorySummary } from "@/features/categories/category.types";
 import { normalizeCategoryName } from "@/features/categories/category-name";
 import { isIconId } from "@/features/categories/icons";
 import {
-  CHILD_NAME_INDEX,
   databaseError,
-  PARENT_NAME_INDEX,
+  isScopedNameViolation,
   summaryColumns,
-  UNIQUE_VIOLATION,
   validateName,
 } from "@/features/categories/server/category";
 import type { Result } from "@/shared/helpers/result";
@@ -85,12 +83,7 @@ export async function updateCategory(
       });
     });
   } catch (error) {
-    const cause = databaseError(error);
-    if (
-      cause?.code === UNIQUE_VIOLATION &&
-      (cause.constraint === PARENT_NAME_INDEX ||
-        cause.constraint === CHILD_NAME_INDEX)
-    ) {
+    if (isScopedNameViolation(error)) {
       return err({ code: "duplicate-name" });
     }
     throw error;
@@ -147,22 +140,33 @@ export async function removeCategory(
       if (category.isProtected) {
         return err({ code: "protected" });
       }
-      const fallbackId = await fallbackFor(tx, {
+      const fallback = await fallbackFor(tx, {
         ownerId: input.ownerId,
         category,
       });
-      if (!fallbackId) {
+      if (fallback.kind === "has-children") {
         return err({ code: "has-children" });
       }
+      const fallbackId = fallback.id;
       const moved = await tx
         .update(transactions)
         .set({ categoryId: fallbackId })
         .where(eq(transactions.categoryId, category.id))
         .returning({ id: transactions.id });
-      await tx.delete(categories).where(eq(categories.id, category.id));
+      const deleted = await tx
+        .delete(categories)
+        .where(eq(categories.id, category.id))
+        .returning({ id: categories.id });
+      if (deleted.length === 0) {
+        // A concurrent removal won; roll back so its outcome stands alone.
+        throw new AlreadyRemoved();
+      }
       return ok({ fallbackId, reassigned: moved.length });
     });
   } catch (error) {
+    if (error instanceof AlreadyRemoved) {
+      return err({ code: "category-not-found" });
+    }
     const cause = databaseError(error);
     if (cause && RESTRICT_VIOLATIONS.has(cause.code)) {
       if (cause.constraint === CHILD_PARENT_FK) {
@@ -176,13 +180,18 @@ export async function removeCategory(
   }
 }
 
+/** Unwinds the removal transaction once the category is found already gone. */
+class AlreadyRemoved extends Error {}
+
+type Fallback = { kind: "fallback"; id: string } | { kind: "has-children" };
+
 /** The parent of a child; for a childless parent, its tree's Uncategorized. */
 async function fallbackFor(
   tx: Database,
   { ownerId, category }: Readonly<FallbackOptions>,
-): Promise<string | undefined> {
+): Promise<Fallback> {
   if (category.parentId) {
-    return category.parentId;
+    return { kind: "fallback", id: category.parentId };
   }
   const [child] = await tx
     .select({ id: categories.id })
@@ -190,7 +199,7 @@ async function fallbackFor(
     .where(eq(categories.parentId, category.id))
     .limit(1);
   if (child) {
-    return undefined;
+    return { kind: "has-children" };
   }
   const [uncategorized] = await tx
     .select({ id: categories.id })
@@ -205,7 +214,7 @@ async function fallbackFor(
   if (!uncategorized) {
     throw new Error(`No Uncategorized in the ${category.kind} tree`);
   }
-  return uncategorized.id;
+  return { kind: "fallback", id: uncategorized.id };
 }
 
 interface FallbackOptions {

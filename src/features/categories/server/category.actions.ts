@@ -6,6 +6,7 @@ import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import type { CategorySummary } from "@/features/categories/category.types";
 import {
+  categoryIconSchema,
   categoryNameSchema,
   createCategorySubmissionSchema,
 } from "@/features/categories/category-form-schema";
@@ -161,10 +162,12 @@ const manageCategorySchema = z.discriminatedUnion("operation", [
     id: z.uuid(),
     operation: z.literal("update"),
     name: categoryNameSchema,
-    iconId: z.string(),
+    iconId: categoryIconSchema,
   }),
   z.object({ id: z.uuid(), operation: z.literal("remove") }),
 ]);
+
+export type ManageCategoryInput = z.input<typeof manageCategorySchema>;
 
 /** Every error is definitive: the server answered and nothing was changed. */
 export type ManageCategoryActionError =

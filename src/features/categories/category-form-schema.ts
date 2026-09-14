@@ -23,9 +23,11 @@ export const categoryNameSchema = z
       .min(1, CATEGORY_MESSAGES.blankName)
       .max(MAX_CATEGORY_NAME_LENGTH, CATEGORY_MESSAGES.nameTooLong),
   );
-const nameField = categoryNameSchema;
 
-const iconField = z.string().refine(isIconId, CATEGORY_MESSAGES.unknownIcon);
+/** A catalog id the app can render: the one icon rule for creation and renaming. */
+export const categoryIconSchema = z
+  .string()
+  .refine(isIconId, CATEGORY_MESSAGES.unknownIcon);
 
 /**
  * What the create panel holds. The parent select carries one of three
@@ -33,8 +35,8 @@ const iconField = z.string().refine(isIconId, CATEGORY_MESSAGES.unknownIcon);
  */
 export const categoryFormSchema = z
   .object({
-    name: nameField,
-    iconId: iconField,
+    name: categoryNameSchema,
+    iconId: categoryIconSchema,
     parent: z.string(),
     parentName: z.string(),
     parentIconId: z.string(),
@@ -45,8 +47,8 @@ export const categoryFormSchema = z
     }
     // The new parent's fields only count once it is chosen, so they are
     // checked here with the same rules as the category's own.
-    for (const issue of nameField.safeParse(value.parentName).error?.issues ??
-      []) {
+    for (const issue of categoryNameSchema.safeParse(value.parentName).error
+      ?.issues ?? []) {
       ctx.addIssue({
         code: "custom",
         path: ["parentName"],
@@ -66,8 +68,8 @@ export type CategoryFormInput = z.input<typeof categoryFormSchema>;
 
 /** What the edit sheet holds: the name and icon; level and parent are fixed. */
 export const editCategoryFormSchema = z.object({
-  name: nameField,
-  iconId: iconField,
+  name: categoryNameSchema,
+  iconId: categoryIconSchema,
 });
 
 export type EditCategoryFormInput = z.input<typeof editCategoryFormSchema>;
@@ -75,12 +77,17 @@ export type EditCategoryFormInput = z.input<typeof editCategoryFormSchema>;
 /** What the client actually sends: the tree plus an explicit parent choice. */
 export const createCategorySubmissionSchema = z.object({
   kind: z.enum(CATEGORY_KINDS),
-  name: nameField,
-  iconId: iconField,
+  name: categoryNameSchema,
+  iconId: categoryIconSchema,
   parent: z.union([
     z.null(),
     z.object({ existingId: z.string().min(1) }),
-    z.object({ create: z.object({ name: nameField, iconId: iconField }) }),
+    z.object({
+      create: z.object({
+        name: categoryNameSchema,
+        iconId: categoryIconSchema,
+      }),
+    }),
   ]),
 });
 

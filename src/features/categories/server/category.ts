@@ -165,9 +165,9 @@ export interface CreateCategoryOutcome {
   createdParent?: CategorySummary;
 }
 
-export const UNIQUE_VIOLATION = "23505";
-export const PARENT_NAME_INDEX = "categories_parent_name_unique";
-export const CHILD_NAME_INDEX = "categories_child_name_unique";
+const UNIQUE_VIOLATION = "23505";
+const PARENT_NAME_INDEX = "categories_parent_name_unique";
+const CHILD_NAME_INDEX = "categories_child_name_unique";
 
 /**
  * Creates a parent, a child under an existing parent, or a child together
@@ -349,6 +349,16 @@ function duplicateNameField(
     return createdParent ? "parentName" : "name";
   }
   return undefined;
+}
+
+/** Whether a write tripped either scoped name index: tree-level or per-parent. */
+export function isScopedNameViolation(error: unknown): boolean {
+  const cause = databaseError(error);
+  return (
+    cause?.code === UNIQUE_VIOLATION &&
+    (cause.constraint === PARENT_NAME_INDEX ||
+      cause.constraint === CHILD_NAME_INDEX)
+  );
 }
 
 interface DatabaseErrorShape {

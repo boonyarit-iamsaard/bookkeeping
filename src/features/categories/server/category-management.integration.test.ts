@@ -17,6 +17,7 @@ import {
   deleteTransaction,
   getTransaction,
   listTransactions,
+  updateTransaction,
 } from "@/features/transactions/server/transaction";
 import { createWallet } from "@/features/wallets/server/wallet";
 import {
@@ -402,6 +403,99 @@ describe("removing categories", () => {
       } else {
         expect(expense.error).toEqual({ code: "category-not-found" });
         expect(removed.ok).toBe(true);
+      }
+    }
+  });
+
+  test("removal racing an expense edit onto it ends with the entry filed under a live category", async () => {
+    const db = committed();
+    const { owner, wallet, find, record } = await setupLedger(db);
+    const foodAndDrink = await find("expense", "Food & Drink");
+    const groceries = await find("expense", "Groceries");
+    const rounds = 6;
+    for (let round = 0; round < rounds; round += 1) {
+      const created = await createCategory(db, {
+        ownerId: owner.id,
+        kind: "expense",
+        name: `Snacks ${round}`,
+        iconId: "generic",
+        parent: { existingId: foodAndDrink.id },
+      });
+      if (!created.ok) {
+        throw new Error(created.error.code);
+      }
+      const snacks = created.value.category;
+      const expense = await record({
+        type: "expense",
+        categoryId: groceries.id,
+      });
+      const [removed, edited] = await Promise.all([
+        removeCategory(db, { ownerId: owner.id, id: snacks.id }),
+        updateTransaction(db, {
+          ownerId: owner.id,
+          id: expense.id,
+          walletId: wallet.id,
+          categoryId: snacks.id,
+          amount: 70_000n,
+          transactionDate: "2026-09-03",
+          note: "",
+        }),
+      ]);
+      const current = await getTransaction(db, {
+        ownerId: owner.id,
+        id: expense.id,
+      });
+      if (edited.ok) {
+        // The edit landed; it is either still there or was moved up.
+        expect(current?.category?.id).toBe(
+          removed.ok ? foodAndDrink.id : snacks.id,
+        );
+        if (!removed.ok) {
+          expect(removed.error).toEqual({ code: "in-use" });
+        }
+      } else {
+        // The category vanished under the edit, which changed nothing.
+        expect(edited.error).toEqual({ code: "category-not-found" });
+        expect(removed.ok).toBe(true);
+        expect(current?.category?.id).toBe(groceries.id);
+        expect(current?.amount).toBe(50_000n);
+      }
+    }
+  });
+
+  test("two removals of the same category leave exactly one winner", async () => {
+    const db = committed();
+    const { owner, find, record } = await setupLedger(db);
+    const foodAndDrink = await find("expense", "Food & Drink");
+    const rounds = 6;
+    for (let round = 0; round < rounds; round += 1) {
+      const created = await createCategory(db, {
+        ownerId: owner.id,
+        kind: "expense",
+        name: `Takeaway ${round}`,
+        iconId: "generic",
+        parent: { existingId: foodAndDrink.id },
+      });
+      if (!created.ok) {
+        throw new Error(created.error.code);
+      }
+      const takeaway = created.value.category;
+      await record({ type: "expense", categoryId: takeaway.id });
+      const outcomes = await Promise.all([
+        removeCategory(db, { ownerId: owner.id, id: takeaway.id }),
+        removeCategory(db, { ownerId: owner.id, id: takeaway.id }),
+      ]);
+      const [winner, ...losers] = outcomes.filter((o) => o.ok);
+      expect(winner).toEqual({
+        ok: true,
+        value: { fallbackId: foodAndDrink.id, reassigned: 1 },
+      });
+      expect(losers).toHaveLength(0);
+      for (const outcome of outcomes.filter((o) => !o.ok)) {
+        expect(outcome).toEqual({
+          ok: false,
+          error: { code: "category-not-found" },
+        });
       }
     }
   });

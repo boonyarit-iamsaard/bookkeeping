@@ -140,7 +140,6 @@ export function CategoryManagement({
           <li key={group.parent.id}>
             <CategoryRow
               category={group.parent}
-              entries={usage[group.parent.id] ?? 0}
               removal={{
                 parentName: null,
                 childCount: group.children.length,
@@ -155,7 +154,6 @@ export function CategoryManagement({
                     <CategoryRow
                       category={child}
                       isChild
-                      entries={usage[child.id] ?? 0}
                       removal={{
                         parentName: group.parent.name,
                         childCount: 0,
@@ -184,7 +182,6 @@ interface EditResult {
 interface CategoryRowProps {
   category: CategorySummary;
   isChild?: boolean;
-  entries: number;
   removal: RemovalContext;
   onDone: (result: Readonly<EditResult>) => void;
 }
@@ -193,11 +190,11 @@ interface CategoryRowProps {
 function CategoryRow({
   category,
   isChild,
-  entries,
   removal,
   onDone,
 }: Readonly<CategoryRowProps>) {
   const [open, setOpen] = useState(false);
+  const entries = removal.entries;
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger

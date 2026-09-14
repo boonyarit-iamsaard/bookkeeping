@@ -17,7 +17,11 @@ export default defineConfig({
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "phone", use: { ...devices["Pixel 7"] } },
+    {
+      name: "phone",
+      // The narrowest supported phone; the milestone specifies 360px.
+      use: { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } },
+    },
   ],
   webServer: {
     command: `node ./node_modules/next/dist/bin/next ${process.env.CI ? "start" : "dev"} --port ${PORT}`,
