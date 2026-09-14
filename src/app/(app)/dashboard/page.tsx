@@ -11,8 +11,9 @@ import {
 } from "@/features/transactions/history-schema";
 import { getMonthlySummary } from "@/features/transactions/server/history";
 import { listWallets } from "@/features/wallets/server/wallet";
+import { DatePicker } from "@/shared/components/date-picker";
+import { MonthPicker } from "@/shared/components/month-picker";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
 import { APP_TIME_ZONE, todayIn } from "@/shared/helpers/dates";
 
 export const metadata: Metadata = { title: "Monthly summary" };
@@ -26,11 +27,15 @@ export default async function Page({
   }
   const params = nonemptySearchParams(await searchParams);
   const today = todayIn({ timeZone: APP_TIME_ZONE });
+  const thisMonth = today.substring(0, today.lastIndexOf("-"));
   const values = {
-    month: params.month ?? today.substring(0, today.lastIndexOf("-")),
+    month: params.month ?? thisMonth,
     asOf: params.asOf ?? today,
   };
   const parsed = reportSchema.safeParse(values);
+  const invalidFields = new Set(
+    parsed.success ? [] : parsed.error.issues.map((issue) => issue.path[0]),
+  );
   const report = parsed.success
     ? await Promise.all([
         getMonthlySummary(db, {
@@ -61,36 +66,30 @@ export default async function Page({
         className="flex flex-col gap-4 border-y py-5"
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <label
-            htmlFor="report-month"
-            className="flex min-w-0 flex-col gap-2 font-medium text-sm"
-          >
-            Report month
-            <Input
-              type="month"
+          <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+            <label htmlFor="report-month">Report month</label>
+            <MonthPicker
               id="report-month"
               name="month"
+              thisMonth={thisMonth}
+              max={thisMonth}
               defaultValue={
                 typeof values.month === "string" ? values.month : ""
               }
-              className="h-11"
-              required
+              invalid={invalidFields.has("month")}
             />
-          </label>
-          <label
-            htmlFor="balance-date"
-            className="flex min-w-0 flex-col gap-2 font-medium text-sm"
-          >
-            Balance date
-            <Input
-              type="date"
+          </div>
+          <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+            <label htmlFor="balance-date">Balance date</label>
+            <DatePicker
               id="balance-date"
               name="asOf"
+              today={today}
+              max={today}
               defaultValue={typeof values.asOf === "string" ? values.asOf : ""}
-              className="h-11"
-              required
+              invalid={invalidFields.has("asOf")}
             />
-          </label>
+          </div>
         </div>
         <Button
           type="submit"

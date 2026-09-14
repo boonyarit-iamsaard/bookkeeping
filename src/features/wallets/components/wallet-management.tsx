@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Money } from "@/features/wallets/components/money";
 import { manageWalletAction } from "@/features/wallets/server/wallet.actions";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
+import { DatePicker } from "@/shared/components/date-picker";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -32,6 +33,7 @@ export function WalletManagement(props: Readonly<WalletManagementProps>) {
   const router = useRouter();
   const [amount, setAmount] = useState(props.openingAmount);
   const [date, setDate] = useState(props.openingDate);
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -128,15 +130,14 @@ export function WalletManagement(props: Readonly<WalletManagementProps>) {
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="opening-date">Opening date</Label>
-          <Input
+          <DatePicker
             id="opening-date"
-            className="min-h-12"
-            type="date"
+            today={today}
+            max={today}
             value={date}
-            max={todayIn({ timeZone: APP_TIME_ZONE })}
-            onChange={(event) => setDate(event.target.value)}
+            onChange={setDate}
             disabled={pending}
-            required
+            className="h-12"
           />
         </div>
         <Button type="submit" size="lg" className="min-h-12" disabled={pending}>

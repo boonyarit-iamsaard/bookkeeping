@@ -7,6 +7,7 @@ import {
   WALLET_TYPE_LABELS,
   WALLET_TYPES,
 } from "@/features/wallets/wallet.types";
+import { DatePicker } from "@/shared/components/date-picker";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 import {
   Field,
@@ -154,16 +155,16 @@ export function CreateWalletForm({
           {(field) => (
             <Field data-invalid={!field.state.meta.isValid}>
               <FieldLabel htmlFor={field.name}>Opening date</FieldLabel>
-              <Input
+              <DatePicker
                 id={field.name}
                 name={field.name}
-                type="date"
+                today={defaultOpeningDate}
+                max={defaultOpeningDate}
                 value={field.state.value}
                 onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-                aria-invalid={!field.state.meta.isValid}
+                onChange={field.handleChange}
+                invalid={!field.state.meta.isValid}
                 aria-describedby="opening-date-description"
-                className="h-11 text-foreground"
               />
               <FieldDescription id="opening-date-description">
                 {describeOpeningDate(field.state.value)}

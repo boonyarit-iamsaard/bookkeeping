@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { z } from "zod";
+import { chooseDate } from "./helpers/choose-date";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test.afterEach(async ({ page }) => {
@@ -24,7 +25,7 @@ test("a new user creates a wallet and its opening balance survives a reload", as
   await page.getByLabel("Name").fill("Kasikorn savings");
   await page.getByRole("radio", { name: "Bank account" }).click();
   await page.getByLabel("Opening balance").fill("12000.5");
-  await page.getByLabel("Opening date").fill("2026-09-01");
+  await chooseDate(page.getByLabel("Opening date"), "2026-09-01");
   await page.getByRole("button", { name: "Create wallet" }).click();
 
   await expect(page).toHaveURL(/\/wallets(\?.*)?$/);
@@ -91,7 +92,7 @@ test("wallet mutations enforce session ownership and reject signed-out or invali
     const name = "Savings for our family holiday and upcoming home renovation";
     await page.getByLabel("Name").fill(name);
     await page.getByLabel("Opening balance").fill("12.50");
-    await page.getByLabel("Opening date").fill("2026-09-01");
+    await chooseDate(page.getByLabel("Opening date"), "2026-09-01");
 
     // Modify the real browser submission, preserving its action identifier.
     await page.route("**/wallets/new", async (route) => {

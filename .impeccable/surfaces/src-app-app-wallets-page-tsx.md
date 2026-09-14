@@ -66,7 +66,7 @@ in under a minute; `/wallets` reads as a trustworthy statement of holdings.
   (identified by `?created=<id>`) arrives with a short fade; all under
   `prefers-reduced-motion`.
 - The opening-date field echoes the chosen date in the product's own form
-  ("start of 13 Sep 2026") beneath the native date control.
+  ("start of 13 Sep 2026") beneath the date picker.
 
 ## Direction contract
 

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseDate } from "./helpers/choose-date";
 import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
@@ -32,7 +33,7 @@ test("a linked refund starts from the expense, falls back when the original wall
   // The ฿500 expense the refunds hang off.
   await page.goto("/transactions/new");
   await page.getByLabel("Amount").fill("500");
-  await page.getByLabel("Date", { exact: true }).fill("2026-09-02");
+  await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-02");
   await page.getByRole("button", { name: "Save −฿500.00 · Cash" }).click();
   await expect(page).toHaveURL(/\/transactions\?saved=/, { timeout: 15_000 });
   await page.locator("[data-transaction-row]").getByRole("link").click();
@@ -74,12 +75,10 @@ test("a linked refund starts from the expense, falls back when the original wall
     "Only ฿500.00 of this expense is left",
   );
   await page.getByLabel("Amount").fill("100");
-  await page.getByLabel("Date", { exact: true }).fill("2026-09-01");
-  await page.getByRole("button", { name: "Save +฿100.00 · Cash" }).click();
-  await expect(page.locator("#transactionDate-error")).toContainText(
-    "dated 2 Sep 2026",
-  );
-  await page.getByLabel("Date", { exact: true }).fill("2026-09-02");
+  // A refund cannot precede its expense, so the calendar refuses the day.
+  await page.getByLabel("Date", { exact: true }).click();
+  await expect(page.locator('[data-date="2026-09-01"]')).toBeDisabled();
+  await page.locator('[data-date="2026-09-02"]').click();
   if (process.env.REFUND_SCREENSHOTS) {
     await page.getByLabel("Amount").blur();
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -142,12 +141,12 @@ test("a linked refund starts from the expense, falls back when the original wall
   }
   await chooseOption(receivingWallet, "Bank");
   await page.getByLabel("Amount").fill("50");
-  await page.getByLabel("Date", { exact: true }).fill("2026-09-02");
+  await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-02");
   await page.getByRole("button", { name: "Save +฿50.00 · Bank" }).click();
   await expect(page.locator("#transactionDate-error")).toContainText(
     "opened on 3 Sep 2026",
   );
-  await page.getByLabel("Date", { exact: true }).fill("2026-09-03");
+  await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-03");
   await page.getByRole("button", { name: "Save +฿50.00 · Bank" }).click();
   await expect(page).toHaveURL(/\/transactions\?saved=/, { timeout: 15_000 });
   await page.goto("/wallets");

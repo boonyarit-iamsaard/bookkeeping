@@ -5,6 +5,7 @@ import {
   formatCalendarDate,
   todayIn,
 } from "@/shared/helpers/dates";
+import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
@@ -137,12 +138,14 @@ test("validation names the problem, keeps values, and income switches the catego
   await expect(page).toHaveURL(/\/transactions\/new$/);
 
   await page.getByLabel("Amount").fill("50");
-  await page.getByLabel("Date").fill("2026-08-31");
+  await chooseDate(page.getByLabel("Date", { exact: true }), "2026-08-31");
   await page.getByRole("button", { name: "Save −฿50.00 · Cash" }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "opened on 1 Sep 2026" }),
   ).toBeVisible();
-  await expect(page.getByLabel("Date")).toHaveValue("2026-08-31");
+  await expect(page.locator("input[name=transactionDate]")).toHaveValue(
+    "2026-08-31",
+  );
   await expect(page.getByLabel("Date")).toHaveAttribute(
     "aria-describedby",
     "transactionDate-error",
@@ -195,19 +198,20 @@ test("Bangkok midnight refreshes date shortcuts without changing a chosen date",
   });
   await page.clock.install({ time: new Date(`${today}T23:59:50+07:00`) });
   await page.goto("/transactions/new");
-  const date = page.getByLabel("Date");
+  const date = page.getByLabel("Date", { exact: true });
+  const chosen = page.locator("input[name=transactionDate]");
   await page.getByRole("button", { name: "Yesterday", exact: true }).click();
-  await expect(date).toHaveValue(addDays(today, -1));
+  await expect(chosen).toHaveValue(addDays(today, -1));
   const backdated = addDays(today, -2);
-  await date.fill(backdated);
+  await chooseDate(date, backdated);
   await page.clock.fastForward(11_000);
 
-  await expect(date).toHaveValue(backdated);
-  await expect(date).toHaveAttribute("max", addDays(today, 1));
+  await expect(chosen).toHaveValue(backdated);
+  await expect(date).toHaveAttribute("data-max", addDays(today, 1));
   await page.getByRole("button", { name: "Today", exact: true }).click();
-  await expect(date).toHaveValue(addDays(today, 1));
+  await expect(chosen).toHaveValue(addDays(today, 1));
   await page.getByRole("button", { name: "Yesterday", exact: true }).click();
-  await expect(date).toHaveValue(today);
+  await expect(chosen).toHaveValue(today);
   await page.getByLabel("Amount").press("Escape");
   await expect(page).toHaveURL(/\/transactions$/, { timeout: 15_000 });
 });
@@ -265,7 +269,7 @@ test("editing loads the saved values, keeps the type fixed, and replaces the bal
   await expect(page).toHaveURL(/\/edit$/);
 
   await page.getByLabel("Amount").fill("150.5");
-  await page.getByLabel("Date").fill("2026-09-02");
+  await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-02");
   await page.getByLabel("Note", { exact: false }).fill("Coffee and cake");
   await page.getByRole("button", { name: "Save −฿150.50 · Cash" }).click();
 
@@ -294,12 +298,14 @@ test("an invalid edit keeps the values and names the field; deleting removes the
   await recordExpenseThroughForm(page, { amount: "80", note: "Mistake" });
   await page.getByRole("link", { name: "Edit" }).click();
 
-  await page.getByLabel("Date").fill("2026-08-31");
+  await chooseDate(page.getByLabel("Date", { exact: true }), "2026-08-31");
   await page.getByRole("button", { name: "Save −฿80.00 · Cash" }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: "opened on 1 Sep 2026" }),
   ).toBeVisible();
-  await expect(page.getByLabel("Date")).toHaveValue("2026-08-31");
+  await expect(page.locator("input[name=transactionDate]")).toHaveValue(
+    "2026-08-31",
+  );
   await expect(page.getByLabel("Date")).toHaveAttribute(
     "aria-describedby",
     "transactionDate-error",
@@ -316,7 +322,9 @@ test("an invalid edit keeps the values and names the field; deleting removes the
   );
   await dialog.getByRole("button", { name: "Keep it" }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByLabel("Date")).toHaveValue("2026-08-31");
+  await expect(page.locator("input[name=transactionDate]")).toHaveValue(
+    "2026-08-31",
+  );
 
   await page.getByRole("button", { name: "Delete expense" }).click();
   const deletionResponse = page.waitForResponse(

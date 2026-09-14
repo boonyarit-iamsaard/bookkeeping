@@ -38,6 +38,7 @@ import type {
 } from "@/features/transactions/transaction-form-schema";
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet.types";
+import { DatePicker } from "@/shared/components/date-picker";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 import {
@@ -685,20 +686,20 @@ export function TransactionForm({
                   return (
                     <Field data-invalid={invalid}>
                       <FieldLabel htmlFor={field.name}>Date</FieldLabel>
-                      <Input
+                      <DatePicker
                         id={field.name}
                         name={field.name}
-                        type="date"
+                        today={today}
                         min={linked?.transactionDate}
                         max={today}
                         value={field.state.value}
                         onBlur={field.handleBlur}
-                        onChange={(event) => pick(event.target.value)}
-                        aria-invalid={invalid}
+                        onChange={pick}
+                        invalid={invalid}
                         aria-describedby={
                           invalid ? `${field.name}-error` : undefined
                         }
-                        className="h-11 text-foreground"
+                        disabled={awaitingReplay || isSubmitting}
                       />
                       <div className="flex gap-2">
                         <DateChip

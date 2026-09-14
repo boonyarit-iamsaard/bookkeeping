@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
+import { chooseDate } from "./choose-date";
 
 interface WalletSeed {
   name: string;
@@ -16,7 +17,7 @@ export async function createWalletThroughForm(
   await page.waitForLoadState("networkidle");
   await page.getByLabel("Name").fill(name);
   await page.getByLabel("Opening balance").fill(openingAmount);
-  await page.getByLabel("Opening date").fill(openingDate);
+  await chooseDate(page.getByLabel("Opening date"), openingDate);
   await page.getByRole("button", { name: "Create wallet" }).click();
   await expect(page).toHaveURL(/\/wallets(\?.*)?$/);
   await expect(

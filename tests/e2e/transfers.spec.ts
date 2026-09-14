@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseDate } from "./helpers/choose-date";
 import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
@@ -52,14 +53,14 @@ test("transfer From → To and swap survive a lost response, then edit and delet
     "Savings",
   );
   await expect(page.getByLabel("To", { exact: true })).toContainText("Cash");
-  await page.getByLabel("Date", { exact: true }).fill("2026-09-04");
+  await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-04");
   await page
     .getByRole("button", { name: "Save ฿1,000.01 Savings → Cash" })
     .click();
   await expect(page.locator("#transactionDate-error")).toContainText(
     "5 Sep 2026",
   );
-  await page.getByLabel("Date", { exact: true }).fill("2026-09-05");
+  await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-05");
   // The same wallet on both sides: pick From's current choice under To.
   await chooseOption(page.getByLabel("To", { exact: true }), "Savings");
   await page.getByRole("button", { name: /^Save/ }).click();

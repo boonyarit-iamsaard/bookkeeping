@@ -301,7 +301,8 @@ Controls are tactile and quiet: capsules on a flat page, a 3px cobalt halo on fo
 
 - **Style:** capsule, 1px Hairline stroke, Hairline fill at 30%, Ink text, Graphite placeholder. Height 44px in this build (`h-11`; the primitive default is 36px), Body-size text on phone and Label-size from 768px.
 - **Money input** (`input-money`): 48px tall, `money` utility at Row Figure size, `inputmode="decimal"`, a Graphite ฿ pinned 16px from the left (36px left padding) and a Graphite "THB" in Label weight pinned 16px from the right (64px right padding). Placeholder `0.00`.
-- **Date input:** native `type="date"`, same capsule; a Caption description beneath echoes the chosen date in prose.
+- **Date picker** (`date-picker.tsx` over `ui/calendar.tsx` and `ui/popover.tsx`): the same 44px capsule as a Select, leading with a 16px Graphite calendar pictogram and reading the date in prose ("14 Sep 2026"; Graphite placeholder when empty), with the turning chevron. It opens one month in the floating box: caption "September 2026" in Label between two ghost arrows, weekday initials in Graphite 12px, days as 40px circles in tabular figures, today on a Mist disc, the chosen day the one Cobalt fill, days outside the allowed range at 50%. Today is always Bangkok's, never the device's. Picking closes the calendar and returns focus; arrow keys move the focused day. A filter picker carries "Clear date" beneath a hairline; a form picker cannot be emptied. A Caption description beneath may echo the chosen date in prose.
+- **Month picker** (`month-picker.tsx`): the date picker's sibling for a report month, reading "September 2026"; the box shows a year between two arrows and its twelve months as 40px ghost pills in a 3-column grid, the current month on Mist, the chosen one on Cobalt, months past the limit at 50%.
 - **Select** (shadcn Base UI `Select`, `ui/select.tsx`): the same 44px capsule as an input, with a 16px Graphite chevron that turns while open. The list drops 8px beneath at the trigger's width in a 14px-corner Paper box with a Hairline border and the Popover lift, capped at 26rem and 16px from viewport edges; items are 40px minimum with a 10px inner corner, Mist when highlighted, and a Cobalt check on the selected one. Option content is rich where it helps the choice: wallet options lead with a 32px Mist disc and stack type · balance in Caption beneath the name; category options show the pictogram; filter lists group by tree with children indented behind a › marker. "All …" and "None" are real first items, not placeholders, so a choice can be undone from the same list. Placeholders ("Choose a wallet") are Graphite.
 - **Field anatomy:** Label (Label typography) → control → optional Caption description in Graphite → error. 12px between each.
 - **Focus:** Cobalt border plus 3px Cobalt ring at 50%.
@@ -389,7 +390,7 @@ what happened; after a removal that line takes focus.
 ### History and financial reports
 
 `/transactions` keeps the divided rows and adds inclusive From/To dates,
-wallet, category and type filters. Native controls are labeled, 44px tall,
+wallet, category and type filters. Controls are labeled, 44px tall,
 and stack on phone; date and selection pairs use two columns from 640px.
 Filters sit behind a native keyboard-accessible disclosure, open when filters
 are active so saved rows remain immediately visible in normal history.

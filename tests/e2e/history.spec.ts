@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { APP_TIME_ZONE, addDays, todayIn } from "@/shared/helpers/dates";
+import { chooseDate, chooseMonth } from "./helpers/choose-date";
 import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
@@ -49,8 +50,8 @@ test("filters and reports work together with dated wallet balances", async ({
   await page.getByText("Filter history", { exact: true }).focus();
   await page.getByText("Filter history", { exact: true }).press("Enter");
   const today = todayIn({ timeZone: APP_TIME_ZONE });
-  await page.getByLabel("From date").fill(addDays(today, -1));
-  await page.getByLabel("To date").fill(today);
+  await chooseDate(page.getByLabel("From date"), addDays(today, -1));
+  await chooseDate(page.getByLabel("To date"), today);
   await chooseOption(page.getByLabel("Filter wallet"), "Cash");
   await chooseOption(page.getByLabel("Type", { exact: true }), "Expense");
   // The first Uncategorized listed is the expense tree's.
@@ -70,14 +71,14 @@ test("filters and reports work together with dated wallet balances", async ({
     "฿500.00",
   );
   await expect(page.locator("[data-summary='net']")).toContainText("−฿500.00");
-  await page.getByLabel("Report month").fill("2026-08");
+  await chooseMonth(page.getByLabel("Report month"), "2026-08");
   await page.getByRole("button", { name: "Update report" }).click();
   await expect(page.locator("[data-summary='grossExpenses']")).toContainText(
     "฿0.00",
   );
   const currentMonth = today.substring(0, today.lastIndexOf("-"));
-  await page.getByLabel("Report month").fill(currentMonth);
-  await page.getByLabel("Balance date").fill("2026-08-31");
+  await chooseMonth(page.getByLabel("Report month"), currentMonth);
+  await chooseDate(page.getByLabel("Balance date"), "2026-08-31");
   await page.getByRole("button", { name: "Update report" }).click();
   await expect(page.locator("[data-balance-total]")).toContainText("฿0.00");
   await page.screenshot({
@@ -118,8 +119,9 @@ test("invalid date filters and year zero keep editable controls with validation"
   await expect(
     page.getByRole("alert").filter({ hasText: "Choose valid filters" }),
   ).toBeVisible();
-  await expect(page.getByLabel("From date")).toHaveValue("2026-09-03");
-  await expect(page.getByLabel("To date")).toHaveValue("2026-09-01");
+  await expect(page.getByLabel("From date")).toHaveText("3 Sep 2026");
+  await expect(page.locator("input[name=from]")).toHaveValue("2026-09-03");
+  await expect(page.getByLabel("To date")).toHaveText("1 Sep 2026");
   await page.goto("/transactions?from=0000-01-01");
   await expect(
     page.getByRole("alert").filter({ hasText: "Choose valid filters" }),
@@ -131,5 +133,6 @@ test("invalid date filters and year zero keep editable controls with validation"
   await expect(
     page.getByRole("alert").filter({ hasText: "Choose a valid month" }),
   ).toBeVisible();
-  await expect(page.getByLabel("Balance date")).toHaveValue("2026-09-01");
+  await expect(page.getByLabel("Balance date")).toHaveText("1 Sep 2026");
+  await expect(page.getByLabel("Report month")).toHaveText("Choose a month");
 });
