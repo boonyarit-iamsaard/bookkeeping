@@ -76,6 +76,10 @@ export function DeleteTransactionButton({
         router.push("/sign-in");
         return;
       }
+      if (result.error.code === "blocked") {
+        setState({ name: "failed", message: result.error.message });
+        return;
+      }
       // Already gone: the goal state holds, so report it as done.
       router.push("/transactions?deleted=1");
       router.refresh();
@@ -133,7 +137,9 @@ export function DeleteTransactionButton({
                 )}
                 {transaction.type === "transfer"
                   ? "will leave the list and both wallet balances."
-                  : "will leave the list and the wallet balance."}{" "}
+                  : transaction.type === "refund"
+                    ? "will leave the list and the wallet balance, and the expense can be refunded again up to that amount."
+                    : "will leave the list and the wallet balance."}{" "}
                 This can't be undone.
               </AlertDialog.Description>
             </div>

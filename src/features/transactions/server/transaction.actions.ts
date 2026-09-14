@@ -7,6 +7,7 @@ import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import type {
   CreateTransactionError,
+  DeleteTransactionError,
   UpdateTransactionError,
 } from "@/features/transactions/server/transaction";
 import {
@@ -14,11 +15,13 @@ import {
   deleteTransaction,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
+import type { RefundSummary } from "@/features/transactions/transaction.types";
 import {
   createTransactionSubmissionSchema,
   updateTransactionSubmissionSchema,
 } from "@/features/transactions/transaction-form-schema";
 import { formatCalendarDate } from "@/shared/helpers/dates";
+import { formatMoney } from "@/shared/helpers/money";
 import type { Result } from "@/shared/helpers/result";
 import { err, ok } from "@/shared/helpers/result";
 
@@ -74,6 +77,7 @@ export async function createTransactionAction(
     ...parsed.data,
     categoryId: parsed.data.categoryId || null,
     destinationWalletId: parsed.data.destinationWalletId || null,
+    refundOfTransactionId: parsed.data.refundOfTransactionId || null,
     ownerId: session.user.id,
   });
   if (!outcome.ok) {
@@ -121,7 +125,9 @@ export async function updateTransactionAction(
 
 export type DeleteTransactionActionError =
   | { code: "unauthenticated" }
-  | { code: "not-found"; message: string };
+  | { code: "not-found"; message: string }
+  /** The record stays: linked refunds still count against it. */
+  | { code: "blocked"; message: string };
 
 /** Deletes an owned transaction and leaves its now-missing edit page. */
 export async function deleteTransactionAction(
@@ -141,7 +147,7 @@ export async function deleteTransactionAction(
     id: parsed.data.id,
   });
   if (!outcome.ok) {
-    return err(NOT_FOUND);
+    return err(describeDeleteRejection(outcome.error));
   }
 
   revalidateTransactionPages(outcome.value.id);
@@ -155,9 +161,39 @@ const NOT_FOUND = {
   message: "This transaction is no longer available. It may have been deleted.",
 } as const;
 
+function describeDeleteRejection(
+  error: DeleteTransactionError,
+): DeleteTransactionActionError {
+  switch (error.code) {
+    case "transaction-not-found":
+      return NOT_FOUND;
+    case "refunds-exist":
+      return {
+        code: "blocked",
+        message: `This expense has linked refunds: ${describeRefunds(error.refunds)}. Delete each refund first, then delete the expense.`,
+      };
+  }
+}
+
+function describeRefunds(refunds: readonly RefundSummary[]): string {
+  return refunds
+    .map(
+      (refund) =>
+        `${formatMoney({ amountInMinorUnits: refund.amount, currency: "THB" })} on ${formatCalendarDate(refund.transactionDate)}`,
+    )
+    .join(", ");
+}
+
+/**
+ * A refund changes its expense's detail too, and a deleted refund's own
+ * pages are gone; the dynamic patterns cover every linked page at once.
+ */
 function revalidateTransactionPages(id?: string) {
   revalidatePath("/transactions");
   revalidatePath("/wallets");
+  revalidatePath("/transactions/[id]", "page");
+  revalidatePath("/transactions/[id]/edit", "page");
+  revalidatePath("/transactions/[id]/refund", "page");
   if (id) {
     revalidatePath(`/transactions/${id}`);
     revalidatePath(`/transactions/${id}/edit`);
@@ -240,6 +276,45 @@ function describeRejection(
         code: "invalid",
         field: "transactionDate",
         message: `This wallet opened on ${formatCalendarDate(error.openingDate)}; earlier dates are not tracked`,
+      };
+    case "invalid-refund":
+      return {
+        code: "invalid",
+        message:
+          "A refund is recorded from its expense and always follows the expense’s category.",
+      };
+    case "expense-not-found":
+      return {
+        code: "invalid",
+        message:
+          "The refunded expense is no longer available. It may have been deleted.",
+      };
+    case "before-expense":
+      return {
+        code: "invalid",
+        field: "transactionDate",
+        message: `The expense is dated ${formatCalendarDate(error.expenseDate)}; a refund cannot come before it`,
+      };
+    case "exceeds-refundable":
+      return {
+        code: "invalid",
+        field: "amount",
+        message:
+          error.remaining > 0n
+            ? `Only ${formatMoney({ amountInMinorUnits: error.remaining, currency: "THB" })} of this expense is left to refund`
+            : "This expense is already fully refunded",
+      };
+    case "below-refunded":
+      return {
+        code: "invalid",
+        field: "amount",
+        message: `${formatMoney({ amountInMinorUnits: error.refundedTotal, currency: "THB" })} of this expense has been refunded; the amount cannot go below that`,
+      };
+    case "after-refund":
+      return {
+        code: "invalid",
+        field: "transactionDate",
+        message: `A linked refund is dated ${formatCalendarDate(error.refundDate)}; the expense cannot come after it`,
       };
     case "submission-conflict":
       return {

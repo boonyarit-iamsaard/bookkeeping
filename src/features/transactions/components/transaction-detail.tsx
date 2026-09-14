@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { SignedMoney } from "@/features/transactions/components/signed-money";
@@ -9,6 +10,7 @@ import {
   formatCalendarDate,
   formatInstant,
 } from "@/shared/helpers/dates";
+import { formatMoney } from "@/shared/helpers/money";
 
 interface TransactionDetailViewProps {
   transaction: TransactionDetail;
@@ -33,6 +35,23 @@ export function TransactionDetailView({
       </section>
 
       <dl className="-mx-4 divide-y sm:mx-0">
+        {transaction.refundOf && (
+          <Row term="Refund of">
+            <Link
+              href={`/transactions/${transaction.refundOf.id}`}
+              className="underline underline-offset-4"
+            >
+              <span className="money" translate="no">
+                −
+                {formatMoney({
+                  amountInMinorUnits: transaction.refundOf.amount,
+                  currency: transaction.currency,
+                })}
+              </span>{" "}
+              on {formatCalendarDate(transaction.refundOf.transactionDate)}
+            </Link>
+          </Row>
+        )}
         {transaction.category && (
           <Row term="Category">
             <span className="flex items-center gap-3">
@@ -46,7 +65,15 @@ export function TransactionDetailView({
             </span>
           </Row>
         )}
-        <Row term={transaction.destinationWallet ? "From" : "Wallet"}>
+        <Row
+          term={
+            transaction.destinationWallet
+              ? "From"
+              : transaction.refundOf
+                ? "Received in"
+                : "Wallet"
+          }
+        >
           {transaction.wallet.name}
           <span className="text-muted-foreground">
             {" "}

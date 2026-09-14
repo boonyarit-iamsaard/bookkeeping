@@ -37,6 +37,14 @@ interface TransactionFormSchemaOptions {
    * inline. The server re-checks against the stored wallet regardless.
    */
   walletOpeningDates?: Readonly<Record<string, CalendarDate>>;
+  /** The expense a refund is entered against, for inline date and limit checks. */
+  linkedExpense?: LinkedExpenseLimits;
+}
+
+export interface LinkedExpenseLimits {
+  transactionDate: CalendarDate;
+  /** What is left to refund, excluding the refund being edited. */
+  remaining: bigint;
 }
 
 function transactionFields() {
@@ -47,6 +55,7 @@ function transactionFields() {
     walletId: z.string().min(1, "Choose a wallet"),
     currency: z.literal("THB", { error: "Currency must be THB" }),
     destinationWalletId: z.string().default(""),
+    refundOfTransactionId: z.string().default(""),
     categoryId: z.string(),
     amount: z.string().transform((raw, ctx) => {
       const result = parseMoneyInput({ text: raw, currency: "THB" });
@@ -89,15 +98,18 @@ function transactionFields() {
   };
 }
 
-function transactionFieldCheck(
-  walletOpeningDates: Readonly<Record<string, CalendarDate>>,
-) {
+function transactionFieldCheck({
+  walletOpeningDates = {},
+  linkedExpense,
+}: Readonly<TransactionFormSchemaOptions>) {
   return (
     value: {
       type: string;
       walletId: string;
       destinationWalletId: string;
+      refundOfTransactionId: string;
       categoryId: string;
+      amount: bigint;
       transactionDate: string;
     },
     ctx: z.RefinementCtx,
@@ -111,6 +123,34 @@ function transactionFieldCheck(
           code: "custom",
           path: ["destinationWalletId"],
           message: "Choose a different destination wallet",
+        });
+      }
+    } else if (value.type === "refund") {
+      if (!value.refundOfTransactionId) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["refundOfTransactionId"],
+          message: "A refund must be recorded from its expense",
+        });
+      }
+      if (linkedExpense && value.amount > linkedExpense.remaining) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["amount"],
+          message:
+            linkedExpense.remaining > 0n
+              ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.remaining, currency: "THB" })} of this expense is left to refund`
+              : "This expense is already fully refunded",
+        });
+      }
+      if (
+        linkedExpense &&
+        value.transactionDate < linkedExpense.transactionDate
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["transactionDate"],
+          message: `The expense is dated ${formatCalendarDate(linkedExpense.transactionDate)}; a refund cannot come before it`,
         });
       }
     } else if (!value.categoryId) {
@@ -142,12 +182,12 @@ function transactionFieldCheck(
  * Parses the create-transaction form. Amounts arrive as the typed string and
  * leave as integer satang; the same fields are parsed again in the action.
  */
-export function createTransactionFormSchema({
-  walletOpeningDates = {},
-}: Readonly<TransactionFormSchemaOptions> = {}) {
+export function createTransactionFormSchema(
+  options: Readonly<TransactionFormSchemaOptions> = {},
+) {
   return z
     .object(transactionFields())
-    .superRefine(transactionFieldCheck(walletOpeningDates));
+    .superRefine(transactionFieldCheck(options));
 }
 
 /** What the client actually sends: the form values plus the submission key. */

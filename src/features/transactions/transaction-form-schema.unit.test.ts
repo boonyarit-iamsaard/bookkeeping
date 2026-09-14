@@ -8,6 +8,7 @@ const base = {
   type: "expense",
   currency: "THB",
   destinationWalletId: "",
+  refundOfTransactionId: "",
   walletId: "wallet-1",
   categoryId: "category-1",
   amount: "120",
@@ -117,4 +118,59 @@ test("transfer submissions require explicit THB and a distinct destination, with
       ]),
     );
   }
+});
+
+describe("linked refund form schema", () => {
+  const refund = {
+    ...base,
+    type: "refund",
+    categoryId: "",
+    refundOfTransactionId: "expense-1",
+  };
+  const schema = createTransactionFormSchema({
+    linkedExpense: { transactionDate: "2026-09-10", remaining: 30_000n },
+  });
+
+  test("accepts a refund up to what is left, dated on or after the expense", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
+    expect(
+      schema.safeParse({
+        ...refund,
+        amount: "300",
+        transactionDate: "2026-09-10",
+      }).success,
+    ).toBe(true);
+  });
+
+  test.each([
+    [{ amount: "300.01" }, ["amount", "Only ฿300.00 of this expense is left"]],
+    [
+      { transactionDate: "2026-09-09" },
+      ["transactionDate", "dated 10 Sep 2026"],
+    ],
+    [
+      { refundOfTransactionId: "" },
+      ["refundOfTransactionId", "from its expense"],
+    ],
+  ])("rejects %j", (changes, [path, message]) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
+    const result = schema.safeParse({ ...refund, ...changes });
+    expect(result.success).toBe(false);
+    expect(
+      result.error?.issues.map((issue) => [issue.path[0], issue.message]),
+    ).toEqual([[path, expect.stringContaining(message)]]);
+  });
+
+  test("names a fully refunded expense", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
+    const full = createTransactionFormSchema({
+      linkedExpense: { transactionDate: "2026-09-10", remaining: 0n },
+    });
+    expect(
+      full.safeParse({ ...refund, amount: "0.01" }).error?.issues[0]?.message,
+    ).toBe("This expense is already fully refunded");
+  });
 });

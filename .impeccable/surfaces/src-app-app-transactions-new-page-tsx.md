@@ -6,6 +6,7 @@ related_targets:
   - "src/app/(app)/transactions/page.tsx"
   - "src/app/(app)/transactions/[id]/page.tsx"
   - "src/app/(app)/transactions/[id]/edit/page.tsx"
+  - "src/app/(app)/transactions/[id]/refund/page.tsx"
 ---
 
 # Surface brief: transactions (create, edit, list, detail)
@@ -40,9 +41,10 @@ Save. Later, on any device: confirm what was recorded and when.
   `/transactions/[id]` (detail, with an Edit link), `/transactions/[id]/edit`
   (the same form in edit mode). Header gains a Transactions link.
 - Untouched: wallets pages, auth, category management.
-- Anti-goals: no Refund controls (ticket 07); no category
-  rename/removal (08); no custom keypad; no celebratory motion; no type
-  carried by colour alone; no visible reversal entries for corrections.
+- Anti-goals: no Refund in the general type picker (refunds start from
+  their expense); no category rename/removal (08); no custom keypad; no
+  celebratory motion; no type carried by colour alone; no visible reversal
+  entries for corrections.
 
 ## States and ranges
 
@@ -186,3 +188,38 @@ viewport check approximating keyboard space. The focused Note remained
 above the reachable Save button without horizontal overflow. The mechanical
 detector returned no findings. Visual and code reviews were performed in
 thread under the user's no-sub-agent instruction.
+
+## Linked refunds (ticket 07)
+
+Refund entry lives at `/transactions/[id]/refund`, reached only from an
+expense's detail, where a hairline-topped "Refunds" section reads what has
+been refunded and what is left, lists linked refunds, and offers "Record
+refund" until the expense is fully refunded. The general picker never
+offers Refund.
+
+The form keeps the confirmed order. The Type row is a fixed "Refund" value
+followed by a chip linking back to the expense: 40px Mist disc with the
+category pictogram, "Refund of Parent › Child", then "−฿500.00 · 2 Sep
+2026 · ฿400.00 left" with the allowance kept on one line. The Wallet row is
+labelled "Received in"; the Category row is a fixed value that "Follows the
+expense's category". Amount arrives prefilled with the remaining allowance,
+selected on focus so a partial amount overwrites it, with "Up to ฿400.00
+left to refund on this expense" beneath. Save reads "+฿100.00 · Cash".
+
+Archived original wallet: "Received in" stays unselected ("Choose an active
+wallet"), a description names the archived wallet and links to unarchive
+it, and Save is disabled until a wallet is chosen. No active wallets at all
+shows the "No active wallets" block with Unarchive / Create a wallet / Back
+to the expense instead of the form.
+
+Validation names the expense date and the remaining allowance inline;
+the expense's edit shows "฿150.00 of this expense has been refunded" in the
+footer and rejects amounts below it or dates after the earliest refund. A
+blocked deletion lists the linked refunds inside the confirmation sheet.
+List rows prefix "Refund · " before the expense's category with a "+"
+figure; refund detail has "Refund of" and "Received in" rows.
+
+Inspected at 360px and 1280px in one batched round plus one confirmation.
+The first round found the chip widening the phone column (a fieldset's
+min-content quirk) and truncating the allowance; both were fixed. No new
+tokens; the chip reuses the hairline ring and Mist disc.

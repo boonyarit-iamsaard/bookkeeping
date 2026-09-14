@@ -54,6 +54,9 @@ export function TransactionList({
             </span>
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 font-medium leading-snug">
+                {transaction.refundOf && (
+                  <span className="text-muted-foreground">Refund · </span>
+                )}
                 {transaction.category
                   ? categoryLabel(transaction.category)
                   : "Transfer"}

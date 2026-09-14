@@ -8,7 +8,11 @@ import {
   listCategories,
 } from "@/features/categories/server/category";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
-import { getTransaction } from "@/features/transactions/server/transaction";
+import { linkedExpenseView } from "@/features/transactions/linked-expense";
+import {
+  getExpenseRefunds,
+  getTransaction,
+} from "@/features/transactions/server/transaction";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction.types";
 import { listWallets } from "@/features/wallets/server/wallet";
 import { buttonVariants } from "@/shared/components/ui/button";
@@ -36,10 +40,31 @@ export default async function Page({
   }
 
   await initializeDefaultCategories(db, ownerId);
-  const [wallets, categories] = await Promise.all([
+  // A refund shows its expense; an expense shows what it has refunded.
+  const refundedExpenseId = transaction.refundOf?.id ?? transaction.id;
+  const [wallets, categories, refundedExpense, refunds] = await Promise.all([
     listWallets(db, { ownerId }),
     listCategories(db, ownerId),
+    transaction.refundOf
+      ? getTransaction(db, { ownerId, id: refundedExpenseId })
+      : undefined,
+    getExpenseRefunds(db, { ownerId, id: refundedExpenseId }),
   ]);
+  const refundOf =
+    refundedExpense && refunds
+      ? linkedExpenseView({
+          expense: refundedExpense,
+          refunds,
+          editingRefund: transaction,
+        })
+      : undefined;
+  const refundedLabel =
+    !transaction.refundOf && refunds && refunds.refunds.length > 0
+      ? formatMoney({
+          amountInMinorUnits: refunds.refundedTotal,
+          currency: transaction.currency,
+        })
+      : undefined;
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 pt-8 pb-40 sm:pb-12">
@@ -84,7 +109,10 @@ export default async function Page({
             id: transaction.id,
             type: transaction.type,
             walletId: transaction.wallet.id,
-            categoryId: transaction.category?.id ?? "",
+            // A refund's category is read from its expense, never sent back.
+            categoryId: transaction.refundOf
+              ? ""
+              : (transaction.category?.id ?? ""),
             destinationWalletId: transaction.destinationWallet?.id ?? "",
             amountText: formatMoneyInput({
               amountInMinorUnits: transaction.amount,
@@ -96,6 +124,8 @@ export default async function Page({
               instant: transaction.recordedAt,
               timeZone: APP_TIME_ZONE,
             }),
+            refundOf,
+            refundedLabel,
           },
         }}
       />

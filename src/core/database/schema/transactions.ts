@@ -1,4 +1,5 @@
 import { relations, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   bigint,
   check,
@@ -42,9 +43,16 @@ export const transactions = pgTable(
       () => wallets.id,
       { onDelete: "restrict" },
     ),
+    // Null for transfers and refunds; a refund follows its expense's category.
     categoryId: uuid("category_id").references(() => categories.id, {
       onDelete: "restrict",
     }),
+    // The expense a refund returns money for. Restrict: an expense with
+    // refunds cannot be deleted, and its row must outlive them regardless.
+    refundOfTransactionId: uuid("refund_of_transaction_id").references(
+      (): AnyPgColumn => transactions.id,
+      { onDelete: "restrict" },
+    ),
     currency: text("currency").notNull().default("THB"),
     // Integer satang, always positive; the type carries the sign.
     amount: bigint("amount", { mode: "bigint" }).notNull(),
@@ -72,12 +80,19 @@ export const transactions = pgTable(
     index("transactions_destination_wallet_id_idx").on(
       table.destinationWalletId,
     ),
+    index("transactions_refund_of_transaction_id_idx").on(
+      table.refundOfTransactionId,
+    ),
     check(
       "transactions_wallet_shape",
       sql`
       (${table.type} = 'transfer' and ${table.destinationWalletId} is not null
-        and ${table.destinationWalletId} <> ${table.walletId} and ${table.categoryId} is null)
-      or (${table.type} <> 'transfer' and ${table.destinationWalletId} is null and ${table.categoryId} is not null)
+        and ${table.destinationWalletId} <> ${table.walletId} and ${table.categoryId} is null
+        and ${table.refundOfTransactionId} is null)
+      or (${table.type} = 'refund' and ${table.destinationWalletId} is null and ${table.categoryId} is null
+        and ${table.refundOfTransactionId} is not null)
+      or (${table.type} in ('income', 'expense') and ${table.destinationWalletId} is null
+        and ${table.categoryId} is not null and ${table.refundOfTransactionId} is null)
     `,
     ),
     index("transactions_category_id_idx").on(table.categoryId),

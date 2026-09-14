@@ -4,8 +4,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
+import { ExpenseRefundsView } from "@/features/transactions/components/expense-refunds";
 import { TransactionDetailView } from "@/features/transactions/components/transaction-detail";
-import { getTransaction } from "@/features/transactions/server/transaction";
+import {
+  getExpenseRefunds,
+  getTransaction,
+} from "@/features/transactions/server/transaction";
+import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction.types";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {
@@ -21,10 +26,11 @@ export default async function Page({
   }
   const { id } = await params;
   // Ownership is part of the lookup: another user's id reads as not found.
-  const transaction = await getTransaction(db, {
-    ownerId: session.user.id,
-    id,
-  });
+  const ownerId = session.user.id;
+  const [transaction, refunds] = await Promise.all([
+    getTransaction(db, { ownerId, id }),
+    getExpenseRefunds(db, { ownerId, id }),
+  ]);
   if (!transaction) {
     notFound();
   }
@@ -32,7 +38,9 @@ export default async function Page({
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="font-semibold text-2xl tracking-tight">Transaction</h1>
+        <h1 className="font-semibold text-2xl tracking-tight">
+          {TRANSACTION_TYPE_LABELS[transaction.type]}
+        </h1>
         <div className="flex items-center gap-2">
           <Link
             href="/transactions"
@@ -50,6 +58,9 @@ export default async function Page({
         </div>
       </div>
       <TransactionDetailView transaction={transaction} />
+      {refunds && (
+        <ExpenseRefundsView expense={transaction} refunds={refunds} />
+      )}
     </main>
   );
 }

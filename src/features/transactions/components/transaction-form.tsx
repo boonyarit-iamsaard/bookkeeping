@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowDownUp } from "lucide-react";
+import { ArrowDownUp, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
 import type { CreateCategoryActionSuccess } from "@/features/categories/server/category.actions";
 import { DeleteTransactionButton } from "@/features/transactions/components/delete-transaction-button";
@@ -24,11 +25,14 @@ import {
 } from "@/features/transactions/server/transaction.actions";
 import type { TransactionType } from "@/features/transactions/transaction.types";
 import {
+  CREATABLE_TRANSACTION_TYPES,
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
-  TRANSACTION_TYPES,
 } from "@/features/transactions/transaction.types";
-import type { TransactionFormInput } from "@/features/transactions/transaction-form-schema";
+import type {
+  LinkedExpenseLimits,
+  TransactionFormInput,
+} from "@/features/transactions/transaction-form-schema";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet.types";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
@@ -43,15 +47,33 @@ import { NativeSelect } from "@/shared/components/ui/native-select";
 import { SegmentedControl } from "@/shared/components/ui/segmented-control";
 import { cn } from "@/shared/helpers/cn";
 import type { CalendarDate } from "@/shared/helpers/dates";
-import { addDays } from "@/shared/helpers/dates";
+import { addDays, formatCalendarDate } from "@/shared/helpers/dates";
 import { formatMoney, parseMoneyInput } from "@/shared/helpers/money";
 
-const TYPE_OPTIONS = TRANSACTION_TYPES.map((value) => ({
+const TYPE_OPTIONS = CREATABLE_TRANSACTION_TYPES.map((value) => ({
   value,
   label: TRANSACTION_TYPE_LABELS[value],
 }));
 
-/** An existing income or expense as the edit form loads it. */
+/**
+ * The expense a refund is linked to, as the form shows it. Figures arrive
+ * pre-formatted; bigint does not cross into the client.
+ */
+export interface LinkedExpenseView {
+  id: string;
+  /** "฿500.00" */
+  amountLabel: string;
+  transactionDate: CalendarDate;
+  categoryLabel: string;
+  categoryIconId: string;
+  wallet: { id: string; name: string; archived: boolean };
+  /** What is left to refund, excluding the refund being edited: "300.00". */
+  remainingText: string;
+  /** The same figure for reading: "฿300.00". */
+  remainingLabel: string;
+}
+
+/** An existing transaction as the edit form loads it. */
 export interface EditableTransaction {
   id: string;
   type: TransactionType;
@@ -64,10 +86,16 @@ export interface EditableTransaction {
   note: string;
   /** "13 Sep 2026, 14:32", already in Bangkok time. */
   recordedLabel: string;
+  /** Set when the transaction is a refund. */
+  refundOf?: LinkedExpenseView;
+  /** For an expense: what its linked refunds add up to, if any. */
+  refundedLabel?: string;
 }
 
 export type TransactionFormMode =
   | { kind: "create"; defaultWalletId: string }
+  /** A new refund of one expense; the wallet is unset when the original is archived. */
+  | { kind: "refund"; expense: LinkedExpenseView; defaultWalletId: string }
   | { kind: "edit"; transaction: EditableTransaction };
 
 interface TransactionFormProps {
@@ -95,6 +123,7 @@ function initialValuesFor({
       type: transaction.type,
       currency: "THB",
       destinationWalletId: transaction.destinationWalletId,
+      refundOfTransactionId: transaction.refundOf?.id ?? "",
       walletId: transaction.walletId,
       categoryId: transaction.categoryId,
       amount: transaction.amountText,
@@ -102,15 +131,46 @@ function initialValuesFor({
       note: transaction.note,
     };
   }
+  if (mode.kind === "refund") {
+    return {
+      type: "refund",
+      currency: "THB",
+      destinationWalletId: "",
+      refundOfTransactionId: mode.expense.id,
+      walletId: mode.defaultWalletId,
+      categoryId: "",
+      amount: mode.expense.remainingText,
+      transactionDate: today,
+      note: "",
+    };
+  }
   return {
     type: "expense",
     currency: "THB",
     destinationWalletId: "",
+    refundOfTransactionId: "",
     walletId: mode.defaultWalletId,
     categoryId: uncategorizedFor(categories, "expense"),
     amount: "",
     transactionDate: today,
     note: "",
+  };
+}
+
+/** The limits the schema checks inline for a linked refund. */
+function limitsOf(
+  linked: LinkedExpenseView | undefined,
+): LinkedExpenseLimits | undefined {
+  if (!linked) {
+    return undefined;
+  }
+  const remaining = parseMoneyInput({
+    text: linked.remainingText,
+    currency: "THB",
+  });
+  return {
+    transactionDate: linked.transactionDate,
+    remaining: remaining.ok ? remaining.value : 0n,
   };
 }
 
@@ -181,8 +241,20 @@ export function TransactionForm({
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const editing = mode.kind === "edit" ? mode.transaction : undefined;
-  // Cancel leaves an edit where it began, on the record's detail.
-  const cancelHref = editing ? `/transactions/${editing.id}` : "/transactions";
+  // The expense behind a refund, whether it is being recorded or corrected.
+  const linked = mode.kind === "refund" ? mode.expense : editing?.refundOf;
+  const linkedExpense = useMemo(() => limitsOf(linked), [linked]);
+  // Cancel leaves an edit where it began, on the record's detail, and a new
+  // refund on the expense it started from.
+  const cancelHref = editing
+    ? `/transactions/${editing.id}`
+    : mode.kind === "refund"
+      ? `/transactions/${mode.expense.id}`
+      : "/transactions";
+  // The original wallet is offered only while active; an archived one
+  // leaves the choice open rather than substituting another wallet.
+  const originalArchived =
+    mode.kind === "refund" && mode.expense.wallet.archived;
   // Categories saved from the panel join the list at once; they are already
   // committed, so cancelling the transaction cannot lose them.
   const [categories, setCategories] = useState(initialCategories);
@@ -228,6 +300,7 @@ export function TransactionForm({
     categories,
     initialValues: initialValuesFor({ mode, categories, today: initialToday }),
     save: saveFor(mode),
+    linkedExpense,
   });
   const today = useBangkokToday(initialToday);
   const yesterday = addDays(today, -1);
@@ -293,8 +366,15 @@ export function TransactionForm({
                           inputMode="decimal"
                           autoComplete="off"
                           // A new entry starts at the amount with the keyboard up;
-                          // an edit waits to hear which field is wrong.
+                          // an edit waits to hear which field is wrong. A new
+                          // refund arrives prefilled, so the text is selected
+                          // for a partial amount to overwrite it.
                           autoFocus={!editing}
+                          onFocus={(event) => {
+                            if (mode.kind === "refund") {
+                              event.currentTarget.select();
+                            }
+                          }}
                           enterKeyHint="done"
                           placeholder="0.00"
                           value={field.state.value}
@@ -319,7 +399,17 @@ export function TransactionForm({
                         </span>
                       </div>
                       <FieldDescription id="amount-description">
-                        In Thai baht, to the satang.
+                        {linked ? (
+                          <>
+                            Up to{" "}
+                            <span className="money" translate="no">
+                              {linked.remainingLabel}
+                            </span>{" "}
+                            left to refund on this expense.
+                          </>
+                        ) : (
+                          "In Thai baht, to the satang."
+                        )}
                       </FieldDescription>
                       <FieldErrors
                         id={`${field.name}-error`}
@@ -331,14 +421,22 @@ export function TransactionForm({
                 }}
               </form.Field>
 
-              {editing ? (
+              {linked ? (
+                // min-w-0: a fieldset otherwise refuses to shrink below the
+                // chip's single-line read-back and widens the phone column.
+                <Field className="min-w-0">
+                  <FixedLabel>Type</FixedLabel>
+                  <p className="flex h-11 items-center font-medium">Refund</p>
+                  <LinkedExpenseChip expense={linked} />
+                  <FieldDescription>
+                    {editing
+                      ? "The type and the linked expense are fixed once saved. To change them, delete this refund and record it again."
+                      : "Money returned for this expense. It reduces expenses rather than counting as income."}
+                  </FieldDescription>
+                </Field>
+              ) : editing ? (
                 <Field>
-                  <span
-                    data-slot="field-label"
-                    className="flex select-none items-center gap-2 font-medium text-sm leading-none"
-                  >
-                    Type
-                  </span>
+                  <FixedLabel>Type</FixedLabel>
                   <p className="flex h-11 items-center font-medium">
                     {TRANSACTION_TYPE_LABELS[editing.type]}
                   </p>
@@ -374,7 +472,11 @@ export function TransactionForm({
                       return (
                         <Field data-invalid={invalid}>
                           <FieldLabel htmlFor={field.name}>
-                            {type === "transfer" ? "From" : "Wallet"}
+                            {type === "transfer"
+                              ? "From"
+                              : type === "refund"
+                                ? "Received in"
+                                : "Wallet"}
                           </FieldLabel>
                           <div className="flex items-center gap-2">
                             <NativeSelect
@@ -389,11 +491,18 @@ export function TransactionForm({
                               }}
                               aria-invalid={invalid}
                               aria-describedby={
-                                invalid ? `${field.name}-error` : undefined
+                                [
+                                  originalArchived && "walletId-description",
+                                  invalid && `${field.name}-error`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" ") || undefined
                               }
                             >
                               <option value="" disabled>
-                                Choose a wallet
+                                {type === "refund"
+                                  ? "Choose an active wallet"
+                                  : "Choose a wallet"}
                               </option>
                               {wallets.map((wallet) => (
                                 <option key={wallet.id} value={wallet.id}>
@@ -436,6 +545,19 @@ export function TransactionForm({
                               </Button>
                             )}
                           </div>
+                          {originalArchived && mode.kind === "refund" && (
+                            <FieldDescription id="walletId-description">
+                              {mode.expense.wallet.name}, the expense’s wallet,
+                              is archived. Choose an active wallet, or{" "}
+                              <Link
+                                href={`/wallets/${mode.expense.wallet.id}`}
+                                className="underline underline-offset-4"
+                              >
+                                unarchive {mode.expense.wallet.name}
+                              </Link>
+                              .
+                            </FieldDescription>
+                          )}
                           <FieldErrors
                             id={`${field.name}-error`}
                             serverError={serverError}
@@ -450,7 +572,23 @@ export function TransactionForm({
 
               <form.Subscribe selector={(state) => state.values.type}>
                 {(type) =>
-                  type === "transfer" ? (
+                  linked ? (
+                    <Field>
+                      <FixedLabel>Category</FixedLabel>
+                      <p className="flex min-h-11 items-center gap-3 font-medium">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                          <CategoryIcon
+                            iconId={linked.categoryIconId}
+                            className="size-4"
+                          />
+                        </span>
+                        {linked.categoryLabel}
+                      </p>
+                      <FieldDescription>
+                        Follows the expense’s category, including later changes.
+                      </FieldDescription>
+                    </Field>
+                  ) : type === "refund" ? null : type === "transfer" ? (
                     <form.Field name="destinationWalletId">
                       {(field) => {
                         const serverError = fieldErrors.destinationWalletId;
@@ -577,6 +715,7 @@ export function TransactionForm({
                         id={field.name}
                         name={field.name}
                         type="date"
+                        min={linked?.transactionDate}
                         max={today}
                         value={field.state.value}
                         onBlur={field.handleBlur}
@@ -700,7 +839,9 @@ export function TransactionForm({
                   type="submit"
                   size="lg"
                   disabled={
-                    isSubmitting || (type === "transfer" && wallets.length < 2)
+                    isSubmitting ||
+                    (type === "transfer" && wallets.length < 2) ||
+                    (type === "refund" && !walletId)
                   }
                   className={cn(
                     "min-h-12 w-full text-base",
@@ -731,6 +872,16 @@ export function TransactionForm({
             Recorded {editing.recordedLabel} Bangkok time. Editing keeps this
             original recording time.
           </p>
+          {editing.refundedLabel && (
+            <p className="text-muted-foreground text-sm leading-normal">
+              <span className="money" translate="no">
+                {editing.refundedLabel}
+              </span>{" "}
+              of this expense has been refunded. The amount cannot go below
+              that, the date cannot pass the earliest refund, and the expense
+              cannot be deleted until its refunds are.
+            </p>
+          )}
           <DeleteTransactionButton
             transaction={editing}
             walletName={wallets.find((w) => w.id === editing.walletId)?.name}
@@ -742,6 +893,59 @@ export function TransactionForm({
         </footer>
       )}
     </form>
+  );
+}
+
+function FixedLabel({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <span
+      data-slot="field-label"
+      className="flex select-none items-center gap-2 font-medium text-sm leading-none"
+    >
+      {children}
+    </span>
+  );
+}
+
+interface LinkedExpenseChipProps {
+  expense: LinkedExpenseView;
+}
+
+/** The refunded expense read back: category, date, amount, and what is left. */
+function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
+  return (
+    <Link
+      href={`/transactions/${expense.id}`}
+      aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${expense.remainingLabel} left to refund. Open the expense.`}
+      className="flex min-h-14 min-w-0 items-center gap-3 rounded-xl border px-3 py-2 outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    >
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
+        <CategoryIcon iconId={expense.categoryIconId} className="size-5" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="block truncate font-medium text-sm leading-snug">
+          <span className="text-muted-foreground">Refund of</span>{" "}
+          {expense.categoryLabel}
+        </span>
+        <span className="wrap-break-word block text-muted-foreground text-sm">
+          <span className="money" translate="no">
+            −{expense.amountLabel}
+          </span>{" "}
+          · {formatCalendarDate(expense.transactionDate)} ·{" "}
+          <span className="whitespace-nowrap">
+            <span className="money" translate="no">
+              {expense.remainingLabel}
+            </span>{" "}
+            left
+          </span>
+        </span>
+      </span>
+      <ChevronRight
+        aria-hidden="true"
+        strokeWidth={1.75}
+        className="size-4 shrink-0 text-muted-foreground"
+      />
+    </Link>
   );
 }
 

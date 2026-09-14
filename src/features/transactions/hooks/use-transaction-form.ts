@@ -10,7 +10,10 @@ import type {
   TransactionFormField,
 } from "@/features/transactions/server/transaction.actions";
 import type { TransactionType } from "@/features/transactions/transaction.types";
-import type { TransactionFormInput } from "@/features/transactions/transaction-form-schema";
+import type {
+  LinkedExpenseLimits,
+  TransactionFormInput,
+} from "@/features/transactions/transaction-form-schema";
 import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
 import type { WalletType } from "@/features/wallets/wallet.types";
 import type { CalendarDate } from "@/shared/helpers/dates";
@@ -39,6 +42,8 @@ interface UseTransactionFormOptions {
   categories: readonly CategoryOption[];
   initialValues: TransactionFormInput;
   save: SaveTransaction;
+  /** Set when the form records or corrects a refund of one expense. */
+  linkedExpense?: LinkedExpenseLimits;
 }
 
 /** The exact submission a retry must replay: same key, same values. */
@@ -68,6 +73,7 @@ export function useTransactionForm({
   categories,
   initialValues,
   save,
+  linkedExpense,
 }: Readonly<UseTransactionFormOptions>) {
   const router = useRouter();
   const [notice, setNotice] = useState<ServerNotice | null>(null);
@@ -82,8 +88,9 @@ export function useTransactionForm({
         walletOpeningDates: Object.fromEntries(
           wallets.map((w) => [w.id, w.openingDate]),
         ),
+        linkedExpense,
       }),
-    [wallets],
+    [wallets, linkedExpense],
   );
 
   const form = useForm({

@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
 import type { Database } from "@/core/database/database";
 import { wallets } from "@/core/database/schema/wallets";
@@ -10,6 +10,7 @@ import type { CreateTransactionInput } from "@/features/transactions/server/tran
 import {
   createTransaction,
   deleteTransaction,
+  getExpenseRefunds,
   getTransaction,
   listTransactionChanges,
   listTransactions,
@@ -1334,5 +1335,600 @@ test("receipt or history write failures roll back both transfer effects and leav
     expect(
       (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
     ).toEqual([1_100_000n, 100_000n]);
+  });
+});
+
+describe("linked refunds", () => {
+  /** A ฿500 groceries expense on 2 Sep from the owner's Cash wallet. */
+  async function setupExpense(db: Database) {
+    const context = await setupOwner(db);
+    const created = await createTransaction(db, {
+      ownerId: context.owner.id,
+      submissionKey: freshKey(),
+      type: "expense",
+      walletId: context.wallet.id,
+      categoryId: context.groceries.id,
+      amount: 50_000n,
+      transactionDate: "2026-09-02",
+      note: "Weekly shop",
+    });
+    if (!created.ok) {
+      throw new Error("Expense failed");
+    }
+    return { ...context, expense: created.value.transaction };
+  }
+
+  function refundInput(
+    context: Readonly<{
+      owner: { id: string };
+      wallet: { id: string };
+      expense: { id: string };
+    }>,
+    amount: bigint,
+  ) {
+    return {
+      ownerId: context.owner.id,
+      submissionKey: freshKey(),
+      type: "refund",
+      walletId: context.wallet.id,
+      categoryId: null,
+      refundOfTransactionId: context.expense.id,
+      amount,
+      transactionDate: "2026-09-03",
+      note: "",
+    } satisfies CreateTransactionInput;
+  }
+
+  test("partial refunds add to the receiving wallet, follow the expense category, and stop at the expense amount", async () => {
+    await withRollback(async (db) => {
+      const context = await setupExpense(db);
+      const { owner, wallet, expense } = context;
+
+      const first = await createTransaction(db, refundInput(context, 10_000n));
+      expect(first.ok && first.value.transaction).toEqual(
+        expect.objectContaining({
+          type: "refund",
+          amount: 10_000n,
+          category: expect.objectContaining({
+            name: "Groceries",
+            parentName: "Food & Drink",
+          }),
+          refundOf: {
+            id: expense.id,
+            amount: 50_000n,
+            transactionDate: "2026-09-02",
+          },
+        }),
+      );
+      const [summary] = await listWallets(db, { ownerId: owner.id });
+      expect(summary?.balance).toBe(1_160_000n);
+      expect(
+        await getExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
+      ).toEqual({
+        refunds: [
+          expect.objectContaining({
+            amount: 10_000n,
+            transactionDate: "2026-09-03",
+            wallet: expect.objectContaining({ id: wallet.id }),
+          }),
+        ],
+        refundedTotal: 10_000n,
+        remaining: 40_000n,
+      });
+
+      expect(
+        await createTransaction(db, refundInput(context, 40_001n)),
+      ).toEqual({
+        ok: false,
+        error: { code: "exceeds-refundable", remaining: 40_000n },
+      });
+      const rest = await createTransaction(db, refundInput(context, 40_000n));
+      expect(rest.ok).toBe(true);
+      expect(await createTransaction(db, refundInput(context, 1n))).toEqual({
+        ok: false,
+        error: { code: "exceeds-refundable", remaining: 0n },
+      });
+      expect(
+        (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+      ).toEqual([1_200_000n]);
+      expect(
+        (await listTransactions(db, owner.id)).map((t) => [t.type, t.amount]),
+      ).toEqual([
+        ["refund", 40_000n],
+        ["refund", 10_000n],
+        ["expense", 50_000n],
+      ]);
+    });
+  });
+
+  test("refund rules: dates follow the expense and receiving opening, wallets may differ but not be archived, and links must be the owner's own expense", async () => {
+    await withRollback(async (db) => {
+      const context = await setupExpense(db);
+      const { owner, wallet, expense, groceries } = context;
+      const bank = await createWallet(db, {
+        ownerId: owner.id,
+        name: "Bank",
+        type: "bank_account",
+        openingAmount: 0n,
+        openingDate: "2026-09-04",
+      });
+      const retired = await createWallet(db, {
+        ownerId: owner.id,
+        name: "Retired",
+        type: "cash",
+        openingAmount: 0n,
+        openingDate: "2026-09-01",
+      });
+      await db
+        .update(wallets)
+        .set({ archivedAt: new Date() })
+        .where(eq(wallets.id, retired.id));
+      const foreign = await setupExpense(db);
+      const income = await createTransaction(db, {
+        ownerId: owner.id,
+        submissionKey: freshKey(),
+        type: "income",
+        walletId: wallet.id,
+        categoryId: context.salary.id,
+        amount: 100n,
+        transactionDate: "2026-09-02",
+        note: "",
+      });
+      const base = refundInput(context, 10_000n);
+      for (const [changes, error] of [
+        [
+          { transactionDate: "2026-09-01" },
+          { code: "before-expense", expenseDate: "2026-09-02" },
+        ],
+        [
+          { walletId: bank.id, transactionDate: "2026-09-03" },
+          { code: "before-opening", openingDate: "2026-09-04" },
+        ],
+        [{ transactionDate: "9999-01-01" }, { code: "future-date" }],
+        [{ walletId: retired.id }, { code: "wallet-archived" }],
+        [{ walletId: foreign.wallet.id }, { code: "wallet-not-found" }],
+        [
+          { refundOfTransactionId: foreign.expense.id },
+          { code: "expense-not-found" },
+        ],
+        [
+          {
+            refundOfTransactionId: income.ok ? income.value.transaction.id : "",
+          },
+          { code: "expense-not-found" },
+        ],
+        [{ refundOfTransactionId: null }, { code: "invalid-refund" }],
+        [{ categoryId: groceries.id }, { code: "invalid-refund" }],
+        [
+          { type: "expense", categoryId: groceries.id },
+          { code: "invalid-refund" },
+        ],
+        [{ amount: 0n }, { code: "amount-out-of-range" }],
+      ] as const) {
+        expect(await createTransaction(db, { ...base, ...changes })).toEqual({
+          ok: false,
+          error: expect.objectContaining(error),
+        });
+      }
+      // Foreign owners cannot see the expense's refunds at all.
+      expect(
+        await getExpenseRefunds(db, {
+          ownerId: foreign.owner.id,
+          id: expense.id,
+        }),
+      ).toBeUndefined();
+
+      const differentWallet = await createTransaction(db, {
+        ...base,
+        walletId: bank.id,
+        transactionDate: "2026-09-04",
+      });
+      expect(differentWallet.ok).toBe(true);
+      expect(
+        (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+      ).toEqual([1_150_100n, 10_000n, 0n]);
+      expect(
+        await listWallets(db, { ownerId: owner.id, asOf: "2026-09-03" }),
+      ).toEqual([
+        expect.objectContaining({ balance: 1_150_100n }),
+        expect.objectContaining({ balance: 0n }),
+        expect.objectContaining({ balance: 0n }),
+      ]);
+    });
+  });
+
+  test("refund edits exclude their own old amount, keep recording time and history, and cannot move to another archived wallet", async () => {
+    await withRollback(async (db) => {
+      const context = await setupExpense(db);
+      const { owner, wallet, expense } = context;
+      const bank = await createWallet(db, {
+        ownerId: owner.id,
+        name: "Bank",
+        type: "bank_account",
+        openingAmount: 0n,
+        openingDate: "2026-09-01",
+      });
+      const retired = await createWallet(db, {
+        ownerId: owner.id,
+        name: "Retired",
+        type: "cash",
+        openingAmount: 0n,
+        openingDate: "2026-09-01",
+      });
+      const first = await createTransaction(db, refundInput(context, 30_000n));
+      const second = await createTransaction(db, refundInput(context, 10_000n));
+      if (!first.ok || !second.ok) {
+        throw new Error("Refunds failed");
+      }
+      const { id, recordedAt } = first.value.transaction;
+      const base = {
+        ownerId: owner.id,
+        id,
+        walletId: wallet.id,
+        categoryId: null,
+        refundOfTransactionId: expense.id,
+        amount: 30_000n,
+        transactionDate: "2026-09-03",
+        note: "",
+      };
+      // ฿10,000 is held by the other refund; this refund's own ฿30,000 is free.
+      expect(await updateTransaction(db, { ...base, amount: 40_001n })).toEqual(
+        {
+          ok: false,
+          error: { code: "exceeds-refundable", remaining: 40_000n },
+        },
+      );
+      expect(
+        await updateTransaction(db, { ...base, transactionDate: "2026-09-01" }),
+      ).toEqual({
+        ok: false,
+        error: { code: "before-expense", expenseDate: "2026-09-02" },
+      });
+      const grown = await updateTransaction(db, {
+        ...base,
+        walletId: bank.id,
+        amount: 40_000n,
+        transactionDate: "2026-09-04",
+      });
+      expect(grown.ok && grown.value).toEqual(
+        expect.objectContaining({
+          recordedAt,
+          amount: 40_000n,
+          wallet: expect.objectContaining({ id: bank.id }),
+          category: expect.objectContaining({ name: "Groceries" }),
+          refundOf: expect.objectContaining({ id: expense.id }),
+        }),
+      );
+      expect(
+        (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+      ).toEqual([1_160_000n, 40_000n, 0n]);
+
+      await db
+        .update(wallets)
+        .set({ archivedAt: new Date() })
+        .where(inArray(wallets.id, [bank.id, retired.id]));
+      // Retaining its own archived wallet is allowed; another archived one is not.
+      expect(
+        (
+          await updateTransaction(db, {
+            ...base,
+            walletId: bank.id,
+            amount: 39_999n,
+            transactionDate: "2026-09-04",
+          })
+        ).ok,
+      ).toBe(true);
+      expect(
+        await updateTransaction(db, { ...base, walletId: retired.id }),
+      ).toEqual({
+        ok: false,
+        error: expect.objectContaining({ code: "wallet-archived" }),
+      });
+      const history = await listTransactionChanges(db, {
+        ownerId: owner.id,
+        id,
+      });
+      expect(history).toEqual([
+        expect.objectContaining({
+          action: "edit",
+          before: expect.objectContaining({
+            type: "refund",
+            refundOfTransactionId: expense.id,
+            amount: "30000",
+          }),
+          after: expect.objectContaining({
+            walletId: bank.id,
+            amount: "40000",
+          }),
+        }),
+        expect.objectContaining({ action: "edit" }),
+      ]);
+      expect(await deleteTransaction(db, { ownerId: owner.id, id })).toEqual({
+        ok: true,
+        value: { id },
+      });
+      expect(
+        await getExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
+      ).toEqual(
+        expect.objectContaining({ refundedTotal: 10_000n, remaining: 40_000n }),
+      );
+      expect(
+        (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+      ).toEqual([1_160_000n, 0n, 0n]);
+    });
+  });
+
+  test("an expense with refunds cannot be deleted, reduced below the refunded total, or dated after a refund, and its category change follows through", async () => {
+    await withRollback(async (db) => {
+      const context = await setupExpense(db);
+      const { owner, wallet, expense, expenseUncategorized } = context;
+      const early = await createTransaction(db, refundInput(context, 10_000n));
+      const late = await createTransaction(db, {
+        ...refundInput(context, 5_000n),
+        transactionDate: "2026-09-05",
+      });
+      if (!early.ok || !late.ok) {
+        throw new Error("Refunds failed");
+      }
+      const base = {
+        ownerId: owner.id,
+        id: expense.id,
+        walletId: wallet.id,
+        categoryId: expense.category?.id ?? null,
+        amount: 50_000n,
+        transactionDate: "2026-09-02",
+        note: "Weekly shop",
+      };
+      expect(await updateTransaction(db, { ...base, amount: 14_999n })).toEqual(
+        {
+          ok: false,
+          error: { code: "below-refunded", refundedTotal: 15_000n },
+        },
+      );
+      expect(
+        await updateTransaction(db, { ...base, transactionDate: "2026-09-04" }),
+      ).toEqual({
+        ok: false,
+        error: { code: "after-refund", refundDate: "2026-09-03" },
+      });
+      expect(
+        await deleteTransaction(db, { ownerId: owner.id, id: expense.id }),
+      ).toEqual({
+        ok: false,
+        error: {
+          code: "refunds-exist",
+          refunds: [
+            expect.objectContaining({
+              amount: 10_000n,
+              transactionDate: "2026-09-03",
+            }),
+            expect.objectContaining({
+              amount: 5_000n,
+              transactionDate: "2026-09-05",
+            }),
+          ],
+        },
+      });
+      expect(
+        await listTransactionChanges(db, { ownerId: owner.id, id: expense.id }),
+      ).toEqual([]);
+
+      const corrected = await updateTransaction(db, {
+        ...base,
+        categoryId: expenseUncategorized.id,
+        amount: 15_000n,
+        transactionDate: "2026-09-03",
+      });
+      expect(corrected.ok).toBe(true);
+      expect(
+        (await listTransactions(db, owner.id)).map((t) => [
+          t.type,
+          t.category?.name,
+        ]),
+      ).toEqual([
+        ["refund", "Uncategorized"],
+        ["refund", "Uncategorized"],
+        ["expense", "Uncategorized"],
+      ]);
+      expect(
+        await getExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
+      ).toEqual(
+        expect.objectContaining({ refundedTotal: 15_000n, remaining: 0n }),
+      );
+      // Refunds cannot be categorised on their own.
+      expect(
+        await updateTransaction(db, {
+          ownerId: owner.id,
+          id: early.value.transaction.id,
+          walletId: wallet.id,
+          categoryId: expenseUncategorized.id,
+          amount: 10_000n,
+          transactionDate: "2026-09-03",
+          note: "",
+        }),
+      ).toEqual({ ok: false, error: { code: "invalid-refund" } });
+
+      for (const refund of [early, late]) {
+        await deleteTransaction(db, {
+          ownerId: owner.id,
+          id: refund.value.transaction.id,
+        });
+      }
+      expect(
+        await deleteTransaction(db, { ownerId: owner.id, id: expense.id }),
+      ).toEqual({ ok: true, value: { id: expense.id } });
+      expect(
+        (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+      ).toEqual([1_200_000n]);
+    });
+  });
+
+  test("competing refunds, expense reductions, and archiving serialize so committed records obey the limits", async () => {
+    const db = committed();
+    const context = await setupExpense(db);
+    const { owner, wallet, expense } = context;
+    const seventy = () => refundInput(context, 35_000n);
+    const results = await Promise.all([
+      createTransaction(db, seventy()),
+      createTransaction(db, seventy()),
+      createTransaction(db, seventy()),
+    ]);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.filter((r) => !r.ok)).toEqual([
+      { ok: false, error: { code: "exceeds-refundable", remaining: 15_000n } },
+      { ok: false, error: { code: "exceeds-refundable", remaining: 15_000n } },
+    ]);
+
+    // Same key and payload commits once even when raced.
+    const duplicate = refundInput(context, 15_000n);
+    const replays = await Promise.all(
+      Array.from({ length: 4 }, () => createTransaction(db, duplicate)),
+    );
+    expect(replays.every((r) => r.ok)).toBe(true);
+    expect(replays.filter((r) => r.ok && !r.value.replayed)).toHaveLength(1);
+    expect(await createTransaction(db, { ...duplicate, amount: 1n })).toEqual({
+      ok: false,
+      error: { code: "submission-conflict" },
+    });
+    expect(
+      await getExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
+    ).toEqual(
+      expect.objectContaining({ refundedTotal: 50_000n, remaining: 0n }),
+    );
+
+    // A refund deletion racing an expense reduction: whichever order the
+    // database settles on, the committed state is consistent.
+    const [firstRefund] = results.flatMap((r) =>
+      r.ok ? [r.value.transaction] : [],
+    );
+    if (!firstRefund) {
+      throw new Error("No refund committed");
+    }
+    const [deleted, reduced] = await Promise.all([
+      deleteTransaction(db, { ownerId: owner.id, id: firstRefund.id }),
+      updateTransaction(db, {
+        ownerId: owner.id,
+        id: expense.id,
+        walletId: wallet.id,
+        categoryId: expense.category?.id ?? null,
+        amount: 15_000n,
+        transactionDate: "2026-09-02",
+        note: "Weekly shop",
+      }),
+    ]);
+    expect(deleted.ok).toBe(true);
+    const summary = await getExpenseRefunds(db, {
+      ownerId: owner.id,
+      id: expense.id,
+    });
+    const current = await getTransaction(db, {
+      ownerId: owner.id,
+      id: expense.id,
+    });
+    expect(summary?.refundedTotal).toBe(15_000n);
+    expect(current?.amount).toBe(reduced.ok ? 15_000n : 50_000n);
+    expect(current && summary && current.amount >= summary.refundedTotal).toBe(
+      true,
+    );
+
+    // Archiving the receiving wallet blocks the next refund but not the
+    // corrections of a refund already on it.
+    const active = await createWallet(db, {
+      ownerId: owner.id,
+      name: "Bank",
+      type: "bank_account",
+      openingAmount: 0n,
+      openingDate: "2026-09-01",
+    });
+    await db
+      .update(wallets)
+      .set({ archivedAt: new Date() })
+      .where(eq(wallets.id, wallet.id));
+    const [remaining] = summary?.refunds ?? [];
+    if (!remaining) {
+      throw new Error("Refund missing");
+    }
+    expect(
+      (
+        await updateTransaction(db, {
+          ownerId: owner.id,
+          id: remaining.id,
+          walletId: wallet.id,
+          categoryId: null,
+          amount: 15_000n,
+          transactionDate: "2026-09-06",
+          note: "Late",
+        })
+      ).ok,
+    ).toBe(true);
+    expect(
+      await createTransaction(db, {
+        ...refundInput(context, 1n),
+        walletId: wallet.id,
+      }),
+    ).toEqual({
+      ok: false,
+      error: { code: "wallet-archived", walletId: wallet.id },
+    });
+    const onActive = await createTransaction(db, {
+      ...refundInput(context, 1n),
+      walletId: active.id,
+    });
+    expect(onActive).toEqual(
+      reduced.ok
+        ? { ok: false, error: { code: "exceeds-refundable", remaining: 0n } }
+        : { ok: true, value: expect.anything() },
+    );
+  });
+
+  test("a failed history write rolls back refund corrections and expense guards leave no partial effect", async () => {
+    await withRollback(async (db) => {
+      const context = await setupExpense(db);
+      const { owner, wallet, expense } = context;
+      const refund = await createTransaction(db, refundInput(context, 20_000n));
+      if (!refund.ok) {
+        throw new Error("Refund failed");
+      }
+      const id = refund.value.transaction.id;
+      await db.execute(
+        sql`alter table transaction_changes add constraint fail_refund_history check (transaction_id is null) not valid`,
+      );
+      await expect(
+        updateTransaction(db, {
+          ownerId: owner.id,
+          id,
+          walletId: wallet.id,
+          categoryId: null,
+          amount: 30_000n,
+          transactionDate: "2026-09-03",
+          note: "",
+        }),
+      ).rejects.toThrow();
+      await expect(
+        deleteTransaction(db, { ownerId: owner.id, id }),
+      ).rejects.toThrow();
+      await db.execute(
+        sql`alter table transaction_changes drop constraint fail_refund_history`,
+      );
+      expect(await getTransaction(db, { ownerId: owner.id, id })).toEqual(
+        refund.value.transaction,
+      );
+      expect(
+        await getExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
+      ).toEqual(
+        expect.objectContaining({ refundedTotal: 20_000n, remaining: 30_000n }),
+      );
+      expect(
+        (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
+      ).toEqual([1_170_000n]);
+      // Foreign owners cannot touch the refund or the expense's refund view.
+      const foreign = await setupOwner(db);
+      expect(
+        await deleteTransaction(db, { ownerId: foreign.owner.id, id }),
+      ).toEqual({ ok: false, error: { code: "transaction-not-found" } });
+      expect(
+        await listTransactionChanges(db, { ownerId: foreign.owner.id, id }),
+      ).toEqual([]);
+    });
   });
 });
