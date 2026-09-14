@@ -19,7 +19,7 @@ import {
 } from "@/shared/components/ui/field";
 import { Input } from "@/shared/components/ui/input";
 
-export function SignUpForm(props: React.ComponentProps<typeof Card>) {
+export function SignUpForm(props: Readonly<React.ComponentProps<typeof Card>>) {
   const { form, serverError } = useSignUpForm();
 
   return (
@@ -32,6 +32,11 @@ export function SignUpForm(props: React.ComponentProps<typeof Card>) {
       </CardHeader>
       <CardContent>
         <form
+          ref={(element) => {
+            if (element) {
+              element.dataset.ready = "true";
+            }
+          }}
           onSubmit={(event) => {
             event.preventDefault();
             event.stopPropagation();

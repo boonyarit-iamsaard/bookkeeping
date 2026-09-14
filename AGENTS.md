@@ -10,6 +10,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Agent skills
 
+### Local resource limits
+
+Run heavy checks one at a time on this machine: Sonar scans, production builds,
+unit/integration suites, and browser tests. Wait for each to finish before
+starting the next; overlapping runs have exhausted memory and nearly crashed
+the machine. Lightweight independent reads and searches may run in parallel.
+
 ### Code conventions
 
 Before writing, refactoring, or reviewing application code, read

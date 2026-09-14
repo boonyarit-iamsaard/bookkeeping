@@ -32,7 +32,9 @@ function toCalendarDate(date: Date): CalendarDate {
 }
 
 /** The day button, tagged with its ISO date so tests can address a day. */
-function IsoDayButton(props: React.ComponentProps<typeof CalendarDayButton>) {
+function IsoDayButton(
+  props: Readonly<React.ComponentProps<typeof CalendarDayButton>>,
+) {
   return (
     <CalendarDayButton {...props} data-date={toCalendarDate(props.day.date)} />
   );
@@ -42,9 +44,9 @@ interface DatePickerProps {
   id: string;
   /** Names a hidden input so a plain GET form submits the chosen date. */
   name?: string;
-  value?: CalendarDate | "";
-  defaultValue?: CalendarDate | "";
-  onChange?: (date: CalendarDate | "") => void;
+  value?: CalendarDate;
+  defaultValue?: CalendarDate;
+  onChange?: (date: CalendarDate) => void;
   onBlur?: () => void;
   /** Today in Asia/Bangkok; the calendar never reads the device clock. */
   today: CalendarDate;
@@ -89,7 +91,7 @@ export function DatePicker({
   const given = value ?? internal;
   const current = given && parseCalendarDate(given).ok ? given : "";
 
-  function commit(next: CalendarDate | "") {
+  function commit(next: CalendarDate) {
     setInternal(next);
     onChange?.(next);
     setOpen(false);

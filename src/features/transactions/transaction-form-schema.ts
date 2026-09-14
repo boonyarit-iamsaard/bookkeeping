@@ -98,22 +98,58 @@ function transactionFields() {
   };
 }
 
+interface TransactionFieldValues {
+  type: string;
+  walletId: string;
+  destinationWalletId: string;
+  refundOfTransactionId: string;
+  categoryId: string;
+  amount: bigint;
+  transactionDate: string;
+}
+
+interface RefundFieldCheckOptions {
+  value: Readonly<TransactionFieldValues>;
+  ctx: z.RefinementCtx;
+  linkedExpense?: Readonly<LinkedExpenseLimits>;
+}
+
+function checkRefundFields({
+  value,
+  ctx,
+  linkedExpense,
+}: Readonly<RefundFieldCheckOptions>) {
+  if (!value.refundOfTransactionId) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["refundOfTransactionId"],
+      message: "A refund must be recorded from its expense",
+    });
+  }
+  if (linkedExpense && value.amount > linkedExpense.remaining) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["amount"],
+      message:
+        linkedExpense.remaining > 0n
+          ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.remaining, currency: "THB" })} of this expense is left to refund`
+          : "This expense is already fully refunded",
+    });
+  }
+  if (linkedExpense && value.transactionDate < linkedExpense.transactionDate) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["transactionDate"],
+      message: `The expense is dated ${formatCalendarDate(linkedExpense.transactionDate)}; a refund cannot come before it`,
+    });
+  }
+}
+
 function transactionFieldCheck({
   walletOpeningDates = {},
   linkedExpense,
 }: Readonly<TransactionFormSchemaOptions>) {
-  return (
-    value: {
-      type: string;
-      walletId: string;
-      destinationWalletId: string;
-      refundOfTransactionId: string;
-      categoryId: string;
-      amount: bigint;
-      transactionDate: string;
-    },
-    ctx: z.RefinementCtx,
-  ) => {
+  return (value: Readonly<TransactionFieldValues>, ctx: z.RefinementCtx) => {
     if (value.type === "transfer") {
       if (
         !value.destinationWalletId ||
@@ -126,33 +162,7 @@ function transactionFieldCheck({
         });
       }
     } else if (value.type === "refund") {
-      if (!value.refundOfTransactionId) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["refundOfTransactionId"],
-          message: "A refund must be recorded from its expense",
-        });
-      }
-      if (linkedExpense && value.amount > linkedExpense.remaining) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["amount"],
-          message:
-            linkedExpense.remaining > 0n
-              ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.remaining, currency: "THB" })} of this expense is left to refund`
-              : "This expense is already fully refunded",
-        });
-      }
-      if (
-        linkedExpense &&
-        value.transactionDate < linkedExpense.transactionDate
-      ) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["transactionDate"],
-          message: `The expense is dated ${formatCalendarDate(linkedExpense.transactionDate)}; a refund cannot come before it`,
-        });
-      }
+      checkRefundFields({ value, ctx, linkedExpense });
     } else if (!value.categoryId) {
       ctx.addIssue({
         code: "custom",

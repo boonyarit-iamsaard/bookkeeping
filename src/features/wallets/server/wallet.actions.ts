@@ -72,15 +72,17 @@ export async function manageWalletAction(
   }
   const data = parsed.data;
   const owned = { id: data.id, ownerId: session.user.id };
-  const result =
-    data.operation === "opening"
-      ? await correctWalletOpening(db, { ...owned, ...data.opening })
-      : data.operation === "delete"
-        ? await deleteWallet(db, owned)
-        : await setWalletArchived(db, {
-            ...owned,
-            archived: data.operation === "archive",
-          });
+  let result: Result<{ id: string }, WalletLifecycleError>;
+  if (data.operation === "opening") {
+    result = await correctWalletOpening(db, { ...owned, ...data.opening });
+  } else if (data.operation === "delete") {
+    result = await deleteWallet(db, owned);
+  } else {
+    result = await setWalletArchived(db, {
+      ...owned,
+      archived: data.operation === "archive",
+    });
+  }
   if (result.ok) {
     revalidatePath("/wallets");
     revalidatePath(`/wallets/${data.id}`);

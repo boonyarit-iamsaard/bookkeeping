@@ -15,7 +15,6 @@ test("archive and unarchive preserve totals and restore entry eligibility", asyn
   await expect(
     page.getByRole("heading", { name: "Correct opening balance" }),
   ).toBeVisible();
-  await page.waitForLoadState("networkidle");
   await page.screenshot({
     path: testInfo.outputPath("management.png"),
     fullPage: true,

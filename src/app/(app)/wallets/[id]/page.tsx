@@ -24,7 +24,7 @@ export default async function Page({
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 py-8">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="min-w-0 break-words font-semibold text-2xl">
+        <h1 className="wrap-break-word min-w-0 font-semibold text-2xl">
           {wallet.name}
         </h1>
         <Link href="/wallets" className={buttonVariants({ variant: "ghost" })}>

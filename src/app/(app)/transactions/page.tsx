@@ -6,7 +6,7 @@ import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { listCategories } from "@/features/categories/server/category";
 import { HistoryFilters } from "@/features/transactions/components/history-filters";
-import { TransactionList } from "@/features/transactions/components/transaction-list";
+import { TransactionHistory } from "@/features/transactions/components/transaction-history";
 import {
   nonemptySearchParams,
   transactionFiltersSchema,
@@ -81,25 +81,12 @@ export default async function Page({
         categories={categories}
         values={values}
       />
-      {!parsed.success ? (
-        <p role="alert" className="text-destructive text-sm">
-          Choose valid filters. From date must be on or before To date.
-        </p>
-      ) : filtered && transactions.length === 0 ? (
-        <section
-          className="flex flex-col gap-2"
-          aria-labelledby="no-matches-heading"
-        >
-          <h2 id="no-matches-heading" className="font-semibold text-lg">
-            No matching transactions
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            Try a wider date range or clear the filters to see all your history.
-          </p>
-        </section>
-      ) : (
-        <TransactionList transactions={transactions} savedId={savedId} />
-      )}
+      <TransactionHistory
+        transactions={transactions}
+        filtersValid={parsed.success}
+        filtered={filtered}
+        savedId={savedId}
+      />
     </main>
   );
 }

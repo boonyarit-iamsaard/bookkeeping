@@ -1,0 +1,68 @@
+name: bookkeeping-sonar
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: bookkeeping-sonar-postgres
+    environment:
+      POSTGRES_DB: sonar
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+    volumes:
+      - bookkeeping-sonar-postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar -d sonar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - bookkeeping-sonar-network
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: bookkeeping-sonarqube
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://postgres:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+      # Local development only; avoids changing host Elasticsearch limits.
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    ports:
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - bookkeeping-sonar-data:/opt/sonarqube/data
+      - bookkeeping-sonar-extensions:/opt/sonarqube/extensions
+      - bookkeeping-sonar-logs:/opt/sonarqube/logs
+    restart: unless-stopped
+    networks:
+      - bookkeeping-sonar-network
+
+  scanner:
+    image: sonarsource/sonar-scanner-cli:latest
+    profiles: ["scan"]
+    environment:
+      SONAR_HOST_URL: http://sonarqube:9000
+      SONAR_TOKEN: ${SONAR_TOKEN:-}
+    volumes:
+      - .:/usr/src:ro
+    command: ["-Dsonar.working.directory=/tmp/scannerwork"]
+    networks:
+      - bookkeeping-sonar-network
+
+volumes:
+  bookkeeping-sonar-postgres-data:
+    name: bookkeeping-sonar-postgres-data
+  bookkeeping-sonar-data:
+    name: bookkeeping-sonar-data
+  bookkeeping-sonar-extensions:
+    name: bookkeeping-sonar-extensions
+  bookkeeping-sonar-logs:
+    name: bookkeeping-sonar-logs
+
+networks:
+  bookkeeping-sonar-network:
+    name: bookkeeping-sonar-network

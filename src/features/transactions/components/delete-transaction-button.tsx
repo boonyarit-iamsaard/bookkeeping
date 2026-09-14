@@ -35,6 +35,18 @@ type State =
 const LOST_RESPONSE =
   "The deletion could not be confirmed. Check your connection and try again; deleting twice is harmless.";
 
+function deletionEffect(type: TransactionType) {
+  if (type === "transfer") {
+    return "will leave the list and both wallet balances.";
+  }
+
+  if (type === "refund") {
+    return "will leave the list and the wallet balance, and the expense can be refunded again up to that amount.";
+  }
+
+  return "will leave the list and the wallet balance.";
+}
+
 /**
  * The destructive action of the edit screen: a button that opens a
  * confirmation reading the line back, then deletes and returns to the list
@@ -135,12 +147,7 @@ export function DeleteTransactionButton({
                     {formatCalendarDate(transaction.transactionDate)}{" "}
                   </>
                 )}
-                {transaction.type === "transfer"
-                  ? "will leave the list and both wallet balances."
-                  : transaction.type === "refund"
-                    ? "will leave the list and the wallet balance, and the expense can be refunded again up to that amount."
-                    : "will leave the list and the wallet balance."}{" "}
-                This can't be undone.
+                {deletionEffect(transaction.type)} This can't be undone.
               </AlertDialog.Description>
             </div>
             {state.name === "failed" && (

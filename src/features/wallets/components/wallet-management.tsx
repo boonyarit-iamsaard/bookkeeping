@@ -65,13 +65,12 @@ export function WalletManagement(props: Readonly<WalletManagementProps>) {
           router.push("/wallets");
           return;
         }
-        setNotice(
-          operation === "opening"
-            ? "Opening balance corrected."
-            : operation === "archive"
-              ? "Wallet archived. Its balance remains in your totals."
-              : "Wallet unarchived. You can use it for new entries.",
-        );
+        const notices = {
+          opening: "Opening balance corrected.",
+          archive: "Wallet archived. Its balance remains in your totals.",
+          unarchive: "Wallet unarchived. You can use it for new entries.",
+        };
+        setNotice(notices[operation]);
       } catch {
         setError(
           "The change could not be confirmed. Your values are kept; try again.",
@@ -96,11 +95,7 @@ export function WalletManagement(props: Readonly<WalletManagementProps>) {
           {error}
         </p>
       )}
-      {notice && (
-        <p role="status" className="text-sm">
-          {notice}
-        </p>
-      )}
+      {notice && <output className="block text-sm">{notice}</output>}
       <form
         onSubmit={(event) => {
           event.preventDefault();

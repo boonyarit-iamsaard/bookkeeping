@@ -14,7 +14,7 @@ export async function createWalletThroughForm(
   { name, openingAmount, openingDate }: Readonly<WalletSeed>,
 ): Promise<void> {
   await page.goto("/wallets/new");
-  await page.waitForLoadState("networkidle");
+  await expect(page.locator('form[data-ready="true"]')).toBeVisible();
   await page.getByLabel("Name").fill(name);
   await page.getByLabel("Opening balance").fill(openingAmount);
   await chooseDate(page.getByLabel("Opening date"), openingDate);

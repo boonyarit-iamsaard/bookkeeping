@@ -20,7 +20,7 @@ test("a new user creates a wallet and its opening balance survives a reload", as
   ).toBeVisible();
   await page.getByRole("link", { name: "Create your first wallet" }).click();
   await expect(page).toHaveURL(/\/wallets\/new$/);
-  await page.waitForLoadState("networkidle");
+  await expect(page.locator('form[data-ready="true"]')).toBeVisible();
 
   await page.getByLabel("Name").fill("Kasikorn savings");
   await page.getByRole("radio", { name: "Bank account" }).click();
@@ -47,8 +47,8 @@ test("validation names the problem and keeps the typed values", async ({
 }) => {
   await signUpFreshUser(page);
   await page.goto("/wallets/new");
-  // Submitting before hydration would be a native form post, not validation.
-  await page.waitForLoadState("networkidle");
+  // Wait for the form handlers before submitting validation input.
+  await expect(page.locator('form[data-ready="true"]')).toBeVisible();
 
   await page.getByLabel("Name").fill("Petty cash");
   await page.getByLabel("Opening balance").fill("1.005");
@@ -88,7 +88,7 @@ test("wallet mutations enforce session ownership and reject signed-out or invali
 
     await signUpFreshUser(page);
     await page.goto("/wallets/new");
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator('form[data-ready="true"]')).toBeVisible();
     const name = "Savings for our family holiday and upcoming home renovation";
     await page.getByLabel("Name").fill(name);
     await page.getByLabel("Opening balance").fill("12.50");

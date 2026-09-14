@@ -225,6 +225,127 @@ function SaveLabel({
   );
 }
 
+interface FixedLabelProps {
+  children: React.ReactNode;
+}
+
+function FixedLabel({ children }: Readonly<FixedLabelProps>) {
+  return (
+    <span
+      data-slot="field-label"
+      className="flex select-none items-center gap-2 font-medium text-sm leading-none"
+    >
+      {children}
+    </span>
+  );
+}
+
+interface LinkedExpenseChipProps {
+  expense: LinkedExpenseView;
+}
+
+/** The refunded expense read back: category, date, amount, and what is left. */
+function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
+  return (
+    <Link
+      href={`/transactions/${expense.id}`}
+      aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${expense.remainingLabel} left to refund. Open the expense.`}
+      className="flex min-h-14 min-w-0 items-center gap-3 rounded-xl border px-3 py-2 outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    >
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
+        <CategoryIcon iconId={expense.categoryIconId} className="size-5" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="block truncate font-medium text-sm leading-snug">
+          <span className="text-muted-foreground">Refund of</span>{" "}
+          {expense.categoryLabel}
+        </span>
+        <span className="wrap-break-word block text-muted-foreground text-sm">
+          <span className="money" translate="no">
+            −{expense.amountLabel}
+          </span>{" "}
+          · {formatCalendarDate(expense.transactionDate)} ·{" "}
+          <span className="whitespace-nowrap">
+            <span className="money" translate="no">
+              {expense.remainingLabel}
+            </span>{" "}
+            left
+          </span>
+        </span>
+      </span>
+      <ChevronRight
+        aria-hidden="true"
+        strokeWidth={1.75}
+        className="size-4 shrink-0 text-muted-foreground"
+      />
+    </Link>
+  );
+}
+
+function cancelHrefFor(mode: Readonly<TransactionFormMode>) {
+  if (mode.kind === "edit") {
+    return `/transactions/${mode.transaction.id}`;
+  }
+  if (mode.kind === "refund") {
+    return `/transactions/${mode.expense.id}`;
+  }
+  return "/transactions";
+}
+
+function walletLabelFor(type: TransactionType) {
+  if (type === "transfer") {
+    return "From";
+  }
+  if (type === "refund") {
+    return "Received in";
+  }
+  return "Wallet";
+}
+
+interface TransactionTypeFieldProps {
+  linked: LinkedExpenseView | undefined;
+  editing: EditableTransaction | undefined;
+  children: React.ReactNode;
+}
+
+function TransactionTypeField({
+  linked,
+  editing,
+  children,
+}: Readonly<TransactionTypeFieldProps>) {
+  if (linked) {
+    return (
+      // min-w-0: a fieldset otherwise refuses to shrink below the
+      // chip's single-line read-back and widens the phone column.
+      <Field className="min-w-0">
+        <FixedLabel>Type</FixedLabel>
+        <p className="flex h-11 items-center font-medium">Refund</p>
+        <LinkedExpenseChip expense={linked} />
+        <FieldDescription>
+          {editing
+            ? "The type and the linked expense are fixed once saved. To change them, delete this refund and record it again."
+            : "Money returned for this expense. It reduces expenses rather than counting as income."}
+        </FieldDescription>
+      </Field>
+    );
+  }
+  if (editing) {
+    return (
+      <Field>
+        <FixedLabel>Type</FixedLabel>
+        <p className="flex h-11 items-center font-medium">
+          {TRANSACTION_TYPE_LABELS[editing.type]}
+        </p>
+        <FieldDescription>
+          The type is fixed once saved. To change it, delete this transaction
+          and record it again.
+        </FieldDescription>
+      </Field>
+    );
+  }
+  return children;
+}
+
 export function TransactionForm({
   wallets,
   categories: initialCategories,
@@ -239,11 +360,7 @@ export function TransactionForm({
   const linkedExpense = useMemo(() => limitsOf(linked), [linked]);
   // Cancel leaves an edit where it began, on the record's detail, and a new
   // refund on the expense it started from.
-  const cancelHref = editing
-    ? `/transactions/${editing.id}`
-    : mode.kind === "refund"
-      ? `/transactions/${mode.expense.id}`
-      : "/transactions";
+  const cancelHref = cancelHrefFor(mode);
   // The original wallet is offered only while active; an archived one
   // leaves the choice open rather than substituting another wallet.
   const originalArchived =
@@ -414,31 +531,7 @@ export function TransactionForm({
                 }}
               </form.Field>
 
-              {linked ? (
-                // min-w-0: a fieldset otherwise refuses to shrink below the
-                // chip's single-line read-back and widens the phone column.
-                <Field className="min-w-0">
-                  <FixedLabel>Type</FixedLabel>
-                  <p className="flex h-11 items-center font-medium">Refund</p>
-                  <LinkedExpenseChip expense={linked} />
-                  <FieldDescription>
-                    {editing
-                      ? "The type and the linked expense are fixed once saved. To change them, delete this refund and record it again."
-                      : "Money returned for this expense. It reduces expenses rather than counting as income."}
-                  </FieldDescription>
-                </Field>
-              ) : editing ? (
-                <Field>
-                  <FixedLabel>Type</FixedLabel>
-                  <p className="flex h-11 items-center font-medium">
-                    {TRANSACTION_TYPE_LABELS[editing.type]}
-                  </p>
-                  <FieldDescription>
-                    The type is fixed once saved. To change it, delete this
-                    transaction and record it again.
-                  </FieldDescription>
-                </Field>
-              ) : (
+              <TransactionTypeField linked={linked} editing={editing}>
                 <form.Field name="type">
                   {(field) => (
                     <Field>
@@ -453,7 +546,7 @@ export function TransactionForm({
                     </Field>
                   )}
                 </form.Field>
-              )}
+              </TransactionTypeField>
 
               <form.Subscribe selector={(state) => state.values.type}>
                 {(type) => (
@@ -465,11 +558,7 @@ export function TransactionForm({
                       return (
                         <Field data-invalid={invalid}>
                           <FieldLabel htmlFor={field.name}>
-                            {type === "transfer"
-                              ? "From"
-                              : type === "refund"
-                                ? "Received in"
-                                : "Wallet"}
+                            {walletLabelFor(type)}
                           </FieldLabel>
                           <div className="flex items-center gap-2">
                             <WalletSelect
@@ -556,77 +645,87 @@ export function TransactionForm({
               </form.Subscribe>
 
               <form.Subscribe selector={(state) => state.values.type}>
-                {(type) =>
-                  linked ? (
-                    <Field>
-                      <FixedLabel>Category</FixedLabel>
-                      <p className="flex min-h-11 items-center gap-3 font-medium">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                          <CategoryIcon
-                            iconId={linked.categoryIconId}
-                            className="size-4"
-                          />
-                        </span>
-                        {linked.categoryLabel}
-                      </p>
-                      <FieldDescription>
-                        Follows the expense’s category, including later changes.
-                      </FieldDescription>
-                    </Field>
-                  ) : type === "refund" ? null : type === "transfer" ? (
-                    <form.Field name="destinationWalletId">
-                      {(field) => {
-                        const serverError = fieldErrors.destinationWalletId;
-                        const invalid =
-                          !field.state.meta.isValid || Boolean(serverError);
-                        return (
-                          <Field data-invalid={invalid}>
-                            <FieldLabel htmlFor={field.name}>To</FieldLabel>
-                            <WalletSelect
-                              id={field.name}
-                              name={field.name}
-                              wallets={wallets}
-                              value={field.state.value ?? ""}
-                              placeholder="Choose a destination wallet"
-                              onBlur={field.handleBlur}
-                              onValueChange={(next) => {
-                                clearFieldError("destinationWalletId");
-                                clearFieldError("transactionDate");
-                                field.handleChange(next);
-                              }}
-                              aria-invalid={invalid}
-                              aria-describedby={
-                                invalid
-                                  ? `${field.name}-error`
-                                  : "transfer-description"
-                              }
+                {(type) => {
+                  if (linked) {
+                    return (
+                      <Field>
+                        <FixedLabel>Category</FixedLabel>
+                        <p className="flex min-h-11 items-center gap-3 font-medium">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                            <CategoryIcon
+                              iconId={linked.categoryIconId}
+                              className="size-4"
                             />
-                            <FieldDescription id="transfer-description">
-                              {wallets.length < 2 ? (
-                                <>
-                                  Transfers need two active wallets.{" "}
-                                  <Link
-                                    href="/wallets/new"
-                                    className="underline underline-offset-4"
-                                  >
-                                    Create another wallet
-                                  </Link>
-                                  .
-                                </>
-                              ) : (
-                                "Record any transfer fee as a separate expense."
-                              )}
-                            </FieldDescription>
-                            <FieldErrors
-                              id={`${field.name}-error`}
-                              serverError={serverError}
-                              errors={field.state.meta.errors}
-                            />
-                          </Field>
-                        );
-                      }}
-                    </form.Field>
-                  ) : (
+                          </span>
+                          {linked.categoryLabel}
+                        </p>
+                        <FieldDescription>
+                          Follows the expense’s category, including later
+                          changes.
+                        </FieldDescription>
+                      </Field>
+                    );
+                  }
+                  if (type === "refund") {
+                    return null;
+                  }
+                  if (type === "transfer") {
+                    return (
+                      <form.Field name="destinationWalletId">
+                        {(field) => {
+                          const serverError = fieldErrors.destinationWalletId;
+                          const invalid =
+                            !field.state.meta.isValid || Boolean(serverError);
+                          return (
+                            <Field data-invalid={invalid}>
+                              <FieldLabel htmlFor={field.name}>To</FieldLabel>
+                              <WalletSelect
+                                id={field.name}
+                                name={field.name}
+                                wallets={wallets}
+                                value={field.state.value ?? ""}
+                                placeholder="Choose a destination wallet"
+                                onBlur={field.handleBlur}
+                                onValueChange={(next) => {
+                                  clearFieldError("destinationWalletId");
+                                  clearFieldError("transactionDate");
+                                  field.handleChange(next);
+                                }}
+                                aria-invalid={invalid}
+                                aria-describedby={
+                                  invalid
+                                    ? `${field.name}-error`
+                                    : "transfer-description"
+                                }
+                              />
+                              <FieldDescription id="transfer-description">
+                                {wallets.length < 2 ? (
+                                  <>
+                                    Transfers need two active wallets.{" "}
+                                    <Link
+                                      href="/wallets/new"
+                                      className="underline underline-offset-4"
+                                    >
+                                      Create another wallet
+                                    </Link>
+                                    .
+                                  </>
+                                ) : (
+                                  "Record any transfer fee as a separate expense."
+                                )}
+                              </FieldDescription>
+                              <FieldErrors
+                                id={`${field.name}-error`}
+                                serverError={serverError}
+                                errors={field.state.meta.errors}
+                              />
+                            </Field>
+                          );
+                        }}
+                      </form.Field>
+                    );
+                  }
+                  return (
                     <form.Field name="categoryId">
                       {(field) => {
                         const serverError = fieldErrors.categoryId;
@@ -670,8 +769,8 @@ export function TransactionForm({
                         );
                       }}
                     </form.Field>
-                  )
-                }
+                  );
+                }}
               </form.Subscribe>
 
               <form.Field name="transactionDate">
@@ -868,63 +967,6 @@ export function TransactionForm({
         </footer>
       )}
     </form>
-  );
-}
-
-interface FixedLabelProps {
-  children: React.ReactNode;
-}
-
-function FixedLabel({ children }: Readonly<FixedLabelProps>) {
-  return (
-    <span
-      data-slot="field-label"
-      className="flex select-none items-center gap-2 font-medium text-sm leading-none"
-    >
-      {children}
-    </span>
-  );
-}
-
-interface LinkedExpenseChipProps {
-  expense: LinkedExpenseView;
-}
-
-/** The refunded expense read back: category, date, amount, and what is left. */
-function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
-  return (
-    <Link
-      href={`/transactions/${expense.id}`}
-      aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${expense.remainingLabel} left to refund. Open the expense.`}
-      className="flex min-h-14 min-w-0 items-center gap-3 rounded-xl border px-3 py-2 outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-        <CategoryIcon iconId={expense.categoryIconId} className="size-5" />
-      </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="block truncate font-medium text-sm leading-snug">
-          <span className="text-muted-foreground">Refund of</span>{" "}
-          {expense.categoryLabel}
-        </span>
-        <span className="wrap-break-word block text-muted-foreground text-sm">
-          <span className="money" translate="no">
-            −{expense.amountLabel}
-          </span>{" "}
-          · {formatCalendarDate(expense.transactionDate)} ·{" "}
-          <span className="whitespace-nowrap">
-            <span className="money" translate="no">
-              {expense.remainingLabel}
-            </span>{" "}
-            left
-          </span>
-        </span>
-      </span>
-      <ChevronRight
-        aria-hidden="true"
-        strokeWidth={1.75}
-        className="size-4 shrink-0 text-muted-foreground"
-      />
-    </Link>
   );
 }
 

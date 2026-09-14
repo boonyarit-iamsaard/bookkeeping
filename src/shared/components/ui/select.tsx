@@ -14,7 +14,10 @@ import type * as React from "react";
  */
 const Select = SelectPrimitive.Root;
 
-function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
+function SelectGroup({
+  className,
+  ...props
+}: Readonly<SelectPrimitive.Group.Props>) {
   return (
     <SelectPrimitive.Group
       data-slot="select-group"
@@ -24,7 +27,10 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   );
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({
+  className,
+  ...props
+}: Readonly<SelectPrimitive.Value.Props>) {
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
@@ -43,7 +49,7 @@ function SelectTrigger({
   className,
   children,
   ...props
-}: SelectPrimitive.Trigger.Props) {
+}: Readonly<SelectPrimitive.Trigger.Props>) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
@@ -117,7 +123,7 @@ function SelectContent({
           {...props}
         >
           <SelectScrollUpButton />
-          <SelectPrimitive.List className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]">
+          <SelectPrimitive.List className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain p-1 [scrollbar-color:var(--border)_transparent]">
             {children}
           </SelectPrimitive.List>
           <SelectScrollDownButton />
@@ -130,7 +136,7 @@ function SelectContent({
 function SelectLabel({
   className,
   ...props
-}: SelectPrimitive.GroupLabel.Props) {
+}: Readonly<SelectPrimitive.GroupLabel.Props>) {
   return (
     <SelectPrimitive.GroupLabel
       data-slot="select-label"
@@ -144,7 +150,7 @@ function SelectItem({
   className,
   children,
   ...props
-}: SelectPrimitive.Item.Props) {
+}: Readonly<SelectPrimitive.Item.Props>) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -171,7 +177,7 @@ function SelectItem({
 function SelectSeparator({
   className,
   ...props
-}: SelectPrimitive.Separator.Props) {
+}: Readonly<SelectPrimitive.Separator.Props>) {
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"

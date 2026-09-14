@@ -9,7 +9,7 @@ export async function signUpFreshUser(page: Page): Promise<{ email: string }> {
   sequence += 1;
   const email = `e2e-${Date.now()}-${process.pid}-${sequence}@test.local`;
   await page.goto("/sign-up");
-  await page.waitForLoadState("networkidle");
+  await expect(page.locator('form[data-ready="true"]')).toBeVisible();
   await page.getByLabel("Full Name").fill("E2E user");
   await page.getByLabel("Email").fill(email);
   await page

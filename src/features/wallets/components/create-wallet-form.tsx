@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { useCreateWalletForm } from "@/features/wallets/hooks/use-create-wallet-form";
 import {
   WALLET_TYPE_LABELS,
@@ -46,6 +47,26 @@ export function CreateWalletForm({
 }: Readonly<CreateWalletFormProps>) {
   const router = useRouter();
   const { form, serverError } = useCreateWalletForm({ defaultOpeningDate });
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    const element = formRef.current;
+    if (!element) {
+      return;
+    }
+    element.dataset.ready = "true";
+    function handleEscape(event: KeyboardEvent) {
+      if (
+        event.key === "Escape" &&
+        event.target instanceof Node &&
+        element?.contains(event.target)
+      ) {
+        event.preventDefault();
+        router.push("/wallets");
+      }
+    }
+    element.addEventListener("keydown", handleEscape);
+    return () => element.removeEventListener("keydown", handleEscape);
+  }, [router]);
 
   return (
     <form
@@ -56,12 +77,7 @@ export function CreateWalletForm({
         event.stopPropagation();
         void form.handleSubmit();
       }}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          router.push("/wallets");
-        }
-      }}
+      ref={formRef}
     >
       {serverError && (
         <div

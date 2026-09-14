@@ -16,6 +16,18 @@ interface TransactionDetailViewProps {
   transaction: TransactionDetail;
 }
 
+function walletTerm(transaction: Readonly<TransactionDetail>) {
+  if (transaction.destinationWallet) {
+    return "From";
+  }
+
+  if (transaction.refundOf) {
+    return "Received in";
+  }
+
+  return "Wallet";
+}
+
 export function TransactionDetailView({
   transaction,
 }: Readonly<TransactionDetailViewProps>) {
@@ -65,15 +77,7 @@ export function TransactionDetailView({
             </span>
           </Row>
         )}
-        <Row
-          term={
-            transaction.destinationWallet
-              ? "From"
-              : transaction.refundOf
-                ? "Received in"
-                : "Wallet"
-          }
-        >
+        <Row term={walletTerm(transaction)}>
           {transaction.wallet.name}
           <span className="text-muted-foreground">
             {" "}

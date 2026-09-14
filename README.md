@@ -146,6 +146,62 @@ locally and `pnpm start` in CI. It waits for server teardown before stopping
 the database, including when interrupted. Server errors remain visible; enable
 server stdout and startup diagnostics with `DEBUG=pw:webserver pnpm test:e2e`.
 
+## Local SonarQube
+
+SonarQube is an optional, on-demand analysis tool. Run it when the project owner
+requests a scan or when you choose to inspect code quality. Setup and scans are
+not required for local development, commits, pull requests, or completing project
+work. SonarQube is not part of `pnpm run ci`, GitHub Actions, or commit hooks;
+its quality gate does not block this project's workflow.
+
+Set up the separate SonarQube Community Build stack:
+
+```bash
+pnpm sonar:setup
+pnpm sonar:scan
+```
+
+Setup starts the containers, waits for readiness, replaces the default admin
+password with a random password, creates the private `bookkeeping` project, and
+generates a project analysis token. It saves credentials in the Git-ignored
+`.env.sonar` with owner-only file permissions. The scan command loads the token
+automatically. Rerunning setup reuses a valid token.
+
+After each successful scan, the command waits for that scan's server processing
+and exports all current project issues (including resolved issues) and detailed
+security hotspots to `.sonar-reports/issues.json` and `.sonar-reports/issues.md`.
+JSON preserves issue fields, related locations, rules, and hotspot details;
+Markdown provides a readable list with links to the dashboard. Reports are
+Git-ignored and overwritten on the next successful export. They describe current
+project state, rather than an immutable historical analysis. Avoid simultaneous
+scans of the same project while exporting. Use `pnpm sonar:export` to retry an
+export without rescanning; it uses the last saved scan task ID.
+
+Open [localhost:9000](http://localhost:9000) and use the admin credentials from
+`.env.sonar`. If you previously changed the admin password, supply your existing
+`SONAR_ADMIN_PASSWORD` (and `SONAR_ADMIN_LOGIN` if needed) in the shell environment
+before running setup. Do not commit or share `.env.sonar`.
+
+The scanner analyzes
+`src/` and classifies colocated Vitest tests and `tests/` as test code. It does
+not run tests or generate coverage; coverage reporting is not configured.
+
+`pnpm sonar:stop` stops this stack and retains its database and analysis data.
+For later on-demand scans, run `pnpm sonar:start`, then `pnpm sonar:scan`.
+Stop the stack when you finish to free its resources.
+The stack uses its own PostgreSQL database and exposes the dashboard only on
+localhost. It disables Elasticsearch bootstrap checks for local development.
+Both database stacks use `postgres:18-alpine`, sharing the downloaded image.
+The SonarQube stack follows the app's Compose conventions with explicit
+container, volume, and network names. Its PostgreSQL data mounts at
+`/var/lib/postgresql`, as required by the PostgreSQL 18 image layout.
+The images use moving tags; pin versions before relying on this setup in CI or
+running a shared server. If port 9000 is already occupied by a trial SonarQube
+container, stop that container before starting this stack.
+
+See the official [Docker setup](https://docs.sonarsource.com/sonarqube-community-build/server-installation/from-docker-image/set-up-and-start-container)
+and [scanner guide](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/sonarscanner).
+
 ## Checks
 
 ```bash

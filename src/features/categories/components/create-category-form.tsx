@@ -190,9 +190,8 @@ export function CreateCategoryForm({
                           }
                           return (
                             <span className="truncate">
-                              None
+                              {"None"}{" "}
                               <span className="text-muted-foreground">
-                                {" "}
                                 · a new{" "}
                                 {CATEGORY_KIND_LABELS[kind].toLowerCase()}{" "}
                                 parent category
@@ -205,9 +204,8 @@ export function CreateCategoryForm({
                     <SelectContent>
                       <SelectItem value={null} label="None">
                         <span>
-                          None
+                          {"None"}{" "}
                           <span className="font-normal text-muted-foreground">
-                            {" "}
                             · a new {CATEGORY_KIND_LABELS[kind].toLowerCase()}{" "}
                             parent category
                           </span>
@@ -241,7 +239,7 @@ export function CreateCategoryForm({
                               className="size-4"
                             />
                           </span>
-                          New parent…
+                          <span>New parent…</span>
                         </span>
                       </SelectItem>
                     </SelectContent>

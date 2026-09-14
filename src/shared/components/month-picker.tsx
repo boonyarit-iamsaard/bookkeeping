@@ -15,9 +15,6 @@ import {
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
 
-/** A calendar month in ISO form, YYYY-MM. */
-type CalendarMonth = string;
-
 const MONTH_NAMES = [
   "Jan",
   "Feb",
@@ -54,16 +51,16 @@ function isCalendarMonth(value: string): boolean {
   return CALENDAR_MONTH_PATTERN.test(value) && Number(value.slice(0, 4)) > 0;
 }
 
-function yearOf(month: CalendarMonth): number {
+function yearOf(month: string): number {
   return Number(month.slice(0, 4));
 }
 
-function toCalendarMonth(year: number, monthIndex: number): CalendarMonth {
+function toCalendarMonth(year: number, monthIndex: number): string {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
 }
 
 /** "2026-09" → "September 2026". */
-function formatCalendarMonth(month: CalendarMonth): string {
+function formatCalendarMonth(month: string): string {
   const index = Number(month.slice(5, 7)) - 1;
   return `${MONTH_NAMES_LONG[index] ?? month} ${yearOf(month)}`;
 }
@@ -72,14 +69,15 @@ interface MonthPickerProps {
   id: string;
   /** Names a hidden input so a plain GET form submits the chosen month. */
   name?: string;
-  value?: CalendarMonth | "";
-  defaultValue?: CalendarMonth | "";
-  onChange?: (month: CalendarMonth | "") => void;
+  /** A calendar month in ISO form, YYYY-MM; empty means no selection. */
+  value?: string;
+  defaultValue?: string;
+  onChange?: (month: string) => void;
   /** The current month in Asia/Bangkok; it carries the Mist "now" marker. */
-  thisMonth: CalendarMonth;
+  thisMonth: string;
   /** Earliest and latest selectable months, inclusive. */
-  min?: CalendarMonth;
-  max?: CalendarMonth;
+  min?: string;
+  max?: string;
   placeholder?: string;
   disabled?: boolean;
   invalid?: boolean;
@@ -116,13 +114,13 @@ export function MonthPicker({
   const current = given && isCalendarMonth(given) ? given : "";
   const [viewYear, setViewYear] = useState(yearOf(current || max || thisMonth));
 
-  function commit(next: CalendarMonth) {
+  function commit(next: string) {
     setInternal(next);
     onChange?.(next);
     setOpen(false);
   }
 
-  function selectable(month: CalendarMonth): boolean {
+  function selectable(month: string): boolean {
     return (!min || month >= min) && (!max || month <= max);
   }
 

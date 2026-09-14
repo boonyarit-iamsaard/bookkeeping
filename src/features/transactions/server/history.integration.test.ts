@@ -417,21 +417,17 @@ test("corrections, archiving and category fallbacks replace effects across histo
       (await removeCategory(db, { ownerId: f.ownerId, id: f.child.id })).ok,
     ).toBe(true);
     expect(
-      (
-        await listTransactions(db, {
-          ownerId: f.ownerId,
-          categoryId: f.child.id,
-        })
-      ).length,
-    ).toBe(0);
+      await listTransactions(db, {
+        ownerId: f.ownerId,
+        categoryId: f.child.id,
+      }),
+    ).toHaveLength(0);
     expect(
-      (
-        await listTransactions(db, {
-          ownerId: f.ownerId,
-          categoryId: f.parent.id,
-        })
-      ).length,
-    ).toBe(2);
+      await listTransactions(db, {
+        ownerId: f.ownerId,
+        categoryId: f.parent.id,
+      }),
+    ).toHaveLength(2);
     const siblings = (await listCategories(db, f.ownerId)).filter(
       (category) => category.parentId === f.parent.id,
     );
@@ -450,13 +446,11 @@ test("corrections, archiving and category fallbacks replace effects across histo
       throw new Error("Missing Uncategorized");
     }
     expect(
-      (
-        await listTransactions(db, {
-          ownerId: f.ownerId,
-          categoryId: uncategorized.id,
-        })
-      ).length,
-    ).toBe(2);
+      await listTransactions(db, {
+        ownerId: f.ownerId,
+        categoryId: uncategorized.id,
+      }),
+    ).toHaveLength(2);
     expect(
       (await getMonthlySummary(db, { ownerId: f.ownerId, month: "2026-09" }))
         .netExpenses,

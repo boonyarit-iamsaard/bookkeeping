@@ -41,7 +41,6 @@ test("a parent with children explains why it stays, a child hands its entry up, 
   await expect(rows.first()).toHaveText(/Uncategorized/);
   await expect(rows.nth(1)).toHaveText(/Food & Drink/);
   await expect(rows.nth(2)).toHaveText(/Groceries.*1 entry/);
-  await page.waitForLoadState("networkidle");
   await page.screenshot({
     path: testInfo.outputPath("categories.png"),
     fullPage: true,

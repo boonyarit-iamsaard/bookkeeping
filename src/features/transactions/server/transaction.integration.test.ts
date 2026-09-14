@@ -1999,7 +1999,7 @@ describe("linked refunds", () => {
             : 0n;
         if (current && summary) {
           expect(summary.refundedTotal).toBe(expectedTotal);
-          expect(current.amount >= summary.refundedTotal).toBe(true);
+          expect(current.amount).toBeGreaterThanOrEqual(summary.refundedTotal);
           expect(
             summary.refunds.every(
               (refund) => refund.transactionDate >= current.transactionDate,

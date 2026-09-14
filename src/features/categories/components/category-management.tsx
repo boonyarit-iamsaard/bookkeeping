@@ -48,7 +48,7 @@ export function CategoryManagement({
   const [kind, setKind] = useState<CategoryKind>("expense");
   const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState("");
-  const noticeRef = useRef<HTMLParagraphElement>(null);
+  const noticeRef = useRef<HTMLOutputElement>(null);
   const { groups } = searchCategories({ categories, kind, query: "" });
 
   function announce(message: string) {
@@ -86,7 +86,7 @@ export function CategoryManagement({
             <Plus data-icon="inline-start" />
             New category
           </Dialog.Trigger>
-          <SheetPortal className="sm:h-auto sm:max-h-[36rem]">
+          <SheetPortal className="sm:h-auto sm:max-h-144">
             <PanelHeader>
               New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
             </PanelHeader>
@@ -108,9 +108,8 @@ export function CategoryManagement({
         </Dialog.Root>
       </div>
 
-      <p
+      <output
         ref={noticeRef}
-        role="status"
         tabIndex={-1}
         className={cn(
           "rounded-sm text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
@@ -118,7 +117,7 @@ export function CategoryManagement({
         )}
       >
         {notice}
-      </p>
+      </output>
 
       <div>
         <span id="category-tree-label" className="sr-only">
@@ -227,7 +226,7 @@ function CategoryRow({
           className="size-4 shrink-0 text-muted-foreground"
         />
       </Dialog.Trigger>
-      <SheetPortal className="sm:h-auto sm:max-h-[36rem]">
+      <SheetPortal className="sm:h-auto sm:max-h-144">
         <PanelHeader
           subtitle={
             removal.parentName

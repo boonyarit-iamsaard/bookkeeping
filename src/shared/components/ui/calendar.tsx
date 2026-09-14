@@ -4,7 +4,7 @@ import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type * as React from "react";
 import { useEffect, useRef } from "react";
-import type { DayButton } from "react-day-picker";
+import type { Chevron, DayButton, Root } from "react-day-picker";
 import { DayPicker, getDefaultClassNames } from "react-day-picker";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 
@@ -20,7 +20,7 @@ function Calendar({
   showOutsideDays = false,
   components,
   ...props
-}: React.ComponentProps<typeof DayPicker>) {
+}: Readonly<React.ComponentProps<typeof DayPicker>>) {
   const defaultClassNames = getDefaultClassNames();
 
   return (
@@ -84,28 +84,8 @@ function Calendar({
       }}
       // biome-ignore-start lint/style/useNamingConvention: react-day-picker names its component slots in PascalCase.
       components={{
-        Root: ({ className: rootClassName, rootRef, ...rootProps }) => (
-          <div
-            data-slot="calendar"
-            ref={rootRef}
-            className={cn(rootClassName)}
-            {...rootProps}
-          />
-        ),
-        Chevron: ({ className: chevronClassName, orientation, ...rest }) =>
-          orientation === "left" ? (
-            <ChevronLeft
-              strokeWidth={1.75}
-              className={cn("size-4", chevronClassName)}
-              {...rest}
-            />
-          ) : (
-            <ChevronRight
-              strokeWidth={1.75}
-              className={cn("size-4", chevronClassName)}
-              {...rest}
-            />
-          ),
+        Root: CalendarRoot,
+        Chevron: CalendarChevron,
         DayButton: CalendarDayButton,
         ...components,
       }}
@@ -115,12 +95,38 @@ function Calendar({
   );
 }
 
+function CalendarRoot({
+  className,
+  rootRef,
+  ...props
+}: Readonly<React.ComponentProps<typeof Root>>) {
+  return (
+    <div
+      data-slot="calendar"
+      ref={rootRef}
+      className={cn(className)}
+      {...props}
+    />
+  );
+}
+
+function CalendarChevron({
+  className,
+  orientation,
+  ...props
+}: Readonly<React.ComponentProps<typeof Chevron>>) {
+  const Icon = orientation === "left" ? ChevronLeft : ChevronRight;
+  return (
+    <Icon strokeWidth={1.75} className={cn("size-4", className)} {...props} />
+  );
+}
+
 function CalendarDayButton({
   className,
   day,
   modifiers,
   ...props
-}: React.ComponentProps<typeof DayButton>) {
+}: Readonly<React.ComponentProps<typeof DayButton>>) {
   const defaultClassNames = getDefaultClassNames();
 
   // Arrow keys move DayPicker's focused day; the button follows.
