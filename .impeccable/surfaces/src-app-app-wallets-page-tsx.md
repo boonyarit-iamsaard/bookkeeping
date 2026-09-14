@@ -35,7 +35,9 @@ in under a minute; `/wallets` reads as a trustworthy statement of holdings.
 - Routes: `/wallets`, `/wallets/new`, plus a minimal app header (wordmark,
   Wallets link, sign-out) that later tickets extend.
 - Untouched: auth screens and behaviour.
-- Anti-goals: no archive/edit/delete controls (ticket 06), no charts, no
+- Ticket 06 extends the surface with opening correction, archive/unarchive,
+  guarded deletion, and `/wallets/[id]` management.
+- Anti-goals: no charts, no
   celebratory motion, no type carried by colour alone.
 
 ## States and ranges

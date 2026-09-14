@@ -21,7 +21,11 @@ import {
   transactions,
   transactionsRelations,
 } from "@/core/database/schema/transactions";
-import { wallets, walletsRelations } from "@/core/database/schema/wallets";
+import {
+  walletChanges,
+  wallets,
+  walletsRelations,
+} from "@/core/database/schema/wallets";
 
 const schema = {
   accounts,
@@ -33,6 +37,7 @@ const schema = {
   verifications,
   wallets,
   walletsRelations,
+  walletChanges,
   categories,
   categoriesRelations,
   transactions,

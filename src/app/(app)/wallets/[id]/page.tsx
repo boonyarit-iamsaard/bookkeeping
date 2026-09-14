@@ -1,0 +1,46 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { getSession } from "@/core/auth/session";
+import { db } from "@/core/database/client";
+import { WalletManagement } from "@/features/wallets/components/wallet-management";
+import { listWallets } from "@/features/wallets/server/wallet";
+import { buttonVariants } from "@/shared/components/ui/button";
+import { formatMoneyInput } from "@/shared/helpers/money";
+
+export default async function Page({
+  params,
+}: Readonly<PageProps<"/wallets/[id]">>) {
+  const session = await getSession();
+  if (!session) {
+    redirect("/sign-in");
+  }
+  const { id } = await params;
+  const wallet = (await listWallets(db, { ownerId: session.user.id })).find(
+    (item) => item.id === id,
+  );
+  if (!wallet) {
+    notFound();
+  }
+  return (
+    <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 py-8">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="min-w-0 break-words font-semibold text-2xl">
+          {wallet.name}
+        </h1>
+        <Link href="/wallets" className={buttonVariants({ variant: "ghost" })}>
+          Back
+        </Link>
+      </div>
+      <WalletManagement
+        id={wallet.id}
+        archived={Boolean(wallet.archivedAt)}
+        balance={wallet.balance}
+        openingAmount={formatMoneyInput({
+          amountInMinorUnits: wallet.openingAmount,
+          currency: "THB",
+        })}
+        openingDate={wallet.openingDate}
+      />
+    </main>
+  );
+}

@@ -60,13 +60,15 @@ export function TransactionList({
               </p>
               {transaction.destinationWallet && (
                 <p className="wrap-break-word text-muted-foreground text-sm">
-                  {transaction.wallet.name} →{" "}
+                  {transaction.wallet.name}
+                  {transaction.wallet.archived && " (Archived)"} →{" "}
                   {transaction.destinationWallet.name}
+                  {transaction.destinationWallet.archived && " (Archived)"}
                 </p>
               )}
               <p className="truncate text-muted-foreground text-sm">
                 {!transaction.destinationWallet &&
-                  `${transaction.wallet.name} · `}
+                  `${transaction.wallet.name}${transaction.wallet.archived ? " (Archived)" : ""} · `}
                 {formatCalendarDate(transaction.transactionDate)}
                 {transaction.note && ` · ${transaction.note}`}
               </p>

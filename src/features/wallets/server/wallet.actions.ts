@@ -1,12 +1,31 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import * as z from "zod";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { createWallet } from "@/features/wallets/server/wallet";
+import type { WalletLifecycleError } from "@/features/wallets/server/wallet-lifecycle";
+import {
+  correctWalletOpening,
+  deleteWallet,
+  setWalletArchived,
+} from "@/features/wallets/server/wallet-lifecycle";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
 import type { Result } from "@/shared/helpers/result";
 import { err, ok } from "@/shared/helpers/result";
+
+const manageWalletSchema = z.discriminatedUnion("operation", [
+  z.object({
+    id: z.uuid(),
+    operation: z.literal("opening"),
+    opening: walletFormSchema.pick({ openingAmount: true, openingDate: true }),
+  }),
+  z.object({
+    id: z.uuid(),
+    operation: z.enum(["archive", "unarchive", "delete"]),
+  }),
+]);
 
 export type CreateWalletActionError = "unauthenticated" | "invalid";
 
@@ -36,4 +55,37 @@ export async function createWalletAction(
 
   revalidatePath("/wallets");
   return ok({ id: wallet.id });
+}
+
+export async function manageWalletAction(
+  input: unknown,
+): Promise<
+  Result<{ id: string }, WalletLifecycleError | "unauthenticated" | "invalid">
+> {
+  const session = await getSession();
+  if (!session) {
+    return err("unauthenticated");
+  }
+  const parsed = manageWalletSchema.safeParse(input);
+  if (!parsed.success) {
+    return err("invalid");
+  }
+  const data = parsed.data;
+  const owned = { id: data.id, ownerId: session.user.id };
+  const result =
+    data.operation === "opening"
+      ? await correctWalletOpening(db, { ...owned, ...data.opening })
+      : data.operation === "delete"
+        ? await deleteWallet(db, owned)
+        : await setWalletArchived(db, {
+            ...owned,
+            archived: data.operation === "archive",
+          });
+  if (result.ok) {
+    revalidatePath("/wallets");
+    revalidatePath(`/wallets/${data.id}`);
+    revalidatePath("/transactions", "layout");
+    revalidatePath("/dashboard");
+  }
+  return result;
 }

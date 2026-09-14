@@ -348,3 +348,17 @@ A 56px header with a bottom hairline on Paper: the wordmark (Body 600, tight tra
 - **Don't** introduce tinted or warm neutrals, a second accent, or a dark theme; the build is light-only.
 - **Don't** set dates, counts, or labels in JetBrains Mono, or money in Inter.
 - **Don't** use celebratory motion, confetti, or animated counters on save.
+
+### Wallet management
+
+Wallet names link to `/wallets/[id]`. Management keeps the narrow form column,
+shows the exact current balance and Archived state, and separates opening
+correction, archive/unarchive, and permanent deletion with hairlines. Opening
+correction is the single cobalt action; lifecycle controls are outlined and at
+least 48px tall. Deletion expands an explicit confirmation with a destructive
+button and Cancel. Errors are announced and form values remain intact.
+
+Archived wallets retain their figures in the wallet list and its total. With
+no active wallets, transaction entry offers creation or wallet management for
+unarchiving. Existing transaction wallet labels include Archived in list,
+detail, and edit states.

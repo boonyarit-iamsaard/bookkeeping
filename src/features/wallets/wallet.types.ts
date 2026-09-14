@@ -22,3 +22,9 @@ export interface WalletSummary {
   /** Derived: opening balance plus current transactions through `asOf`. */
   balance: bigint;
 }
+
+export interface WalletSnapshot {
+  openingAmount: string;
+  openingDate: string;
+  archivedAt: string | null;
+}

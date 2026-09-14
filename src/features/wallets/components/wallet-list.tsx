@@ -52,7 +52,17 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
               <WalletTypeIcon type={wallet.type} className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{wallet.name}</p>
+              <Link
+                href={`/wallets/${wallet.id}`}
+                className="flex min-h-11 items-center rounded-sm font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                <span className="truncate">{wallet.name}</span>
+              </Link>
+              {wallet.archivedAt && (
+                <span className="text-muted-foreground text-sm">
+                  Archived ·{" "}
+                </span>
+              )}
               <p className="flex flex-col text-muted-foreground text-sm sm:flex-row sm:gap-x-1.5">
                 <span>{WALLET_TYPE_LABELS[wallet.type]}</span>
                 <span aria-hidden="true" className="hidden sm:inline">

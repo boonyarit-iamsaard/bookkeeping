@@ -176,7 +176,7 @@ test("without a wallet the form is replaced by a creation action", async ({
   await signUpFreshUser(page);
   await page.goto("/transactions/new");
   await expect(
-    page.getByRole("heading", { name: "Create a wallet first" }),
+    page.getByRole("heading", { name: "No active wallets" }),
   ).toBeVisible();
   await expect(page.getByLabel("Amount")).toHaveCount(0);
   await page.getByRole("link", { name: "Create a wallet" }).click();
