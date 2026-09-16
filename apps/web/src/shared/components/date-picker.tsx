@@ -1,5 +1,10 @@
 "use client";
 
+import type { CalendarDate } from "@bookkeeping/domain/dates";
+import {
+  formatCalendarDate,
+  parseCalendarDate,
+} from "@bookkeeping/domain/dates";
 import { cn } from "cn";
 import { CalendarDays, ChevronDown } from "lucide-react";
 import type * as React from "react";
@@ -11,8 +16,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
-import type { CalendarDate } from "@/shared/helpers/dates";
-import { formatCalendarDate, parseCalendarDate } from "@/shared/helpers/dates";
 
 /**
  * The calendar library thinks in JS Dates; the app thinks in Bangkok

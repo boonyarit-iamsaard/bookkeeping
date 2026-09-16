@@ -1,3 +1,4 @@
+import { formatMoneyInput } from "@bookkeeping/domain/money";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
@@ -5,7 +6,6 @@ import { db } from "@/core/database/client";
 import { WalletManagement } from "@/features/wallets/components/wallet-management";
 import { listWallets } from "@/features/wallets/server/wallet";
 import { buttonVariants } from "@/shared/components/ui/button";
-import { formatMoneyInput } from "@/shared/helpers/money";
 
 export default async function Page({
   params,

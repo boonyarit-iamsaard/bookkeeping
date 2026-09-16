@@ -1,3 +1,5 @@
+import type { Result } from "@bookkeeping/domain/result";
+import { err, ok } from "@bookkeeping/domain/result";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import type { Database } from "@/core/database/database";
 import { categories } from "@/core/database/schema/categories";
@@ -15,8 +17,6 @@ import {
 } from "@/features/categories/category-name";
 import { DEFAULT_CATEGORIES } from "@/features/categories/defaults";
 import { GENERIC_ICON_ID, isIconId } from "@/features/categories/icons";
-import type { Result } from "@/shared/helpers/result";
-import { err, ok } from "@/shared/helpers/result";
 
 /**
  * Gives the owner an editable copy of the default trees, once. Each tree is

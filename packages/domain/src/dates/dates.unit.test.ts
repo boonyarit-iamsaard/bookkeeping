@@ -5,7 +5,7 @@ import {
   formatInstant,
   parseCalendarDate,
   todayIn,
-} from "@/shared/helpers/dates";
+} from "./dates";
 
 describe("todayIn", () => {
   test("rolls to the next calendar day at Bangkok midnight, not UTC", () => {

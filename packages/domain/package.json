@@ -1,0 +1,21 @@
+{
+  "name": "@bookkeeping/domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./result": "./src/result/result.ts",
+    "./money": "./src/money/money.ts",
+    "./dates": "./src/dates/dates.ts",
+    "./wallets": "./src/wallets/wallet.types.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "types:check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^5.0.0"
+  }
+}

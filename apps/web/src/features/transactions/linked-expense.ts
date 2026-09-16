@@ -1,10 +1,10 @@
+import { formatMoney, formatMoneyInput } from "@bookkeeping/domain/money";
 import { categoryLabel } from "@/features/categories/category-search";
 import type {
   ExpenseRefunds,
   LinkedExpenseView,
   TransactionDetail,
 } from "@/features/transactions/transaction.types";
-import { formatMoney, formatMoneyInput } from "@/shared/helpers/money";
 
 interface LinkedExpenseViewOptions {
   expense: TransactionDetail;

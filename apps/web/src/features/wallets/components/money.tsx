@@ -1,6 +1,6 @@
+import type { Currency } from "@bookkeeping/domain/money";
+import { formatMoney, formatMoneyParts } from "@bookkeeping/domain/money";
 import { cn } from "@/shared/helpers/cn";
-import type { Currency } from "@/shared/helpers/money";
-import { formatMoney, formatMoneyParts } from "@/shared/helpers/money";
 
 interface MoneyProps {
   amountInMinorUnits: bigint;

@@ -5,10 +5,10 @@ exact values and wallet language needed by both applications and persistence.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Result, money, currency, and calendar-date behavior has one owner in the domain package.
-- [ ] Wallet value sets and types move without changing observable behavior.
-- [ ] Money parsing and formatting retain exact `bigint` behavior and all existing limits.
-- [ ] Public exports are narrow feature subpaths rather than a root barrel.
-- [ ] The web app and existing tests consume the new ownership while remaining green.
+- [x] Result, money, currency, and calendar-date behavior has one owner in the domain package.
+- [x] Wallet value sets and types move without changing observable behavior.
+- [x] Money parsing and formatting retain exact `bigint` behavior and all existing limits.
+- [x] Public exports are narrow feature subpaths rather than a root barrel.
+- [x] The web app and existing tests consume the new ownership while remaining green.

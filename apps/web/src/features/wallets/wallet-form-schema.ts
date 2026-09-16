@@ -1,12 +1,12 @@
-import * as z from "zod";
-import { WALLET_TYPES } from "@/features/wallets/wallet.types";
 import {
   APP_TIME_ZONE,
   parseCalendarDate,
   todayIn,
-} from "@/shared/helpers/dates";
-import type { MoneyParseError } from "@/shared/helpers/money";
-import { parseMoneyInput } from "@/shared/helpers/money";
+} from "@bookkeeping/domain/dates";
+import type { MoneyParseError } from "@bookkeeping/domain/money";
+import { parseMoneyInput } from "@bookkeeping/domain/money";
+import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
+import * as z from "zod";
 
 const AMOUNT_MESSAGES: Record<MoneyParseError, string> = {
   empty: "Enter an opening balance, for example 12000 or 0",

@@ -1,7 +1,7 @@
+import { formatMoney, formatMoneyParts } from "@bookkeeping/domain/money";
 import type { TransactionDetail } from "@/features/transactions/transaction.types";
 import { TRANSACTION_TYPE_SIGNS } from "@/features/transactions/transaction.types";
 import { cn } from "@/shared/helpers/cn";
-import { formatMoney, formatMoneyParts } from "@/shared/helpers/money";
 
 interface SignedMoneyProps {
   transaction: Pick<TransactionDetail, "type" | "amount" | "currency">;

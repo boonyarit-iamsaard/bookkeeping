@@ -1,5 +1,7 @@
 "use server";
 
+import type { Result } from "@bookkeeping/domain/result";
+import { err, ok } from "@bookkeeping/domain/result";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { getSession } from "@/core/auth/session";
@@ -25,8 +27,6 @@ import {
   removeCategory,
   updateCategory,
 } from "@/features/categories/server/category-management";
-import type { Result } from "@/shared/helpers/result";
-import { err, ok } from "@/shared/helpers/result";
 
 const CATEGORY_FIELDS = [
   "name",

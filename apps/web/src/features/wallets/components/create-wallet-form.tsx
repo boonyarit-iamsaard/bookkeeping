@@ -1,13 +1,16 @@
 "use client";
 
+import type { CalendarDate } from "@bookkeeping/domain/dates";
+import {
+  formatCalendarDate,
+  parseCalendarDate,
+} from "@bookkeeping/domain/dates";
+import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { useCreateWalletForm } from "@/features/wallets/hooks/use-create-wallet-form";
-import {
-  WALLET_TYPE_LABELS,
-  WALLET_TYPES,
-} from "@/features/wallets/wallet.types";
+import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 import {
@@ -19,8 +22,6 @@ import {
 } from "@/shared/components/ui/field";
 import { Input } from "@/shared/components/ui/input";
 import { SegmentedControl } from "@/shared/components/ui/segmented-control";
-import type { CalendarDate } from "@/shared/helpers/dates";
-import { formatCalendarDate, parseCalendarDate } from "@/shared/helpers/dates";
 
 const TYPE_OPTIONS = WALLET_TYPES.map((value) => ({
   value,

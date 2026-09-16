@@ -1,3 +1,5 @@
+import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
+import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import Form from "next/form";
 import Link from "next/link";
 import type { CategorySummary } from "@/features/categories/category.types";
@@ -7,10 +9,8 @@ import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPES,
 } from "@/features/transactions/transaction.types";
-import type { WalletSummary } from "@/features/wallets/wallet.types";
 import { DatePicker } from "@/shared/components/date-picker";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
-import { APP_TIME_ZONE, todayIn } from "@/shared/helpers/dates";
 
 interface HistoryFiltersProps {
   wallets: readonly WalletSummary[];

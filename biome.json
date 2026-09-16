@@ -173,7 +173,8 @@
         "apps/web/vitest.config.mts",
         "apps/web/postcss.config.mjs",
         "apps/web/tests/database/global-setup.ts",
-        "apps/server/vitest.config.mts"
+        "apps/server/vitest.config.mts",
+        "packages/domain/vitest.config.mts"
       ],
       "linter": {
         "rules": {

@@ -1,10 +1,10 @@
-import { expect, test } from "@playwright/test";
 import {
   APP_TIME_ZONE,
   addDays,
   formatCalendarDate,
   todayIn,
-} from "@/shared/helpers/dates";
+} from "@bookkeeping/domain/dates";
+import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";

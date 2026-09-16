@@ -1,16 +1,16 @@
+import {
+  APP_TIME_ZONE,
+  formatCalendarDate,
+  formatInstant,
+} from "@bookkeeping/domain/dates";
+import { formatMoney } from "@bookkeeping/domain/money";
 import Link from "next/link";
 import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { SignedMoney } from "@/features/transactions/components/signed-money";
 import type { TransactionDetail } from "@/features/transactions/transaction.types";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction.types";
-import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet.types";
-import {
-  APP_TIME_ZONE,
-  formatCalendarDate,
-  formatInstant,
-} from "@/shared/helpers/dates";
-import { formatMoney } from "@/shared/helpers/money";
+import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 
 interface TransactionDetailViewProps {
   transaction: TransactionDetail;

@@ -1,9 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-  formatMoney,
-  formatMoneyInput,
-  parseMoneyInput,
-} from "@/shared/helpers/money";
+import { formatMoney, formatMoneyInput, parseMoneyInput } from "./money";
 
 describe("parseMoneyInput", () => {
   test("parses whole baht into satang exactly", () => {

@@ -12,6 +12,12 @@ Keep the `core`, `shared`, and `features` roots. Feature code stays with its
 feature, infrastructure setup stays in `core`, and reusable code stays in
 `shared`. Create additional directories only when needed.
 
+Vocabulary and exact value behavior that persistence and both apps need live in
+`@bookkeeping/domain` under feature directories such as `packages/domain/src/wallets/`,
+exposed as subpaths such as `@bookkeeping/domain/wallets`. The package has no
+React, Next.js, Hono, Drizzle, environment, or presentation code; labels and
+form schemas stay with the app that renders them.
+
 Pure feature vocabulary has one owner in a descriptive feature-local file such
 as `wallet.types.ts`. Shared shapes, literal value sets, and their presentation
 labels can live together there. Database code and browser code import those
@@ -29,6 +35,7 @@ that every module must fit. For example:
 | Wallet behavior          | `server/wallet.ts`          | `createWallet`, `listWallets`               |
 | Server Actions           | `server/wallet.actions.ts`  | `createWalletAction`                        |
 | Shared wallet vocabulary | `wallet.types.ts`           | `WalletType`, `WalletSummary`               |
+| Wallet labels            | `wallet-labels.ts`          | `WALLET_TYPE_LABELS`                        |
 | Create form              | `create-wallet-form.tsx`    | `CreateWalletForm`, `CreateWalletFormProps` |
 | Form hook                | `use-create-wallet-form.ts` | `useCreateWalletForm`                       |
 

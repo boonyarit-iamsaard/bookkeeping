@@ -1,5 +1,6 @@
 "use client";
 
+import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Money } from "@/features/wallets/components/money";
@@ -9,7 +10,6 @@ import { DatePicker } from "@/shared/components/date-picker";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { APP_TIME_ZONE, todayIn } from "@/shared/helpers/dates";
 
 interface WalletManagementProps {
   id: string;

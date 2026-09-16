@@ -1,8 +1,8 @@
+import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CreateWalletForm } from "@/features/wallets/components/create-wallet-form";
 import { buttonVariants } from "@/shared/components/ui/button";
-import { APP_TIME_ZONE, todayIn } from "@/shared/helpers/dates";
 
 export const metadata: Metadata = {
   title: "New wallet",

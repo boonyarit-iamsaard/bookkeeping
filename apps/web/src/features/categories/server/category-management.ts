@@ -1,3 +1,5 @@
+import type { Result } from "@bookkeeping/domain/result";
+import { err, ok } from "@bookkeeping/domain/result";
 import { and, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "@/core/database/database";
 import { categories } from "@/core/database/schema/categories";
@@ -11,8 +13,6 @@ import {
   summaryColumns,
   validateName,
 } from "@/features/categories/server/category";
-import type { Result } from "@/shared/helpers/result";
-import { err, ok } from "@/shared/helpers/result";
 
 export interface ManageCategoryInput {
   /** Always the session user; never a client-supplied identifier. */

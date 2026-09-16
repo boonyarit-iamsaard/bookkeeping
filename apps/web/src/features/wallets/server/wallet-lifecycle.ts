@@ -1,3 +1,7 @@
+import { formatMoneyInput } from "@bookkeeping/domain/money";
+import type { Result } from "@bookkeeping/domain/result";
+import { err, ok } from "@bookkeeping/domain/result";
+import type { WalletSnapshot } from "@bookkeeping/domain/wallets";
 import { and, eq, lt, or, sql } from "drizzle-orm";
 import type { Database } from "@/core/database/database";
 import {
@@ -5,11 +9,7 @@ import {
   transactions,
 } from "@/core/database/schema/transactions";
 import { walletChanges, wallets } from "@/core/database/schema/wallets";
-import type { WalletSnapshot } from "@/features/wallets/wallet.types";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
-import { formatMoneyInput } from "@/shared/helpers/money";
-import type { Result } from "@/shared/helpers/result";
-import { err, ok } from "@/shared/helpers/result";
 
 export interface ManageWalletInput {
   ownerId: string;

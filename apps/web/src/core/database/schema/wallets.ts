@@ -1,3 +1,5 @@
+import type { WalletSnapshot } from "@bookkeeping/domain/wallets";
+import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
@@ -12,8 +14,6 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "@/core/database/schema/auth";
-import type { WalletSnapshot } from "@/features/wallets/wallet.types";
-import { WALLET_TYPES } from "@/features/wallets/wallet.types";
 
 export const walletTypeEnum = pgEnum("wallet_type", WALLET_TYPES);
 

@@ -1,5 +1,5 @@
-import type { WalletType } from "@/features/wallets/wallet.types";
-import type { CalendarDate } from "@/shared/helpers/dates";
+import type { CalendarDate } from "@bookkeeping/domain/dates";
+import type { WalletType } from "@bookkeeping/domain/wallets";
 
 // Plain value set, kept apart from the Drizzle table so client components can
 // import it without pulling drizzle-orm into their bundle.

@@ -1,5 +1,8 @@
 "use client";
 
+import type { CalendarDate } from "@bookkeeping/domain/dates";
+import { addDays, formatCalendarDate } from "@bookkeeping/domain/dates";
+import { formatMoney, parseMoneyInput } from "@bookkeeping/domain/money";
 import { ArrowDownUp, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,7 +40,7 @@ import type {
   TransactionFormInput,
 } from "@/features/transactions/transaction-form-schema";
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
-import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet.types";
+import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
@@ -57,9 +60,6 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { cn } from "@/shared/helpers/cn";
-import type { CalendarDate } from "@/shared/helpers/dates";
-import { addDays, formatCalendarDate } from "@/shared/helpers/dates";
-import { formatMoney, parseMoneyInput } from "@/shared/helpers/money";
 
 const TYPE_OPTIONS = CREATABLE_TRANSACTION_TYPES.map((value) => ({
   value,

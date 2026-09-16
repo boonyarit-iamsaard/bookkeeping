@@ -1,9 +1,9 @@
+import { formatCalendarDate } from "@bookkeeping/domain/dates";
+import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import Link from "next/link";
 import type { MonthlySummary } from "@/features/transactions/transaction.types";
 import { Money } from "@/features/wallets/components/money";
-import type { WalletSummary } from "@/features/wallets/wallet.types";
 import { buttonVariants } from "@/shared/components/ui/button";
-import { formatCalendarDate } from "@/shared/helpers/dates";
 
 interface FinancialReportProps {
   summary: Readonly<MonthlySummary>;

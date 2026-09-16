@@ -1,12 +1,12 @@
+import { formatCalendarDate } from "@bookkeeping/domain/dates";
+import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import { Plus, Wallet } from "lucide-react";
 import Link from "next/link";
 import { Money } from "@/features/wallets/components/money";
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
-import type { WalletSummary } from "@/features/wallets/wallet.types";
-import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet.types";
+import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
-import { formatCalendarDate } from "@/shared/helpers/dates";
 
 interface WalletListProps {
   wallets: readonly WalletSummary[];

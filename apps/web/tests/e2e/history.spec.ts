@@ -1,5 +1,5 @@
+import { APP_TIME_ZONE, addDays, todayIn } from "@bookkeeping/domain/dates";
 import { expect, test } from "@playwright/test";
-import { APP_TIME_ZONE, addDays, todayIn } from "@/shared/helpers/dates";
 import { chooseDate, chooseMonth } from "./helpers/choose-date";
 import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";

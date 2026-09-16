@@ -52,7 +52,7 @@ and maps them to JavaScript `bigint` with Drizzle
 [transaction schema](../../apps/web/src/core/database/schema/transactions.ts)).
 Its parser permits 15 whole baht digits, so a wallet opening can reach
 `99,999,999,999,999,999` satang
-([money helper](../../apps/web/src/shared/helpers/money.ts)). That exceeds
+([money helper](../../packages/domain/src/money/money.ts)). That exceeds
 JavaScript's maximum safe integer, `9,007,199,254,740,991`. ECMAScript explains
 that larger integers can collapse to the same `Number` value, and RFC 8259 only
 guarantees exact agreement for JSON integers through 2^53−1.

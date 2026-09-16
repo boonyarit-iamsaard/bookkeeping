@@ -1,21 +1,15 @@
-import type { CalendarDate } from "@/shared/helpers/dates";
+import type { CalendarDate } from "../dates/dates";
+import type { Currency } from "../money/money";
 
-// Plain value set, kept apart from the Drizzle table so client components can
-// import it without pulling drizzle-orm into their bundle.
+// Plain value set; the Drizzle table derives its enum from it, never the reverse.
 export const WALLET_TYPES = ["cash", "bank_account", "e_wallet"] as const;
 export type WalletType = (typeof WALLET_TYPES)[number];
-
-export const WALLET_TYPE_LABELS: Record<WalletType, string> = {
-  cash: "Cash",
-  bank_account: "Bank account",
-  e_wallet: "E-wallet",
-};
 
 export interface WalletSummary {
   id: string;
   name: string;
   type: WalletType;
-  currency: "THB";
+  currency: Currency;
   openingAmount: bigint;
   openingDate: CalendarDate;
   archivedAt: Date | null;

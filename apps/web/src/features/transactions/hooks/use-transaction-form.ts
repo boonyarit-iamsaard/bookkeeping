@@ -1,5 +1,8 @@
 "use client";
 
+import type { CalendarDate } from "@bookkeeping/domain/dates";
+import type { Result } from "@bookkeeping/domain/result";
+import type { WalletType } from "@bookkeeping/domain/wallets";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -15,9 +18,6 @@ import type {
   TransactionFormInput,
 } from "@/features/transactions/transaction-form-schema";
 import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
-import type { WalletType } from "@/features/wallets/wallet.types";
-import type { CalendarDate } from "@/shared/helpers/dates";
-import type { Result } from "@/shared/helpers/result";
 
 export interface WalletOption {
   id: string;

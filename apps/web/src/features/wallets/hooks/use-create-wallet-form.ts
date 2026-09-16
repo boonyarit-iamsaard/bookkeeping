@@ -1,12 +1,12 @@
 "use client";
 
+import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createWalletAction } from "@/features/wallets/server/wallet.actions";
 import type { WalletFormInput } from "@/features/wallets/wallet-form-schema";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
-import type { CalendarDate } from "@/shared/helpers/dates";
 
 interface UseCreateWalletFormOptions {
   defaultOpeningDate: CalendarDate;

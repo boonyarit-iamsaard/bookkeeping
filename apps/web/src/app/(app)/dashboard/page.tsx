@@ -1,3 +1,4 @@
+import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
@@ -14,7 +15,6 @@ import { listWallets } from "@/features/wallets/server/wallet";
 import { DatePicker } from "@/shared/components/date-picker";
 import { MonthPicker } from "@/shared/components/month-picker";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
-import { APP_TIME_ZONE, todayIn } from "@/shared/helpers/dates";
 
 export const metadata: Metadata = { title: "Monthly summary" };
 

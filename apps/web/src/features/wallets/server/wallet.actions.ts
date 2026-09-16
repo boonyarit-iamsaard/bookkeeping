@@ -1,5 +1,7 @@
 "use server";
 
+import type { Result } from "@bookkeeping/domain/result";
+import { err, ok } from "@bookkeeping/domain/result";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { getSession } from "@/core/auth/session";
@@ -12,8 +14,6 @@ import {
   setWalletArchived,
 } from "@/features/wallets/server/wallet-lifecycle";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
-import type { Result } from "@/shared/helpers/result";
-import { err, ok } from "@/shared/helpers/result";
 
 const manageWalletSchema = z.discriminatedUnion("operation", [
   z.object({

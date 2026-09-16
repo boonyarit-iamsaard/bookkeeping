@@ -48,7 +48,9 @@ The repo is a pnpm workspace with Turborepo; `apps/web` is the Next.js app and
 `apps/server` is the standalone Hono backend being introduced under
 [ADR 0003](docs/adr/0003-hono-application-backend.md). Further services will
 live beside them as further `apps/*` (see
-[ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
+[ADR 0002](docs/adr/0002-turborepo-monorepo.md)). Code both apps need lives in
+private `packages/*` (see
+[ADR 0004](docs/adr/0004-shared-backend-package-graph.md)).
 
 ```text
 apps/web/
@@ -88,6 +90,19 @@ apps/server/
     features/
       health/             # Health check resource
     server.ts             # Node entrypoint: parses env and serves the app
+```
+
+`@bookkeeping/domain` owns framework-independent vocabulary and exact value
+behavior. It exposes TypeScript source through feature subpaths rather than a
+root barrel, and each consuming app's build compiles it:
+
+```text
+packages/domain/
+  src/
+    dates/                # @bookkeeping/domain/dates: calendar dates and instants
+    money/                # @bookkeeping/domain/money: exact bigint money and currency
+    result/               # @bookkeeping/domain/result: Result, ok, err
+    wallets/              # @bookkeeping/domain/wallets: wallet types and shapes
 ```
 
 Hono routes describe their responses with the same Zod schemas that tests
@@ -254,8 +269,8 @@ Open [localhost:9000](http://localhost:9000) and use the admin credentials from
 before running setup. Do not commit or share `.env.sonar`.
 
 The scanner analyzes
-`apps/web/src/` and classifies colocated Vitest tests and `apps/web/tests/` as
-test code. It does
+`apps/web/src/`, `apps/server/src/`, and `packages/domain/src/` and classifies
+colocated Vitest tests and `apps/web/tests/` as test code. It does
 not run tests or generate coverage; coverage reporting is not configured.
 
 `pnpm sonar:stop` stops this stack and retains its database and analysis data.
@@ -289,8 +304,8 @@ pnpm test:e2e
 `pnpm run ci` runs the complete check sequence, including browser tests against
 the production build using `next start`, both locally and in GitHub Actions.
 `pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
-caches and parallelizes per-workspace tasks across both `apps/web` and
-`apps/server` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
+caches and parallelizes per-workspace tasks across `apps/web`, `apps/server`,
+and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
 Standalone `pnpm test:e2e` uses `next dev` unless `CI=1` is set.
 `pnpm check` applies Biome fixes;
 `pnpm format` formats Markdown and YAML files.

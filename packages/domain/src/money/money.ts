@@ -1,5 +1,5 @@
-import type { Result } from "@/shared/helpers/result";
-import { err, ok } from "@/shared/helpers/result";
+import type { Result } from "../result/result";
+import { err, ok } from "../result/result";
 
 export type MoneyParseError =
   | "empty"
