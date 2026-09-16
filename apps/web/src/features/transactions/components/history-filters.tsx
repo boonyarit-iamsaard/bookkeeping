@@ -1,14 +1,12 @@
+import type { CategorySummary } from "@bookkeeping/domain/categories";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
+import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import Form from "next/form";
 import Link from "next/link";
-import type { CategorySummary } from "@/features/categories/category.types";
 import type { FilterOptionGroup } from "@/features/transactions/components/filter-select";
 import { FilterSelect } from "@/features/transactions/components/filter-select";
-import {
-  TRANSACTION_TYPE_LABELS,
-  TRANSACTION_TYPES,
-} from "@/features/transactions/transaction.types";
+import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 

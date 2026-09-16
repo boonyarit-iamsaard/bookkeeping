@@ -1,14 +1,14 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { ChevronRight, Plus, X } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
 import type {
   CategoryKind,
   CategorySummary,
-} from "@/features/categories/category.types";
-import { CATEGORY_KIND_LABELS } from "@/features/categories/category.types";
+} from "@bookkeeping/domain/categories";
+import { ChevronRight, Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
 import { searchCategories } from "@/features/categories/category-search";
 import { CategoryDisc } from "@/features/categories/components/category-icon";
 import { CreateCategoryForm } from "@/features/categories/components/create-category-form";

@@ -1,10 +1,10 @@
+import type { CategorySummary } from "@bookkeeping/domain/categories";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { and, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "@/core/database/database";
 import { categories } from "@/core/database/schema/categories";
 import { transactions } from "@/core/database/schema/transactions";
-import type { CategorySummary } from "@/features/categories/category.types";
 import { normalizeCategoryName } from "@/features/categories/category-name";
 import { isIconId } from "@/features/categories/icons";
 import {

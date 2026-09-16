@@ -19,7 +19,7 @@ import {
   getExpenseRefunds,
   getTransaction,
 } from "@/features/transactions/server/transaction";
-import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction.types";
+import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { listWallets } from "@/features/wallets/server/wallet";
 import { buttonVariants } from "@/shared/components/ui/button";
 

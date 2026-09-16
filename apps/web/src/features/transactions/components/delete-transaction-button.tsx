@@ -4,15 +4,15 @@ import { AlertDialog } from "@base-ui/react/alert-dialog";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney, parseMoneyInput } from "@bookkeeping/domain/money";
+import type { TransactionType } from "@bookkeeping/domain/transactions";
 import { Trash2 } from "lucide-react";
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { useState } from "react";
 import { deleteTransactionAction } from "@/features/transactions/server/transaction.actions";
-import type { TransactionType } from "@/features/transactions/transaction.types";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
-} from "@/features/transactions/transaction.types";
+} from "@/features/transactions/transaction-labels";
 import { Button } from "@/shared/components/ui/button";
 
 interface DeleteTransactionButtonProps {

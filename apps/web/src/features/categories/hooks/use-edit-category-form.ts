@@ -1,9 +1,9 @@
 "use client";
 
+import type { CategorySummary } from "@bookkeeping/domain/categories";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { CategorySummary } from "@/features/categories/category.types";
 import type { EditCategoryFormInput } from "@/features/categories/category-form-schema";
 import { editCategoryFormSchema } from "@/features/categories/category-form-schema";
 import type {

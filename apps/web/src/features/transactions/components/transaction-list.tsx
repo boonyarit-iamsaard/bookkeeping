@@ -3,13 +3,13 @@ import {
   formatCalendarDate,
   formatInstant,
 } from "@bookkeeping/domain/dates";
+import type { TransactionDetail } from "@bookkeeping/domain/transactions";
 import { ArrowRightLeft, Plus, ReceiptText } from "lucide-react";
 import Link from "next/link";
 import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { SignedMoney } from "@/features/transactions/components/signed-money";
-import type { TransactionDetail } from "@/features/transactions/transaction.types";
-import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction.types";
+import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
 

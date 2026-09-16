@@ -1,9 +1,9 @@
 "use client";
 
+import type { CategoryKind } from "@bookkeeping/domain/categories";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import type { CategoryKind } from "@/features/categories/category.types";
 import type { CategoryFormInput } from "@/features/categories/category-form-schema";
 import {
   categoryFormSchema,

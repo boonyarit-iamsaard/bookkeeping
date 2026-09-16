@@ -1,16 +1,16 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import { useId } from "react";
 import type {
   CategoryKind,
   CategorySummary,
-} from "@/features/categories/category.types";
-import { CATEGORY_KIND_LABELS } from "@/features/categories/category.types";
+} from "@bookkeeping/domain/categories";
+import { Plus } from "lucide-react";
+import { useId } from "react";
 import {
   NEW_PARENT,
   NO_PARENT,
 } from "@/features/categories/category-form-schema";
+import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
 import { MAX_CATEGORY_NAME_LENGTH } from "@/features/categories/category-name";
 import { topLevelParents } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";

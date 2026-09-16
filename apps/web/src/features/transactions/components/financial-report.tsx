@@ -1,7 +1,7 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
+import type { MonthlySummary } from "@bookkeeping/domain/transactions";
 import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import Link from "next/link";
-import type { MonthlySummary } from "@/features/transactions/transaction.types";
 import { Money } from "@/features/wallets/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
 

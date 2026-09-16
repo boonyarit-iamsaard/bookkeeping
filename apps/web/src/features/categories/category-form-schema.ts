@@ -1,6 +1,6 @@
+import type { CategoryKind } from "@bookkeeping/domain/categories";
+import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";
 import * as z from "zod";
-import type { CategoryKind } from "@/features/categories/category.types";
-import { CATEGORY_KINDS } from "@/features/categories/category.types";
 import {
   CATEGORY_MESSAGES,
   MAX_CATEGORY_NAME_LENGTH,

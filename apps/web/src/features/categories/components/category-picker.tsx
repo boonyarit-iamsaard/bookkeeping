@@ -1,13 +1,13 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { ArrowLeft, Check, ChevronDown, Plus, Search, X } from "lucide-react";
-import { useId, useRef, useState } from "react";
 import type {
   CategoryKind,
   CategorySummary,
-} from "@/features/categories/category.types";
-import { CATEGORY_KIND_LABELS } from "@/features/categories/category.types";
+} from "@bookkeeping/domain/categories";
+import { ArrowLeft, Check, ChevronDown, Plus, Search, X } from "lucide-react";
+import { useId, useRef, useState } from "react";
+import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
 import type { CategoryGroup } from "@/features/categories/category-search";
 import {
   categoryPath,

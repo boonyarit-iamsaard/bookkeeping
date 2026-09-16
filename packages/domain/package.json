@@ -7,7 +7,9 @@
     "./result": "./src/result/result.ts",
     "./money": "./src/money/money.ts",
     "./dates": "./src/dates/dates.ts",
-    "./wallets": "./src/wallets/wallet.types.ts"
+    "./wallets": "./src/wallets/wallet.types.ts",
+    "./categories": "./src/categories/category.types.ts",
+    "./transactions": "./src/transactions/transaction.types.ts"
   },
   "scripts": {
     "test": "vitest run",

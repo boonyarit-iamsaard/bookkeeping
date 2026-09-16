@@ -1,6 +1,6 @@
+import type { CategoryKind } from "@bookkeeping/domain/categories";
 import { describe, expect, test } from "vitest";
 import type { Database } from "@/core/database/database";
-import type { CategoryKind } from "@/features/categories/category.types";
 import {
   createCategory,
   initializeDefaultCategories,

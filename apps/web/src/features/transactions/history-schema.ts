@@ -1,6 +1,6 @@
 import { parseCalendarDate } from "@bookkeeping/domain/dates";
+import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { z } from "zod";
-import { TRANSACTION_TYPES } from "@/features/transactions/transaction.types";
 
 const calendarDate = z
   .string()

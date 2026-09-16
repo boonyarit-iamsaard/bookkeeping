@@ -1,6 +1,6 @@
 import { formatMoney, formatMoneyParts } from "@bookkeeping/domain/money";
-import type { TransactionDetail } from "@/features/transactions/transaction.types";
-import { TRANSACTION_TYPE_SIGNS } from "@/features/transactions/transaction.types";
+import type { TransactionDetail } from "@bookkeeping/domain/transactions";
+import { TRANSACTION_TYPE_SIGNS } from "@/features/transactions/transaction-labels";
 import { cn } from "@/shared/helpers/cn";
 
 interface SignedMoneyProps {

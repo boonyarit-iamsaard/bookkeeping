@@ -1,12 +1,12 @@
 "use server";
 
+import type { CategorySummary } from "@bookkeeping/domain/categories";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
-import type { CategorySummary } from "@/features/categories/category.types";
 import {
   categoryIconSchema,
   categoryNameSchema,

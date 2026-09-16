@@ -99,9 +99,11 @@ root barrel, and each consuming app's build compiles it:
 ```text
 packages/domain/
   src/
+    categories/           # @bookkeeping/domain/categories: category kinds and shapes
     dates/                # @bookkeeping/domain/dates: calendar dates and instants
     money/                # @bookkeeping/domain/money: exact bigint money and currency
     result/               # @bookkeeping/domain/result: Result, ok, err
+    transactions/         # @bookkeeping/domain/transactions: transaction types and shapes
     wallets/              # @bookkeeping/domain/wallets: wallet types and shapes
 ```
 

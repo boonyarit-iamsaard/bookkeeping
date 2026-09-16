@@ -1,3 +1,8 @@
+import type { TransactionSnapshot } from "@bookkeeping/domain/transactions";
+import {
+  TRANSACTION_CHANGE_ACTIONS,
+  TRANSACTION_TYPES,
+} from "@bookkeeping/domain/transactions";
 import { relations, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
@@ -16,11 +21,6 @@ import {
 import { users } from "@/core/database/schema/auth";
 import { categories } from "@/core/database/schema/categories";
 import { wallets } from "@/core/database/schema/wallets";
-import type { TransactionSnapshot } from "@/features/transactions/transaction.types";
-import {
-  TRANSACTION_CHANGE_ACTIONS,
-  TRANSACTION_TYPES,
-} from "@/features/transactions/transaction.types";
 
 export const transactionTypeEnum = pgEnum(
   "transaction_type",

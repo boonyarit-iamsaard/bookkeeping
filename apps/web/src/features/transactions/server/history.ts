@@ -1,7 +1,7 @@
+import type { MonthlySummary } from "@bookkeeping/domain/transactions";
 import { and, eq, gte, isNull, lte, sql } from "drizzle-orm";
 import type { Database } from "@/core/database/database";
 import { transactions } from "@/core/database/schema/transactions";
-import type { MonthlySummary } from "@/features/transactions/transaction.types";
 
 interface MonthlySummaryOptions {
   ownerId: string;

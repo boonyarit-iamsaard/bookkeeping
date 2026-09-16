@@ -4,6 +4,7 @@ import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
+import type { RefundSummary } from "@bookkeeping/domain/transactions";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import * as z from "zod";
@@ -19,7 +20,6 @@ import {
   deleteTransaction,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import type { RefundSummary } from "@/features/transactions/transaction.types";
 import {
   createTransactionSubmissionSchema,
   updateTransactionSubmissionSchema,

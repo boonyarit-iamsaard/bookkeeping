@@ -1,5 +1,5 @@
+import type { TransactionDetail } from "@bookkeeping/domain/transactions";
 import { TransactionList } from "@/features/transactions/components/transaction-list";
-import type { TransactionDetail } from "@/features/transactions/transaction.types";
 
 interface TransactionHistoryProps {
   transactions: readonly TransactionDetail[];

@@ -1,7 +1,7 @@
 import type {
   CategoryKind,
   CategorySummary,
-} from "@/features/categories/category.types";
+} from "@bookkeeping/domain/categories";
 
 export interface CategoryGroup {
   parent: CategorySummary;

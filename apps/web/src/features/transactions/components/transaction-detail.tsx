@@ -4,12 +4,12 @@ import {
   formatInstant,
 } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
+import type { TransactionDetail } from "@bookkeeping/domain/transactions";
 import Link from "next/link";
 import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { SignedMoney } from "@/features/transactions/components/signed-money";
-import type { TransactionDetail } from "@/features/transactions/transaction.types";
-import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction.types";
+import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 
 interface TransactionDetailViewProps {

@@ -1,3 +1,4 @@
+import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";
 import { relations, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
@@ -12,7 +13,6 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "@/core/database/schema/auth";
-import { CATEGORY_KINDS } from "@/features/categories/category.types";
 
 export const categoryKindEnum = pgEnum("category_kind", CATEGORY_KINDS);
 

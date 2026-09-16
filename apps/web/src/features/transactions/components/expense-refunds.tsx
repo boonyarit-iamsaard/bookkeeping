@@ -1,11 +1,11 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
-import { Undo2 } from "lucide-react";
-import Link from "next/link";
 import type {
   ExpenseRefunds,
   TransactionDetail,
-} from "@/features/transactions/transaction.types";
+} from "@bookkeeping/domain/transactions";
+import { Undo2 } from "lucide-react";
+import Link from "next/link";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 interface ExpenseRefundsViewProps {

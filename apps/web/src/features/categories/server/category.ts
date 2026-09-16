@@ -1,16 +1,16 @@
+import type {
+  CategoryKind,
+  CategorySummary,
+} from "@bookkeeping/domain/categories";
+import {
+  CATEGORY_KINDS,
+  UNCATEGORIZED_NAME,
+} from "@bookkeeping/domain/categories";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import type { Database } from "@/core/database/database";
 import { categories } from "@/core/database/schema/categories";
-import type {
-  CategoryKind,
-  CategorySummary,
-} from "@/features/categories/category.types";
-import {
-  CATEGORY_KINDS,
-  UNCATEGORIZED_NAME,
-} from "@/features/categories/category.types";
 import {
   MAX_CATEGORY_NAME_LENGTH,
   normalizeCategoryName,

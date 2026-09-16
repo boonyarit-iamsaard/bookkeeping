@@ -1,18 +1,18 @@
 "use client";
 
+import type { CategorySummary } from "@bookkeeping/domain/categories";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
+import type { TransactionType } from "@bookkeeping/domain/transactions";
 import type { WalletType } from "@bookkeeping/domain/wallets";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import type { CategorySummary } from "@/features/categories/category.types";
 import type {
   TransactionActionError,
   TransactionActionSuccess,
   TransactionFormField,
 } from "@/features/transactions/server/transaction.actions";
-import type { TransactionType } from "@/features/transactions/transaction.types";
 import type {
   LinkedExpenseLimits,
   TransactionFormInput,

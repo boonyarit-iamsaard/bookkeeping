@@ -1,4 +1,4 @@
-import type { CategoryKind } from "@/features/categories/category.types";
+import type { CategoryKind } from "@bookkeeping/domain/categories";
 import type { IconId } from "@/features/categories/icons";
 
 export interface DefaultCategory {

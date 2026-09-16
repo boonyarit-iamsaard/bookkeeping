@@ -1,5 +1,5 @@
+import type { CategorySummary } from "@bookkeeping/domain/categories";
 import { describe, expect, test } from "vitest";
-import type { CategorySummary } from "@/features/categories/category.types";
 import { searchCategories } from "./category-search";
 
 interface CategoryFixtureOptions {

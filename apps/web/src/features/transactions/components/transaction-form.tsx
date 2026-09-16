@@ -3,6 +3,8 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { addDays, formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney, parseMoneyInput } from "@bookkeeping/domain/money";
+import type { TransactionType } from "@bookkeeping/domain/transactions";
+import { CREATABLE_TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { ArrowDownUp, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -26,19 +28,15 @@ import {
   createTransactionAction,
   updateTransactionAction,
 } from "@/features/transactions/server/transaction.actions";
-import type {
-  LinkedExpenseView,
-  TransactionType,
-} from "@/features/transactions/transaction.types";
-import {
-  CREATABLE_TRANSACTION_TYPES,
-  TRANSACTION_TYPE_LABELS,
-  TRANSACTION_TYPE_SIGNS,
-} from "@/features/transactions/transaction.types";
+import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
 import type {
   LinkedExpenseLimits,
   TransactionFormInput,
 } from "@/features/transactions/transaction-form-schema";
+import {
+  TRANSACTION_TYPE_LABELS,
+  TRANSACTION_TYPE_SIGNS,
+} from "@/features/transactions/transaction-labels";
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
