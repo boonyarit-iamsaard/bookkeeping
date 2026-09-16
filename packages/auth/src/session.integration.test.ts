@@ -1,15 +1,22 @@
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { describe, expect, test } from "vitest";
+import { createAuth } from "./config";
 import { resolveSession } from "./session";
-import { createTestAuth, uniqueTestEmail } from "./testing/test-auth";
 
 const { withRollback } = setupTestDatabase();
+
+const TEST_SECRET = "integration-test-secret-with-at-least-32-chars";
+const TEST_BASE_URL = "http://localhost:4000";
 
 describe("resolveSession", () => {
   test("a signed-up user's cookie resolves to their session", async () => {
     await withRollback(async (db) => {
-      const auth = createTestAuth(db);
-      const email = uniqueTestEmail("session");
+      const auth = createAuth({
+        db,
+        secret: TEST_SECRET,
+        baseURL: TEST_BASE_URL,
+      });
+      const email = `session-${process.pid}-${Date.now()}@test.local`;
       const { headers } = await auth.api.signUpEmail({
         body: {
           name: "Session user",
@@ -36,7 +43,11 @@ describe("resolveSession", () => {
 
   test("a request without a session cookie resolves to no session", async () => {
     await withRollback(async (db) => {
-      const auth = createTestAuth(db);
+      const auth = createAuth({
+        db,
+        secret: TEST_SECRET,
+        baseURL: TEST_BASE_URL,
+      });
 
       expect(await resolveSession(auth, new Headers())).toBeNull();
     });
@@ -44,7 +55,11 @@ describe("resolveSession", () => {
 
   test("a forged session cookie resolves to no session", async () => {
     await withRollback(async (db) => {
-      const auth = createTestAuth(db);
+      const auth = createAuth({
+        db,
+        secret: TEST_SECRET,
+        baseURL: TEST_BASE_URL,
+      });
 
       const session = await resolveSession(
         auth,
