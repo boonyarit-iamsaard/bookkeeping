@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { loadEnvFile } from "node:process";
-import { startTestDatabase } from "../database/start-database";
+import { startTestDatabase } from "@bookkeeping/database/testing/start-database";
 
 loadEnvFile(".env");
 

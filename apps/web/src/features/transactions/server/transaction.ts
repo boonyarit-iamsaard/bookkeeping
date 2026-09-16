@@ -1,4 +1,12 @@
 import { createHash } from "node:crypto";
+import { categories } from "@bookkeeping/database/categories";
+import type { Database } from "@bookkeeping/database/connection";
+import {
+  submissionReceipts,
+  transactionChanges,
+  transactions,
+} from "@bookkeeping/database/transactions";
+import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
@@ -27,14 +35,6 @@ import {
   sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import type { Database } from "@/core/database/database";
-import { categories } from "@/core/database/schema/categories";
-import {
-  submissionReceipts,
-  transactionChanges,
-  transactions,
-} from "@/core/database/schema/transactions";
-import { wallets } from "@/core/database/schema/wallets";
 import {
   MAX_NOTE_LENGTH,
   MAX_TRANSACTION_AMOUNT,

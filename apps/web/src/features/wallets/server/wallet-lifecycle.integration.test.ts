@@ -1,7 +1,11 @@
+import type { Database } from "@bookkeeping/database/connection";
+import {
+  createTestUser,
+  setupTestDatabase,
+} from "@bookkeeping/database/testing";
+import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
-import type { Database } from "@/core/database/database";
-import { walletChanges, wallets } from "@/core/database/schema/wallets";
 import {
   initializeDefaultCategories,
   listCategories,
@@ -18,10 +22,6 @@ import {
   deleteWallet,
   setWalletArchived,
 } from "@/features/wallets/server/wallet-lifecycle";
-import {
-  createTestUser,
-  setupTestDatabase,
-} from "../../../../tests/database/test-database";
 
 const { withRollback, committed } = setupTestDatabase();
 async function fixture(db: Database) {

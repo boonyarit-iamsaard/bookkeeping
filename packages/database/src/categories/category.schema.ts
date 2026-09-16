@@ -12,7 +12,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { users } from "@/core/database/schema/auth";
+import { users } from "../auth/auth.schema";
 
 export const categoryKindEnum = pgEnum("category_kind", CATEGORY_KINDS);
 

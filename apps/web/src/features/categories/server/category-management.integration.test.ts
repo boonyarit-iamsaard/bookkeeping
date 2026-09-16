@@ -1,6 +1,10 @@
+import type { Database } from "@bookkeeping/database/connection";
+import {
+  createTestUser,
+  setupTestDatabase,
+} from "@bookkeeping/database/testing";
 import type { CategoryKind } from "@bookkeeping/domain/categories";
 import { describe, expect, test } from "vitest";
-import type { Database } from "@/core/database/database";
 import {
   createCategory,
   initializeDefaultCategories,
@@ -20,10 +24,6 @@ import {
   updateTransaction,
 } from "@/features/transactions/server/transaction";
 import { createWallet } from "@/features/wallets/server/wallet";
-import {
-  createTestUser,
-  setupTestDatabase,
-} from "../../../../tests/database/test-database";
 
 const { withRollback, committed } = setupTestDatabase();
 

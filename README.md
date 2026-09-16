@@ -13,6 +13,7 @@ before starting the database.
 pnpm install
 cp apps/web/.env.example apps/web/.env
 cp apps/server/.env.example apps/server/.env
+cp packages/database/.env.example packages/database/.env
 cp .env.local.example .env.local
 ```
 
@@ -27,7 +28,8 @@ pnpm dev
 ```
 
 For an existing checkout, keep your existing `apps/web/.env`. Set `DATABASE_URL`
-to match the PostgreSQL credentials in the root `.env.local` Compose file.
+in both `apps/web/.env` and `packages/database/.env` to match the PostgreSQL
+credentials in the root `.env.local` Compose file.
 
 `pnpm dev` runs the Next.js UI and the Hono API together through Turborepo and
 stops both when you interrupt it. Run one app alone with `pnpm dev:web` or
@@ -107,6 +109,24 @@ packages/domain/
     wallets/              # @bookkeeping/domain/wallets: wallet types and shapes
 ```
 
+`@bookkeeping/database` owns PostgreSQL and Drizzle: the tables and relations,
+database construction, the Drizzle CLI configuration, and the Testcontainers
+fixtures that the integration and browser suites start. It imports domain
+vocabulary where persistence needs it and receives a validated connection URL
+from each runtime consumer rather than reading any app's environment:
+
+```text
+packages/database/
+  drizzle.config.ts       # Drizzle CLI: reads DATABASE_URL from packages/database/.env
+  src/
+    connection.ts         # @bookkeeping/database/connection: createDatabase, Database
+    auth/                 # @bookkeeping/database/auth: users, sessions, accounts, verifications
+    categories/           # @bookkeeping/database/categories: categories
+    transactions/         # @bookkeeping/database/transactions: transactions, receipts, changes
+    wallets/              # @bookkeeping/database/wallets: wallets, wallet changes
+    testing/              # @bookkeeping/database/testing: setupTestDatabase, createTestUser
+```
+
 Hono routes describe their responses with the same Zod schemas that tests
 parse actual responses against, and `hono-openapi` generates an OpenAPI 3.1
 document from those route definitions at `GET /openapi.json`. There is no
@@ -121,12 +141,13 @@ particular feature. Database schemas import pure feature vocabulary from
 See [code conventions](docs/code-conventions.md) for the authoritative structure,
 filename and symbol naming rules, dependency boundaries, and enforcement.
 
-Server-side feature code can import `db` from `@/core/database/client`. Keep that
-client out of Client Components and Drizzle CLI configuration. Feature
-operations take a `Database` parameter rather than importing the client, so
-tests can run them inside a rolled-back transaction. The CLI reads
-the schema separately through `drizzle.config.ts`, which uses the shared env
-configuration.
+Server-side feature code can import `db` from `@/core/database/client`, the
+web app's one connection, which it opens by passing its validated
+`DATABASE_URL` to `createDatabase` from `@bookkeeping/database/connection`.
+Keep that client out of Client Components. Feature operations take a
+`Database` parameter and import tables from the `@bookkeeping/database`
+feature subpaths, so tests can run them inside a rolled-back transaction. The
+Drizzle CLI reads the schema through `packages/database/drizzle.config.ts`.
 
 ## Environment configuration
 
@@ -140,8 +161,9 @@ the server environment when deploying:
 | `DATABASE_URL`       | PostgreSQL connection URL                     |
 
 T3 Env validates these values when `apps/web/src/core/env/config.ts` loads,
-including during database and auth initialization. The Drizzle CLI also imports
-this configuration and requires these values.
+including during database and auth initialization. The Drizzle CLI does not
+read this file; it reads `DATABASE_URL` from `packages/database/.env` (copy
+`packages/database/.env.example`) and validates it in `drizzle.config.ts`.
 
 The local Docker Compose infrastructure reads the root `.env.local` (see
 `.env.local.example`); its `POSTGRES_PASSWORD` must match the password embedded
@@ -186,9 +208,9 @@ of `3000` so a stray `next dev` elsewhere does not collide with either app.
 | `pnpm db:push`   | Apply schema changes directly for local development                           |
 | `pnpm db:studio` | Open Drizzle Studio                                                           |
 
-These commands need only Docker and `apps/web/.env`; neither app has to be
-running. `db:push` and `db:studio` run the Drizzle CLI from `apps/web`, which
-still owns the schema.
+These commands need only Docker and `packages/database/.env`; neither app has
+to be running. `db:push` and `db:studio` run the Drizzle CLI from
+`packages/database`, which owns the schema.
 
 The schema-change policy in [AGENTS.md](AGENTS.md#database-schema-changes)
 requires `db:push` until the user explicitly authorizes switching to migrations.
@@ -196,7 +218,8 @@ requires `db:push` until the user explicitly authorizes switching to migrations.
 PostgreSQL stores its initialized credentials in the persistent data volume.
 Changing `POSTGRES_PASSWORD` in `.env.local` does not change the password of an
 already initialized database; update the existing database password, `.env.local`,
-and `DATABASE_URL` in `apps/web/.env` together when changing credentials.
+and `DATABASE_URL` in `apps/web/.env` and `packages/database/.env` together when
+changing credentials.
 
 ## Tests
 
@@ -215,9 +238,10 @@ Unit tests (`*.unit.test.ts`) are colocated with their source modules. Run them
 without Docker using `pnpm --filter @bookkeeping/web exec vitest run --project unit`.
 
 Integration tests (`*.integration.test.ts`) use Testcontainers to start a disposable
-PostgreSQL 18 database on an available port. Docker must be running. The harness
-applies the current schema with `db:push`, provides its connection URL to test
-workers, and stops the container after the suite. Every test runs inside a
+PostgreSQL 18 database on an available port. Docker must be running. The harness,
+owned by `@bookkeeping/database/testing`, applies the current schema with the
+database package's `db:push`, provides its connection URL to test workers, and
+stops the container after the suite. Every test runs inside a
 transaction that is rolled back, except concurrency checks that use committed
 writes isolated by owner. No local development database is used. Run this suite
 alone using `pnpm --filter @bookkeeping/web exec vitest run --project integration`.
@@ -271,8 +295,9 @@ Open [localhost:9000](http://localhost:9000) and use the admin credentials from
 before running setup. Do not commit or share `.env.sonar`.
 
 The scanner analyzes
-`apps/web/src/`, `apps/server/src/`, and `packages/domain/src/` and classifies
-colocated Vitest tests and `apps/web/tests/` as test code. It does
+`apps/web/src/`, `apps/server/src/`, `packages/domain/src/`, and
+`packages/database/src/` and classifies colocated Vitest tests and
+`apps/web/tests/` as test code. It does
 not run tests or generate coverage; coverage reporting is not configured.
 
 `pnpm sonar:stop` stops this stack and retains its database and analysis data.

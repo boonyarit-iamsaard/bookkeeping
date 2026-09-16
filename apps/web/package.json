@@ -4,8 +4,6 @@
   "private": true,
   "scripts": {
     "build": "SKIP_ENV_VALIDATION=1 next build",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
     "dev": "next dev -p 4000",
     "start": "next start -p ${PORT:-4000}",
     "test": "vitest run",
@@ -15,6 +13,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@bookkeeping/database": "workspace:*",
     "@bookkeeping/domain": "workspace:*",
     "@t3-oss/env-nextjs": "^0.13.11",
     "@tanstack/react-form": "^1.33.5",
@@ -25,7 +24,6 @@
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.45.0",
     "next": "16.3.5",
-    "pg": "^8.23.0",
     "react": "19.2.8",
     "react-day-picker": "^10.0.1",
     "react-dom": "19.2.8",
@@ -36,12 +34,9 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
-    "@testcontainers/postgresql": "^12.1.0",
     "@types/node": "^20",
-    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "drizzle-kit": "0.31.10",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5",

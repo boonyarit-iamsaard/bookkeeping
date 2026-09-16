@@ -1,7 +1,7 @@
 import { afterAll, beforeAll } from "vitest";
-import type { Database, DatabaseConnection } from "@/core/database/database";
-import { createDatabase } from "@/core/database/database";
-import { users } from "@/core/database/schema/auth";
+import { users } from "../auth/auth.schema";
+import type { Database, DatabaseConnection } from "../connection";
+import { createDatabase } from "../connection";
 import { testDatabaseUrl } from "./url";
 
 const ROLLBACK = Symbol("rollback");

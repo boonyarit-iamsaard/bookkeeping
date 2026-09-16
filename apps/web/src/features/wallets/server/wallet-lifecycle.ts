@@ -1,14 +1,14 @@
+import type { Database } from "@bookkeeping/database/connection";
+import {
+  transactionChanges,
+  transactions,
+} from "@bookkeeping/database/transactions";
+import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import { formatMoneyInput } from "@bookkeeping/domain/money";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import type { WalletSnapshot } from "@bookkeeping/domain/wallets";
 import { and, eq, lt, or, sql } from "drizzle-orm";
-import type { Database } from "@/core/database/database";
-import {
-  transactionChanges,
-  transactions,
-} from "@/core/database/schema/transactions";
-import { walletChanges, wallets } from "@/core/database/schema/wallets";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
 
 export interface ManageWalletInput {

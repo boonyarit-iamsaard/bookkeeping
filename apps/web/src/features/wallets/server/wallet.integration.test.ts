@@ -1,9 +1,9 @@
-import { describe, expect, test, vi } from "vitest";
-import { createWallet, listWallets } from "@/features/wallets/server/wallet";
 import {
   createTestUser,
   setupTestDatabase,
-} from "../../../../tests/database/test-database";
+} from "@bookkeeping/database/testing";
+import { describe, expect, test, vi } from "vitest";
+import { createWallet, listWallets } from "@/features/wallets/server/wallet";
 
 const { withRollback } = setupTestDatabase();
 

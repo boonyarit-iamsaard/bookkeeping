@@ -168,13 +168,14 @@
         "apps/web/src/app/**/template.tsx",
         "apps/web/src/app/**/default.tsx",
         "apps/web/next.config.ts",
-        "apps/web/drizzle.config.ts",
         "apps/web/playwright.config.ts",
         "apps/web/vitest.config.mts",
         "apps/web/postcss.config.mjs",
-        "apps/web/tests/database/global-setup.ts",
         "apps/server/vitest.config.mts",
-        "packages/domain/vitest.config.mts"
+        "packages/domain/vitest.config.mts",
+        "packages/database/drizzle.config.ts",
+        "packages/database/vitest.config.mts",
+        "packages/database/src/testing/global-setup.ts"
       ],
       "linter": {
         "rules": {

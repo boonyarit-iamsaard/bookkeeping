@@ -1,0 +1,37 @@
+{
+  "name": "@bookkeeping/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./connection": "./src/connection.ts",
+    "./auth": "./src/auth/auth.schema.ts",
+    "./wallets": "./src/wallets/wallet.schema.ts",
+    "./categories": "./src/categories/category.schema.ts",
+    "./transactions": "./src/transactions/transaction.schema.ts",
+    "./testing": "./src/testing/test-database.ts",
+    "./testing/global-setup": "./src/testing/global-setup.ts",
+    "./testing/start-database": "./src/testing/start-database.ts"
+  },
+  "scripts": {
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "types:check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bookkeeping/domain": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^12.1.0",
+    "@types/node": "^20",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "0.31.10",
+    "typescript": "^5",
+    "vitest": "^5.0.0",
+    "zod": "^4.6.2"
+  }
+}

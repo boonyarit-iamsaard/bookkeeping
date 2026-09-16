@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
+import type { Database } from "@bookkeeping/database/connection";
+import {
+  createTestUser,
+  setupTestDatabase,
+} from "@bookkeeping/database/testing";
 import { describe, expect, test, vi } from "vitest";
-import type { Database } from "@/core/database/database";
 import {
   createCategory,
   initializeDefaultCategories,
@@ -23,10 +27,6 @@ import {
   correctWalletOpening,
   setWalletArchived,
 } from "@/features/wallets/server/wallet-lifecycle";
-import {
-  createTestUser,
-  setupTestDatabase,
-} from "../../../../tests/database/test-database";
 
 const { withRollback } = setupTestDatabase();
 

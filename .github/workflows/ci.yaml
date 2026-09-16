@@ -20,6 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
+      # packages/database needs no .env here: the test harness injects the
+      # Testcontainers DATABASE_URL into the db:push child process.
       - name: Configure CI environment
         run: cp apps/web/.env.ci.example apps/web/.env
 

@@ -13,7 +13,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import { users } from "@/core/database/schema/auth";
+import { users } from "../auth/auth.schema";
 
 export const walletTypeEnum = pgEnum("wallet_type", WALLET_TYPES);
 

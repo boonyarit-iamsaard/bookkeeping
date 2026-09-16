@@ -1,10 +1,10 @@
+import type { Database } from "@bookkeeping/database/connection";
+import { transactions } from "@bookkeeping/database/transactions";
+import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type { WalletSummary, WalletType } from "@bookkeeping/domain/wallets";
 import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
-import type { Database } from "@/core/database/database";
-import { transactions } from "@/core/database/schema/transactions";
-import { wallets } from "@/core/database/schema/wallets";
 
 export interface CreateWalletInput {
   /** Always the session user; never a client-supplied identifier. */

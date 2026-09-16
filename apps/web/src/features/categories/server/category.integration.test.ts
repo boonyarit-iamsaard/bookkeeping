@@ -1,14 +1,14 @@
+import type { Database } from "@bookkeeping/database/connection";
+import {
+  createTestUser,
+  setupTestDatabase,
+} from "@bookkeeping/database/testing";
 import { describe, expect, test } from "vitest";
-import type { Database } from "@/core/database/database";
 import {
   createCategory,
   initializeDefaultCategories,
   listCategories,
 } from "@/features/categories/server/category";
-import {
-  createTestUser,
-  setupTestDatabase,
-} from "../../../../tests/database/test-database";
 
 const { withRollback, committed } = setupTestDatabase();
 

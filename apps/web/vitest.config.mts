@@ -24,7 +24,7 @@ export default defineConfig({
           environment: "node",
           include: ["src/**/*.integration.test.ts"],
           hookTimeout: 60_000,
-          globalSetup: ["tests/database/global-setup.ts"],
+          globalSetup: ["@bookkeeping/database/testing/global-setup"],
           fileParallelism: false,
         },
       },

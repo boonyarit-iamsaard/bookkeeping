@@ -1,3 +1,5 @@
+import { categories } from "@bookkeeping/database/categories";
+import type { Database } from "@bookkeeping/database/connection";
 import type {
   CategoryKind,
   CategorySummary,
@@ -9,8 +11,6 @@ import {
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
-import type { Database } from "@/core/database/database";
-import { categories } from "@/core/database/schema/categories";
 import {
   MAX_CATEGORY_NAME_LENGTH,
   normalizeCategoryName,

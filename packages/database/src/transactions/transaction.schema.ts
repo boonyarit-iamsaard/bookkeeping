@@ -18,9 +18,9 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { users } from "@/core/database/schema/auth";
-import { categories } from "@/core/database/schema/categories";
-import { wallets } from "@/core/database/schema/wallets";
+import { users } from "../auth/auth.schema";
+import { categories } from "../categories/category.schema";
+import { wallets } from "../wallets/wallet.schema";
 
 export const transactionTypeEnum = pgEnum(
   "transaction_type",

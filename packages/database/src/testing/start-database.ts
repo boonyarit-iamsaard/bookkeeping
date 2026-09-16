@@ -13,7 +13,11 @@ export async function startTestDatabase() {
     DATABASE_URL: container.getConnectionUri(),
   };
   try {
-    await run("pnpm", ["db:push", "--force"], { env: environment });
+    await run(
+      "pnpm",
+      ["--filter", "@bookkeeping/database", "db:push", "--force"],
+      { env: environment },
+    );
   } catch (error) {
     await container.stop();
     throw error;

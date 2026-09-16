@@ -10,22 +10,19 @@ import {
   users,
   usersRelations,
   verifications,
-} from "@/core/database/schema/auth";
-import {
-  categories,
-  categoriesRelations,
-} from "@/core/database/schema/categories";
+} from "./auth/auth.schema";
+import { categories, categoriesRelations } from "./categories/category.schema";
 import {
   submissionReceipts,
   transactionChanges,
   transactions,
   transactionsRelations,
-} from "@/core/database/schema/transactions";
+} from "./transactions/transaction.schema";
 import {
   walletChanges,
   wallets,
   walletsRelations,
-} from "@/core/database/schema/wallets";
+} from "./wallets/wallet.schema";
 
 const schema = {
   accounts,

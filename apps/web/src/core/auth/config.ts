@@ -1,7 +1,3 @@
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { nextCookies } from "better-auth/next-js";
-import { db } from "@/core/database/client";
 import {
   accounts,
   accountsRelations,
@@ -10,7 +6,11 @@ import {
   users,
   usersRelations,
   verifications,
-} from "@/core/database/schema/auth";
+} from "@bookkeeping/database/auth";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { nextCookies } from "better-auth/next-js";
+import { db } from "@/core/database/client";
 import { env } from "@/core/env/config";
 
 export const auth = betterAuth({
