@@ -12,6 +12,7 @@ import {
   verifications,
 } from "./auth/auth.schema";
 import { categories, categoriesRelations } from "./categories/category.schema";
+import { creationReceipts } from "./idempotency/creation-receipt.schema";
 import {
   submissionReceipts,
   transactionChanges,
@@ -37,6 +38,7 @@ const schema = {
   walletChanges,
   categories,
   categoriesRelations,
+  creationReceipts,
   transactions,
   transactionsRelations,
   submissionReceipts,

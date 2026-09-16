@@ -134,7 +134,8 @@ packages/database/
     connection.ts         # @bookkeeping/database/connection: createDatabase, Database
     auth/                 # @bookkeeping/database/auth: users, sessions, accounts, verifications
     categories/           # @bookkeeping/database/categories: categories
-    transactions/         # @bookkeeping/database/transactions: transactions, receipts, changes
+    idempotency/          # @bookkeeping/database/idempotency: creation receipts
+    transactions/         # @bookkeeping/database/transactions: transactions, legacy receipts, changes
     wallets/              # @bookkeeping/database/wallets: wallets, wallet changes
     testing/              # @bookkeeping/database/testing: setupTestDatabase, createTestUser
 ```
@@ -150,7 +151,14 @@ packages/application/
   src/
     categories/           # @bookkeeping/application/categories: initializeDefaultCategories
                           # @bookkeeping/application/categories/defaults: the default trees
+    idempotency/          # @bookkeeping/application/idempotency: replay-safe creation
 ```
+
+Resource creation uses `executeIdempotentCreation` with an authenticated owner,
+a stable operation name, a client key, and the complete validated application
+payload. Equal retries replay the stored application result; conflicting payloads
+are rejected. The result codec is owned by the application operation, so receipts
+remain independent of HTTP response shapes.
 
 `@bookkeeping/auth` owns the framework-independent Better Auth configuration:
 the Drizzle adapter over the database package's auth tables (with transactions

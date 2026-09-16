@@ -8,7 +8,13 @@ import { db } from "@/core/database/client";
 
 // The Next.js mount reads request headers from the framework and the database
 // from the web app's client; both are replaced so the real Better Auth
-// configuration runs over the test database.
+// configuration runs over the test database. The env module still validates
+// DATABASE_URL at import, and CI supplies it only through the test harness,
+// so it is copied into the process before the imports above evaluate.
+await vi.hoisted(async () => {
+  const { inject } = await import("vitest");
+  process.env.DATABASE_URL = inject("testDatabaseUrl");
+});
 const harness = vi.hoisted(() => ({ close: async () => {} }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({ headers: vi.fn() }));
