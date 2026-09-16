@@ -12,7 +12,7 @@ import {
   problemDetailsSchema,
   problemForStatus,
 } from "./problem-details.js";
-import type { ServerAppEnv } from "./request-context.js";
+import type { AppEnv } from "./request-context.js";
 
 export const OPENAPI_DOCUMENT_PATH = "/openapi.json";
 
@@ -51,7 +51,7 @@ const openApiSpecOptions = {
   defaultValidationErrorResponse: false,
 } satisfies Partial<GenerateSpecOptions>;
 
-export function mountOpenApiDocument(app: Hono<ServerAppEnv>): void {
+export function mountOpenApiDocument(app: Hono<AppEnv>): void {
   app.get(
     OPENAPI_DOCUMENT_PATH,
     describeRoute({ hide: true }),

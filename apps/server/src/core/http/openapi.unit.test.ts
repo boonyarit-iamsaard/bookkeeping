@@ -6,7 +6,7 @@ import { healthResponseSchema } from "../../features/health/health.routes.js";
 import { createApp } from "../app.js";
 import { OPENAPI_DOCUMENT_PATH } from "./openapi.js";
 import { problemDetailsSchema } from "./problem-details.js";
-import type { ServerAppEnv } from "./request-context.js";
+import type { AppEnv } from "./request-context.js";
 
 interface DocumentedMedia {
   schema: { $ref?: string };
@@ -68,7 +68,7 @@ async function expectResponseToSatisfyDocumentation({
   expect(schema.safeParse(await response.json()).success).toBe(true);
 }
 
-async function fetchDocument(app: Hono<ServerAppEnv>) {
+async function fetchDocument(app: Hono<AppEnv>) {
   return (await app.request(OPENAPI_DOCUMENT_PATH)).json();
 }
 

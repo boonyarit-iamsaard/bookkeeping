@@ -1,12 +1,9 @@
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { problemForStatus, problemResponse } from "./problem-details.js";
-import type { ServerAppEnv } from "./request-context.js";
+import type { AppEnv } from "./request-context.js";
 
-function unexpectedFaultResponse(
-  error: unknown,
-  c: Context<ServerAppEnv>,
-): Response {
+function unexpectedFaultResponse(error: unknown, c: Context<AppEnv>): Response {
   console.error("Unhandled request error", {
     error,
     requestId: c.get("requestId"),
@@ -15,10 +12,7 @@ function unexpectedFaultResponse(
   return problemResponse(c, problemForStatus(500));
 }
 
-export function handleRequestError(
-  error: Error,
-  c: Context<ServerAppEnv>,
-): Response {
+export function handleRequestError(error: Error, c: Context<AppEnv>): Response {
   if (error instanceof HTTPException) {
     return problemResponse(c, problemForStatus(error.status));
   }
@@ -27,7 +21,7 @@ export function handleRequestError(
 }
 
 export async function errorBoundaryMiddleware(
-  c: Context<ServerAppEnv>,
+  c: Context<AppEnv>,
   next: Next,
 ): Promise<Response | undefined> {
   try {

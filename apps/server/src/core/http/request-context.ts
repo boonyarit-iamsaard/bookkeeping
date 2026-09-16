@@ -7,13 +7,13 @@ export interface RequestContextVariables {
   requestId: string;
 }
 
-export interface ServerAppEnv {
+export interface AppEnv {
   // biome-ignore lint/style/useNamingConvention: Hono requires this contract property to be named Variables.
   Variables: RequestContextVariables;
 }
 
 export async function requestContextMiddleware(
-  c: Context<ServerAppEnv>,
+  c: Context<AppEnv>,
   next: Next,
 ): Promise<void> {
   const requestId = randomUUID();

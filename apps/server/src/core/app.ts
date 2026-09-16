@@ -6,11 +6,11 @@ import {
 } from "./http/error-handler.js";
 import { mountOpenApiDocument } from "./http/openapi.js";
 import { problemForStatus, problemResponse } from "./http/problem-details.js";
-import type { ServerAppEnv } from "./http/request-context.js";
+import type { AppEnv } from "./http/request-context.js";
 import { requestContextMiddleware } from "./http/request-context.js";
 
-export function createApp(): Hono<ServerAppEnv> {
-  const app = new Hono<ServerAppEnv>();
+export function createApp(): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
 
   app.use("*", requestContextMiddleware);
   app.use("*", errorBoundaryMiddleware);
