@@ -6,5 +6,16 @@ import { retryProvisioningAction } from "@/features/auth/server/provisioning.act
  * not hold up the redirect; the next sign-in retries.
  */
 export async function completeProvisioning(): Promise<void> {
-  await retryProvisioningAction().catch(() => undefined);
+  try {
+    const result = await retryProvisioningAction();
+    if (!result.ok) {
+      reportProvisioningFailure(result.error);
+    }
+  } catch (error: unknown) {
+    reportProvisioningFailure(error);
+  }
+}
+
+function reportProvisioningFailure(error: unknown) {
+  console.error("Fresh-user provisioning retry failed", { error });
 }
