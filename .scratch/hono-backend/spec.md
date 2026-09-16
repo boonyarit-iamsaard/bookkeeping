@@ -40,8 +40,7 @@ later frontend migration.
 Define exact runtime-validated request and response contracts, generate an
 OpenAPI 3.1 document, preserve financial precision, use idempotency for resource
 creation, paginate growing transaction collections with opaque cursors, and use
-standard Problem Details failures. Provide normal two-app development commands
-and a containerized production-like local environment with Hono and PostgreSQL.
+standard Problem Details failures. Provide normal two-app development commands.
 
 ## User Stories
 
@@ -83,10 +82,8 @@ and a containerized production-like local environment with Hono and PostgreSQL.
 36. As a maintainer, I want an OpenAPI document generated from runtime schemas, so that documentation and validated behavior share a source of truth.
 37. As a maintainer, I want authenticated and unauthenticated HTTP contract tests, so that the actual API boundary—not only internal functions—is verified.
 38. As a maintainer, I want root development commands to run both applications, so that the complete transitional system is easy to start.
-39. As a maintainer, I want a standalone production-built Hono container, so that the server is reproducible before a hosting provider is selected.
-40. As a maintainer, I want local Compose to run Hono with PostgreSQL, so that production-like server behavior can be reproduced locally.
-41. As a maintainer, I want CI to build and test both apps and all packages, so that extraction cannot leave an unverified workspace.
-42. As a maintainer, I want behavioral API parity audited before this effort closes, so that no current user workflow is silently omitted.
+39. As a maintainer, I want CI to build and test both apps and all packages, so that extraction cannot leave an unverified workspace.
+40. As a maintainer, I want behavioral API parity audited before this effort closes, so that no current user workflow is silently omitted.
 
 ## Implementation Decisions
 
@@ -240,16 +237,6 @@ and a containerized production-like local environment with Hono and PostgreSQL.
 
 - Root development starts Next.js and Hono concurrently with explicit local
   origins. Root build covers both apps and all packages.
-- Produce a standalone production-built Node.js image for Hono using a
-  multi-stage container build and a non-development runtime command.
-- Keep the base Compose topology responsible for PostgreSQL. Add Hono through
-  the automatically loaded Compose override for a production-like local stack.
-- Because the override loads automatically, make the database-only start command
-  explicitly select the base Compose file so it does not unexpectedly build or
-  launch Hono.
-- The production-like Compose stack builds Hono, waits for PostgreSQL health,
-  injects server configuration explicitly, exposes the health endpoint, and can
-  be smoke-tested without a hosting provider.
 - Update workspace task outputs, root scripts, continuous integration,
   environment examples, static analysis scope, and documentation as ownership
   moves. Do not run exclusive browser, production-build, or Sonar workloads
@@ -288,9 +275,6 @@ and a containerized production-like local environment with Hono and PostgreSQL.
   trusted origins, credentialed CORS, CSRF/origin rejection, session-derived
   ownership, transactional auth writes, post-commit provisioning failure, and
   idempotent retry.
-- Container verification builds the production image, starts the Compose stack,
-  waits for database and API health, exercises at least the health endpoint, and
-  shuts down cleanly.
 - Retain the current Next.js Playwright suite as regression coverage. Do not
   rewrite Next-specific browser assertions during this effort; the later SPA
   initiative owns that change.
@@ -305,6 +289,8 @@ and a containerized production-like local environment with Hono and PostgreSQL.
 - Building an Expo client, mobile authentication, offline behavior, or a mobile
   SDK.
 - Selecting or configuring a production hosting provider.
+- Containerizing the Hono server or adding it to the local Compose stack; the
+  image has no consumer until the Next.js cutover initiative, which owns it.
 - Rewriting the current Next.js UI to call Hono.
 - Removing Next.js Server Components, Server Actions, routing, or its temporary
   Better Auth mount.
