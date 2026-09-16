@@ -4,6 +4,7 @@ import {
   errorBoundaryMiddleware,
   handleRequestError,
 } from "./http/error-handler.js";
+import { mountOpenApiDocument } from "./http/openapi.js";
 import { problemForStatus, problemResponse } from "./http/problem-details.js";
 import type { ServerAppEnv } from "./http/request-context.js";
 import { requestContextMiddleware } from "./http/request-context.js";
@@ -17,6 +18,7 @@ export function createApp(): Hono<ServerAppEnv> {
   app.onError(handleRequestError);
 
   app.route("/", healthRoutes);
+  mountOpenApiDocument(app);
 
   return app;
 }

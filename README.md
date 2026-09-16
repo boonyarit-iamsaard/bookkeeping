@@ -77,10 +77,18 @@ apps/server/
     core/
       app.ts              # Hono app assembly shared by tests and the entrypoint
       env/config.ts       # Server environment schemas and runtime validation
+      http/               # Request context, Problem Details, OpenAPI document
     features/
       health/             # Health check resource
     server.ts             # Node entrypoint: parses env and serves the app
 ```
+
+Hono routes describe their responses with the same Zod schemas that tests
+parse actual responses against, and `hono-openapi` generates an OpenAPI 3.1
+document from those route definitions at `GET /openapi.json`. There is no
+handwritten contract file; `apps/server/src/core/http/openapi.unit.test.ts`
+validates the generated document and fails when a registered route is not
+described.
 
 Keep routes focused on composing features. Group business logic, vocabulary,
 and UI by feature. Promote code to `shared/` only when it is independent of a

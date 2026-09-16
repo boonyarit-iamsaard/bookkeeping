@@ -21,11 +21,13 @@ export type ProblemCode = (typeof problemCodes)[number];
 
 export const problemCodeSchema = z.enum(problemCodes);
 
-export const problemFieldErrorSchema = z.object({
-  pointer: z.string(),
-  code: z.string(),
-  detail: z.string().optional(),
-});
+export const problemFieldErrorSchema = z
+  .object({
+    pointer: z.string(),
+    code: z.string(),
+    detail: z.string().optional(),
+  })
+  .meta({ id: "ProblemFieldError" });
 
 export const problemDetailsSchema = z
   .object({
@@ -38,7 +40,8 @@ export const problemDetailsSchema = z
     details: z.unknown().optional(),
     errors: z.array(problemFieldErrorSchema).optional(),
   })
-  .loose();
+  .loose()
+  .meta({ id: "ProblemDetails" });
 
 export interface ProblemFieldError {
   pointer: string;
