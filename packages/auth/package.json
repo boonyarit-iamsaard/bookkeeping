@@ -1,0 +1,25 @@
+{
+  "name": "@bookkeeping/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./config": "./src/config.ts",
+    "./session": "./src/session.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "types:check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bookkeeping/database": "workspace:*",
+    "better-auth": "^1.7.4",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5",
+    "vitest": "^5.0.0"
+  }
+}

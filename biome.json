@@ -173,6 +173,7 @@
         "apps/web/postcss.config.mjs",
         "apps/server/vitest.config.mts",
         "packages/application/vitest.config.mts",
+        "packages/auth/vitest.config.mts",
         "packages/domain/vitest.config.mts",
         "packages/database/drizzle.config.ts",
         "packages/database/vitest.config.mts",

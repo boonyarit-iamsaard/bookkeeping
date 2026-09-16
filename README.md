@@ -59,7 +59,7 @@ apps/web/
   src/
     app/                  # Route entry points, layouts, and route handlers
     core/
-      auth/               # Better Auth setup, browser client, and session helper
+      auth/               # Next.js mount of @bookkeeping/auth, browser client, and session helper
       env/config.ts       # T3 Env schemas and runtime validation
       database/
         client.ts         # Server-only Drizzle client for the app
@@ -138,6 +138,21 @@ packages/application/
   src/
     categories/           # @bookkeeping/application/categories: initializeDefaultCategories
                           # @bookkeeping/application/categories/defaults: the default trees
+```
+
+`@bookkeeping/auth` owns the framework-independent Better Auth configuration:
+the Drizzle adapter over the database package's auth tables (with transactions
+enabled for Better Auth's own multi-write flows) and the session contract both
+app adapters derive owner ids from. Each app passes its validated secret and
+base URL plus any framework plugin, so Next.js and Hono mount one
+configuration against one user store while each origin keeps its own
+host-only cookie:
+
+```text
+packages/auth/
+  src/
+    config.ts             # @bookkeeping/auth/config: createAuth, Auth, AuthOptions
+    session.ts            # @bookkeeping/auth/session: Session, SessionUser, resolveSession
 ```
 
 Hono routes describe their responses with the same Zod schemas that tests
@@ -311,9 +326,8 @@ before running setup. Do not commit or share `.env.sonar`.
 
 The scanner analyzes
 `apps/web/src/`, `apps/server/src/`, `packages/domain/src/`,
-`packages/database/src/`, and `packages/application/src/` and classifies
-colocated Vitest tests and
-`apps/web/tests/` as test code. It does
+`packages/database/src/`, `packages/application/src/`, and `packages/auth/src/`
+and classifies colocated Vitest tests and `apps/web/tests/` as test code. It does
 not run tests or generate coverage; coverage reporting is not configured.
 
 `pnpm sonar:stop` stops this stack and retains its database and analysis data.

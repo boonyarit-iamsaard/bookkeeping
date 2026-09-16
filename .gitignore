@@ -21,6 +21,7 @@ node_modules
 /apps/server/.turbo/
 /packages/domain/.turbo/
 /packages/application/.turbo/
+/packages/auth/.turbo/
 /packages/database/.turbo/
 
 # next.js
