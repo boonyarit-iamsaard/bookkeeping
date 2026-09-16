@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/turbo/schema.json",
+  "globalEnv": ["CI"],
+  "globalPassThroughEnv": [
+    "SONAR_ADMIN_LOGIN",
+    "SONAR_ADMIN_PASSWORD",
+    "SONAR_TOKEN"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "//#types:check:scripts": {},
+    "types:check": {},
+    "test": {},
+    "test:e2e": {
+      "dependsOn": ["build"]
+    }
+  }
+}

@@ -19,7 +19,7 @@
       "!**/.pnpm-store",
       "!.impeccable/hook.cache.json",
       "!**/next-env.d.ts",
-      "!public",
+      "!**/public",
       "!**/test-results",
       "!**/playwright-report"
     ]
@@ -147,7 +147,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/**/index.ts", "src/**/index.tsx"],
+      "includes": ["apps/web/src/**/index.ts", "apps/web/src/**/index.tsx"],
       "linter": {
         "rules": {
           "performance": {
@@ -158,21 +158,21 @@
     },
     {
       "includes": [
-        "src/app/**/page.tsx",
-        "src/app/**/layout.tsx",
-        "src/app/**/loading.tsx",
-        "src/app/**/error.tsx",
-        "src/app/**/global-error.tsx",
-        "src/app/**/not-found.tsx",
-        "src/app/**/global-not-found.tsx",
-        "src/app/**/template.tsx",
-        "src/app/**/default.tsx",
-        "next.config.ts",
-        "drizzle.config.ts",
-        "playwright.config.ts",
-        "vitest.config.mts",
-        "postcss.config.mjs",
-        "tests/database/global-setup.ts"
+        "apps/web/src/app/**/page.tsx",
+        "apps/web/src/app/**/layout.tsx",
+        "apps/web/src/app/**/loading.tsx",
+        "apps/web/src/app/**/error.tsx",
+        "apps/web/src/app/**/global-error.tsx",
+        "apps/web/src/app/**/not-found.tsx",
+        "apps/web/src/app/**/global-not-found.tsx",
+        "apps/web/src/app/**/template.tsx",
+        "apps/web/src/app/**/default.tsx",
+        "apps/web/next.config.ts",
+        "apps/web/drizzle.config.ts",
+        "apps/web/playwright.config.ts",
+        "apps/web/vitest.config.mts",
+        "apps/web/postcss.config.mjs",
+        "apps/web/tests/database/global-setup.ts"
       ],
       "linter": {
         "rules": {
@@ -183,7 +183,7 @@
       }
     },
     {
-      "includes": ["src/app/**"],
+      "includes": ["apps/web/src/app/**"],
       "linter": {
         "rules": {
           "style": {

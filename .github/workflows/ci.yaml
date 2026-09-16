@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
 
       - name: Configure CI environment
-        run: cp .env.ci.example .env
+        run: cp apps/web/.env.ci.example apps/web/.env
 
       - name: Enable corepack
         run: corepack enable
@@ -34,7 +34,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium
 
       - name: Run CI checks
         run: pnpm run ci

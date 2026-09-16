@@ -12,10 +12,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ### Local resource limits
 
-Run heavy checks one at a time on this machine: Sonar scans, production builds,
-unit/integration suites, and browser tests. Wait for each to finish before
-starting the next; overlapping runs have exhausted memory and nearly crashed
-the machine. Lightweight independent reads and searches may run in parallel.
+Sonar scans and browser test (e2e) runs are exclusive on this machine: never
+run either concurrently with any other heavy task — another Sonar scan, e2e, a
+production build, or the unit/integration suites — and never with each other.
+Overlapping runs have exhausted memory and nearly crashed the machine.
+Everything else may run in parallel, including Turborepo task parallelism.
+Lightweight independent reads and searches may run in parallel.
 
 ### Code conventions
 

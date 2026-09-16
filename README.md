@@ -11,11 +11,13 @@ before starting the database.
 
 ```bash
 pnpm install
-cp .env.example .env
+cp apps/web/.env.example apps/web/.env
+cp .env.local.example .env.local
 ```
 
-Set `BETTER_AUTH_SECRET` in `.env` to a random secret of at least 32 characters
-(generate one with `openssl rand -base64 32`). Then start the database and app:
+Set `BETTER_AUTH_SECRET` in `apps/web/.env` to a random secret of at least 32
+characters (generate one with `openssl rand -base64 32`). Then start the
+database and app:
 
 ```bash
 pnpm db:start
@@ -23,41 +25,46 @@ pnpm db:push
 pnpm dev
 ```
 
-For an existing checkout, keep your existing `.env`. Set `DATABASE_URL` to match
-the PostgreSQL credentials in `docker-compose.yaml`.
+For an existing checkout, keep your existing `apps/web/.env`. Set `DATABASE_URL`
+to match the PostgreSQL credentials in the root `.env.local` Compose file.
 
 Open [localhost:3000](http://localhost:3000). The home page is
-`src/app/page.tsx` and redirects to `/dashboard`. Without a session, the dashboard
+`apps/web/src/app/page.tsx` and redirects to `/dashboard`. Without a session, the dashboard
 redirects to `/sign-in`. Create an account at `/sign-up`.
 
-Global styles are in `src/styles/globals.css`. Fonts are Inter
-and JetBrains Mono, configured in `src/styles/fonts.ts`.
+Global styles are in `apps/web/src/styles/globals.css`. Fonts are Inter
+and JetBrains Mono, configured in `apps/web/src/styles/fonts.ts`.
 
 ## Project structure
 
+The repo is a pnpm workspace with Turborepo; `apps/web` is the Next.js app and
+future services will live beside it as further `apps/*` (see
+[ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
+
 ```text
-src/
-  app/                  # Route entry points, layouts, and route handlers
-  core/
-    auth/               # Better Auth setup, browser client, and session helper
-    env/config.ts       # T3 Env schemas and runtime validation
-    database/
-      client.ts         # Server-only Drizzle client for the app
-      database.ts       # Database factory and the Database type operations accept
-      schema/           # Tables and relations, also used by Drizzle CLI
-  features/
-    auth/               # Sign-in/sign-up forms, hooks, and sign-out button
-    categories/         # Category vocabulary, behavior, and picker forms
-    transactions/       # Transaction vocabulary, behavior, and entry form
-    wallets/            # Wallet operations, server actions, form, and list
-  shared/
-    components/ui/      # Reusable UI primitives
-    components/form/    # Reusable form feedback
-    helpers/            # Helpers independent of business features
-  styles/               # Global styles and fonts
-tests/
-  database/             # PostgreSQL test harness (setup, rollback helper)
-  e2e/                  # Playwright browser tests
+apps/web/
+  src/
+    app/                  # Route entry points, layouts, and route handlers
+    core/
+      auth/               # Better Auth setup, browser client, and session helper
+      env/config.ts       # T3 Env schemas and runtime validation
+      database/
+        client.ts         # Server-only Drizzle client for the app
+        database.ts       # Database factory and the Database type operations accept
+        schema/           # Tables and relations, also used by Drizzle CLI
+    features/
+      auth/               # Sign-in/sign-up forms, hooks, and sign-out button
+      categories/         # Category vocabulary, behavior, and picker forms
+      transactions/       # Transaction vocabulary, behavior, and entry form
+      wallets/            # Wallet operations, server actions, form, and list
+    shared/
+      components/ui/      # Reusable UI primitives
+      components/form/    # Reusable form feedback
+      helpers/            # Helpers independent of business features
+    styles/               # Global styles and fonts
+  tests/
+    database/             # PostgreSQL test harness (setup, rollback helper)
+    e2e/                  # Playwright browser tests
 ```
 
 Keep routes focused on composing features. Group business logic, vocabulary,
@@ -76,8 +83,8 @@ configuration.
 
 ## Environment configuration
 
-Set these values in `.env` for local development or inject them into the server
-environment when deploying:
+Set these values in `apps/web/.env` for local development or inject them into
+the server environment when deploying:
 
 | Variable             | Purpose                                       |
 | -------------------- | --------------------------------------------- |
@@ -85,9 +92,13 @@ environment when deploying:
 | `BETTER_AUTH_URL`    | App base URL, locally `http://localhost:3000` |
 | `DATABASE_URL`       | PostgreSQL connection URL                     |
 
-T3 Env validates these values when `src/core/env/config.ts` loads, including
-during database and auth initialization. The Drizzle CLI also imports this
-configuration and requires these values.
+T3 Env validates these values when `apps/web/src/core/env/config.ts` loads,
+including during database and auth initialization. The Drizzle CLI also imports
+this configuration and requires these values.
+
+The local Docker Compose infrastructure reads the root `.env.local` (see
+`.env.local.example`); its `POSTGRES_PASSWORD` must match the password embedded
+in `DATABASE_URL`.
 
 `pnpm build` sets `SKIP_ENV_VALIDATION=1` only for the build process, allowing the
 app to build without runtime secrets or a running database. Do not set that flag
@@ -96,20 +107,20 @@ runtime validation enabled.
 
 ## Database commands
 
-| Command          | Purpose                                                  |
-| ---------------- | -------------------------------------------------------- |
-| `pnpm db:start`  | Start local PostgreSQL and wait for its health check     |
-| `pnpm db:stop`   | Stop the local container while retaining its data volume |
-| `pnpm db:push`   | Apply schema changes directly for local development      |
-| `pnpm db:studio` | Open Drizzle Studio                                      |
+| Command          | Purpose                                                                       |
+| ---------------- | ----------------------------------------------------------------------------- |
+| `pnpm db:start`  | Start local PostgreSQL and wait for its health check, using root `.env.local` |
+| `pnpm db:stop`   | Stop the local container while retaining its data volume                      |
+| `pnpm db:push`   | Apply schema changes directly for local development                           |
+| `pnpm db:studio` | Open Drizzle Studio                                                           |
 
 The schema-change policy in [AGENTS.md](AGENTS.md#database-schema-changes)
 requires `db:push` until the user explicitly authorizes switching to migrations.
 
 PostgreSQL stores its initialized credentials in the persistent data volume.
-Changing `POSTGRES_PASSWORD` in Compose does not change the password of an
-already initialized database; update the existing database password and
-`DATABASE_URL` together when changing credentials.
+Changing `POSTGRES_PASSWORD` in `.env.local` does not change the password of an
+already initialized database; update the existing database password, `.env.local`,
+and `DATABASE_URL` in `apps/web/.env` together when changing credentials.
 
 ## Tests
 
@@ -118,13 +129,14 @@ pnpm test          # Vitest: unit and PostgreSQL integration tests
 pnpm test:e2e      # Playwright: browser flows against an isolated app/database
 ```
 
-Tests load `.env` in every environment. GitHub Actions copies the checked-in
-`.env.ci.example` to `.env` before running checks. Runtime environment validation
+Tests load `apps/web/.env` in every environment. GitHub Actions copies the
+checked-in `apps/web/.env.ci.example` to `apps/web/.env` before running checks.
+Runtime environment validation
 stays enabled. Testcontainers supplies the database URL, and the browser runner
 overrides the app URL with its actual port.
 
 Unit tests (`*.unit.test.ts`) are colocated with their source modules. Run them
-without Docker using `pnpm exec vitest run --project unit`.
+without Docker using `pnpm --filter @bookkeeping/web exec vitest run --project unit`.
 
 Integration tests (`*.integration.test.ts`) use Testcontainers to start a disposable
 PostgreSQL 18 database on an available port. Docker must be running. The harness
@@ -132,12 +144,12 @@ applies the current schema with `db:push`, provides its connection URL to test
 workers, and stops the container after the suite. Every test runs inside a
 transaction that is rolled back, except concurrency checks that use committed
 writes isolated by owner. No local development database is used. Run this suite
-alone using `pnpm exec vitest run --project integration`.
+alone using `pnpm --filter @bookkeeping/web exec vitest run --project integration`.
 
-Browser tests live in `tests/e2e/` and need Chromium once:
+Browser tests live in `apps/web/tests/e2e/` and need Chromium once:
 
 ```bash
-pnpm exec playwright install --with-deps chromium
+pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium
 ```
 
 The browser runner creates its own disposable PostgreSQL database, pushes the
@@ -183,7 +195,8 @@ Open [localhost:9000](http://localhost:9000) and use the admin credentials from
 before running setup. Do not commit or share `.env.sonar`.
 
 The scanner analyzes
-`src/` and classifies colocated Vitest tests and `tests/` as test code. It does
+`apps/web/src/` and classifies colocated Vitest tests and `apps/web/tests/` as
+test code. It does
 not run tests or generate coverage; coverage reporting is not configured.
 
 `pnpm sonar:stop` stops this stack and retains its database and analysis data.
@@ -216,6 +229,9 @@ pnpm test:e2e
 
 `pnpm run ci` runs the complete check sequence, including browser tests against
 the production build using `next start`, both locally and in GitHub Actions.
+`pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
+caches and parallelizes per-workspace tasks (see
+[ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
 Standalone `pnpm test:e2e` uses `next dev` unless `CI=1` is set.
 `pnpm check` applies Biome fixes;
 `pnpm format` formats Markdown and YAML files.
@@ -231,12 +247,13 @@ operation and browser tests.
 To run the workflow locally, install `act`, start Docker, and run:
 
 ```bash
-cp .env.ci.example .env.ci
+cp apps/web/.env.ci.example apps/web/.env.ci
 act push -j ci
 ```
 
 `.actrc` selects the `catthehacker/ubuntu:act-latest` runner image and
-`linux/amd64` architecture and loads `.env.ci` instead of the local development
-`.env`. Both `.env` and `.env.ci` are ignored by Git; only the templates are
-committed. The workflow copies `.env.ci.example` to `.env` inside the runner.
+`linux/amd64` architecture and loads `apps/web/.env.ci` instead of the local
+development `apps/web/.env`. Both are ignored by Git; only the templates are
+committed. The workflow copies `apps/web/.env.ci.example` to `apps/web/.env`
+inside the runner.
 Testcontainers manages PostgreSQL, so local CI needs Docker access.
