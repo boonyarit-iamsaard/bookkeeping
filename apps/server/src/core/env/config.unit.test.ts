@@ -3,7 +3,7 @@ import { parseServerEnv } from "./config.js";
 
 describe("server env config", () => {
   it("applies defaults when optional values are absent", () => {
-    expect(parseServerEnv({})).toEqual({ port: 3001, hostname: "0.0.0.0" });
+    expect(parseServerEnv({})).toEqual({ port: 5000, hostname: "0.0.0.0" });
   });
 
   it("reads overrides from the environment source", () => {
@@ -17,11 +17,11 @@ describe("server env config", () => {
     expect(
       parseServerEnv({
         BETTER_AUTH_SECRET: "web-owned-secret-that-is-at-least-32-chars",
-        BETTER_AUTH_URL: "http://localhost:3000",
+        BETTER_AUTH_URL: "http://localhost:4000",
         DATABASE_URL:
           "postgresql://postgres:password@localhost:5432/bookkeeping",
       }),
-    ).toEqual({ port: 3001, hostname: "0.0.0.0" });
+    ).toEqual({ port: 5000, hostname: "0.0.0.0" });
   });
 
   it("rejects a port that is not a positive integer", () => {

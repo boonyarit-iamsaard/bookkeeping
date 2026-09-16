@@ -26,3 +26,12 @@ together with explicit, independently configurable local origins.
   web-owned variables are ignored. README documents both local origins and
   that database commands need neither app running. `turbo run build`,
   `types:check`, and `test` already resolve both workspaces.
+- Follow-up (2026-09-16): the env mechanism above was reverted after review.
+  Next.js documents that `PORT` cannot come from `.env`, so the web `dev` and
+  `start` scripts now pass `-p 4000` directly and `apps/web/scripts/load-env.mjs`
+  is gone; `.env` precedence is back in Next's hands. The server default port
+  moved to `5000` (Zod default, `.env.example`, unit tests). `envMode: strict`
+  was dropped from `turbo.json` because it is already Turborepo's default and
+  the earlier comment wrongly credited it as a change; the `dev` task instead
+  passes `HOST` and `PORT` through so shell overrides reach the server. README
+  documents the new origins and how to change each.

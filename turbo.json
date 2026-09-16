@@ -1,6 +1,5 @@
 {
   "$schema": "./node_modules/turbo/schema.json",
-  "envMode": "strict",
   "globalEnv": ["CI"],
   "globalPassThroughEnv": [
     "SONAR_ADMIN_LOGIN",
@@ -14,7 +13,8 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": ["HOST", "PORT"]
     },
     "//#types:check:scripts": {},
     "types:check": {},
