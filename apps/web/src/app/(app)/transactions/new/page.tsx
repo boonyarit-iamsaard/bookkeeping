@@ -1,4 +1,3 @@
-import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
 import { Wallet } from "lucide-react";
@@ -24,7 +23,6 @@ export default async function Page() {
   }
   const ownerId = session.user.id;
 
-  await initializeDefaultCategories(db, ownerId);
   const [allWallets, categories, lastUsed] = await Promise.all([
     listWallets(db, { ownerId: ownerId }),
     listCategories(db, ownerId),

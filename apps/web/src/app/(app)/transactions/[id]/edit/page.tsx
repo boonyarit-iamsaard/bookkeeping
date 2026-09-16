@@ -1,4 +1,3 @@
-import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import {
   APP_TIME_ZONE,
   formatInstant,
@@ -41,7 +40,6 @@ export default async function Page({
     notFound();
   }
 
-  await initializeDefaultCategories(db, ownerId);
   // A refund shows its expense; an expense shows what it has refunded.
   const refundedExpenseId = transaction.refundOf?.id ?? transaction.id;
   const [wallets, categories, refundedExpense, refunds] = await Promise.all([

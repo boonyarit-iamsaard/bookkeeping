@@ -1,4 +1,6 @@
+import type { Database } from "@bookkeeping/database/connection";
 import { Hono } from "hono";
+import { categoryRoutes } from "../features/categories/category.routes.js";
 import { healthRoutes } from "../features/health/health.routes.js";
 import type { AuthGateway } from "./auth/auth.js";
 import { mountAuthRoutes } from "./auth/auth.js";
@@ -18,10 +20,15 @@ export const APPLICATION_ROUTE_PATTERN = "/v1/*";
 
 export interface AppOptions {
   auth: AuthGateway;
+  db: Database;
   clientOrigins: readonly string[];
 }
 
-export function createApp({ auth, clientOrigins }: AppOptions): Hono<AppEnv> {
+export function createApp({
+  auth,
+  db,
+  clientOrigins,
+}: AppOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
   app.use("*", requestContextMiddleware);
@@ -33,6 +40,7 @@ export function createApp({ auth, clientOrigins }: AppOptions): Hono<AppEnv> {
   app.route("/", healthRoutes);
   mountAuthRoutes(app, auth);
   app.use(APPLICATION_ROUTE_PATTERN, requireSession(auth));
+  app.route("/v1", categoryRoutes(db));
   mountOpenApiDocument(app);
 
   return app;

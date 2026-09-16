@@ -13,6 +13,7 @@
     "types:check": "tsc --noEmit"
   },
   "dependencies": {
+    "@bookkeeping/application": "workspace:*",
     "@bookkeeping/database": "workspace:*",
     "better-auth": "^1.7.4",
     "drizzle-orm": "^0.45.2"

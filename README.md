@@ -94,6 +94,7 @@ apps/server/
       env/config.ts       # Server environment schemas and runtime validation
       http/               # Request context, CORS, Problem Details, OpenAPI document
     features/
+      categories/         # POST /v1/categories/defaults: the explicit provisioning retry
       health/             # Health check resource
     server.ts             # Node entrypoint: parses env and serves the app
   scripts/build.ts        # esbuild bundle of the entrypoint and workspace packages
@@ -153,11 +154,18 @@ packages/application/
 
 `@bookkeeping/auth` owns the framework-independent Better Auth configuration:
 the Drizzle adapter over the database package's auth tables (with transactions
-enabled for Better Auth's own multi-write flows) and the session contract both
-app adapters derive owner ids from. Each app passes its validated secret and
-base URL plus any framework plugin, so Next.js and Hono mount one
-configuration against one user store while each origin keeps its own
-host-only cookie:
+enabled for Better Auth's own multi-write flows), the session contract both
+app adapters derive owner ids from, and the fresh-user provisioning hook. That
+hook runs `initializeDefaultCategories` after a sign-up commits; because it
+runs post-commit, a failure is logged rather than failing the sign-up, and the
+explicit retry (`POST /v1/categories/defaults` in Hono, a server action after
+sign-in/sign-up in Next.js) completes the set. That POST is an idempotent
+action rather than resource creation: it needs no `Idempotency-Key` and
+answers `200` with the trees it seeded, not `201` with a `Location`. Reads
+never provision. Each app
+passes its validated secret and base URL plus any framework plugin, so Next.js
+and Hono mount one configuration against one user store while each origin
+keeps its own host-only cookie:
 
 ```text
 packages/auth/

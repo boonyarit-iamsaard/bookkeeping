@@ -1,3 +1,4 @@
+import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import {
   accounts,
   accountsRelations,
@@ -89,8 +90,30 @@ export function createAuth({
         generateId: false,
       },
     },
+    databaseHooks: {
+      user: {
+        create: {
+          after: (user) => provisionCreatedUser(db, user.id),
+        },
+      },
+    },
     plugins: [...(plugins ?? [])],
   });
+}
+
+/**
+ * Better Auth runs this after the sign-up transaction commits, so a failure
+ * here can no longer roll the user back. Sign-up still succeeds — the user
+ * exists and holds a session — and the explicit provisioning retry completes
+ * the default set; throwing would instead fail a request whose user was
+ * already created.
+ */
+async function provisionCreatedUser(db: Database, userId: string) {
+  try {
+    await initializeDefaultCategories(db, userId);
+  } catch (error) {
+    console.error("Fresh-user provisioning failed", { userId, error });
+  }
 }
 
 export type Auth = ReturnType<typeof createAuth>;

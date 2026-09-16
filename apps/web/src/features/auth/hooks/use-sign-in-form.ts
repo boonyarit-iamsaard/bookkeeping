@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import * as z from "zod";
 import { authClient } from "@/core/auth/client";
+import { completeProvisioning } from "@/features/auth/complete-provisioning";
 
 const signInSchema = z.object({
   email: z.email("Enter a valid email address"),
@@ -37,6 +38,7 @@ export function useSignInForm() {
         return;
       }
 
+      await completeProvisioning();
       router.push("/dashboard");
       router.refresh();
     },

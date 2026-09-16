@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import * as z from "zod";
 import { authClient } from "@/core/auth/client";
+import { completeProvisioning } from "@/features/auth/complete-provisioning";
 
 // Mirrors Better Auth's default password bounds.
 const PASSWORD_MIN_LENGTH = 8;
@@ -62,6 +63,7 @@ export function useSignUpForm() {
         return;
       }
 
+      await completeProvisioning();
       router.push("/dashboard");
       router.refresh();
     },

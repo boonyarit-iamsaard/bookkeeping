@@ -41,12 +41,18 @@ importers:
 
   apps/server:
     dependencies:
+      '@bookkeeping/application':
+        specifier: workspace:*
+        version: link:../../packages/application
       '@bookkeeping/auth':
         specifier: workspace:*
         version: link:../../packages/auth
       '@bookkeeping/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@bookkeeping/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@hono/node-server':
         specifier: ^2.1.1
         version: 2.1.1(hono@4.13.7)
@@ -203,6 +209,9 @@ importers:
 
   packages/auth:
     dependencies:
+      '@bookkeeping/application':
+        specifier: workspace:*
+        version: link:../application
       '@bookkeeping/database':
         specifier: workspace:*
         version: link:../database

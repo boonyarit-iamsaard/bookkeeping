@@ -1,4 +1,3 @@
-import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
@@ -18,7 +17,6 @@ export default async function Page() {
   }
   const ownerId = session.user.id;
 
-  await initializeDefaultCategories(db, ownerId);
   const [categories, usage] = await Promise.all([
     listCategories(db, ownerId),
     listCategoryUsage(db, ownerId),

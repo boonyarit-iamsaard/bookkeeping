@@ -8,10 +8,12 @@ describe("managed auth routes", () => {
   it("delegates every method under /api/auth to the auth mount", async () => {
     const seen: string[] = [];
     const app = createTestApp({
-      ...anonymousAuthGateway,
-      async handleRequest(request) {
-        seen.push(`${request.method} ${new URL(request.url).pathname}`);
-        return Response.json({ ok: true });
+      auth: {
+        ...anonymousAuthGateway,
+        async handleRequest(request) {
+          seen.push(`${request.method} ${new URL(request.url).pathname}`);
+          return Response.json({ ok: true });
+        },
       },
     });
 

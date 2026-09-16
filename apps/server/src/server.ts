@@ -16,6 +16,7 @@ const auth = createAuth({
 });
 const app = createApp({
   auth: createAuthGateway(auth),
+  db,
   clientOrigins: serverEnv.clientOrigins,
 });
 

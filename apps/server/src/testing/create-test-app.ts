@@ -1,3 +1,5 @@
+import type { Database } from "@bookkeeping/database/connection";
+import { createDatabase } from "@bookkeeping/database/connection";
 import type { Hono } from "hono";
 import { createApp } from "../core/app.js";
 import type { AuthGateway } from "../core/auth/auth.js";
@@ -15,8 +17,22 @@ export const anonymousAuthGateway: AuthGateway = {
   },
 };
 
-export function createTestApp(
-  auth: AuthGateway = anonymousAuthGateway,
-): Hono<AppEnv> {
-  return createApp({ auth, clientOrigins: [TEST_CLIENT_ORIGIN] });
+/**
+ * A pool opens no connection until it is queried, so unit tests that never
+ * reach a database can hold this handle; a query against it fails to connect.
+ */
+const unconnectedDatabase = createDatabase(
+  "postgresql://unit-tests.invalid/never",
+).db;
+
+export interface TestAppOptions {
+  auth?: AuthGateway;
+  db?: Database;
+}
+
+export function createTestApp({
+  auth = anonymousAuthGateway,
+  db = unconnectedDatabase,
+}: Readonly<TestAppOptions> = {}): Hono<AppEnv> {
+  return createApp({ auth, db, clientOrigins: [TEST_CLIENT_ORIGIN] });
 }

@@ -4,37 +4,30 @@ import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { Hono } from "hono";
 import { describe, expect, test } from "vitest";
+import {
+  TEST_API_ORIGIN as API_ORIGIN,
+  createMountedTestApp,
+  TEST_PASSWORD as PASSWORD,
+  TEST_AUTH_SECRET,
+  uniqueEmail as uniqueEmailFor,
+} from "../../testing/create-mounted-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-test-app.js";
-import { createApp } from "../app.js";
-import { API_COOKIE_PREFIX, createAuthGateway } from "./auth.js";
+import { API_COOKIE_PREFIX } from "./auth.js";
 import type { AuthenticatedEnv } from "./session.js";
 
 const { withRollback } = setupTestDatabase();
 
-const TEST_SECRET = "integration-test-secret-with-at-least-32-chars";
-const API_ORIGIN = "http://localhost:5000";
 const WEB_ORIGIN = TEST_CLIENT_ORIGIN;
 const API_COOKIE_NAME = `${API_COOKIE_PREFIX}.session_token`;
 const WEB_COOKIE_NAME = "better-auth.session_token";
-const PASSWORD = "correct horse battery";
 
 function uniqueEmail(): string {
-  return `hono-${process.pid}-${Date.now()}@test.local`;
+  return uniqueEmailFor("hono");
 }
 
-/** The Hono mount as the entrypoint assembles it, over the given database. */
+/** The mounted app plus a protected probe route. */
 function createHonoApp(db: Database) {
-  const auth = createAuth({
-    db,
-    secret: TEST_SECRET,
-    baseURL: API_ORIGIN,
-    trustedOrigins: [WEB_ORIGIN],
-    cookiePrefix: API_COOKIE_PREFIX,
-  });
-  const app = createApp({
-    auth: createAuthGateway(auth),
-    clientOrigins: [WEB_ORIGIN],
-  });
+  const app = createMountedTestApp(db);
   app.route(
     "/v1",
     new Hono<AuthenticatedEnv>().get("/whoami", (c) =>
@@ -46,7 +39,7 @@ function createHonoApp(db: Database) {
 
 /** The temporary Next.js mount: same store and secret, its own origin. */
 function createWebAuth(db: Database) {
-  return createAuth({ db, secret: TEST_SECRET, baseURL: WEB_ORIGIN });
+  return createAuth({ db, secret: TEST_AUTH_SECRET, baseURL: WEB_ORIGIN });
 }
 
 interface SignUpRequest {
