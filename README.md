@@ -80,6 +80,7 @@ The server app mirrors the same layout:
 
 ```text
 apps/server/
+  Dockerfile             # multi-stage production image for the Hono server
   src/
     core/
       app.ts              # Hono app assembly shared by tests and the entrypoint
@@ -159,6 +160,28 @@ and `PORT` from its environment; `pnpm dev:server` loads `apps/server/.env`,
 and the `dev` task passes shell `HOST` and `PORT` through Turborepo, so
 `PORT=5001 pnpm dev:server` also works. Both ports avoid the Next.js default
 of `3000` so a stray `next dev` elsewhere does not collide with either app.
+
+### Production-like Hono stack
+
+The base `docker-compose.yaml` remains PostgreSQL-only. A normal `docker
+compose` invocation automatically loads `docker-compose.override.yaml`, which
+adds the production-built Hono server on port `5000` and waits for PostgreSQL
+to become healthy before starting it.
+
+Run the repeatable container check with:
+
+```bash
+pnpm container:smoke
+```
+
+It builds the server image, starts the stack, verifies
+`http://localhost:5000/health`, and stops the containers even when the check
+fails or is interrupted. The PostgreSQL volume is retained. The script uses
+`.env.local` when present and otherwise falls back to `.env.local.example`.
+Use `docker compose --env-file .env.local down` to stop a manually started
+production-like stack. Use the database commands below when only PostgreSQL
+is needed; they explicitly select the base Compose definition and therefore do
+not build or launch Hono.
 
 ## Database commands
 

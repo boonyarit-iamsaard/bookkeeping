@@ -1,0 +1,15 @@
+.git
+.gitignore
+.scratch
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+coverage
+**/coverage
+.turbo
+**/.turbo
+.env
+.env.*
