@@ -43,6 +43,22 @@ Apply the same convention to categories and transactions. A file with several
 related functions uses their common concept; one concept per file does not mean
 one function per file. Preserve framework-required filenames and exports.
 
+Name infrastructure behavior by what callers observe rather than by its
+current vendor or wiring mechanism. Use `create` for functions that construct
+and return a value, `parse` for validated external input, `register` for
+functions that mutate an existing application, and `describe` for OpenAPI
+documentation. A ready router is `<feature>Routes`; a router factory is
+`create<Feature>Routes`. A ready middleware is `<purpose>Middleware`; a
+middleware factory is `create<Purpose>Middleware`. Normalized runtime settings
+are `Config`, while `Env` is reserved for framework environment contracts or
+raw environment input. Test composition factories name their scope, such as
+`createUnitTestApp` and `createIntegrationTestApp`; scenario helpers name the
+observable behavior, not the underlying mount.
+
+Name seams by the capability they provide, not their adapter implementation.
+For example, `AuthGateway` remains accurate if the authentication library
+changes, while an implementation-named gateway would become stale.
+
 Use test scope in filenames: `*.unit.test.ts`, `*.integration.test.ts`, and
 `tests/e2e/*.spec.ts`. Match each colocated test's stem to its source module.
 Integration tests may exercise real PostgreSQL and are distinct from
@@ -51,9 +67,10 @@ browser-driven E2E tests. Database fixture names describe infrastructure.
 Helpers shared by a workspace's Vitest tests live in its `src/testing/`
 directory, following the Bulletproof React reference; neither Hono nor Vitest
 prescribes a location. The database package exposes its fixtures as
-`@bookkeeping/database/testing`, and the server keeps the stubbed app factory in
-`apps/server/src/testing/`. Playwright helpers stay beside the specs in
-`apps/web/tests/e2e/helpers/`. Test helpers are excluded from production builds.
+`@bookkeeping/database/testing`, and the server keeps its unit and integration
+app factories in `apps/server/src/testing/`. Playwright helpers stay beside the
+specs in `apps/web/tests/e2e/helpers/`. Test helpers are excluded from production
+builds.
 
 ## TypeScript house style
 

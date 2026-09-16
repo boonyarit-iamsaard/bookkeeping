@@ -35,7 +35,7 @@ export function createAuthGateway(auth: Auth): AuthGateway {
   };
 }
 
-export function mountAuthRoutes(app: Hono<AppEnv>, auth: AuthGateway): void {
+export function registerAuthRoutes(app: Hono<AppEnv>, auth: AuthGateway): void {
   // Better Auth owns the methods and OpenAPI description of its routes, so
   // they are registered as one catch-all rather than documented operations.
   app.all(AUTH_ROUTE_PATTERN, (c) => auth.handleRequest(c.req.raw));

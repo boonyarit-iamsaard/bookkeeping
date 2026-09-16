@@ -17,7 +17,7 @@ const serverEnvSchema = z.object({
   CLIENT_ORIGINS: originListSchema,
 });
 
-export interface ServerEnv {
+export interface ServerConfig {
   port: number;
   hostname: string;
   databaseUrl: string;
@@ -30,7 +30,7 @@ export interface ServerEnv {
 
 export function parseServerEnv(
   source: Readonly<Record<string, string | undefined>>,
-): ServerEnv {
+): ServerConfig {
   const parsed = serverEnvSchema.parse(source);
   return {
     port: parsed.PORT,

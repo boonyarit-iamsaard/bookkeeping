@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   anonymousAuthGateway,
-  createTestApp,
-} from "../../testing/create-test-app.js";
+  createUnitTestApp,
+} from "../../testing/create-unit-test-app.js";
 
 describe("managed auth routes", () => {
   it("delegates every method under /api/auth to the auth mount", async () => {
     const seen: string[] = [];
-    const app = createTestApp({
+    const app = createUnitTestApp({
       auth: {
         ...anonymousAuthGateway,
         async handleRequest(request) {

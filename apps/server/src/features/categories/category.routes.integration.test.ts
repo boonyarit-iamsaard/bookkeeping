@@ -8,11 +8,11 @@ import * as z from "zod";
 import { problemDetailsSchema } from "../../core/http/problem-details.js";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
-  createMountedTestApp,
-  signUpThroughMount,
+  createIntegrationTestApp,
+  signUpThroughAuthRoutes,
   TEST_API_ORIGIN,
-} from "../../testing/create-mounted-test-app.js";
-import { TEST_CLIENT_ORIGIN } from "../../testing/create-test-app.js";
+} from "../../testing/create-integration-test-app.js";
+import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { provisioningOutcomeResponseSchema } from "./category.routes.js";
 
 const { withRollback, committed } = setupTestDatabase();
@@ -21,9 +21,9 @@ const DEFAULTS_URL = `${TEST_API_ORIGIN}/v1/categories/defaults`;
 
 const sessionResponseSchema = z.object({ user: z.object({ id: z.string() }) });
 
-/** Signs up through the mount and returns the cookie plus the owner's id. */
+/** Signs up through the auth routes and returns the cookie plus the owner's id. */
 async function signUp(app: Hono<AppEnv>) {
-  const { cookie } = await signUpThroughMount(app, "defaults");
+  const { cookie } = await signUpThroughAuthRoutes(app, "defaults");
   const session = await app.request(`${TEST_API_ORIGIN}/api/auth/get-session`, {
     headers: { cookie, origin: TEST_CLIENT_ORIGIN },
   });
@@ -50,7 +50,7 @@ function retryProvisioning(app: Hono<AppEnv>, cookie: string) {
 describe("POST /v1/categories/defaults", () => {
   test("completes a signed-in owner's default set and reports what it seeded", async () => {
     await withRollback(async (db) => {
-      const app = createMountedTestApp(db);
+      const app = createIntegrationTestApp(db);
       const { cookie, ownerId } = await signUp(app);
       // Sign-up already provisioned; remove one tree to leave the owner
       // incomplete the way an interrupted hook would.
@@ -80,10 +80,13 @@ describe("POST /v1/categories/defaults", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await createMountedTestApp(db).request(DEFAULTS_URL, {
-        method: "POST",
-        headers: { origin: TEST_CLIENT_ORIGIN },
-      });
+      const response = await createIntegrationTestApp(db).request(
+        DEFAULTS_URL,
+        {
+          method: "POST",
+          headers: { origin: TEST_CLIENT_ORIGIN },
+        },
+      );
 
       expect(response.status).toBe(401);
       expect(problemDetailsSchema.parse(await response.json()).code).toBe(
@@ -96,7 +99,7 @@ describe("POST /v1/categories/defaults", () => {
     // Concurrency needs separate transactions, so this test commits; each
     // owner is fresh, so nothing else observes the rows.
     const db = committed();
-    const app = createMountedTestApp(db);
+    const app = createIntegrationTestApp(db);
     const { cookie, ownerId } = await signUp(app);
     await db.delete(categories).where(eq(categories.userId, ownerId));
 
@@ -130,7 +133,7 @@ describe("POST /v1/categories/defaults", () => {
 
   test("one owner's retry never touches another owner's categories", async () => {
     await withRollback(async (db) => {
-      const app = createMountedTestApp(db);
+      const app = createIntegrationTestApp(db);
       const alice = await signUp(app);
       const bob = await signUp(app);
       await db.delete(categories).where(eq(categories.userId, bob.ownerId));

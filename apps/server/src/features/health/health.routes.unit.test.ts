@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createTestApp } from "../../testing/create-test-app.js";
+import { createUnitTestApp } from "../../testing/create-unit-test-app.js";
 
 describe("health routes", () => {
   it("serves a successful health response in-process", async () => {
-    const response = await createTestApp().request("/health");
+    const response = await createUnitTestApp().request("/health");
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/json");

@@ -1,14 +1,14 @@
 import { HTTPException } from "hono/http-exception";
 import { describe, expect, it } from "vitest";
 import { healthResponseSchema } from "../features/health/health.routes.js";
-import { createTestApp } from "../testing/create-test-app.js";
+import { createUnitTestApp } from "../testing/create-unit-test-app.js";
 import { problemDetailsSchema } from "./http/problem-details.js";
 
 const requestIdHeader = "X-Request-Id";
 
 describe("HTTP contract", () => {
   it("returns direct JSON success bodies with fresh request identifiers", async () => {
-    const app = createTestApp();
+    const app = createUnitTestApp();
 
     const firstResponse = await app.request("/health");
     const secondResponse = await app.request("/health");
@@ -30,7 +30,7 @@ describe("HTTP contract", () => {
   });
 
   it("does not trust a client-supplied request identifier", async () => {
-    const response = await createTestApp().request("/health", {
+    const response = await createUnitTestApp().request("/health", {
       headers: { [requestIdHeader]: "client-supplied-id" },
     });
 
@@ -41,7 +41,7 @@ describe("HTTP contract", () => {
   });
 
   it("makes the request identifier available to request-scoped logging", async () => {
-    const app = createTestApp();
+    const app = createUnitTestApp();
     let loggedRequestId: string | undefined;
 
     app.get("/request-context", (c) => {
@@ -56,7 +56,7 @@ describe("HTTP contract", () => {
   });
 
   it("adds request identifiers to bodyless responses", async () => {
-    const app = createTestApp();
+    const app = createUnitTestApp();
     app.delete("/bodyless", (c) => c.body(null, 204));
 
     const response = await app.request("/bodyless", { method: "DELETE" });
@@ -67,7 +67,7 @@ describe("HTTP contract", () => {
   });
 
   it("maps HTTP exceptions to stable Problem Details", async () => {
-    const app = createTestApp();
+    const app = createUnitTestApp();
     app.get("/conflict", () => {
       throw new HTTPException(409, { message: "private conflict detail" });
     });
@@ -89,7 +89,7 @@ describe("HTTP contract", () => {
   });
 
   it("returns not-found failures as Problem Details", async () => {
-    const response = await createTestApp().request("/missing");
+    const response = await createUnitTestApp().request("/missing");
     const problem = problemDetailsSchema.parse(await response.json());
 
     expect(response.status).toBe(404);
@@ -106,7 +106,7 @@ describe("HTTP contract", () => {
   });
 
   it("returns unexpected faults as opaque internal-error problems", async () => {
-    const app = createTestApp();
+    const app = createUnitTestApp();
     app.get("/unexpected-fault", () => {
       throw new Error("database password should never reach the client");
     });
@@ -128,7 +128,7 @@ describe("HTTP contract", () => {
   });
 
   it("returns an opaque internal-error problem for non-Error faults", async () => {
-    const app = createTestApp();
+    const app = createUnitTestApp();
     app.get("/unexpected-value", () => {
       throw { secret: "must never reach the client" };
     });

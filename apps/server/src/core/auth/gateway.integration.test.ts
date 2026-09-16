@@ -6,13 +6,13 @@ import { Hono } from "hono";
 import { describe, expect, test } from "vitest";
 import {
   TEST_API_ORIGIN as API_ORIGIN,
-  createMountedTestApp,
+  createIntegrationTestApp,
+  createUniqueTestEmail,
   TEST_PASSWORD as PASSWORD,
   TEST_AUTH_SECRET,
-  uniqueEmail as uniqueEmailFor,
-} from "../../testing/create-mounted-test-app.js";
-import { TEST_CLIENT_ORIGIN } from "../../testing/create-test-app.js";
-import { API_COOKIE_PREFIX } from "./auth.js";
+} from "../../testing/create-integration-test-app.js";
+import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
+import { API_COOKIE_PREFIX } from "./gateway.js";
 import type { AuthenticatedEnv } from "./session.js";
 
 const { withRollback } = setupTestDatabase();
@@ -21,13 +21,9 @@ const WEB_ORIGIN = TEST_CLIENT_ORIGIN;
 const API_COOKIE_NAME = `${API_COOKIE_PREFIX}.session_token`;
 const WEB_COOKIE_NAME = "better-auth.session_token";
 
-function uniqueEmail(): string {
-  return uniqueEmailFor("hono");
-}
-
 /** The mounted app plus a protected probe route. */
-function createHonoApp(db: Database) {
-  const app = createMountedTestApp(db);
+function createSessionProbeApp(db: Database) {
+  const app = createIntegrationTestApp(db);
   app.route(
     "/v1",
     new Hono<AuthenticatedEnv>().get("/whoami", (c) =>
@@ -38,7 +34,7 @@ function createHonoApp(db: Database) {
 }
 
 /** The temporary Next.js mount: same store and secret, its own origin. */
-function createWebAuth(db: Database) {
+function createWebAuthMount(db: Database) {
   return createAuth({ db, secret: TEST_AUTH_SECRET, baseURL: WEB_ORIGIN });
 }
 
@@ -63,10 +59,13 @@ function signUpRequest({ origin, email, headers }: Readonly<SignUpRequest>) {
 describe("Better Auth mounted in Hono", () => {
   test("a browser on a client origin signs up and receives a host-only, HTTP-only API cookie", async () => {
     await withRollback(async (db) => {
-      const app = createHonoApp(db);
+      const app = createSessionProbeApp(db);
 
       const response = await app.request(
-        signUpRequest({ origin: WEB_ORIGIN, email: uniqueEmail() }),
+        signUpRequest({
+          origin: WEB_ORIGIN,
+          email: createUniqueTestEmail("hono"),
+        }),
       );
       const cookie = response.headers.get("set-cookie") ?? "";
 
@@ -86,9 +85,12 @@ describe("Better Auth mounted in Hono", () => {
 
   test("the issued cookie authenticates protected routes; a missing or forged one does not", async () => {
     await withRollback(async (db) => {
-      const app = createHonoApp(db);
+      const app = createSessionProbeApp(db);
       const signUp = await app.request(
-        signUpRequest({ origin: WEB_ORIGIN, email: uniqueEmail() }),
+        signUpRequest({
+          origin: WEB_ORIGIN,
+          email: createUniqueTestEmail("hono"),
+        }),
       );
       const cookie = signUp.headers.get("set-cookie") ?? "";
 
@@ -116,10 +118,13 @@ describe("Better Auth mounted in Hono", () => {
 
   test("Better Auth rejects sign-up from an untrusted browser origin", async () => {
     await withRollback(async (db) => {
-      const app = createHonoApp(db);
+      const app = createSessionProbeApp(db);
 
       const response = await app.request(
-        signUpRequest({ origin: "https://evil.example", email: uniqueEmail() }),
+        signUpRequest({
+          origin: "https://evil.example",
+          email: createUniqueTestEmail("hono"),
+        }),
       );
 
       expect(response.status).toBe(403);
@@ -129,11 +134,11 @@ describe("Better Auth mounted in Hono", () => {
 
   test("Better Auth rejects a cross-site navigation sign-in as CSRF", async () => {
     await withRollback(async (db) => {
-      const app = createHonoApp(db);
+      const app = createSessionProbeApp(db);
 
       const response = await app.request(
         signUpRequest({
-          email: uniqueEmail(),
+          email: createUniqueTestEmail("hono"),
           headers: {
             "sec-fetch-site": "cross-site",
             "sec-fetch-mode": "navigate",
@@ -147,9 +152,9 @@ describe("Better Auth mounted in Hono", () => {
 
   test("the Next.js and Hono mounts issue separate cookies over one user store", async () => {
     await withRollback(async (db) => {
-      const app = createHonoApp(db);
-      const webAuth = createWebAuth(db);
-      const email = uniqueEmail();
+      const app = createSessionProbeApp(db);
+      const webAuth = createWebAuthMount(db);
+      const email = createUniqueTestEmail("hono");
 
       const honoSignUp = await app.request(
         signUpRequest({ origin: WEB_ORIGIN, email }),

@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
-import { documentedProblemResponse } from "../../core/http/openapi.js";
+import { describeProblemResponse } from "../../core/http/openapi.js";
 
 export const provisioningOutcomeResponseSchema = z
   .object({
@@ -16,7 +16,7 @@ export const provisioningOutcomeResponseSchema = z
 
 const DEFAULTS_PATH = "/categories/defaults";
 
-export function categoryRoutes(db: Database) {
+export function createCategoryRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>().post(
     DEFAULTS_PATH,
     describeRoute({
@@ -28,7 +28,7 @@ export function categoryRoutes(db: Database) {
         "or sign-in to complete an interrupted provisioning. Idempotent: " +
         "existing trees, including customized ones, are left untouched.",
       tags: ["Categories"],
-      responses: { 401: documentedProblemResponse(401) },
+      responses: { 401: describeProblemResponse(401) },
     }),
     // The generics are explicit because the library cannot infer the
     // authenticated environment from an async handler; without them the

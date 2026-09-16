@@ -2,9 +2,9 @@ import { createAuth } from "@bookkeeping/auth/config";
 import type { Database } from "@bookkeeping/database/connection";
 import type { Hono } from "hono";
 import { createApp } from "../core/app.js";
-import { API_COOKIE_PREFIX, createAuthGateway } from "../core/auth/auth.js";
+import { API_COOKIE_PREFIX, createAuthGateway } from "../core/auth/gateway.js";
 import type { AppEnv } from "../core/http/request-context.js";
-import { TEST_CLIENT_ORIGIN } from "./create-test-app.js";
+import { TEST_CLIENT_ORIGIN } from "./create-unit-test-app.js";
 
 export const TEST_AUTH_SECRET =
   "integration-test-secret-with-at-least-32-chars";
@@ -13,16 +13,16 @@ export const TEST_PASSWORD = "correct horse battery";
 
 let emailSequence = 0;
 
-export function uniqueEmail(label: string): string {
+export function createUniqueTestEmail(label: string): string {
   emailSequence += 1;
   return `${label}-${process.pid}-${Date.now()}-${emailSequence}@test.local`;
 }
 
 /**
- * The Hono mount as the entrypoint assembles it — real Better Auth over the
+ * The server app as the entrypoint assembles it — real authentication over the
  * given database — trusting the test client origin.
  */
-export function createMountedTestApp(db: Database): Hono<AppEnv> {
+export function createIntegrationTestApp(db: Database): Hono<AppEnv> {
   const auth = createAuth({
     db,
     secret: TEST_AUTH_SECRET,
@@ -37,12 +37,12 @@ export function createMountedTestApp(db: Database): Hono<AppEnv> {
   });
 }
 
-/** Signs up a fresh user through the mount; returns the API cookie. */
-export async function signUpThroughMount(
+/** Signs up a fresh user through the auth routes; returns the API cookie. */
+export async function signUpThroughAuthRoutes(
   app: Hono<AppEnv>,
   label: string,
 ): Promise<{ cookie: string; email: string }> {
-  const email = uniqueEmail(label);
+  const email = createUniqueTestEmail(label);
   const response = await app.request(
     `${TEST_API_ORIGIN}/api/auth/sign-up/email`,
     {
@@ -59,7 +59,7 @@ export async function signUpThroughMount(
     },
   );
   if (response.status !== 200) {
-    throw new Error(`Sign-up through the mount failed: ${response.status}`);
+    throw new Error(`Sign-up through auth routes failed: ${response.status}`);
   }
   return { cookie: response.headers.get("set-cookie") ?? "", email };
 }

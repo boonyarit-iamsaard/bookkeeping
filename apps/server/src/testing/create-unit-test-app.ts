@@ -2,7 +2,7 @@ import type { Database } from "@bookkeeping/database/connection";
 import { createDatabase } from "@bookkeeping/database/connection";
 import type { Hono } from "hono";
 import { createApp } from "../core/app.js";
-import type { AuthGateway } from "../core/auth/auth.js";
+import type { AuthGateway } from "../core/auth/gateway.js";
 import type { AppEnv } from "../core/http/request-context.js";
 
 export const TEST_CLIENT_ORIGIN = "http://localhost:4000";
@@ -25,14 +25,14 @@ const unconnectedDatabase = createDatabase(
   "postgresql://unit-tests.invalid/never",
 ).db;
 
-export interface TestAppOptions {
+export interface UnitTestAppOptions {
   auth?: AuthGateway;
   db?: Database;
 }
 
-export function createTestApp({
+export function createUnitTestApp({
   auth = anonymousAuthGateway,
   db = unconnectedDatabase,
-}: Readonly<TestAppOptions> = {}): Hono<AppEnv> {
+}: Readonly<UnitTestAppOptions> = {}): Hono<AppEnv> {
   return createApp({ auth, db, clientOrigins: [TEST_CLIENT_ORIGIN] });
 }

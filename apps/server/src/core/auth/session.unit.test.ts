@@ -3,10 +3,10 @@ import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import {
   anonymousAuthGateway,
-  createTestApp,
-} from "../../testing/create-test-app.js";
+  createUnitTestApp,
+} from "../../testing/create-unit-test-app.js";
 import { problemDetailsSchema } from "../http/problem-details.js";
-import type { AuthGateway } from "./auth.js";
+import type { AuthGateway } from "./gateway.js";
 import type { AuthenticatedEnv } from "./session.js";
 
 const session: Session = {
@@ -24,7 +24,7 @@ const signedInAuthGateway: AuthGateway = {
 
 describe("requireSession", () => {
   it("returns an unauthenticated problem without a session", async () => {
-    const app = createTestApp({ auth: signedInAuthGateway });
+    const app = createUnitTestApp({ auth: signedInAuthGateway });
     app.get("/v1/whoami", (c) => c.json({ ok: true }));
 
     const response = await app.request("/v1/whoami");
@@ -43,7 +43,7 @@ describe("requireSession", () => {
   });
 
   it("resolves the session into request context for the route", async () => {
-    const app = createTestApp({ auth: signedInAuthGateway });
+    const app = createUnitTestApp({ auth: signedInAuthGateway });
     const whoamiRoutes = new Hono<AuthenticatedEnv>().get("/whoami", (c) =>
       c.json({ userId: c.get("session").user.id }),
     );
@@ -58,7 +58,7 @@ describe("requireSession", () => {
   });
 
   it("leaves health and auth routes outside the session requirement", async () => {
-    const app = createTestApp({ auth: signedInAuthGateway });
+    const app = createUnitTestApp({ auth: signedInAuthGateway });
 
     expect((await app.request("/health")).status).toBe(200);
     expect((await app.request("/api/auth/get-session")).status).toBe(404);

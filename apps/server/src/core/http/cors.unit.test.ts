@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  createTestApp,
+  createUnitTestApp,
   TEST_CLIENT_ORIGIN,
-} from "../../testing/create-test-app.js";
+} from "../../testing/create-unit-test-app.js";
 
 describe("credentialed CORS", () => {
   it("answers preflight for a configured client origin", async () => {
-    const response = await createTestApp().request("/v1/wallets", {
+    const response = await createUnitTestApp().request("/v1/wallets", {
       method: "OPTIONS",
       headers: {
         origin: TEST_CLIENT_ORIGIN,
@@ -31,7 +31,7 @@ describe("credentialed CORS", () => {
   });
 
   it("exposes the request identifier and location headers to clients", async () => {
-    const response = await createTestApp().request("/health", {
+    const response = await createUnitTestApp().request("/health", {
       headers: { origin: TEST_CLIENT_ORIGIN },
     });
 
@@ -45,7 +45,7 @@ describe("credentialed CORS", () => {
   });
 
   it("does not allow an unconfigured origin", async () => {
-    const response = await createTestApp().request("/health", {
+    const response = await createUnitTestApp().request("/health", {
       headers: { origin: "https://evil.example" },
     });
 

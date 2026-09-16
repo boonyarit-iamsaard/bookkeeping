@@ -8,9 +8,9 @@ import {
   resolver,
 } from "hono-openapi";
 import {
+  getProblemOptionsForStatus,
   PROBLEM_MEDIA_TYPE,
   problemDetailsSchema,
-  problemForStatus,
 } from "./problem-details.js";
 import type { AppEnv } from "./request-context.js";
 
@@ -18,11 +18,11 @@ export const OPENAPI_DOCUMENT_PATH = "/openapi.json";
 
 type DocumentedResponse = ResponsesWithResolver[string];
 
-export function documentedProblemResponse(
+export function describeProblemResponse(
   status: ContentfulStatusCode,
 ): DocumentedResponse {
   return {
-    description: problemForStatus(status).title,
+    description: getProblemOptionsForStatus(status).title,
     content: {
       [PROBLEM_MEDIA_TYPE]: { schema: resolver(problemDetailsSchema) },
     },
@@ -43,7 +43,7 @@ const openApiSpecOptions = {
   defaultOptions: Object.fromEntries(
     ALLOWED_METHODS.map((method) => [
       method,
-      { responses: { 500: documentedProblemResponse(500) } },
+      { responses: { 500: describeProblemResponse(500) } },
     ]),
   ),
   // Validation failures use Problem Details, never the library's built-in
@@ -51,7 +51,7 @@ const openApiSpecOptions = {
   defaultValidationErrorResponse: false,
 } satisfies Partial<GenerateSpecOptions>;
 
-export function mountOpenApiDocument(app: Hono<AppEnv>): void {
+export function registerOpenApiDocument(app: Hono<AppEnv>): void {
   app.get(
     OPENAPI_DOCUMENT_PATH,
     describeRoute({ hide: true }),

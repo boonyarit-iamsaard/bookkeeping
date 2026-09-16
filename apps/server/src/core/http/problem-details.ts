@@ -97,7 +97,7 @@ export function createProblemDetails(
   };
 }
 
-export function problemResponse(
+export function createProblemResponse(
   c: Context,
   options: Readonly<ProblemOptions>,
 ): Response {
@@ -106,7 +106,9 @@ export function problemResponse(
   });
 }
 
-export function problemForStatus(status: ContentfulStatusCode): ProblemOptions {
+export function getProblemOptionsForStatus(
+  status: ContentfulStatusCode,
+): ProblemOptions {
   const standardProblem = standardProblems[status];
 
   if (standardProblem !== undefined) {

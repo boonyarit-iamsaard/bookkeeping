@@ -1,6 +1,9 @@
 import type { Context, Next } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { problemForStatus, problemResponse } from "./problem-details.js";
+import {
+  createProblemResponse,
+  getProblemOptionsForStatus,
+} from "./problem-details.js";
 import type { AppEnv } from "./request-context.js";
 
 function unexpectedFaultResponse(error: unknown, c: Context<AppEnv>): Response {
@@ -9,12 +12,12 @@ function unexpectedFaultResponse(error: unknown, c: Context<AppEnv>): Response {
     requestId: c.get("requestId"),
   });
 
-  return problemResponse(c, problemForStatus(500));
+  return createProblemResponse(c, getProblemOptionsForStatus(500));
 }
 
 export function handleRequestError(error: Error, c: Context<AppEnv>): Response {
   if (error instanceof HTTPException) {
-    return problemResponse(c, problemForStatus(error.status));
+    return createProblemResponse(c, getProblemOptionsForStatus(error.status));
   }
 
   return unexpectedFaultResponse(error, c);
