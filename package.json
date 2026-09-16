@@ -5,7 +5,8 @@
   "scripts": {
     "build": "turbo run build",
     "check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-    "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && turbo run types:check types:check:scripts test && CI=1 turbo run test:e2e",
+    "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && turbo run types:check types:check:scripts test",
+    "ci:e2e": "CI=1 turbo run test:e2e",
     "db:push": "pnpm --filter @bookkeeping/database db:push",
     "db:start": "docker compose --env-file .env.local up -d --wait",
     "db:stop": "docker compose down",

@@ -19,6 +19,27 @@ Overlapping runs have exhausted memory and nearly crashed the machine.
 Everything else may run in parallel, including Turborepo task parallelism.
 Lightweight independent reads and searches may run in parallel.
 
+### Browser test execution policy
+
+During the Hono backend migration, retain the existing Next.js Playwright suite
+as a compatibility oracle for the temporary adapter, as decided in
+`docs/adr/0003-hono-application-backend.md`. It is not part of the routine local
+or per-ticket feedback loop.
+
+By default, agents should run the relevant unit, integration, and Hono contract
+tests. Run a focused E2E spec only when a change affects the corresponding
+Next.js adapter or browser boundary; use one browser project unless the change
+is viewport-specific. Run the full E2E matrix only when the user explicitly
+requests it, at a deliberate migration checkpoint, or for the final API-parity
+gate. Prefer remote CI for the full matrix when available, and always follow the
+local resource limits above. `pnpm run ci` is the routine gate and excludes
+browser tests; `pnpm run ci:e2e` is the explicit production-build browser gate.
+
+Do not expand, port, or optimize the frozen Next.js E2E suite merely to support
+the backend migration. Reassess client-specific browser coverage when SPA or
+React Native implementation begins, and remove the legacy suite when the
+Next.js adapter is removed.
+
 ### Code conventions
 
 Before writing, refactoring, or reviewing application code, read

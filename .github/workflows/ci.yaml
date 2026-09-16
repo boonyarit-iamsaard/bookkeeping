@@ -35,8 +35,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Run CI checks
+        run: pnpm run ci
+
       - name: Install Playwright browsers
         run: pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium
 
-      - name: Run CI checks
-        run: pnpm run ci
+      - name: Run browser compatibility suite
+        run: pnpm run ci:e2e

@@ -226,6 +226,8 @@ changing credentials.
 ```bash
 pnpm test          # Vitest: unit and PostgreSQL integration tests
 pnpm test:e2e      # Playwright: browser flows against an isolated app/database
+pnpm run ci        # Routine static, type, unit, integration, and contract checks
+pnpm run ci:e2e    # Explicit production-build browser compatibility gate
 ```
 
 Tests load `apps/web/.env` in every environment. GitHub Actions copies the
@@ -328,8 +330,9 @@ pnpm build
 pnpm test:e2e
 ```
 
-`pnpm run ci` runs the complete check sequence, including browser tests against
-the production build using `next start`, both locally and in GitHub Actions.
+`pnpm run ci` runs the routine check sequence without browser tests. The explicit
+`pnpm run ci:e2e` compatibility gate builds the application and runs the browser
+suite against the production server using `next start`.
 `pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
 caches and parallelizes per-workspace tasks across `apps/web`, `apps/server`,
 and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
@@ -341,9 +344,10 @@ Standalone `pnpm test:e2e` uses `next dev` unless `CI=1` is set.
 it works from a clean checkout.
 
 GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
-`main`. It installs dependencies with a frozen lockfile and Chromium, then runs
-`pnpm run ci`. Testcontainers supplies disposable PostgreSQL databases for both
-operation and browser tests.
+`main`. It installs dependencies with a frozen lockfile, runs `pnpm run ci`,
+then installs Chromium and runs `pnpm run ci:e2e` as a separate compatibility
+step. Testcontainers supplies disposable PostgreSQL databases for both operation
+and browser tests.
 
 To run the workflow locally, install `act`, start Docker, and run:
 
