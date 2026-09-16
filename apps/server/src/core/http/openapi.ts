@@ -29,7 +29,7 @@ export function documentedProblemResponse(
   };
 }
 
-const openApiSpecOptions: Partial<GenerateSpecOptions> = {
+const openApiSpecOptions = {
   documentation: {
     info: {
       title: "Bookkeeping API",
@@ -49,7 +49,7 @@ const openApiSpecOptions: Partial<GenerateSpecOptions> = {
   // Validation failures use Problem Details, never the library's built-in
   // 400 body; routes document that response explicitly.
   defaultValidationErrorResponse: false,
-};
+} satisfies Partial<GenerateSpecOptions>;
 
 export function mountOpenApiDocument(app: Hono<ServerAppEnv>): void {
   app.get(
