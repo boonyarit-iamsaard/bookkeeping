@@ -2,7 +2,7 @@ import { createAuth } from "@bookkeeping/auth/config";
 import { createDatabase } from "@bookkeeping/database/connection";
 import { serve } from "@hono/node-server";
 import { createApp } from "./core/app.js";
-import { API_COOKIE_PREFIX, createAuthMount } from "./core/auth/auth.js";
+import { API_COOKIE_PREFIX, createAuthGateway } from "./core/auth/auth.js";
 import { parseServerEnv } from "./core/env/config.js";
 
 const serverEnv = parseServerEnv(process.env);
@@ -15,7 +15,7 @@ const auth = createAuth({
   cookiePrefix: API_COOKIE_PREFIX,
 });
 const app = createApp({
-  auth: createAuthMount(auth),
+  auth: createAuthGateway(auth),
   clientOrigins: serverEnv.clientOrigins,
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTestApp } from "../../core/testing/create-test-app.js";
+import { createTestApp } from "../../testing/create-test-app.js";
 
 describe("health routes", () => {
   it("serves a successful health response in-process", async () => {

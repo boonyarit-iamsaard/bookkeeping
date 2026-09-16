@@ -3,7 +3,7 @@ import type { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import type * as z from "zod";
 import { healthResponseSchema } from "../../features/health/health.routes.js";
-import { createTestApp } from "../testing/create-test-app.js";
+import { createTestApp } from "../../testing/create-test-app.js";
 import { OPENAPI_DOCUMENT_PATH } from "./openapi.js";
 import { problemDetailsSchema } from "./problem-details.js";
 import type { AppEnv } from "./request-context.js";

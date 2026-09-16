@@ -48,6 +48,13 @@ Use test scope in filenames: `*.unit.test.ts`, `*.integration.test.ts`, and
 Integration tests may exercise real PostgreSQL and are distinct from
 browser-driven E2E tests. Database fixture names describe infrastructure.
 
+Helpers shared by a workspace's Vitest tests live in its `src/testing/`
+directory, following the Bulletproof React reference; neither Hono nor Vitest
+prescribes a location. The database package exposes its fixtures as
+`@bookkeeping/database/testing`, and the server keeps the stubbed app factory in
+`apps/server/src/testing/`. Playwright helpers stay beside the specs in
+`apps/web/tests/e2e/helpers/`. Test helpers are excluded from production builds.
+
 ## TypeScript house style
 
 Biome enforces the supported mechanical rules, including filename and identifier

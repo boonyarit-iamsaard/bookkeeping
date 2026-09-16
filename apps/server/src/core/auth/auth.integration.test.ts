@@ -4,9 +4,9 @@ import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { Hono } from "hono";
 import { describe, expect, test } from "vitest";
+import { TEST_CLIENT_ORIGIN } from "../../testing/create-test-app.js";
 import { createApp } from "../app.js";
-import { TEST_CLIENT_ORIGIN } from "../testing/create-test-app.js";
-import { API_COOKIE_PREFIX, createAuthMount } from "./auth.js";
+import { API_COOKIE_PREFIX, createAuthGateway } from "./auth.js";
 import type { AuthenticatedEnv } from "./session.js";
 
 const { withRollback } = setupTestDatabase();
@@ -32,7 +32,7 @@ function createHonoApp(db: Database) {
     cookiePrefix: API_COOKIE_PREFIX,
   });
   const app = createApp({
-    auth: createAuthMount(auth),
+    auth: createAuthGateway(auth),
     clientOrigins: [WEB_ORIGIN],
   });
   app.route(

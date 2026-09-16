@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createTestApp,
   TEST_CLIENT_ORIGIN,
-} from "../testing/create-test-app.js";
+} from "../../testing/create-test-app.js";
 
 describe("credentialed CORS", () => {
   it("answers preflight for a configured client origin", async () => {

@@ -2,7 +2,7 @@ import type { Session } from "@bookkeeping/auth/session";
 import { createMiddleware } from "hono/factory";
 import { problemForStatus, problemResponse } from "../http/problem-details.js";
 import type { RequestContextVariables } from "../http/request-context.js";
-import type { AuthMount } from "./auth.js";
+import type { AuthGateway } from "./auth.js";
 
 export interface AuthenticatedVariables extends RequestContextVariables {
   session: Session;
@@ -14,7 +14,7 @@ export interface AuthenticatedEnv {
   Variables: AuthenticatedVariables;
 }
 
-export function requireSession(auth: AuthMount) {
+export function requireSession(auth: AuthGateway) {
   return createMiddleware<AuthenticatedEnv>(async (c, next) => {
     const session = await auth.resolveSession(c.req.raw.headers);
     if (session === null) {

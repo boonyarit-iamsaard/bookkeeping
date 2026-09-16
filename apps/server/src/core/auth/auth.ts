@@ -19,12 +19,12 @@ export const API_COOKIE_PREFIX = "bookkeeping-api";
  * resolve a request's session. Tests substitute this contract; the entrypoint
  * adapts the shared Better Auth instance.
  */
-export interface AuthMount {
+export interface AuthGateway {
   handleRequest(request: Request): Promise<Response>;
   resolveSession(headers: Headers): Promise<Session | null>;
 }
 
-export function createAuthMount(auth: Auth): AuthMount {
+export function createAuthGateway(auth: Auth): AuthGateway {
   return {
     handleRequest(request) {
       return auth.handler(request);
@@ -35,7 +35,7 @@ export function createAuthMount(auth: Auth): AuthMount {
   };
 }
 
-export function mountAuthRoutes(app: Hono<AppEnv>, auth: AuthMount): void {
+export function mountAuthRoutes(app: Hono<AppEnv>, auth: AuthGateway): void {
   // Better Auth owns the methods and OpenAPI description of its routes, so
   // they are registered as one catch-all rather than documented operations.
   app.all(AUTH_ROUTE_PATTERN, (c) => auth.handleRequest(c.req.raw));

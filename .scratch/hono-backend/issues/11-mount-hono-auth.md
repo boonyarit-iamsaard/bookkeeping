@@ -18,11 +18,11 @@ temporary Next.js mount continues serving the existing UI.
 
 - `apps/server` now consumes `@bookkeeping/auth` and `@bookkeeping/database`.
   `server.ts` builds the database, `createAuth({ trustedOrigins })`, and
-  `createApp({ auth: createAuthMount(auth), clientOrigins })`. The server env
+  `createApp({ auth: createAuthGateway(auth), clientOrigins })`. The server env
   gained `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (the API
   origin), and `CLIENT_ORIGINS` (comma-separated http(s) origins, at least
   one); `.env.example` documents all four.
-- `core/auth/auth.ts` defines `AuthMount` (`handleRequest`, `resolveSession`),
+- `core/auth/auth.ts` defines `AuthGateway` (`handleRequest`, `resolveSession`),
   the contract the HTTP layer needs from Better Auth, so unit tests substitute
   a stub while the entrypoint adapts the real instance. Better Auth is mounted
   as one `app.all("/api/auth/*")` catch-all outside `/v1`; it owns its own

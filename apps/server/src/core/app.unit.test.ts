@@ -1,8 +1,8 @@
 import { HTTPException } from "hono/http-exception";
 import { describe, expect, it } from "vitest";
 import { healthResponseSchema } from "../features/health/health.routes.js";
+import { createTestApp } from "../testing/create-test-app.js";
 import { problemDetailsSchema } from "./http/problem-details.js";
-import { createTestApp } from "./testing/create-test-app.js";
 
 const requestIdHeader = "X-Request-Id";
 

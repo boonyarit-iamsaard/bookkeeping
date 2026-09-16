@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  anonymousAuthMount,
+  anonymousAuthGateway,
   createTestApp,
-} from "../testing/create-test-app.js";
+} from "../../testing/create-test-app.js";
 
 describe("managed auth routes", () => {
   it("delegates every method under /api/auth to the auth mount", async () => {
     const seen: string[] = [];
     const app = createTestApp({
-      ...anonymousAuthMount,
+      ...anonymousAuthGateway,
       async handleRequest(request) {
         seen.push(`${request.method} ${new URL(request.url).pathname}`);
         return Response.json({ ok: true });

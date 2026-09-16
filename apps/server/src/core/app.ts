@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { healthRoutes } from "../features/health/health.routes.js";
-import type { AuthMount } from "./auth/auth.js";
+import type { AuthGateway } from "./auth/auth.js";
 import { mountAuthRoutes } from "./auth/auth.js";
 import { requireSession } from "./auth/session.js";
 import { corsMiddleware } from "./http/cors.js";
@@ -17,7 +17,7 @@ import { requestContextMiddleware } from "./http/request-context.js";
 export const APPLICATION_ROUTE_PATTERN = "/v1/*";
 
 export interface AppOptions {
-  auth: AuthMount;
+  auth: AuthGateway;
   clientOrigins: readonly string[];
 }
 
