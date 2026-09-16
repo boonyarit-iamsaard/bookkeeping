@@ -12,12 +12,13 @@ before starting the database.
 ```bash
 pnpm install
 cp apps/web/.env.example apps/web/.env
+cp apps/server/.env.example apps/server/.env
 cp .env.local.example .env.local
 ```
 
 Set `BETTER_AUTH_SECRET` in `apps/web/.env` to a random secret of at least 32
 characters (generate one with `openssl rand -base64 32`). Then start the
-database and app:
+database and both apps:
 
 ```bash
 pnpm db:start
@@ -28,9 +29,15 @@ pnpm dev
 For an existing checkout, keep your existing `apps/web/.env`. Set `DATABASE_URL`
 to match the PostgreSQL credentials in the root `.env.local` Compose file.
 
+`pnpm dev` runs the Next.js UI and the Hono API together through Turborepo and
+stops both when you interrupt it. Run one app alone with `pnpm dev:web` or
+`pnpm dev:server`.
+
 Open [localhost:3000](http://localhost:3000). The home page is
 `apps/web/src/app/page.tsx` and redirects to `/dashboard`. Without a session, the dashboard
-redirects to `/sign-in`. Create an account at `/sign-up`.
+redirects to `/sign-in`. Create an account at `/sign-up`. The API answers at
+[localhost:3001/health](http://localhost:3001/health); see
+[Local origins](#local-origins) to change either address.
 
 Global styles are in `apps/web/src/styles/globals.css`. Fonts are Inter
 and JetBrains Mono, configured in `apps/web/src/styles/fonts.ts`.
@@ -64,6 +71,7 @@ apps/web/
       components/form/    # Reusable form feedback
       helpers/            # Helpers independent of business features
     styles/               # Global styles and fonts
+  scripts/load-env.mjs    # Preloads .env so PORT applies before Next starts
   tests/
     database/             # PostgreSQL test harness (setup, rollback helper)
     e2e/                  # Playwright browser tests
@@ -130,9 +138,26 @@ runtime validation enabled.
 
 The Hono server owns its own environment. `apps/server/src/core/env/config.ts`
 validates optional `PORT` (default `3001`) and `HOST` (default `0.0.0.0`)
-values from the server environment with Zod at startup; run it with
-`pnpm --filter @bookkeeping/server dev`, build with `build`, and start the
-compiled production output with `start`.
+values from the server environment with Zod at startup and ignores the web
+app's variables. `pnpm dev:server` loads `apps/server/.env` when it exists
+(copy `apps/server/.env.example`); `pnpm --filter @bookkeeping/server start`
+runs the compiled production output with the environment the caller injects.
+
+### Local origins
+
+Each app owns its local origin and the file that configures it:
+
+| App                 | Default origin          | Configured by                                       |
+| ------------------- | ----------------------- | --------------------------------------------------- |
+| Next.js UI (`web`)  | `http://localhost:3000` | `PORT` in `apps/web/.env` (match `BETTER_AUTH_URL`) |
+| Hono API (`server`) | `http://localhost:3001` | `HOST` and `PORT` in `apps/server/.env`             |
+
+Each app's `dev` script loads its own `.env` through Node before the framework
+starts (the web `start` script does too), so `PORT` takes effect in both apps. Turborepo runs tasks
+in strict environment mode (`envMode` in `turbo.json`), so variables set in the
+shell (for example `PORT=4000 pnpm dev`) reach neither app; put overrides in
+the app's `.env` file, where a shared name such as `PORT` cannot move both
+apps onto the same port.
 
 ## Database commands
 
@@ -142,6 +167,10 @@ compiled production output with `start`.
 | `pnpm db:stop`   | Stop the local container while retaining its data volume                      |
 | `pnpm db:push`   | Apply schema changes directly for local development                           |
 | `pnpm db:studio` | Open Drizzle Studio                                                           |
+
+These commands need only Docker and `apps/web/.env`; neither app has to be
+running. `db:push` and `db:studio` run the Drizzle CLI from `apps/web`, which
+still owns the schema.
 
 The schema-change policy in [AGENTS.md](AGENTS.md#database-schema-changes)
 requires `db:push` until the user explicitly authorizes switching to migrations.
@@ -259,8 +288,8 @@ pnpm test:e2e
 `pnpm run ci` runs the complete check sequence, including browser tests against
 the production build using `next start`, both locally and in GitHub Actions.
 `pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
-caches and parallelizes per-workspace tasks (see
-[ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
+caches and parallelizes per-workspace tasks across both `apps/web` and
+`apps/server` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
 Standalone `pnpm test:e2e` uses `next dev` unless `CI=1` is set.
 `pnpm check` applies Biome fixes;
 `pnpm format` formats Markdown and YAML files.

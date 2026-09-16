@@ -13,6 +13,17 @@ describe("server env config", () => {
     });
   });
 
+  it("ignores values owned by the web app", () => {
+    expect(
+      parseServerEnv({
+        BETTER_AUTH_SECRET: "web-owned-secret-that-is-at-least-32-chars",
+        BETTER_AUTH_URL: "http://localhost:3000",
+        DATABASE_URL:
+          "postgresql://postgres:password@localhost:5432/bookkeeping",
+      }),
+    ).toEqual({ port: 3001, hostname: "0.0.0.0" });
+  });
+
   it("rejects a port that is not a positive integer", () => {
     expect(() => parseServerEnv({ PORT: "not-a-port" })).toThrow();
     expect(() => parseServerEnv({ PORT: "0" })).toThrow();
