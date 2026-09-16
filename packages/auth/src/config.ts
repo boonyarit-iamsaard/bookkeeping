@@ -23,6 +23,19 @@ export interface AuthOptions {
    * They are appended last so they observe every core endpoint.
    */
   plugins?: readonly BetterAuthPlugin[];
+  /**
+   * Browser origins other than `baseURL` that may send credentialed requests,
+   * such as the SPA origin the Hono mount serves. The Next.js mount is
+   * same-origin and leaves this empty.
+   */
+  trustedOrigins?: readonly string[];
+  /**
+   * Names this mount's cookies (`<prefix>.session_token`). Host-only cookies
+   * ignore the port, so mounts sharing a hostname in local development need
+   * distinct prefixes or they overwrite each other. Defaults to Better
+   * Auth's `better-auth`, which the Next.js mount keeps.
+   */
+  cookiePrefix?: string;
 }
 
 /**
@@ -30,7 +43,14 @@ export interface AuthOptions {
  * Hono mount the same configuration against the same database and secret;
  * only the framework mount and browser client differ per app.
  */
-export function createAuth({ db, secret, baseURL, plugins }: AuthOptions) {
+export function createAuth({
+  db,
+  secret,
+  baseURL,
+  plugins,
+  trustedOrigins,
+  cookiePrefix,
+}: AuthOptions) {
   return betterAuth({
     database: drizzleAdapter(db, {
       provider: "pg",
@@ -53,7 +73,15 @@ export function createAuth({ db, secret, baseURL, plugins }: AuthOptions) {
     },
     secret,
     baseURL,
+    trustedOrigins: [...(trustedOrigins ?? [])],
     advanced: {
+      // Better Auth skips origin and CSRF checks under NODE_ENV=test unless
+      // told otherwise; the checks are part of the contract, so tests run
+      // them too. Cookies stay host-only and HTTP-only by default, and
+      // crossSubDomainCookies stays disabled: each mount owns its cookie.
+      disableOriginCheck: false,
+      disableCSRFCheck: false,
+      ...(cookiePrefix === undefined ? {} : { cookiePrefix }),
       database: {
         // The database owns id generation: every `id` column defaults to
         // `uuidv7()`. Do not use "uuid" here — that mode makes Better Auth

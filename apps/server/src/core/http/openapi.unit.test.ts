@@ -3,7 +3,7 @@ import type { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import type * as z from "zod";
 import { healthResponseSchema } from "../../features/health/health.routes.js";
-import { createApp } from "../app.js";
+import { createTestApp } from "../testing/create-test-app.js";
 import { OPENAPI_DOCUMENT_PATH } from "./openapi.js";
 import { problemDetailsSchema } from "./problem-details.js";
 import type { AppEnv } from "./request-context.js";
@@ -74,7 +74,7 @@ async function fetchDocument(app: Hono<AppEnv>) {
 
 describe("OpenAPI document", () => {
   it("serves a valid OpenAPI 3.1 document", async () => {
-    const response = await createApp().request(OPENAPI_DOCUMENT_PATH);
+    const response = await createTestApp().request(OPENAPI_DOCUMENT_PATH);
     const document = await response.json();
 
     expect(response.status).toBe(200);
@@ -87,7 +87,7 @@ describe("OpenAPI document", () => {
   });
 
   it("documents the health operation from its response schemas", async () => {
-    const document = await fetchDocument(createApp());
+    const document = await fetchDocument(createTestApp());
     const operation: DocumentedOperation = document.paths["/health"].get;
 
     expect(operation.operationId).toBe("getHealth");
@@ -104,14 +104,14 @@ describe("OpenAPI document", () => {
   });
 
   it("documents every registered route", async () => {
-    const app = createApp();
+    const app = createTestApp();
     const document = await fetchDocument(app);
 
     expect(listUndocumentedRoutes(app.routes, document.paths)).toEqual([]);
   });
 
   it("returns health and fault responses that satisfy their documented schemas", async () => {
-    const app = createApp();
+    const app = createTestApp();
     app.get("/documented-fault", () => {
       throw new Error("unexpected");
     });

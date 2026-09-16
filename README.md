@@ -17,8 +17,11 @@ cp packages/database/.env.example packages/database/.env
 cp .env.local.example .env.local
 ```
 
-Set `BETTER_AUTH_SECRET` in `apps/web/.env` to a random secret of at least 32
-characters (generate one with `openssl rand -base64 32`). Then start the
+Set `BETTER_AUTH_SECRET` to the same random secret of at least 32 characters
+(generate one with `openssl rand -base64 32`) in both `apps/web/.env` and
+`apps/server/.env`: both apps mount Better Auth over one user store, and each
+mount issues its own host-only session cookie (`better-auth.session_token`
+for the web app, `bookkeeping-api.session_token` for the API). Then start the
 database and both apps:
 
 ```bash
@@ -28,8 +31,8 @@ pnpm dev
 ```
 
 For an existing checkout, keep your existing `apps/web/.env`. Set `DATABASE_URL`
-in both `apps/web/.env` and `packages/database/.env` to match the PostgreSQL
-credentials in the root `.env.local` Compose file.
+in `apps/web/.env`, `apps/server/.env`, and `packages/database/.env` to match
+the PostgreSQL credentials in the root `.env.local` Compose file.
 
 `pnpm dev` runs the Next.js UI and the Hono API together through Turborepo and
 stops both when you interrupt it. Run one app alone with `pnpm dev:web` or
@@ -87,12 +90,20 @@ apps/server/
   src/
     core/
       app.ts              # Hono app assembly shared by tests and the entrypoint
+      auth/               # Better Auth mount and the session requirement for /v1
       env/config.ts       # Server environment schemas and runtime validation
-      http/               # Request context, Problem Details, OpenAPI document
+      http/               # Request context, CORS, Problem Details, OpenAPI document
     features/
       health/             # Health check resource
     server.ts             # Node entrypoint: parses env and serves the app
+  scripts/build.ts        # esbuild bundle of the entrypoint and workspace packages
 ```
+
+Better Auth answers under `/api/auth/*` on the API origin; every route below
+`/v1` requires the API session cookie and otherwise returns an
+`unauthenticated` problem. `CLIENT_ORIGINS` in `apps/server/.env` lists the
+browser origins allowed to send credentialed requests; they are also Better
+Auth's trusted origins.
 
 `@bookkeeping/domain` owns framework-independent vocabulary and exact value
 behavior. It exposes TypeScript source through feature subpaths rather than a
@@ -226,6 +237,8 @@ and `PORT` from its environment; `pnpm dev:server` loads `apps/server/.env`,
 and the `dev` task passes shell `HOST` and `PORT` through Turborepo, so
 `PORT=5001 pnpm dev:server` also works. Both ports avoid the Next.js default
 of `3000` so a stray `next dev` elsewhere does not collide with either app.
+When either origin changes, update the server's `BETTER_AUTH_URL` (the API
+origin) and `CLIENT_ORIGINS` (the web origin) to match.
 
 ## Database commands
 
