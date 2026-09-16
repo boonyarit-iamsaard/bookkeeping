@@ -38,7 +38,9 @@ and JetBrains Mono, configured in `apps/web/src/styles/fonts.ts`.
 ## Project structure
 
 The repo is a pnpm workspace with Turborepo; `apps/web` is the Next.js app and
-future services will live beside it as further `apps/*` (see
+`apps/server` is the standalone Hono backend being introduced under
+[ADR 0003](docs/adr/0003-hono-application-backend.md). Further services will
+live beside them as further `apps/*` (see
 [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
 
 ```text
@@ -65,6 +67,19 @@ apps/web/
   tests/
     database/             # PostgreSQL test harness (setup, rollback helper)
     e2e/                  # Playwright browser tests
+```
+
+The server app mirrors the same layout:
+
+```text
+apps/server/
+  src/
+    core/
+      app.ts              # Hono app assembly shared by tests and the entrypoint
+      env/config.ts       # Server environment schemas and runtime validation
+    features/
+      health/             # Health check resource
+    server.ts             # Node entrypoint: parses env and serves the app
 ```
 
 Keep routes focused on composing features. Group business logic, vocabulary,
@@ -104,6 +119,12 @@ in `DATABASE_URL`.
 app to build without runtime secrets or a running database. Do not set that flag
 in the deployed server environment. `pnpm start` runs the production build with
 runtime validation enabled.
+
+The Hono server owns its own environment. `apps/server/src/core/env/config.ts`
+validates optional `PORT` (default `3001`) and `HOST` (default `0.0.0.0`)
+values from the server environment with Zod at startup; run it with
+`pnpm --filter @bookkeeping/server dev`, build with `build`, and start the
+compiled production output with `start`.
 
 ## Database commands
 

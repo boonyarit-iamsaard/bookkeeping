@@ -172,7 +172,8 @@
         "apps/web/playwright.config.ts",
         "apps/web/vitest.config.mts",
         "apps/web/postcss.config.mjs",
-        "apps/web/tests/database/global-setup.ts"
+        "apps/web/tests/database/global-setup.ts",
+        "apps/server/vitest.config.mts"
       ],
       "linter": {
         "rules": {

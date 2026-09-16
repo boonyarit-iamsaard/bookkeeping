@@ -18,6 +18,7 @@ node_modules
 # turbo
 /.turbo/
 /apps/web/.turbo/
+/apps/server/.turbo/
 
 # next.js
 /apps/web/.next/
@@ -25,6 +26,7 @@ node_modules
 
 # production
 /apps/web/build
+/apps/server/dist
 
 # misc
 .DS_Store
