@@ -13,3 +13,9 @@ export interface CategorySummary {
 }
 
 export const UNCATEGORIZED_NAME = "Uncategorized";
+
+/**
+ * The icon catalog id every client renders as the fallback glyph. Persisted
+ * on Uncategorized; the catalog itself is presentation and stays with the app.
+ */
+export const GENERIC_ICON_ID = "generic";

@@ -127,6 +127,19 @@ packages/database/
     testing/              # @bookkeeping/database/testing: setupTestDatabase, createTestUser
 ```
 
+`@bookkeeping/application` owns use cases and the invariants they enforce. It
+uses the concrete database package directly (no repository abstraction) and
+exposes each feature's operations, their input and outcome contracts, through
+a feature subpath. Its PostgreSQL-backed integration tests are the primary
+proof of ownership, atomicity, concurrency, and idempotency:
+
+```text
+packages/application/
+  src/
+    categories/           # @bookkeeping/application/categories: initializeDefaultCategories
+                          # @bookkeeping/application/categories/defaults: the default trees
+```
+
 Hono routes describe their responses with the same Zod schemas that tests
 parse actual responses against, and `hono-openapi` generates an OpenAPI 3.1
 document from those route definitions at `GET /openapi.json`. There is no
@@ -297,8 +310,9 @@ Open [localhost:9000](http://localhost:9000) and use the admin credentials from
 before running setup. Do not commit or share `.env.sonar`.
 
 The scanner analyzes
-`apps/web/src/`, `apps/server/src/`, `packages/domain/src/`, and
-`packages/database/src/` and classifies colocated Vitest tests and
+`apps/web/src/`, `apps/server/src/`, `packages/domain/src/`,
+`packages/database/src/`, and `packages/application/src/` and classifies
+colocated Vitest tests and
 `apps/web/tests/` as test code. It does
 not run tests or generate coverage; coverage reporting is not configured.
 

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@bookkeeping/application": "workspace:*",
     "@bookkeeping/database": "workspace:*",
     "@bookkeeping/domain": "workspace:*",
     "@t3-oss/env-nextjs": "^0.13.11",

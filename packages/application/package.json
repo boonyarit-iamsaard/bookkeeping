@@ -1,0 +1,25 @@
+{
+  "name": "@bookkeeping/application",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./categories": "./src/categories/category.ts",
+    "./categories/defaults": "./src/categories/default-categories.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "types:check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bookkeeping/database": "workspace:*",
+    "@bookkeeping/domain": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5",
+    "vitest": "^5.0.0"
+  }
+}

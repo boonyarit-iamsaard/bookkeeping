@@ -1,6 +1,7 @@
 "use client";
 
 import type { CategoryKind } from "@bookkeeping/domain/categories";
+import { GENERIC_ICON_ID } from "@bookkeeping/domain/categories";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -11,7 +12,6 @@ import {
   toCreateCategorySubmission,
 } from "@/features/categories/category-form-schema";
 import { suggestIcons } from "@/features/categories/icon-suggestions";
-import { GENERIC_ICON_ID } from "@/features/categories/icons";
 import type {
   CategoryFormField,
   CreateCategoryActionError,

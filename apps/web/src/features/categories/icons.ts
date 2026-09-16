@@ -1,3 +1,4 @@
+import { GENERIC_ICON_ID } from "@bookkeeping/domain/categories";
 import type { LucideProps } from "lucide-react";
 import {
   Anchor,
@@ -1165,8 +1166,6 @@ type Definition = (typeof DEFINITIONS)[number];
 
 export type IconId = Definition["id"];
 
-export const GENERIC_ICON_ID = "generic" satisfies IconId;
-
 /** The catalog in browse order; every id appears exactly once. */
 export const ICON_CATALOG: readonly IconDefinition[] = DEFINITIONS;
 
@@ -1174,7 +1173,7 @@ const BY_ID: ReadonlyMap<string, IconDefinition> = new Map(
   DEFINITIONS.map((definition) => [definition.id, definition]),
 );
 
-const GENERIC = BY_ID.get(GENERIC_ICON_ID);
+const GENERIC = BY_ID.get(GENERIC_ICON_ID satisfies IconId);
 if (!GENERIC) {
   throw new Error("The icon catalog must define the generic icon");
 }

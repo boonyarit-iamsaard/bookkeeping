@@ -1,3 +1,4 @@
+import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   createTestUser,
@@ -7,7 +8,6 @@ import type { CategoryKind } from "@bookkeeping/domain/categories";
 import { describe, expect, test } from "vitest";
 import {
   createCategory,
-  initializeDefaultCategories,
   listCategories,
 } from "@/features/categories/server/category";
 import {

@@ -1,3 +1,4 @@
+import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import {
   APP_TIME_ZONE,
   formatInstant,
@@ -9,10 +10,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
-import {
-  initializeDefaultCategories,
-  listCategories,
-} from "@/features/categories/server/category";
+import { listCategories } from "@/features/categories/server/category";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
 import {

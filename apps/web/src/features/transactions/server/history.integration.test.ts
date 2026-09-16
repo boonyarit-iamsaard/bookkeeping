@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   createTestUser,
@@ -7,7 +8,6 @@ import {
 import { describe, expect, test, vi } from "vitest";
 import {
   createCategory,
-  initializeDefaultCategories,
   listCategories,
 } from "@/features/categories/server/category";
 import {

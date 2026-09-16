@@ -4,10 +4,6 @@ import type {
   CategoryKind,
   CategorySummary,
 } from "@bookkeeping/domain/categories";
-import {
-  CATEGORY_KINDS,
-  UNCATEGORIZED_NAME,
-} from "@bookkeeping/domain/categories";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
@@ -15,88 +11,7 @@ import {
   MAX_CATEGORY_NAME_LENGTH,
   normalizeCategoryName,
 } from "@/features/categories/category-name";
-import { DEFAULT_CATEGORIES } from "@/features/categories/defaults";
-import { GENERIC_ICON_ID, isIconId } from "@/features/categories/icons";
-
-/**
- * Gives the owner an editable copy of the default trees, once. Each tree is
- * seeded only while it has no protected Uncategorized; an existing tree is
- * left exactly as the user has customized it. Serialized per owner so two
- * concurrent first visits cannot both seed.
- */
-export async function initializeDefaultCategories(
-  db: Database,
-  ownerId: string,
-): Promise<void> {
-  await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${ownerId}))`);
-    for (const kind of CATEGORY_KINDS) {
-      const [existing] = await tx
-        .select({ id: categories.id })
-        .from(categories)
-        .where(
-          and(
-            eq(categories.userId, ownerId),
-            eq(categories.kind, kind),
-            eq(categories.isProtected, true),
-          ),
-        )
-        .limit(1);
-      if (existing) {
-        continue;
-      }
-      await seedTree(tx, { ownerId, kind });
-    }
-  });
-}
-
-interface SeedTreeOptions {
-  ownerId: string;
-  kind: CategoryKind;
-}
-
-async function seedTree(
-  db: Database,
-  { ownerId, kind }: Readonly<SeedTreeOptions>,
-) {
-  await db.insert(categories).values({
-    userId: ownerId,
-    kind,
-    name: UNCATEGORIZED_NAME,
-    iconId: GENERIC_ICON_ID,
-    isProtected: true,
-    sortOrder: 0,
-  });
-  const defaults = DEFAULT_CATEGORIES[kind];
-  for (const [index, parent] of defaults.entries()) {
-    const [row] = await db
-      .insert(categories)
-      .values({
-        userId: ownerId,
-        kind,
-        name: parent.name,
-        iconId: parent.iconId,
-        sortOrder: index + 1,
-      })
-      .returning({ id: categories.id });
-    if (!row) {
-      throw new Error("Category insert returned no row");
-    }
-    const children = parent.children ?? [];
-    if (children.length > 0) {
-      await db.insert(categories).values(
-        children.map((child, childIndex) => ({
-          userId: ownerId,
-          kind,
-          parentId: row.id,
-          name: child.name,
-          iconId: child.iconId,
-          sortOrder: childIndex,
-        })),
-      );
-    }
-  }
-}
+import { isIconId } from "@/features/categories/icons";
 
 /** Both trees, parents before their children, in picker order. */
 export async function listCategories(

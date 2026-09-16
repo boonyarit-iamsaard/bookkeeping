@@ -1,10 +1,10 @@
 import type { CategoryKind } from "@bookkeeping/domain/categories";
-import type { IconId } from "@/features/categories/icons";
 
 export interface DefaultCategory {
   name: string;
-  iconId: IconId;
-  children?: readonly { name: string; iconId: IconId }[];
+  /** A catalog id; the web icon catalog test keeps it valid. */
+  iconId: string;
+  children?: readonly { name: string; iconId: string }[];
 }
 
 /**
