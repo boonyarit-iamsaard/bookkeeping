@@ -1,4 +1,9 @@
-import { findWallet, listWallets } from "@bookkeeping/application/wallets";
+import type { WalletCreationIssue } from "@bookkeeping/application/wallets";
+import {
+  createWallet,
+  findWallet,
+  listWallets,
+} from "@bookkeeping/application/wallets";
 import type { Database } from "@bookkeeping/database/connection";
 import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
@@ -8,13 +13,23 @@ import { describeResponse, describeRoute, validator } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
+import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
+import {
+  idempotencyConflictProblem,
+  idempotencyKeyMiddleware,
+} from "../../core/http/idempotency.js";
 import type { Money } from "../../core/http/money.js";
 import {
   currencySchema,
+  moneyInputSchema,
   moneySchema,
   presentMoney,
 } from "../../core/http/money.js";
 import { describeProblemResponse } from "../../core/http/openapi.js";
+import type {
+  ProblemFieldError,
+  ProblemOptions,
+} from "../../core/http/problem-details.js";
 import {
   createProblemDetails,
   createProblemResponse,
@@ -22,6 +37,7 @@ import {
   PROBLEM_MEDIA_TYPE,
   problemDetailsSchema,
 } from "../../core/http/problem-details.js";
+import { createInvalidCommandProblem } from "../../core/http/request-validation.js";
 
 export const walletResponseSchema = z
   .object({
@@ -74,11 +90,142 @@ export function presentWallet(wallet: Readonly<WalletSummary>): WalletResponse {
 
 const walletParamsSchema = z.object({ walletId: z.uuid() });
 
+export const createWalletRequestSchema = z
+  .object({
+    name: z.string(),
+    type: z.enum(WALLET_TYPES),
+    openingAmount: moneyInputSchema,
+    openingDate: z.iso.date(),
+  })
+  .meta({ id: "CreateWalletRequest" });
+
+/** What the validators hand the creation handler. */
+interface CreateWalletValidatedInput {
+  in: {
+    json: z.input<typeof createWalletRequestSchema>;
+    header: z.input<typeof idempotencyKeyHeaderSchema>;
+  };
+  out: {
+    json: z.output<typeof createWalletRequestSchema>;
+    header: z.output<typeof idempotencyKeyHeaderSchema>;
+  };
+}
+
+// The money object nests its value, so the pointer reaches inside it.
+const WALLET_ISSUE_POINTERS: Record<WalletCreationIssue["field"], string> = {
+  name: "#/name",
+  openingAmount: "#/openingAmount/value",
+  openingDate: "#/openingDate",
+};
+
+function toWalletFieldError(issue: WalletCreationIssue): ProblemFieldError {
+  return { pointer: WALLET_ISSUE_POINTERS[issue.field], code: issue.code };
+}
+
+function describeProblem(problem: Readonly<ProblemOptions>) {
+  return {
+    description: problem.title,
+    content: { [PROBLEM_MEDIA_TYPE]: { vSchema: problemDetailsSchema } },
+  };
+}
+
+const LOCATION_HEADER = "Location";
 const COLLECTION_PATH = "/wallets";
 const RESOURCE_PATH = "/wallets/:walletId";
 
 export function createWalletRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>()
+    .post(
+      COLLECTION_PATH,
+      describeRoute({
+        operationId: "createWallet",
+        summary: "Create a wallet",
+        description:
+          "Opens a wallet for the signed-in owner with an exact opening " +
+          "balance on a calendar date no later than today in Bangkok. The " +
+          "request must carry a client-generated Idempotency-Key: repeating " +
+          "it with the same payload replays the original creation, while a " +
+          "different payload under the same key is a conflict. A rejected " +
+          "request never consumes its key.",
+        tags: ["Wallets"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      idempotencyKeyMiddleware,
+      validator("json", createWalletRequestSchema, (result, c) => {
+        if (!result.success) {
+          return createProblemResponse(
+            c,
+            createInvalidCommandProblem(result.error),
+          );
+        }
+      }),
+      describeResponse<
+        AuthenticatedEnv,
+        typeof COLLECTION_PATH,
+        CreateWalletValidatedInput,
+        {
+          201: typeof walletResponseSchema;
+          409: typeof problemDetailsSchema;
+          422: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const body = c.req.valid("json");
+          const created = await createWallet(db, {
+            ownerId: c.get("session").user.id,
+            idempotencyKey: c.req.valid("header")["idempotency-key"],
+            name: body.name,
+            type: body.type,
+            openingAmount: body.openingAmount.amountInMinorUnits,
+            openingDate: body.openingDate,
+          });
+          if (!created.ok) {
+            if (created.error.code === "idempotency-conflict") {
+              return c.json(
+                createProblemDetails(idempotencyConflictProblem),
+                409,
+                {
+                  "Content-Type": PROBLEM_MEDIA_TYPE,
+                },
+              );
+            }
+            return c.json(
+              createProblemDetails({
+                ...getProblemOptionsForStatus(422),
+                errors: created.error.issues.map(toWalletFieldError),
+              }),
+              422,
+              { "Content-Type": PROBLEM_MEDIA_TYPE },
+            );
+          }
+          const wallet = presentWallet(created.value.wallet);
+          // The mount prefix is only known from the request, so the location
+          // is built from the collection path actually served.
+          return c.json(wallet, 201, {
+            [LOCATION_HEADER]: `${c.req.path}/${wallet.id}`,
+          });
+        },
+        {
+          201: {
+            description: "The created wallet, or the original on a replay",
+            headers: {
+              [LOCATION_HEADER]: {
+                description: "Where the created wallet can be retrieved",
+                schema: { type: "string" },
+              },
+            },
+            content: {
+              "application/json": { vSchema: walletResponseSchema },
+            },
+          },
+          409: describeProblem(idempotencyConflictProblem),
+          422: describeProblem(getProblemOptionsForStatus(422)),
+        },
+      ),
+    )
     .get(
       COLLECTION_PATH,
       describeRoute({
@@ -163,12 +310,7 @@ export function createWalletRoutes(db: Database) {
               "application/json": { vSchema: walletResponseSchema },
             },
           },
-          404: {
-            description: getProblemOptionsForStatus(404).title,
-            content: {
-              [PROBLEM_MEDIA_TYPE]: { vSchema: problemDetailsSchema },
-            },
-          },
+          404: describeProblem(getProblemOptionsForStatus(404)),
         },
       ),
     );

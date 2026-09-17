@@ -19,8 +19,8 @@ import {
   listTransactions,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import { createWallet } from "@/features/wallets/server/wallet";
 import { setWalletArchived } from "@/features/wallets/server/wallet-lifecycle";
+import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();
 
@@ -28,7 +28,7 @@ const { withRollback, committed } = setupTestDatabase();
 async function setupOwner(db: Database) {
   const owner = await createTestUser(db);
   await initializeDefaultCategories(db, owner.id);
-  const wallet = await createWallet(db, {
+  const wallet = await openWallet(db, {
     ownerId: owner.id,
     name: "Cash",
     type: "cash",
@@ -527,7 +527,7 @@ describe("correcting transactions", () => {
   test("an edit replaces every financial effect, keeps the recording time, and leaves one history entry", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
-      const savings = await createWallet(db, {
+      const savings = await openWallet(db, {
         ownerId: owner.owner.id,
         name: "Savings",
         type: "bank_account",
@@ -644,7 +644,7 @@ describe("correcting transactions", () => {
   test("rejected edits change nothing and record no history", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
-      const late = await createWallet(db, {
+      const late = await openWallet(db, {
         ownerId: owner.owner.id,
         name: "Late",
         type: "e_wallet",
@@ -970,7 +970,7 @@ describe("wallet transfers", () => {
   test("one transfer subtracts from its source and adds to its destination on its date", async () => {
     await withRollback(async (db) => {
       const { owner, wallet } = await setupOwner(db);
-      const destination = await createWallet(db, {
+      const destination = await openWallet(db, {
         ownerId: owner.id,
         name: "Bank",
         type: "bank_account",
@@ -1017,14 +1017,14 @@ describe("wallet transfers", () => {
 test("editing a transfer replaces both wallets and deletion removes both effects and retains history", async () => {
   await withRollback(async (db) => {
     const { owner, wallet } = await setupOwner(db);
-    const bank = await createWallet(db, {
+    const bank = await openWallet(db, {
       ownerId: owner.id,
       name: "Bank",
       type: "bank_account",
       openingAmount: 0n,
       openingDate: "2026-09-01",
     });
-    const cash = await createWallet(db, {
+    const cash = await openWallet(db, {
       ownerId: owner.id,
       name: "Travel",
       type: "cash",
@@ -1097,7 +1097,7 @@ test("editing a transfer replaces both wallets and deletion removes both effects
 test("transfer validation rejects same wallets, foreign wallets, missing currency, and dates outside either wallet's history", async () => {
   await withRollback(async (db) => {
     const { owner, wallet } = await setupOwner(db);
-    const bank = await createWallet(db, {
+    const bank = await openWallet(db, {
       ownerId: owner.id,
       name: "Bank",
       type: "bank_account",
@@ -1154,14 +1154,14 @@ test("transfer validation rejects same wallets, foreign wallets, missing currenc
 test("archived transfer wallets reject creation but existing edits can retain or swap their own archived references", async () => {
   await withRollback(async (db) => {
     const { owner, wallet } = await setupOwner(db);
-    const bank = await createWallet(db, {
+    const bank = await openWallet(db, {
       ownerId: owner.id,
       name: "Bank",
       type: "bank_account",
       openingAmount: 0n,
       openingDate: "2026-09-01",
     });
-    const other = await createWallet(db, {
+    const other = await openWallet(db, {
       ownerId: owner.id,
       name: "Old wallet",
       type: "cash",
@@ -1230,7 +1230,7 @@ test("archived transfer wallets reject creation but existing edits can retain or
 test("simultaneous duplicate transfers commit one pair of effects and changed destinations conflict", async () => {
   const db = committed();
   const { owner, wallet } = await setupOwner(db);
-  const bank = await createWallet(db, {
+  const bank = await openWallet(db, {
     ownerId: owner.id,
     name: "Bank",
     type: "bank_account",
@@ -1280,7 +1280,7 @@ test("simultaneous duplicate transfers commit one pair of effects and changed de
 test("receipt or history write failures roll back both transfer effects and leave no partial receipt or history", async () => {
   await withRollback(async (db) => {
     const { owner, wallet } = await setupOwner(db);
-    const bank = await createWallet(db, {
+    const bank = await openWallet(db, {
       ownerId: owner.id,
       name: "Bank",
       type: "bank_account",
@@ -1456,14 +1456,14 @@ describe("linked refunds", () => {
     await withRollback(async (db) => {
       const context = await setupExpense(db);
       const { owner, wallet, expense, groceries } = context;
-      const bank = await createWallet(db, {
+      const bank = await openWallet(db, {
         ownerId: owner.id,
         name: "Bank",
         type: "bank_account",
         openingAmount: 0n,
         openingDate: "2026-09-04",
       });
-      const retired = await createWallet(db, {
+      const retired = await openWallet(db, {
         ownerId: owner.id,
         name: "Retired",
         type: "cash",
@@ -1552,14 +1552,14 @@ describe("linked refunds", () => {
     await withRollback(async (db) => {
       const context = await setupExpense(db);
       const { owner, wallet, expense } = context;
-      const bank = await createWallet(db, {
+      const bank = await openWallet(db, {
         ownerId: owner.id,
         name: "Bank",
         type: "bank_account",
         openingAmount: 0n,
         openingDate: "2026-09-01",
       });
-      const retired = await createWallet(db, {
+      const retired = await openWallet(db, {
         ownerId: owner.id,
         name: "Retired",
         type: "cash",
@@ -1844,7 +1844,7 @@ describe("linked refunds", () => {
 
     // Archiving the receiving wallet blocks the next refund but not the
     // corrections of a refund already on it.
-    const active = await createWallet(db, {
+    const active = await openWallet(db, {
       ownerId: owner.id,
       name: "Bank",
       type: "bank_account",
@@ -1898,7 +1898,7 @@ describe("linked refunds", () => {
         const db = committed();
         const context = await setupExpense(db);
         const { owner, wallet, expense } = context;
-        const receiver = await createWallet(db, {
+        const receiver = await openWallet(db, {
           ownerId: owner.id,
           name: "Refund receiver",
           type: "bank_account",

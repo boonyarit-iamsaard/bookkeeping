@@ -7,8 +7,8 @@ export type MoneyParseError =
   | "too-many-decimals"
   | "too-large";
 
-// Keeps every stored value comfortably inside PostgreSQL bigint.
-const MAX_WHOLE_DIGITS = 15;
+/** Whole major-unit digits an amount may carry; keeps every stored value and sum inside PostgreSQL bigint. */
+export const MAX_WHOLE_DIGITS = 15;
 const AMOUNT_PATTERN = /^(-)?(\d+|\d{1,3}(?:,\d{3})+)(?:\.(\d+))?$/;
 export type Currency = "THB";
 const CURRENCIES = {

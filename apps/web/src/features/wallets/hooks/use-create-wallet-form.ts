@@ -36,7 +36,12 @@ export function useCreateWalletForm({
 
       let result: Awaited<ReturnType<typeof createWalletAction>>;
       try {
-        result = await createWalletAction(value);
+        // Each submission is its own creation; the key only guards the
+        // operation against a duplicated request, not a repeated submit.
+        result = await createWalletAction({
+          ...value,
+          submissionKey: crypto.randomUUID(),
+        });
       } catch {
         setServerError(
           "The wallet could not be saved. Check your connection and try again.",

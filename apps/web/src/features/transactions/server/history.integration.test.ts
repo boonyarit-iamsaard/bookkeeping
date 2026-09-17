@@ -23,11 +23,11 @@ import {
   listTransactions,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import { createWallet } from "@/features/wallets/server/wallet";
 import {
   correctWalletOpening,
   setWalletArchived,
 } from "@/features/wallets/server/wallet-lifecycle";
+import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback } = setupTestDatabase();
 
@@ -55,14 +55,14 @@ async function fixture(db: Database) {
   if (!child.ok) {
     throw new Error("Cannot create child");
   }
-  const cash = await createWallet(db, {
+  const cash = await openWallet(db, {
     ownerId: owner.id,
     name: "Cash",
     type: "cash",
     openingAmount: 1_200_000n,
     openingDate: "2026-09-01",
   });
-  const bank = await createWallet(db, {
+  const bank = await openWallet(db, {
     ownerId: owner.id,
     name: "Bank",
     type: "bank_account",
@@ -490,14 +490,14 @@ test("corrections, archiving and category fallbacks replace effects across histo
 test("overall balances retain satang beyond JavaScript integer precision and allow negative holdings", async () => {
   await withRollback(async (db) => {
     const owner = await createTestUser(db);
-    await createWallet(db, {
+    await openWallet(db, {
       ownerId: owner.id,
       name: "Large",
       type: "bank_account",
       openingAmount: 90_071_992_547_409_919n,
       openingDate: "2026-09-01",
     });
-    await createWallet(db, {
+    await openWallet(db, {
       ownerId: owner.id,
       name: "Negative",
       type: "cash",

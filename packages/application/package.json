@@ -17,12 +17,12 @@
   "dependencies": {
     "@bookkeeping/database": "workspace:*",
     "@bookkeeping/domain": "workspace:*",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.2",
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@types/node": "^20",
     "typescript": "^5",
-    "vitest": "^5.0.0",
-    "zod": "^4.6.2"
+    "vitest": "^5.0.0"
   }
 }

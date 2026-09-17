@@ -8,6 +8,8 @@ export const problemCodes = [
   "bad-request",
   "conflict",
   "forbidden",
+  "idempotency-conflict",
+  "idempotency-key-required",
   "internal-error",
   "invalid-command",
   "method-not-allowed",

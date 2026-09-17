@@ -6,10 +6,11 @@ import {
 import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { WalletType } from "@bookkeeping/domain/wallets";
+import { eq } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
-import { findWallet, listWallets } from "./wallet";
+import { createWallet, findWallet, listWallets } from "./wallet";
 
-const { withRollback } = setupTestDatabase();
+const { withRollback, committed } = setupTestDatabase();
 
 interface WalletFixture {
   ownerId: string;
@@ -221,5 +222,187 @@ describe("findWallet", () => {
 
       expect(await findWallet(db, { ownerId: owner.id, id: "abc" })).toBeNull();
     });
+  });
+});
+
+interface CreateWalletFixture {
+  ownerId: string;
+  idempotencyKey?: string;
+  name?: string;
+  type?: WalletType;
+  openingAmount?: bigint;
+  openingDate?: CalendarDate;
+}
+
+function createSavingsWallet(
+  db: Database,
+  {
+    ownerId,
+    idempotencyKey = "savings",
+    name = "Kasikorn savings",
+    type = "bank_account",
+    openingAmount = 1_200_000n,
+    openingDate = "2026-09-01",
+  }: Readonly<CreateWalletFixture>,
+) {
+  return createWallet(db, {
+    ownerId,
+    idempotencyKey,
+    name,
+    type,
+    openingAmount,
+    openingDate,
+  });
+}
+
+describe("createWallet", () => {
+  test("a created wallet is listed with its opening balance as the balance", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+
+      const created = await createSavingsWallet(db, { ownerId: owner.id });
+
+      expect(created).toEqual({
+        ok: true,
+        value: {
+          replayed: false,
+          wallet: expect.objectContaining({
+            name: "Kasikorn savings",
+            type: "bank_account",
+            currency: "THB",
+            openingAmount: 1_200_000n,
+            openingDate: "2026-09-01",
+            archivedAt: null,
+            balance: 1_200_000n,
+          }),
+        },
+      });
+      if (!created.ok) {
+        throw new Error("Expected wallet creation to succeed");
+      }
+      expect(await listWallets(db, { ownerId: owner.id })).toEqual([
+        created.value.wallet,
+      ]);
+    });
+  });
+
+  test("a retry with the same key replays the original wallet instead of opening another", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+      const first = await createSavingsWallet(db, { ownerId: owner.id });
+      if (!first.ok) {
+        throw new Error("Expected wallet creation to succeed");
+      }
+
+      const retry = await createSavingsWallet(db, { ownerId: owner.id });
+
+      expect(retry).toEqual({
+        ok: true,
+        value: { wallet: first.value.wallet, replayed: true },
+      });
+      expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
+    });
+  });
+
+  test("a retry replays the wallet as created even after it was archived or removed", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+      const first = await createSavingsWallet(db, { ownerId: owner.id });
+      if (!first.ok) {
+        throw new Error("Expected wallet creation to succeed");
+      }
+      const { id } = first.value.wallet;
+
+      await db
+        .update(wallets)
+        .set({ name: "Renamed", archivedAt: new Date("2026-09-10T00:00:00Z") })
+        .where(eq(wallets.id, id));
+      const afterChange = await createSavingsWallet(db, { ownerId: owner.id });
+      await db.delete(wallets).where(eq(wallets.id, id));
+      const afterRemoval = await createSavingsWallet(db, { ownerId: owner.id });
+
+      expect(afterChange).toEqual({
+        ok: true,
+        value: { wallet: first.value.wallet, replayed: true },
+      });
+      expect(afterRemoval).toEqual(afterChange);
+      expect(await listWallets(db, { ownerId: owner.id })).toEqual([]);
+    });
+  });
+
+  test("a retry whose command differs conflicts and opens nothing", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+      await createSavingsWallet(db, { ownerId: owner.id });
+
+      const conflict = await createSavingsWallet(db, {
+        ownerId: owner.id,
+        openingAmount: 1_200_001n,
+      });
+
+      expect(conflict).toEqual({
+        ok: false,
+        error: { code: "idempotency-conflict" },
+      });
+      expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
+    });
+  });
+
+  test("distinct keys open distinct wallets from the same command", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+
+      await createSavingsWallet(db, { ownerId: owner.id, idempotencyKey: "a" });
+      await createSavingsWallet(db, { ownerId: owner.id, idempotencyKey: "b" });
+
+      expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(2);
+    });
+  });
+
+  test("a rejected command consumes nothing, so the corrected retry may reuse its key", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+
+      const rejected = await createSavingsWallet(db, {
+        ownerId: owner.id,
+        name: "   ",
+        openingDate: "2026-02-30",
+      });
+      const corrected = await createSavingsWallet(db, { ownerId: owner.id });
+
+      expect(rejected).toEqual({
+        ok: false,
+        error: {
+          code: "invalid-wallet",
+          issues: [
+            { field: "name", code: "empty" },
+            { field: "openingDate", code: "invalid" },
+          ],
+        },
+      });
+      expect(corrected.ok && corrected.value.replayed).toBe(false);
+      expect(await listWallets(db, { ownerId: owner.id })).toEqual([
+        expect.objectContaining({ name: "Kasikorn savings" }),
+      ]);
+    });
+  });
+
+  test("concurrent retries open one wallet and replay it to the rest", async () => {
+    const db = committed();
+    const owner = await createTestUser(db);
+
+    const outcomes = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        createSavingsWallet(db, { ownerId: owner.id }),
+      ),
+    );
+
+    const successes = outcomes.flatMap((outcome) =>
+      outcome.ok ? [outcome.value] : [],
+    );
+    expect(successes).toHaveLength(5);
+    expect(new Set(successes.map(({ wallet }) => wallet.id)).size).toBe(1);
+    expect(successes.filter(({ replayed }) => !replayed)).toHaveLength(1);
+    expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
   });
 });

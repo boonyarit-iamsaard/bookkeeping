@@ -23,7 +23,7 @@ import {
   listTransactions,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import { createWallet } from "@/features/wallets/server/wallet";
+import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();
 
@@ -51,7 +51,7 @@ function freshKey() {
 /** An owner with one wallet, so expenses and refunds can be recorded. */
 async function setupLedger(db: Database) {
   const context = await setupOwner(db);
-  const wallet = await createWallet(db, {
+  const wallet = await openWallet(db, {
     ownerId: context.owner.id,
     name: "Cash",
     type: "cash",

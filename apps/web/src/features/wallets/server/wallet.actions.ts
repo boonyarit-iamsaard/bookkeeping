@@ -1,12 +1,12 @@
 "use server";
 
+import { createWallet } from "@bookkeeping/application/wallets";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
-import { createWallet } from "@/features/wallets/server/wallet";
 import type { WalletLifecycleError } from "@/features/wallets/server/wallet-lifecycle";
 import {
   correctWalletOpening,
@@ -27,6 +27,10 @@ const manageWalletSchema = z.discriminatedUnion("operation", [
   }),
 ]);
 
+const createWalletSubmissionSchema = walletFormSchema.extend({
+  submissionKey: z.string().min(1),
+});
+
 export type CreateWalletActionError = "unauthenticated" | "invalid";
 
 /**
@@ -42,19 +46,26 @@ export async function createWalletAction(
     return err("unauthenticated");
   }
 
-  const parsed = walletFormSchema.safeParse(input);
+  const parsed = createWalletSubmissionSchema.safeParse(input);
   if (!parsed.success) {
     return err("invalid");
   }
 
+  const { submissionKey, ...command } = parsed.data;
   // Ownership comes last so nothing in the parsed input can override it.
-  const wallet = await createWallet(db, {
-    ...parsed.data,
+  const created = await createWallet(db, {
+    ...command,
+    idempotencyKey: submissionKey,
     ownerId: session.user.id,
   });
+  // The form mints a fresh key per submission, so a key conflict can only
+  // come from a replayed request and reads as a rejected input.
+  if (!created.ok) {
+    return err("invalid");
+  }
 
   revalidatePath("/wallets");
-  return ok({ id: wallet.id });
+  return ok({ id: created.value.wallet.id });
 }
 
 export async function manageWalletAction(

@@ -15,12 +15,12 @@ import {
   getTransaction,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import { createWallet } from "@/features/wallets/server/wallet";
 import {
   correctWalletOpening,
   deleteWallet,
   setWalletArchived,
 } from "@/features/wallets/server/wallet-lifecycle";
+import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();
 async function fixture(db: Database) {
@@ -39,8 +39,8 @@ async function fixture(db: Database) {
     openingAmount: 10000n,
     openingDate: "2026-09-01",
   } as const;
-  const wallet = await createWallet(db, input);
-  const other = await createWallet(db, { ...input, name: "Bank" });
+  const wallet = await openWallet(db, input);
+  const other = await openWallet(db, { ...input, name: "Bank" });
   const movement = {
     ownerId: owner.id,
     submissionKey: crypto.randomUUID(),
@@ -236,7 +236,7 @@ describe("wallet lifecycle", () => {
         ok: false,
         error: "history-remains",
       });
-      const unused = await createWallet(db, {
+      const unused = await openWallet(db, {
         ownerId: owned.ownerId,
         name: "Unused",
         type: "cash",

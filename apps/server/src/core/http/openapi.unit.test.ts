@@ -15,8 +15,15 @@ interface DocumentedMedia {
 interface DocumentedOperation {
   operationId?: string;
   parameters?: { in: string; name: string; required?: boolean }[];
+  requestBody?: {
+    required?: boolean;
+    content: { [mediaType: string]: DocumentedMedia };
+  };
   responses: {
-    [status: string]: { content: { [mediaType: string]: DocumentedMedia } };
+    [status: string]: {
+      headers?: { [name: string]: unknown };
+      content: { [mediaType: string]: DocumentedMedia };
+    };
   };
 }
 
@@ -136,6 +143,47 @@ describe("OpenAPI document", () => {
         "Currency",
       ]),
     );
+  });
+
+  it("documents wallet creation from its request and response schemas", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const operation: DocumentedOperation = document.paths["/v1/wallets"].post;
+
+    expect(operation.operationId).toBe("createWallet");
+    expect(operation.parameters).toEqual([
+      expect.objectContaining({
+        in: "header",
+        name: "idempotency-key",
+        required: true,
+      }),
+    ]);
+    expect(operation.requestBody?.required).toBe(true);
+    expect(operation.requestBody?.content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/CreateWalletRequest",
+    );
+    expect(
+      operation.responses["201"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/Wallet");
+    expect(operation.responses["201"].headers).toHaveProperty("Location");
+    for (const status of ["400", "401", "409", "422", "500"]) {
+      expect(
+        operation.responses[status].content["application/problem+json"].schema
+          .$ref,
+      ).toBe("#/components/schemas/ProblemDetails");
+    }
+    expect(document.components.schemas.MoneyInput).toEqual(
+      expect.objectContaining({
+        properties: expect.objectContaining({
+          value: expect.objectContaining({
+            type: "string",
+            pattern: expect.any(String),
+          }),
+        }),
+      }),
+    );
+    expect(
+      document.components.schemas.CreateWalletRequest.properties.openingAmount,
+    ).toHaveProperty("$ref", "#/components/schemas/MoneyInput");
   });
 
   it("documents every registered route", async () => {
