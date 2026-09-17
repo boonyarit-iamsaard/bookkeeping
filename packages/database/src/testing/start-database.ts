@@ -1,8 +1,8 @@
-import { execFile } from "node:child_process";
+import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 
-const run = promisify(execFile);
+const run = promisify(exec);
 
 export async function startTestDatabase() {
   const container = await new PostgreSqlContainer("postgres:18-alpine")
@@ -13,11 +13,9 @@ export async function startTestDatabase() {
     DATABASE_URL: container.getConnectionUri(),
   };
   try {
-    await run(
-      "pnpm",
-      ["--filter", "@bookkeeping/database", "db:push", "--force"],
-      { env: environment },
-    );
+    await run("pnpm --filter @bookkeeping/database db:push --force", {
+      env: environment,
+    });
   } catch (error) {
     await container.stop();
     throw error;
