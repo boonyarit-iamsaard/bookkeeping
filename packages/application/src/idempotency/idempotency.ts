@@ -148,7 +148,7 @@ function canonicalize(value: ValidatedPayload): string {
   }
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
-      throw new Error("Validated payload numbers must be finite");
+      throw new TypeError("Validated payload numbers must be finite");
     }
     return JSON.stringify(["number", Object.is(value, -0) ? "-0" : value]);
   }
@@ -159,7 +159,15 @@ function canonicalize(value: ValidatedPayload): string {
     return `["array",${value.map(canonicalize).join(",")}]`;
   }
   const entries = Object.keys(value)
-    .sort()
+    .sort((a, b) => {
+      if (a < b) {
+        return -1;
+      }
+      if (a > b) {
+        return 1;
+      }
+      return 0;
+    })
     .map((key) => JSON.stringify([key, canonicalize(value[key])]));
   return `["object",${entries.join(",")}]`;
 }
