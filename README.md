@@ -393,7 +393,8 @@ suite against the production server using `next start`.
 `pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
 caches and parallelizes per-workspace tasks across `apps/web`, `apps/server`,
 and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
-Standalone `pnpm test:e2e` uses `next dev` unless `CI=1` is set.
+`pnpm test:e2e` always uses `next dev`; `pnpm run ci:e2e` selects the
+production-build `next start` mode.
 `pnpm check` applies Biome fixes;
 `pnpm format` formats Markdown and YAML files.
 

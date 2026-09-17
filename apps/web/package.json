@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "SKIP_ENV_VALIDATION=1 next build",
+    "build": "dotenvx run --env SKIP_ENV_VALIDATION=1 -- next build",
     "dev": "next dev -p 4000",
-    "start": "next start -p ${PORT:-4000}",
+    "start": "dotenvx run --env PORT=4000 -- next start",
     "test": "vitest run",
     "test:e2e": "tsx tests/e2e/run.ts",
+    "test:e2e:ci": "dotenvx run --env CI=1 -- tsx tests/e2e/run.ts",
     "test:watch": "vitest",
     "types:check": "next typegen && tsc --noEmit"
   },
@@ -34,6 +35,7 @@
     "zod": "^4.6.2"
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "^2.28.0",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

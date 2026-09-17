@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/turbo/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "env": ["SKIP_ENV_VALIDATION"]
+    },
+    "test:e2e": {},
+    "test:e2e:ci": {
+      "dependsOn": ["build"],
+      "env": ["CI"]
+    }
+  }
+}
