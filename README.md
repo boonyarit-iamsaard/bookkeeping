@@ -92,10 +92,11 @@ apps/server/
       app.ts              # Hono app assembly shared by tests and the entrypoint
       auth/               # Better Auth mount and the session requirement for /v1
       env/config.ts       # Server environment schemas and runtime validation
-      http/               # Request context, CORS, Problem Details, OpenAPI document
+      http/               # Request context, CORS, Problem Details, Money, OpenAPI document
     features/
       categories/         # POST /v1/categories/defaults: the explicit provisioning retry
       health/             # Health check resource
+      wallets/            # GET /v1/wallets and /v1/wallets/{walletId}: owned wallets with balances
     server.ts             # Node entrypoint: parses env and serves the app
   scripts/build.ts        # esbuild bundle of the entrypoint and workspace packages
 ```
@@ -105,6 +106,12 @@ Better Auth answers under `/api/auth/*` on the API origin; every route below
 `unauthenticated` problem. `CLIENT_ORIGINS` in `apps/server/.env` lists the
 browser origins allowed to send credentialed requests; they are also Better
 Auth's trusted origins.
+
+Money crosses HTTP as `{ value, currency }`, where `value` is an exact
+major-unit decimal string (`"125.50"`, always two fractional digits for THB)
+presented from the application's integer satang; no amount passes through a
+JavaScript `number`. A wallet that does not exist, belongs to another owner,
+or has a malformed id answers the same `not-found` problem.
 
 `@bookkeeping/domain` owns framework-independent vocabulary and exact value
 behavior. It exposes TypeScript source through feature subpaths rather than a
@@ -152,6 +159,7 @@ packages/application/
     categories/           # @bookkeeping/application/categories: initializeDefaultCategories
                           # @bookkeeping/application/categories/defaults: the default trees
     idempotency/          # @bookkeeping/application/idempotency: replay-safe creation
+    wallets/              # @bookkeeping/application/wallets: listWallets, findWallet
 ```
 
 Resource creation uses `executeIdempotentCreation` with an authenticated owner,

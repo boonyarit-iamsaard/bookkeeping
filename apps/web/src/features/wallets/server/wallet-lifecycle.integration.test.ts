@@ -1,4 +1,5 @@
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
+import { listWallets } from "@bookkeeping/application/wallets";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   createTestUser,
@@ -14,7 +15,7 @@ import {
   getTransaction,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import { createWallet, listWallets } from "@/features/wallets/server/wallet";
+import { createWallet } from "@/features/wallets/server/wallet";
 import {
   correctWalletOpening,
   deleteWallet,

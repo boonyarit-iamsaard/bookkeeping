@@ -1,10 +1,10 @@
+import { findWallet } from "@bookkeeping/application/wallets";
 import { formatMoneyInput } from "@bookkeeping/domain/money";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { WalletManagement } from "@/features/wallets/components/wallet-management";
-import { listWallets } from "@/features/wallets/server/wallet";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export default async function Page({
@@ -15,9 +15,7 @@ export default async function Page({
     redirect("/sign-in");
   }
   const { id } = await params;
-  const wallet = (await listWallets(db, { ownerId: session.user.id })).find(
-    (item) => item.id === id,
-  );
+  const wallet = await findWallet(db, { ownerId: session.user.id, id });
   if (!wallet) {
     notFound();
   }

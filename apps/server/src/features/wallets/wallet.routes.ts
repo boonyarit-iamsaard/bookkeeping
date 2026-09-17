@@ -1,0 +1,175 @@
+import { findWallet, listWallets } from "@bookkeeping/application/wallets";
+import type { Database } from "@bookkeeping/database/connection";
+import type { WalletSummary } from "@bookkeeping/domain/wallets";
+import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
+import type { Input } from "hono";
+import { Hono } from "hono";
+import { describeResponse, describeRoute, validator } from "hono-openapi";
+import * as z from "zod";
+import type { AuthenticatedEnv } from "../../core/auth/session.js";
+import { createCollectionResponseSchema } from "../../core/http/collection.js";
+import type { Money } from "../../core/http/money.js";
+import {
+  currencySchema,
+  moneySchema,
+  presentMoney,
+} from "../../core/http/money.js";
+import { describeProblemResponse } from "../../core/http/openapi.js";
+import {
+  createProblemDetails,
+  createProblemResponse,
+  getProblemOptionsForStatus,
+  PROBLEM_MEDIA_TYPE,
+  problemDetailsSchema,
+} from "../../core/http/problem-details.js";
+
+export const walletResponseSchema = z
+  .object({
+    id: z.uuid(),
+    name: z.string(),
+    type: z.enum(WALLET_TYPES),
+    currency: currencySchema,
+    openingAmount: moneySchema,
+    openingDate: z.iso.date(),
+    archivedAt: z.iso.datetime().nullable(),
+    balance: moneySchema,
+  })
+  .meta({ id: "Wallet" });
+
+export const walletCollectionResponseSchema = createCollectionResponseSchema(
+  walletResponseSchema,
+).meta({ id: "WalletCollection" });
+
+export interface WalletResponse {
+  id: string;
+  name: string;
+  type: WalletSummary["type"];
+  currency: WalletSummary["currency"];
+  openingAmount: Money;
+  /** Calendar date, YYYY-MM-DD; never timezone-converted. */
+  openingDate: string;
+  /** UTC RFC 3339 instant, or null while the wallet is active. */
+  archivedAt: string | null;
+  balance: Money;
+}
+
+export function presentWallet(wallet: Readonly<WalletSummary>): WalletResponse {
+  return {
+    id: wallet.id,
+    name: wallet.name,
+    type: wallet.type,
+    currency: wallet.currency,
+    openingAmount: presentMoney({
+      amountInMinorUnits: wallet.openingAmount,
+      currency: wallet.currency,
+    }),
+    openingDate: wallet.openingDate,
+    archivedAt: wallet.archivedAt?.toISOString() ?? null,
+    balance: presentMoney({
+      amountInMinorUnits: wallet.balance,
+      currency: wallet.currency,
+    }),
+  };
+}
+
+const walletParamsSchema = z.object({ walletId: z.uuid() });
+
+const COLLECTION_PATH = "/wallets";
+const RESOURCE_PATH = "/wallets/:walletId";
+
+export function createWalletRoutes(db: Database) {
+  return new Hono<AuthenticatedEnv>()
+    .get(
+      COLLECTION_PATH,
+      describeRoute({
+        operationId: "listWallets",
+        summary: "List wallets",
+        description:
+          "Every wallet the signed-in owner holds, archived ones included, " +
+          "in creation order with today's end-of-day balance in Bangkok. " +
+          "The collection is small and unpaginated; `nextCursor` is always null.",
+        tags: ["Wallets"],
+        responses: { 401: describeProblemResponse(401) },
+      }),
+      // The generics are explicit because the library cannot infer the
+      // authenticated environment from an async handler; without them the
+      // session variable types as `never`.
+      describeResponse<
+        AuthenticatedEnv,
+        typeof COLLECTION_PATH,
+        Input,
+        { 200: typeof walletCollectionResponseSchema }
+      >(
+        async (c) => {
+          const wallets = await listWallets(db, {
+            ownerId: c.get("session").user.id,
+          });
+          return c.json(
+            { items: wallets.map(presentWallet), page: { nextCursor: null } },
+            200,
+          );
+        },
+        {
+          200: {
+            description: "The owner's wallets",
+            content: {
+              "application/json": { vSchema: walletCollectionResponseSchema },
+            },
+          },
+        },
+      ),
+    )
+    .get(
+      RESOURCE_PATH,
+      describeRoute({
+        operationId: "getWallet",
+        summary: "Get a wallet",
+        description:
+          "One wallet the signed-in owner holds, with today's end-of-day " +
+          "balance in Bangkok. A wallet that does not exist, belongs to " +
+          "another owner, or has a malformed identifier is not found alike.",
+        tags: ["Wallets"],
+        responses: { 401: describeProblemResponse(401) },
+      }),
+      validator("param", walletParamsSchema, (result, c) => {
+        if (!result.success) {
+          return createProblemResponse(c, getProblemOptionsForStatus(404));
+        }
+      }),
+      describeResponse<
+        AuthenticatedEnv,
+        typeof RESOURCE_PATH,
+        Input,
+        { 200: typeof walletResponseSchema; 404: typeof problemDetailsSchema }
+      >(
+        async (c) => {
+          const wallet = await findWallet(db, {
+            ownerId: c.get("session").user.id,
+            id: c.req.param("walletId"),
+          });
+          if (wallet === null) {
+            return c.json(
+              createProblemDetails(getProblemOptionsForStatus(404)),
+              404,
+              { "Content-Type": PROBLEM_MEDIA_TYPE },
+            );
+          }
+          return c.json(presentWallet(wallet), 200);
+        },
+        {
+          200: {
+            description: "The wallet",
+            content: {
+              "application/json": { vSchema: walletResponseSchema },
+            },
+          },
+          404: {
+            description: getProblemOptionsForStatus(404).title,
+            content: {
+              [PROBLEM_MEDIA_TYPE]: { vSchema: problemDetailsSchema },
+            },
+          },
+        },
+      ),
+    );
+}

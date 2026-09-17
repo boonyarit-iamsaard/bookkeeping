@@ -1,3 +1,4 @@
+import { listWallets } from "@bookkeeping/application/wallets";
 import {
   APP_TIME_ZONE,
   formatInstant,
@@ -17,7 +18,6 @@ import {
   getTransaction,
 } from "@/features/transactions/server/transaction";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
-import { listWallets } from "@/features/wallets/server/wallet";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {

@@ -1,3 +1,4 @@
+import { listWallets } from "@bookkeeping/application/wallets";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
 import { Wallet } from "lucide-react";
@@ -9,7 +10,6 @@ import { db } from "@/core/database/client";
 import { listCategories } from "@/features/categories/server/category";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { lastUsedWalletId } from "@/features/transactions/server/transaction";
-import { listWallets } from "@/features/wallets/server/wallet";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {

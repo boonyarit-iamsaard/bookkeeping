@@ -1,3 +1,4 @@
+import { listWallets } from "@bookkeeping/application/wallets";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -5,7 +6,6 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { WalletList } from "@/features/wallets/components/wallet-list";
-import { listWallets } from "@/features/wallets/server/wallet";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {

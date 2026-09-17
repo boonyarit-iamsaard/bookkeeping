@@ -14,6 +14,7 @@ interface DocumentedMedia {
 
 interface DocumentedOperation {
   operationId?: string;
+  parameters?: { in: string; name: string; required?: boolean }[];
   responses: {
     [status: string]: { content: { [mediaType: string]: DocumentedMedia } };
   };
@@ -100,6 +101,40 @@ describe("OpenAPI document", () => {
     ).toBe("#/components/schemas/ProblemDetails");
     expect(Object.keys(document.components.schemas)).toEqual(
       expect.arrayContaining(["HealthResponse", "ProblemDetails"]),
+    );
+  });
+
+  it("documents the wallet reads from their response schemas", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const collection: DocumentedOperation = document.paths["/v1/wallets"].get;
+    const resource: DocumentedOperation =
+      document.paths["/v1/wallets/{walletId}"].get;
+
+    expect(collection.operationId).toBe("listWallets");
+    expect(
+      collection.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/WalletCollection");
+    expect(collection.responses["404"]).toBeUndefined();
+    expect(resource.operationId).toBe("getWallet");
+    expect(
+      resource.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/Wallet");
+    for (const status of ["401", "404"]) {
+      expect(
+        resource.responses[status].content["application/problem+json"].schema
+          .$ref,
+      ).toBe("#/components/schemas/ProblemDetails");
+    }
+    expect(resource.parameters).toEqual([
+      expect.objectContaining({ in: "path", name: "walletId", required: true }),
+    ]);
+    expect(Object.keys(document.components.schemas)).toEqual(
+      expect.arrayContaining([
+        "Wallet",
+        "WalletCollection",
+        "Money",
+        "Currency",
+      ]),
     );
   });
 

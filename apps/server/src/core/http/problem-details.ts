@@ -49,8 +49,10 @@ export interface ProblemFieldError {
   detail?: string;
 }
 
-export interface ProblemDetails extends ProblemOptions {
+export interface ProblemDetails extends Omit<ProblemOptions, "errors"> {
   type: string;
+  /** A fresh array: the body is JSON output, never the caller's list. */
+  errors?: ProblemFieldError[];
 }
 
 export interface ProblemOptions {
@@ -93,7 +95,7 @@ export function createProblemDetails(
     ...(options.detail === undefined ? {} : { detail: options.detail }),
     ...(options.instance === undefined ? {} : { instance: options.instance }),
     ...(options.details === undefined ? {} : { details: options.details }),
-    ...(options.errors === undefined ? {} : { errors: options.errors }),
+    ...(options.errors === undefined ? {} : { errors: [...options.errors] }),
   };
 }
 
