@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
-import { listWallets } from "@bookkeeping/application/wallets";
+import {
+  listWallets,
+  replaceWalletOpening,
+} from "@bookkeeping/application/wallets";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   createTestUser,
@@ -23,10 +26,7 @@ import {
   listTransactions,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import {
-  correctWalletOpening,
-  setWalletArchived,
-} from "@/features/wallets/server/wallet-lifecycle";
+import { setWalletArchived } from "@/features/wallets/server/wallet-lifecycle";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback } = setupTestDatabase();
@@ -378,7 +378,7 @@ test("corrections, archiving and category fallbacks replace effects across histo
     ).toBe(true);
     expect(
       (
-        await correctWalletOpening(db, {
+        await replaceWalletOpening(db, {
           ownerId: f.ownerId,
           id: f.cash.id,
           openingAmount: 1_000_000n,

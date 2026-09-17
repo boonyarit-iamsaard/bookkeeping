@@ -4,29 +4,19 @@ import {
   transactions,
 } from "@bookkeeping/database/transactions";
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
-import { formatMoneyInput } from "@bookkeeping/domain/money";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import type { WalletSnapshot } from "@bookkeeping/domain/wallets";
-import { and, eq, lt, or, sql } from "drizzle-orm";
-import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
+import { and, eq, or, sql } from "drizzle-orm";
 
 export interface ManageWalletInput {
   ownerId: string;
   id: string;
 }
-export interface CorrectWalletOpeningInput extends ManageWalletInput {
-  openingAmount: bigint;
-  openingDate: string;
-}
 export interface SetWalletArchivedInput extends ManageWalletInput {
   archived: boolean;
 }
-export type WalletLifecycleError =
-  | "wallet-not-found"
-  | "invalid-opening"
-  | "movement-before-opening"
-  | "history-remains";
+export type WalletLifecycleError = "wallet-not-found" | "history-remains";
 type Outcome = Result<{ id: string }, WalletLifecycleError>;
 
 function snapshot(
@@ -50,73 +40,6 @@ async function lockWallet(db: Database, input: Readonly<ManageWalletInput>) {
     .where(and(eq(wallets.id, input.id), eq(wallets.userId, input.ownerId)))
     .for("update");
   return row;
-}
-
-/** Exclusive wallet locks serialize corrections/archive with transaction wallet share locks. */
-export async function correctWalletOpening(
-  db: Database,
-  input: Readonly<CorrectWalletOpeningInput>,
-): Promise<Outcome> {
-  const parsed = walletFormSchema
-    .pick({ openingAmount: true, openingDate: true })
-    .safeParse({
-      openingAmount: formatMoneyInput({
-        amountInMinorUnits: input.openingAmount,
-        currency: "THB",
-      }),
-      openingDate: input.openingDate,
-    });
-  if (!parsed.success) {
-    return err("invalid-opening");
-  }
-  return db.transaction(async (tx) => {
-    const current = await lockWallet(tx, input);
-    if (!current) {
-      return err("wallet-not-found");
-    }
-    // Include retained deleted movements; opening corrections cannot exclude history.
-    const [movement] = await tx
-      .select({ id: transactions.id })
-      .from(transactions)
-      .where(
-        and(
-          or(
-            eq(transactions.walletId, input.id),
-            eq(transactions.destinationWalletId, input.id),
-          ),
-          lt(transactions.transactionDate, input.openingDate),
-        ),
-      )
-      .limit(1);
-    if (movement) {
-      return err("movement-before-opening");
-    }
-    if (
-      current.openingAmount === input.openingAmount &&
-      current.openingDate === input.openingDate
-    ) {
-      return ok({ id: input.id });
-    }
-    const [updated] = await tx
-      .update(wallets)
-      .set({
-        openingAmount: input.openingAmount,
-        openingDate: input.openingDate,
-      })
-      .where(eq(wallets.id, input.id))
-      .returning();
-    if (!updated) {
-      throw new Error("Locked wallet disappeared");
-    }
-    await tx.insert(walletChanges).values({
-      userId: input.ownerId,
-      walletId: input.id,
-      action: "opening",
-      before: snapshot(current),
-      after: snapshot(updated),
-    });
-    return ok({ id: input.id });
-  });
 }
 
 export async function setWalletArchived(

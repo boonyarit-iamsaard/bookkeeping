@@ -186,6 +186,38 @@ describe("OpenAPI document", () => {
     ).toHaveProperty("$ref", "#/components/schemas/MoneyInput");
   });
 
+  it("documents the opening balance replacement as a subordinate resource", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const operation: DocumentedOperation =
+      document.paths["/v1/wallets/{walletId}/opening"].put;
+
+    expect(operation.operationId).toBe("replaceWalletOpening");
+    expect(operation.parameters).toEqual([
+      expect.objectContaining({ in: "path", name: "walletId", required: true }),
+    ]);
+    expect(operation.requestBody?.required).toBe(true);
+    expect(operation.requestBody?.content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/WalletOpeningRequest",
+    );
+    expect(
+      operation.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/Wallet");
+    expect(operation.responses["201"]).toBeUndefined();
+    for (const status of ["400", "401", "404", "422", "500"]) {
+      expect(
+        operation.responses[status].content["application/problem+json"].schema
+          .$ref,
+      ).toBe("#/components/schemas/ProblemDetails");
+    }
+    expect(
+      document.components.schemas.WalletOpeningRequest.properties.amount,
+    ).toHaveProperty("$ref", "#/components/schemas/MoneyInput");
+    expect(document.components.schemas.WalletOpeningRequest.required).toEqual([
+      "amount",
+      "date",
+    ]);
+  });
+
   it("documents every registered route", async () => {
     const app = createUnitTestApp();
     const document = await fetchDocument(app);

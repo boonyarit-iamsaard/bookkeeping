@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import type { WalletCreationCommand } from "./wallet";
-import { validateWalletCreation } from "./wallet";
+import type { WalletCreationCommand, WalletOpening } from "./wallet";
+import { validateWalletCreation, validateWalletOpening } from "./wallet";
 
 const command: WalletCreationCommand = {
   name: "Cash",
@@ -104,5 +104,60 @@ describe("validateWalletCreation", () => {
       "openingAmount",
       "openingDate",
     ]);
+  });
+});
+
+describe("validateWalletOpening", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test("accepts an exact opening within the stored range", () => {
+    const opening: WalletOpening = {
+      openingAmount: -999_999_999_999_999_99n,
+      openingDate: "2026-09-01",
+    };
+
+    expect(validateWalletOpening(opening)).toEqual({
+      ok: true,
+      value: opening,
+    });
+  });
+
+  test("reports an out-of-range amount and an impossible date together", () => {
+    expect(
+      validateWalletOpening({
+        openingAmount: 1_000_000_000_000_000_00n,
+        openingDate: "2026-02-30",
+      }),
+    ).toEqual({
+      ok: false,
+      error: {
+        code: "invalid-opening",
+        issues: [
+          { field: "openingAmount", code: "out-of-range" },
+          { field: "openingDate", code: "invalid" },
+        ],
+      },
+    });
+  });
+
+  test("rejects an opening date after today in Bangkok", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-13T17:30:00Z"));
+
+    expect(
+      validateWalletOpening({ openingAmount: 0n, openingDate: "2026-09-14" })
+        .ok,
+    ).toBe(true);
+    expect(
+      validateWalletOpening({ openingAmount: 0n, openingDate: "2026-09-15" }),
+    ).toEqual({
+      ok: false,
+      error: {
+        code: "invalid-opening",
+        issues: [{ field: "openingDate", code: "in-future" }],
+      },
+    });
   });
 });

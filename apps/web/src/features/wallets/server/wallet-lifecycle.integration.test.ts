@@ -1,5 +1,8 @@
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
-import { listWallets } from "@bookkeeping/application/wallets";
+import {
+  listWallets,
+  replaceWalletOpening,
+} from "@bookkeeping/application/wallets";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   createTestUser,
@@ -16,7 +19,6 @@ import {
   updateTransaction,
 } from "@/features/transactions/server/transaction";
 import {
-  correctWalletOpening,
   deleteWallet,
   setWalletArchived,
 } from "@/features/wallets/server/wallet-lifecycle";
@@ -60,7 +62,7 @@ async function fixture(db: Database) {
   };
 }
 describe("wallet lifecycle", () => {
-  test("exact opening corrections preserve recording times and atomically retain history", async () => {
+  test("an opening replacement through the application keeps a recorded movement and its recording time", async () => {
     await withRollback(async (db) => {
       const { owned, movement } = await fixture(db);
       const created = await createTransaction(db, movement);
@@ -68,12 +70,14 @@ describe("wallet lifecycle", () => {
         throw new Error("Create failed");
       }
       expect(
-        await correctWalletOpening(db, {
-          ...owned,
-          openingAmount: -99999999999999999n,
-          openingDate: "2026-09-02",
-        }),
-      ).toEqual({ ok: true, value: { id: owned.id } });
+        (
+          await replaceWalletOpening(db, {
+            ...owned,
+            openingAmount: -99999999999999999n,
+            openingDate: "2026-09-02",
+          })
+        ).ok,
+      ).toBe(true);
       const listed = await listWallets(db, { ownerId: owned.ownerId });
       expect(listed.find((w) => w.id === owned.id)?.balance).toBe(
         -100000000000000099n,
@@ -86,30 +90,9 @@ describe("wallet lifecycle", () => {
           })
         )?.recordedAt,
       ).toEqual(created.value.transaction.recordedAt);
-      const changes = await db
-        .select()
-        .from(walletChanges)
-        .where(eq(walletChanges.walletId, owned.id));
-      expect(changes).toHaveLength(1);
-      expect(changes[0]?.before.openingAmount).toBe("10000");
-      expect(changes[0]?.after.openingAmount).toBe("-99999999999999999");
-      expect(
-        await correctWalletOpening(db, {
-          ...owned,
-          openingAmount: 1n,
-          openingDate: "2026-09-03",
-        }),
-      ).toEqual({ ok: false, error: "movement-before-opening" });
-      expect(
-        await correctWalletOpening(db, {
-          ...owned,
-          openingAmount: 1n,
-          openingDate: "invalid",
-        }),
-      ).toEqual({ ok: false, error: "invalid-opening" });
     });
   });
-  test("both transfer wallets guard opening dates; deleted movements retain guards", async () => {
+  test("a deleted transfer still counts as history for both wallets", async () => {
     await withRollback(async (db) => {
       const { owned, movement, other } = await fixture(db);
       const created = await createTransaction(db, {
@@ -122,31 +105,16 @@ describe("wallet lifecycle", () => {
       if (!created.ok) {
         throw new Error("Transfer failed");
       }
-      for (const id of [owned.id, other.id]) {
-        expect(
-          await correctWalletOpening(db, {
-            ...owned,
-            id,
-            openingAmount: 0n,
-            openingDate: "2026-09-03",
-          }),
-        ).toEqual({ ok: false, error: "movement-before-opening" });
-      }
       await deleteTransaction(db, {
         ownerId: owned.ownerId,
         id: created.value.transaction.id,
       });
-      expect(await deleteWallet(db, owned)).toEqual({
-        ok: false,
-        error: "history-remains",
-      });
-      expect(
-        await correctWalletOpening(db, {
-          ...owned,
-          openingAmount: 0n,
-          openingDate: "2026-09-03",
-        }),
-      ).toEqual({ ok: false, error: "movement-before-opening" });
+      for (const id of [owned.id, other.id]) {
+        expect(await deleteWallet(db, { ...owned, id })).toEqual({
+          ok: false,
+          error: "history-remains",
+        });
+      }
     });
   });
   test("archive retains current/historical totals, permits retained edits, rejects new archived wallets, and restores eligibility", async () => {
@@ -215,13 +183,6 @@ describe("wallet lifecycle", () => {
       });
       expect(
         await setWalletArchived(db, { ...foreign, archived: true }),
-      ).toEqual({ ok: false, error: "wallet-not-found" });
-      expect(
-        await correctWalletOpening(db, {
-          ...foreign,
-          openingAmount: 0n,
-          openingDate: "2026-09-01",
-        }),
       ).toEqual({ ok: false, error: "wallet-not-found" });
       const created = await createTransaction(db, movement);
       if (!created.ok) {

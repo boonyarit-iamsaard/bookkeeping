@@ -1,6 +1,7 @@
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
-import { wallets } from "@bookkeeping/database/wallets";
+import { transactions } from "@bookkeeping/database/transactions";
+import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { WalletType } from "@bookkeeping/domain/wallets";
 import { eq } from "drizzle-orm";
@@ -532,6 +533,270 @@ describe("POST /v1/wallets", () => {
     await withRollback(async (db) => {
       const response = await postWallet(createIntegrationTestApp(db), {
         idempotencyKey: "anonymous",
+      });
+
+      await expectProblem(response, { status: 401, code: "unauthenticated" });
+    });
+  });
+});
+
+interface PutWalletOpeningRequest {
+  id: string;
+  cookie?: string;
+  body?: unknown;
+  rawBody?: string;
+}
+
+const OPENING_REQUEST = {
+  amount: { value: "-250.5", currency: "THB" },
+  date: "2026-09-02",
+};
+
+function putWalletOpening(
+  app: Hono<AppEnv>,
+  {
+    id,
+    cookie,
+    body = OPENING_REQUEST,
+    rawBody,
+  }: Readonly<PutWalletOpeningRequest>,
+) {
+  return app.request(`${WALLETS_URL}/${id}/opening`, {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json",
+      origin: TEST_CLIENT_ORIGIN,
+      ...(cookie ? { cookie } : {}),
+    },
+    body: rawBody ?? JSON.stringify(body),
+  });
+}
+
+interface TransferFixture {
+  ownerId: string;
+  walletId: string;
+  destinationWalletId: string;
+  transactionDate: CalendarDate;
+  deletedAt?: Date;
+}
+
+/** Persists a transfer row directly; transfers over HTTP have their own ticket. */
+async function insertTransfer(
+  db: Database,
+  fixture: Readonly<TransferFixture>,
+) {
+  await db.insert(transactions).values({
+    userId: fixture.ownerId,
+    type: "transfer",
+    walletId: fixture.walletId,
+    destinationWalletId: fixture.destinationWalletId,
+    currency: "THB",
+    amount: 100n,
+    transactionDate: fixture.transactionDate,
+    deletedAt: fixture.deletedAt,
+  });
+}
+
+async function createSavingsWallet(app: Hono<AppEnv>, cookie: string) {
+  const response = await postWallet(app, {
+    cookie,
+    idempotencyKey: crypto.randomUUID(),
+  });
+  return walletResponseSchema.parse(await response.json());
+}
+
+async function listWalletChangeActions(db: Database, walletId: string) {
+  return db
+    .select({ action: walletChanges.action })
+    .from(walletChanges)
+    .where(eq(walletChanges.walletId, walletId));
+}
+
+async function readWallet(
+  app: Hono<AppEnv>,
+  request: Readonly<Required<GetWalletRequest>>,
+) {
+  const response = await getWallet(app, request);
+  return walletResponseSchema.parse(await response.json());
+}
+
+describe("PUT /v1/wallets/{walletId}/opening", () => {
+  test("replaces the opening and answers with the updated wallet", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const created = await createSavingsWallet(app, cookie);
+
+      const response = await putWalletOpening(app, { id: created.id, cookie });
+      const wallet = walletResponseSchema.parse(await response.json());
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      expect(wallet).toEqual({
+        ...created,
+        openingAmount: { value: "-250.50", currency: "THB" },
+        openingDate: "2026-09-02",
+        balance: { value: "-250.50", currency: "THB" },
+      });
+      expect(await readWallet(app, { id: created.id, cookie })).toEqual(wallet);
+      expect(await listWalletChangeActions(db, created.id)).toEqual([
+        { action: "opening" },
+      ]);
+    });
+  });
+
+  test("repeating the same replacement answers alike and records nothing more", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const created = await createSavingsWallet(app, cookie);
+
+      const first = await putWalletOpening(app, { id: created.id, cookie });
+      const second = await putWalletOpening(app, {
+        id: created.id,
+        cookie,
+        body: {
+          ...OPENING_REQUEST,
+          amount: { value: "-250.50", currency: "THB" },
+        },
+      });
+
+      expect(second.status).toBe(200);
+      expect(await second.json()).toEqual(await first.json());
+      expect(await listWalletChangeActions(db, created.id)).toHaveLength(1);
+    });
+  });
+
+  test("a malformed body is rejected field by field", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const created = await createSavingsWallet(app, cookie);
+
+      const rejected = await putWalletOpening(app, {
+        id: created.id,
+        cookie,
+        body: {
+          amount: { value: "1,000", currency: "USD" },
+          date: "2 Sep 2026",
+        },
+      });
+
+      const problem = await expectProblem(rejected, {
+        status: 422,
+        code: "invalid-command",
+      });
+      expect(problem.errors).toEqual([
+        { pointer: "#/amount/value", code: "invalid-format" },
+        { pointer: "#/amount/currency", code: "invalid-value" },
+        { pointer: "#/date", code: "invalid-format" },
+      ]);
+      expect(await readWallet(app, { id: created.id, cookie })).toEqual(
+        created,
+      );
+    });
+  });
+
+  test("an opening the application rejects is addressed by field", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const created = await createSavingsWallet(app, cookie);
+
+      // The money grammar already caps whole digits, so a future date is
+      // the only application rejection reachable over HTTP.
+      const rejected = await putWalletOpening(app, {
+        id: created.id,
+        cookie,
+        body: { ...OPENING_REQUEST, date: "2999-01-01" },
+      });
+
+      const problem = await expectProblem(rejected, {
+        status: 422,
+        code: "invalid-command",
+      });
+      expect(problem.errors).toEqual([
+        { pointer: "#/date", code: "in-future" },
+      ]);
+      expect(await readWallet(app, { id: created.id, cookie })).toEqual(
+        created,
+      );
+    });
+  });
+
+  test("a movement before the proposed opening, even a deleted one, is addressed to the date", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie, ownerId } = await signUp(app);
+      const cash = await createSavingsWallet(app, cookie);
+      const bank = await createSavingsWallet(app, cookie);
+      await insertTransfer(db, {
+        ownerId,
+        walletId: cash.id,
+        destinationWalletId: bank.id,
+        transactionDate: "2026-09-02",
+        deletedAt: new Date("2026-09-03T00:00:00Z"),
+      });
+
+      for (const id of [cash.id, bank.id]) {
+        const rejected = await putWalletOpening(app, {
+          id,
+          cookie,
+          body: { ...OPENING_REQUEST, date: "2026-09-03" },
+        });
+        const problem = await expectProblem(rejected, {
+          status: 422,
+          code: "invalid-command",
+        });
+        expect(problem.errors).toEqual([
+          { pointer: "#/date", code: "movement-before-opening" },
+        ]);
+      }
+      const accepted = await putWalletOpening(app, { id: cash.id, cookie });
+      expect(accepted.status).toBe(200);
+    });
+  });
+
+  test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const alice = await signUp(app);
+      const bob = await signUp(app);
+      const wallet = await createSavingsWallet(app, alice.cookie);
+
+      for (const id of [wallet.id, UNKNOWN_WALLET_ID, "not-a-wallet"]) {
+        await expectNotFoundProblem(
+          await putWalletOpening(app, { id, cookie: bob.cookie }),
+        );
+      }
+      expect(
+        await readWallet(app, { id: wallet.id, cookie: alice.cookie }),
+      ).toEqual(wallet);
+    });
+  });
+
+  test("malformed JSON is a bad request", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+
+      await expectProblem(
+        await putWalletOpening(app, {
+          id: UNKNOWN_WALLET_ID,
+          cookie,
+          rawBody: "{",
+        }),
+        { status: 400, code: "bad-request" },
+      );
+    });
+  });
+
+  test("rejects an anonymous request with the standard problem", async () => {
+    await withRollback(async (db) => {
+      const response = await putWalletOpening(createIntegrationTestApp(db), {
+        id: UNKNOWN_WALLET_ID,
       });
 
       await expectProblem(response, { status: 401, code: "unauthenticated" });

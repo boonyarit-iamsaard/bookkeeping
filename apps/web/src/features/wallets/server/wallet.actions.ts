@@ -1,6 +1,9 @@
 "use server";
 
-import { createWallet } from "@bookkeeping/application/wallets";
+import {
+  createWallet,
+  replaceWalletOpening,
+} from "@bookkeeping/application/wallets";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { revalidatePath } from "next/cache";
@@ -9,7 +12,6 @@ import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import type { WalletLifecycleError } from "@/features/wallets/server/wallet-lifecycle";
 import {
-  correctWalletOpening,
   deleteWallet,
   setWalletArchived,
 } from "@/features/wallets/server/wallet-lifecycle";
@@ -68,11 +70,16 @@ export async function createWalletAction(
   return ok({ id: created.value.wallet.id });
 }
 
+export type ManageWalletActionError =
+  | WalletLifecycleError
+  | "invalid-opening"
+  | "movement-before-opening"
+  | "unauthenticated"
+  | "invalid";
+
 export async function manageWalletAction(
   input: unknown,
-): Promise<
-  Result<{ id: string }, WalletLifecycleError | "unauthenticated" | "invalid">
-> {
+): Promise<Result<{ id: string }, ManageWalletActionError>> {
   const session = await getSession();
   if (!session) {
     return err("unauthenticated");
@@ -83,9 +90,16 @@ export async function manageWalletAction(
   }
   const data = parsed.data;
   const owned = { id: data.id, ownerId: session.user.id };
-  let result: Result<{ id: string }, WalletLifecycleError>;
+  let result: Result<{ id: string }, ManageWalletActionError>;
   if (data.operation === "opening") {
-    result = await correctWalletOpening(db, { ...owned, ...data.opening });
+    const replaced = await replaceWalletOpening(db, {
+      ...owned,
+      ...data.opening,
+    });
+    // The UI shows one message per failure kind, so only the code travels.
+    result = replaced.ok
+      ? ok({ id: replaced.value.id })
+      : err(replaced.error.code);
   } else if (data.operation === "delete") {
     result = await deleteWallet(db, owned);
   } else {

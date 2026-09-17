@@ -3,12 +3,18 @@ import {
   createTestUser,
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
-import { wallets } from "@bookkeeping/database/wallets";
+import { transactions } from "@bookkeeping/database/transactions";
+import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { WalletType } from "@bookkeeping/domain/wallets";
 import { eq } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
-import { createWallet, findWallet, listWallets } from "./wallet";
+import {
+  createWallet,
+  findWallet,
+  listWallets,
+  replaceWalletOpening,
+} from "./wallet";
 
 const { withRollback, committed } = setupTestDatabase();
 
@@ -404,5 +410,224 @@ describe("createWallet", () => {
     expect(new Set(successes.map(({ wallet }) => wallet.id)).size).toBe(1);
     expect(successes.filter(({ replayed }) => !replayed)).toHaveLength(1);
     expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
+  });
+});
+
+interface TransferFixture {
+  ownerId: string;
+  walletId: string;
+  destinationWalletId: string;
+  transactionDate: CalendarDate;
+  amount?: bigint;
+  deletedAt?: Date;
+}
+
+/**
+ * Persists a transfer row directly; a transfer touches both wallets without
+ * needing a category, and movements move here with their own tickets.
+ */
+async function insertTransfer(
+  db: Database,
+  fixture: Readonly<TransferFixture>,
+) {
+  const [row] = await db
+    .insert(transactions)
+    .values({
+      userId: fixture.ownerId,
+      type: "transfer",
+      walletId: fixture.walletId,
+      destinationWalletId: fixture.destinationWalletId,
+      currency: "THB",
+      amount: fixture.amount ?? 100n,
+      transactionDate: fixture.transactionDate,
+      deletedAt: fixture.deletedAt,
+    })
+    .returning({ id: transactions.id, recordedAt: transactions.recordedAt });
+  return row;
+}
+
+async function openCashPair(db: Database) {
+  const owner = await createTestUser(db);
+  const cash = await createSavingsWallet(db, {
+    ownerId: owner.id,
+    idempotencyKey: "cash",
+    name: "Cash",
+    type: "cash",
+    openingAmount: 10_000n,
+  });
+  const bank = await createSavingsWallet(db, {
+    ownerId: owner.id,
+    idempotencyKey: "bank",
+    name: "Bank",
+    openingAmount: 10_000n,
+  });
+  if (!(cash.ok && bank.ok)) {
+    throw new Error("Expected wallet creation to succeed");
+  }
+  return { owner, cash: cash.value.wallet, bank: bank.value.wallet };
+}
+
+async function listChanges(db: Database, walletId: string) {
+  return db
+    .select()
+    .from(walletChanges)
+    .where(eq(walletChanges.walletId, walletId));
+}
+
+describe("replaceWalletOpening", () => {
+  test("replaces amount and date together, records the change, and keeps recording times", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash, bank } = await openCashPair(db);
+      const transfer = await insertTransfer(db, {
+        ownerId: owner.id,
+        walletId: cash.id,
+        destinationWalletId: bank.id,
+        transactionDate: "2026-09-02",
+      });
+
+      const replaced = await replaceWalletOpening(db, {
+        ownerId: owner.id,
+        id: cash.id,
+        openingAmount: -99_999_999_999_999_999n,
+        openingDate: "2026-09-02",
+      });
+
+      expect(replaced).toEqual({
+        ok: true,
+        value: {
+          ...cash,
+          openingAmount: -99_999_999_999_999_999n,
+          openingDate: "2026-09-02",
+          balance: -100_000_000_000_000_099n,
+        },
+      });
+      expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
+        replaced.ok ? replaced.value : null,
+      );
+      const [row] = await db
+        .select({ recordedAt: transactions.recordedAt })
+        .from(transactions)
+        .where(eq(transactions.id, transfer.id));
+      expect(row?.recordedAt).toEqual(transfer.recordedAt);
+      const changes = await listChanges(db, cash.id);
+      expect(changes).toEqual([
+        expect.objectContaining({
+          userId: owner.id,
+          action: "opening",
+          before: {
+            openingAmount: "10000",
+            openingDate: "2026-09-01",
+            archivedAt: null,
+          },
+          after: {
+            openingAmount: "-99999999999999999",
+            openingDate: "2026-09-02",
+            archivedAt: null,
+          },
+        }),
+      ]);
+    });
+  });
+
+  test("replacing with the current opening changes nothing and records no history", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash } = await openCashPair(db);
+
+      const repeated = await replaceWalletOpening(db, {
+        ownerId: owner.id,
+        id: cash.id,
+        openingAmount: 10_000n,
+        openingDate: "2026-09-01",
+      });
+
+      expect(repeated).toEqual({ ok: true, value: cash });
+      expect(await listChanges(db, cash.id)).toEqual([]);
+    });
+  });
+
+  test("a movement before the proposed opening on either transfer side is rejected, even once deleted", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash, bank } = await openCashPair(db);
+      await insertTransfer(db, {
+        ownerId: owner.id,
+        walletId: cash.id,
+        destinationWalletId: bank.id,
+        transactionDate: "2026-09-02",
+        deletedAt: new Date("2026-09-03T00:00:00Z"),
+      });
+
+      for (const id of [cash.id, bank.id]) {
+        expect(
+          await replaceWalletOpening(db, {
+            ownerId: owner.id,
+            id,
+            openingAmount: 0n,
+            openingDate: "2026-09-03",
+          }),
+        ).toEqual({ ok: false, error: { code: "movement-before-opening" } });
+        expect(
+          (
+            await replaceWalletOpening(db, {
+              ownerId: owner.id,
+              id,
+              openingAmount: 0n,
+              openingDate: "2026-09-02",
+            })
+          ).ok,
+        ).toBe(true);
+      }
+    });
+  });
+
+  test("an invalid opening is rejected before the wallet is touched", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash } = await openCashPair(db);
+
+      const rejected = await replaceWalletOpening(db, {
+        ownerId: owner.id,
+        id: cash.id,
+        openingAmount: 1_000_000_000_000_000_00n,
+        openingDate: "2999-01-01",
+      });
+
+      expect(rejected).toEqual({
+        ok: false,
+        error: {
+          code: "invalid-opening",
+          issues: [
+            { field: "openingAmount", code: "out-of-range" },
+            { field: "openingDate", code: "in-future" },
+          ],
+        },
+      });
+      expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
+        cash,
+      );
+      expect(await listChanges(db, cash.id)).toEqual([]);
+    });
+  });
+
+  test("another owner's, an unknown, and a malformed wallet id are not found alike", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash } = await openCashPair(db);
+      const stranger = await createTestUser(db);
+
+      for (const attempt of [
+        { ownerId: stranger.id, id: cash.id },
+        { ownerId: owner.id, id: "01999999-0000-7000-8000-000000000000" },
+        { ownerId: owner.id, id: "not-a-uuid" },
+      ]) {
+        expect(
+          await replaceWalletOpening(db, {
+            ...attempt,
+            openingAmount: 0n,
+            openingDate: "2026-09-01",
+          }),
+        ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      }
+      expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
+        cash,
+      );
+    });
   });
 });

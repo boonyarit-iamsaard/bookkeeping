@@ -1,8 +1,12 @@
-import type { WalletCreationIssue } from "@bookkeeping/application/wallets";
+import type {
+  ReplaceWalletOpeningError,
+  WalletCreationIssue,
+} from "@bookkeeping/application/wallets";
 import {
   createWallet,
   findWallet,
   listWallets,
+  replaceWalletOpening,
 } from "@bookkeeping/application/wallets";
 import type { Database } from "@bookkeeping/database/connection";
 import type { WalletSummary } from "@bookkeeping/domain/wallets";
@@ -122,6 +126,50 @@ function toWalletFieldError(issue: WalletCreationIssue): ProblemFieldError {
   return { pointer: WALLET_ISSUE_POINTERS[issue.field], code: issue.code };
 }
 
+/** The opening balance as its own resource: amount and date replaced together. */
+export const walletOpeningRequestSchema = z
+  .object({
+    amount: moneyInputSchema,
+    date: z.iso.date(),
+  })
+  .meta({ id: "WalletOpeningRequest" });
+
+/** What the validators hand the opening handler. */
+interface WalletOpeningValidatedInput {
+  in: {
+    param: z.input<typeof walletParamsSchema>;
+    json: z.input<typeof walletOpeningRequestSchema>;
+  };
+  out: {
+    param: z.output<typeof walletParamsSchema>;
+    json: z.output<typeof walletOpeningRequestSchema>;
+  };
+}
+
+// The opening resource names its fields without the prefix the wallet
+// representation carries, so its pointers differ from the creation ones.
+const OPENING_ISSUE_POINTERS = {
+  openingAmount: "#/amount/value",
+  openingDate: "#/date",
+} as const;
+
+/**
+ * Every opening rejection short of "not found" is addressed to a field: an
+ * invalid value to its own, and a movement before the proposed opening to
+ * the date, since choosing an earlier date is the correction.
+ */
+function toOpeningFieldErrors(
+  error: Exclude<ReplaceWalletOpeningError, { code: "wallet-not-found" }>,
+): ProblemFieldError[] {
+  if (error.code === "movement-before-opening") {
+    return [{ pointer: OPENING_ISSUE_POINTERS.openingDate, code: error.code }];
+  }
+  return error.issues.map((issue) => ({
+    pointer: OPENING_ISSUE_POINTERS[issue.field],
+    code: issue.code,
+  }));
+}
+
 function describeProblem(problem: Readonly<ProblemOptions>) {
   return {
     description: problem.title,
@@ -132,6 +180,7 @@ function describeProblem(problem: Readonly<ProblemOptions>) {
 const LOCATION_HEADER = "Location";
 const COLLECTION_PATH = "/wallets";
 const RESOURCE_PATH = "/wallets/:walletId";
+const OPENING_PATH = "/wallets/:walletId/opening";
 
 export function createWalletRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>()
@@ -311,6 +360,87 @@ export function createWalletRoutes(db: Database) {
             },
           },
           404: describeProblem(getProblemOptionsForStatus(404)),
+        },
+      ),
+    )
+    .put(
+      OPENING_PATH,
+      describeRoute({
+        operationId: "replaceWalletOpening",
+        summary: "Replace a wallet's opening balance",
+        description:
+          "Replaces the opening amount and opening date together as one " +
+          "resource. The date must be a calendar date no later than today " +
+          "in Bangkok and no later than any movement the wallet has ever " +
+          "carried, deleted ones included. Replacing an opening with itself " +
+          "succeeds without effect, so a client may safely retry. A wallet " +
+          "that does not exist, belongs to another owner, or has a " +
+          "malformed identifier is not found alike.",
+        tags: ["Wallets"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      validator("param", walletParamsSchema, (result, c) => {
+        if (!result.success) {
+          return createProblemResponse(c, getProblemOptionsForStatus(404));
+        }
+      }),
+      validator("json", walletOpeningRequestSchema, (result, c) => {
+        if (!result.success) {
+          return createProblemResponse(
+            c,
+            createInvalidCommandProblem(result.error),
+          );
+        }
+      }),
+      describeResponse<
+        AuthenticatedEnv,
+        typeof OPENING_PATH,
+        WalletOpeningValidatedInput,
+        {
+          200: typeof walletResponseSchema;
+          404: typeof problemDetailsSchema;
+          422: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const body = c.req.valid("json");
+          const replaced = await replaceWalletOpening(db, {
+            ownerId: c.get("session").user.id,
+            id: c.req.valid("param").walletId,
+            openingAmount: body.amount.amountInMinorUnits,
+            openingDate: body.date,
+          });
+          if (!replaced.ok) {
+            if (replaced.error.code === "wallet-not-found") {
+              return c.json(
+                createProblemDetails(getProblemOptionsForStatus(404)),
+                404,
+                { "Content-Type": PROBLEM_MEDIA_TYPE },
+              );
+            }
+            return c.json(
+              createProblemDetails({
+                ...getProblemOptionsForStatus(422),
+                errors: toOpeningFieldErrors(replaced.error),
+              }),
+              422,
+              { "Content-Type": PROBLEM_MEDIA_TYPE },
+            );
+          }
+          return c.json(presentWallet(replaced.value), 200);
+        },
+        {
+          200: {
+            description: "The wallet with its replaced opening balance",
+            content: {
+              "application/json": { vSchema: walletResponseSchema },
+            },
+          },
+          404: describeProblem(getProblemOptionsForStatus(404)),
+          422: describeProblem(getProblemOptionsForStatus(422)),
         },
       ),
     );

@@ -96,7 +96,7 @@ apps/server/
     features/
       categories/         # POST /v1/categories/defaults: the explicit provisioning retry
       health/             # Health check resource
-      wallets/            # GET /v1/wallets and /v1/wallets/{walletId}: owned wallets with balances
+      wallets/            # /v1/wallets: list, get, create, and replace opening balances
     server.ts             # Node entrypoint: parses env and serves the app
   scripts/build.ts        # esbuild bundle of the entrypoint and workspace packages
 ```

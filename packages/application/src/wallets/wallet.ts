@@ -1,6 +1,6 @@
 import type { Database } from "@bookkeeping/database/connection";
 import { transactions } from "@bookkeeping/database/transactions";
-import { wallets } from "@bookkeeping/database/wallets";
+import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import {
   APP_TIME_ZONE,
@@ -10,10 +10,14 @@ import {
 import { MAX_WHOLE_DIGITS } from "@bookkeeping/domain/money";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
-import type { WalletSummary, WalletType } from "@bookkeeping/domain/wallets";
+import type {
+  WalletSnapshot,
+  WalletSummary,
+  WalletType,
+} from "@bookkeeping/domain/wallets";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import type { SQL } from "drizzle-orm";
-import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, lt, lte, or, sql } from "drizzle-orm";
 import * as z from "zod";
 import type {
   CreationResultCodec,
@@ -129,22 +133,70 @@ async function selectWalletSummaries(
   }));
 }
 
-/** A wallet as a client asks for it, before the application accepts it. */
-export interface WalletCreationCommand {
-  name: string;
-  type: WalletType;
+/** The opening balance: what a wallet held at the start of its history. */
+export interface WalletOpening {
   /** Integer satang; zero and negative openings are valid. */
   openingAmount: bigint;
   openingDate: CalendarDate;
 }
 
-export type WalletCreationField = "name" | "openingAmount" | "openingDate";
+export type WalletOpeningField = "openingAmount" | "openingDate";
 
-export type WalletCreationIssueCode =
-  | "empty"
-  | "out-of-range"
-  | "invalid"
-  | "in-future";
+export type WalletOpeningIssueCode = "out-of-range" | "invalid" | "in-future";
+
+export interface WalletOpeningIssue {
+  field: WalletOpeningField;
+  code: WalletOpeningIssueCode;
+}
+
+export interface InvalidWalletOpening {
+  code: "invalid-opening";
+  issues: readonly WalletOpeningIssue[];
+}
+
+// The largest opening the domain lets an amount reach, in satang.
+const MAX_OPENING_AMOUNT = 10n ** BigInt(MAX_WHOLE_DIGITS) * 100n - 1n;
+
+/**
+ * Accepts an opening independently of how it arrived: the amount must fit
+ * the stored range and the date must be a real calendar date no later than
+ * today in Bangkok. Every issue is reported, so a client can correct them
+ * all at once.
+ */
+export function validateWalletOpening(
+  opening: Readonly<WalletOpening>,
+): Result<WalletOpening, InvalidWalletOpening> {
+  const issues: WalletOpeningIssue[] = [];
+  if (
+    opening.openingAmount > MAX_OPENING_AMOUNT ||
+    opening.openingAmount < -MAX_OPENING_AMOUNT
+  ) {
+    issues.push({ field: "openingAmount", code: "out-of-range" });
+  }
+  const openingDate = parseCalendarDate(opening.openingDate);
+  if (!openingDate.ok) {
+    issues.push({ field: "openingDate", code: "invalid" });
+  } else if (openingDate.value > todayIn({ timeZone: APP_TIME_ZONE })) {
+    issues.push({ field: "openingDate", code: "in-future" });
+  }
+  if (issues.length > 0) {
+    return err({ code: "invalid-opening", issues });
+  }
+  return ok({
+    openingAmount: opening.openingAmount,
+    openingDate: opening.openingDate,
+  });
+}
+
+/** A wallet as a client asks for it, before the application accepts it. */
+export interface WalletCreationCommand extends WalletOpening {
+  name: string;
+  type: WalletType;
+}
+
+export type WalletCreationField = "name" | WalletOpeningField;
+
+export type WalletCreationIssueCode = "empty" | WalletOpeningIssueCode;
 
 export interface WalletCreationIssue {
   field: WalletCreationField;
@@ -156,14 +208,10 @@ export interface InvalidWalletCreation {
   issues: readonly WalletCreationIssue[];
 }
 
-// The largest opening the domain lets an amount reach, in satang.
-const MAX_OPENING_AMOUNT = 10n ** BigInt(MAX_WHOLE_DIGITS) * 100n - 1n;
-
 /**
- * Accepts a wallet command independently of how it arrived: the name must
- * have visible characters, the opening must fit the stored range, and the
- * opening date must be a real calendar date no later than today in Bangkok.
- * Every issue is reported, so a client can correct them all at once.
+ * Accepts a wallet command: the name must have visible characters and the
+ * opening must satisfy `validateWalletOpening`. Every issue is reported, so
+ * a client can correct them all at once.
  */
 export function validateWalletCreation(
   command: Readonly<WalletCreationCommand>,
@@ -173,17 +221,9 @@ export function validateWalletCreation(
   if (name === "") {
     issues.push({ field: "name", code: "empty" });
   }
-  if (
-    command.openingAmount > MAX_OPENING_AMOUNT ||
-    command.openingAmount < -MAX_OPENING_AMOUNT
-  ) {
-    issues.push({ field: "openingAmount", code: "out-of-range" });
-  }
-  const openingDate = parseCalendarDate(command.openingDate);
-  if (!openingDate.ok) {
-    issues.push({ field: "openingDate", code: "invalid" });
-  } else if (openingDate.value > todayIn({ timeZone: APP_TIME_ZONE })) {
-    issues.push({ field: "openingDate", code: "in-future" });
+  const opening = validateWalletOpening(command);
+  if (!opening.ok) {
+    issues.push(...opening.error.issues);
   }
   if (issues.length > 0) {
     return err({ code: "invalid-wallet", issues });
@@ -314,4 +354,117 @@ async function insertWallet(
     // Validation rejects future openings, so the opening is already in effect.
     balance: row.openingAmount,
   };
+}
+
+export interface ReplaceWalletOpeningInput extends WalletOpening {
+  /** Always the session user; never a client-supplied identifier. */
+  ownerId: string;
+  id: string;
+}
+
+export interface WalletNotFound {
+  code: "wallet-not-found";
+}
+
+/** A movement is dated before the proposed opening; history cannot be excluded. */
+export interface MovementBeforeOpening {
+  code: "movement-before-opening";
+}
+
+export type ReplaceWalletOpeningError =
+  | InvalidWalletOpening
+  | WalletNotFound
+  | MovementBeforeOpening;
+
+function snapshotWallet(
+  row: Readonly<{
+    openingAmount: bigint;
+    openingDate: CalendarDate;
+    archivedAt: Date | null;
+  }>,
+): WalletSnapshot {
+  return {
+    openingAmount: row.openingAmount.toString(),
+    openingDate: row.openingDate,
+    archivedAt: row.archivedAt?.toISOString() ?? null,
+  };
+}
+
+/**
+ * Replaces the opening balance as one value: amount and date change together
+ * or not at all. An opening that predates no movement, deleted ones included,
+ * is applied atomically with its change-history row under an exclusive
+ * wallet lock, which serializes it with transaction share locks. Replacing
+ * an opening with itself is a no-op that records nothing. Ownership is
+ * checked with the lock, so an unowned, unknown, or malformed id is not
+ * found alike.
+ */
+export async function replaceWalletOpening(
+  db: Database,
+  input: Readonly<ReplaceWalletOpeningInput>,
+): Promise<Result<WalletSummary, ReplaceWalletOpeningError>> {
+  const validated = validateWalletOpening(input);
+  if (!validated.ok) {
+    return validated;
+  }
+  const opening = validated.value;
+  if (!UUID_PATTERN.test(input.id)) {
+    return err({ code: "wallet-not-found" });
+  }
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select()
+      .from(wallets)
+      .where(and(eq(wallets.id, input.id), eq(wallets.userId, input.ownerId)))
+      .for("update");
+    if (!current) {
+      return err({ code: "wallet-not-found" });
+    }
+    // Deleted movements are retained history; an opening cannot exclude them.
+    const [movement] = await tx
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(
+        and(
+          or(
+            eq(transactions.walletId, input.id),
+            eq(transactions.destinationWalletId, input.id),
+          ),
+          lt(transactions.transactionDate, opening.openingDate),
+        ),
+      )
+      .limit(1);
+    if (movement) {
+      return err({ code: "movement-before-opening" });
+    }
+    if (
+      current.openingAmount !== opening.openingAmount ||
+      current.openingDate !== opening.openingDate
+    ) {
+      const [updated] = await tx
+        .update(wallets)
+        .set(opening)
+        .where(eq(wallets.id, input.id))
+        .returning();
+      if (!updated) {
+        throw new Error("Locked wallet disappeared");
+      }
+      await tx.insert(walletChanges).values({
+        userId: input.ownerId,
+        walletId: input.id,
+        action: "opening",
+        before: snapshotWallet(current),
+        after: snapshotWallet(updated),
+      });
+    }
+    const [wallet] = await selectWalletSummaries(tx, {
+      ownerId: input.ownerId,
+      asOf: todayIn({ timeZone: APP_TIME_ZONE }),
+      filter: eq(wallets.id, input.id),
+    });
+    if (!wallet) {
+      throw new Error("Locked wallet disappeared");
+    }
+    return ok(wallet);
+  });
 }
