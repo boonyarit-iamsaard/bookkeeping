@@ -803,3 +803,154 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
     });
   });
 });
+
+interface PatchWalletRequest {
+  id: string;
+  cookie?: string;
+  body?: unknown;
+  rawBody?: string;
+}
+
+function patchWallet(
+  app: Hono<AppEnv>,
+  { id, cookie, body, rawBody }: Readonly<PatchWalletRequest>,
+) {
+  return app.request(`${WALLETS_URL}/${id}`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      origin: TEST_CLIENT_ORIGIN,
+      ...(cookie ? { cookie } : {}),
+    },
+    body: rawBody ?? JSON.stringify(body ?? { archived: true }),
+  });
+}
+
+describe("PATCH /v1/wallets/{walletId}", () => {
+  test("archives and answers with the updated wallet", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const created = await createSavingsWallet(app, cookie);
+
+      const response = await patchWallet(app, { id: created.id, cookie });
+      const wallet = walletResponseSchema.parse(await response.json());
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      expect(wallet.archivedAt).toEqual(expect.any(String));
+      expect(await readWallet(app, { id: created.id, cookie })).toEqual(wallet);
+      expect(await listWalletChangeActions(db, created.id)).toEqual([
+        { action: "archive" },
+      ]);
+    });
+  });
+
+  test("restores by clearing the archived instant", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const created = await createSavingsWallet(app, cookie);
+      await patchWallet(app, { id: created.id, cookie });
+
+      const response = await patchWallet(app, {
+        id: created.id,
+        cookie,
+        body: { archived: false },
+      });
+      const wallet = walletResponseSchema.parse(await response.json());
+
+      expect(response.status).toBe(200);
+      expect(wallet.archivedAt).toBeNull();
+      expect(await listWalletChangeActions(db, created.id)).toEqual([
+        { action: "archive" },
+        { action: "unarchive" },
+      ]);
+    });
+  });
+
+  test("repeating the same state answers alike and records nothing more", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const created = await createSavingsWallet(app, cookie);
+
+      const first = await patchWallet(app, { id: created.id, cookie });
+      const second = await patchWallet(app, { id: created.id, cookie });
+
+      expect(second.status).toBe(200);
+      expect(await second.json()).toEqual(await first.json());
+      expect(await listWalletChangeActions(db, created.id)).toHaveLength(1);
+    });
+  });
+
+  test("a malformed or unrelated body is rejected field by field", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const created = await createSavingsWallet(app, cookie);
+
+      const rejected = await patchWallet(app, {
+        id: created.id,
+        cookie,
+        body: { archived: "yes", name: "Renamed" },
+      });
+
+      const problem = await expectProblem(rejected, {
+        status: 422,
+        code: "invalid-command",
+      });
+      expect(problem.errors).toEqual([
+        { pointer: "#/archived", code: "invalid-type" },
+        // An unknown field has no defined pointer, so it addresses the
+        // document root.
+        { pointer: "#/", code: "unrecognized-keys" },
+      ]);
+      expect(await readWallet(app, { id: created.id, cookie })).toEqual(
+        created,
+      );
+    });
+  });
+
+  test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const alice = await signUp(app);
+      const bob = await signUp(app);
+      const wallet = await createSavingsWallet(app, alice.cookie);
+
+      for (const id of [wallet.id, UNKNOWN_WALLET_ID, "not-a-wallet"]) {
+        await expectNotFoundProblem(
+          await patchWallet(app, { id, cookie: bob.cookie }),
+        );
+      }
+      expect(
+        await readWallet(app, { id: wallet.id, cookie: alice.cookie }),
+      ).toEqual(wallet);
+    });
+  });
+
+  test("malformed JSON is a bad request", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+
+      await expectProblem(
+        await patchWallet(app, { id: UNKNOWN_WALLET_ID, cookie, rawBody: "{" }),
+        { status: 400, code: "bad-request" },
+      );
+    });
+  });
+
+  test("rejects an anonymous request with the standard problem", async () => {
+    await withRollback(async (db) => {
+      const response = await patchWallet(createIntegrationTestApp(db), {
+        id: UNKNOWN_WALLET_ID,
+      });
+
+      await expectProblem(response, { status: 401, code: "unauthenticated" });
+    });
+  });
+});

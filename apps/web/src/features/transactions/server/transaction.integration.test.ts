@@ -1,5 +1,8 @@
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
-import { listWallets } from "@bookkeeping/application/wallets";
+import {
+  listWallets,
+  setWalletArchived,
+} from "@bookkeeping/application/wallets";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   createTestUser,
@@ -19,7 +22,6 @@ import {
   listTransactions,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import { setWalletArchived } from "@/features/wallets/server/wallet-lifecycle";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();

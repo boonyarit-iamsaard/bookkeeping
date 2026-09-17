@@ -468,3 +468,65 @@ export async function replaceWalletOpening(
     return ok(wallet);
   });
 }
+
+export interface SetWalletArchivedInput {
+  /** Always the session user; never a client-supplied identifier. */
+  ownerId: string;
+  id: string;
+  /** The complete archived state: true archives, false restores. */
+  archived: boolean;
+}
+
+export type SetWalletArchivedError = WalletNotFound;
+
+/**
+ * Changes the archived state as one value: archiving stamps the instant and
+ * restoring clears it. Repeating the current state is a no-op that records
+ * nothing. The change-history row is written in the same transaction under
+ * an exclusive wallet lock. Ownership is checked with the lock, so an
+ * unowned, unknown, or malformed id is not found alike.
+ */
+export async function setWalletArchived(
+  db: Database,
+  input: Readonly<SetWalletArchivedInput>,
+): Promise<Result<WalletSummary, SetWalletArchivedError>> {
+  if (!UUID_PATTERN.test(input.id)) {
+    return err({ code: "wallet-not-found" });
+  }
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select()
+      .from(wallets)
+      .where(and(eq(wallets.id, input.id), eq(wallets.userId, input.ownerId)))
+      .for("update");
+    if (!current) {
+      return err({ code: "wallet-not-found" });
+    }
+    if (Boolean(current.archivedAt) !== input.archived) {
+      const [updated] = await tx
+        .update(wallets)
+        .set({ archivedAt: input.archived ? new Date() : null })
+        .where(eq(wallets.id, input.id))
+        .returning();
+      if (!updated) {
+        throw new Error("Locked wallet disappeared");
+      }
+      await tx.insert(walletChanges).values({
+        userId: input.ownerId,
+        walletId: input.id,
+        action: input.archived ? "archive" : "unarchive",
+        before: snapshotWallet(current),
+        after: snapshotWallet(updated),
+      });
+    }
+    const [wallet] = await selectWalletSummaries(tx, {
+      ownerId: input.ownerId,
+      asOf: todayIn({ timeZone: APP_TIME_ZONE }),
+      filter: eq(wallets.id, input.id),
+    });
+    if (!wallet) {
+      throw new Error("Locked wallet disappeared");
+    }
+    return ok(wallet);
+  });
+}

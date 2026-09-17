@@ -7,6 +7,7 @@ import {
   findWallet,
   listWallets,
   replaceWalletOpening,
+  setWalletArchived,
 } from "@bookkeeping/application/wallets";
 import type { Database } from "@bookkeeping/database/connection";
 import type { WalletSummary } from "@bookkeeping/domain/wallets";
@@ -168,6 +169,23 @@ function toOpeningFieldErrors(
     pointer: OPENING_ISSUE_POINTERS[issue.field],
     code: issue.code,
   }));
+}
+
+/** The archived state as its own partial update: the only mutable field. */
+export const walletArchiveStateRequestSchema = z
+  .strictObject({ archived: z.boolean() })
+  .meta({ id: "WalletArchiveStateRequest" });
+
+/** What the validators hand the archive-state handler. */
+interface WalletArchiveStateValidatedInput {
+  in: {
+    param: z.input<typeof walletParamsSchema>;
+    json: z.input<typeof walletArchiveStateRequestSchema>;
+  };
+  out: {
+    param: z.output<typeof walletParamsSchema>;
+    json: z.output<typeof walletArchiveStateRequestSchema>;
+  };
 }
 
 function describeProblem(problem: Readonly<ProblemOptions>) {
@@ -435,6 +453,74 @@ export function createWalletRoutes(db: Database) {
         {
           200: {
             description: "The wallet with its replaced opening balance",
+            content: {
+              "application/json": { vSchema: walletResponseSchema },
+            },
+          },
+          404: describeProblem(getProblemOptionsForStatus(404)),
+          422: describeProblem(getProblemOptionsForStatus(422)),
+        },
+      ),
+    )
+    .patch(
+      RESOURCE_PATH,
+      describeRoute({
+        operationId: "changeWalletArchiveState",
+        summary: "Change a wallet's archived state",
+        description:
+          "Archives the wallet by stamping the archived instant, or restores " +
+          "it by clearing it. Repeating the current state succeeds without " +
+          "effect, so a client may safely retry. A wallet that does not " +
+          "exist, belongs to another owner, or has a malformed identifier is " +
+          "not found alike.",
+        tags: ["Wallets"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      validator("param", walletParamsSchema, (result, c) => {
+        if (!result.success) {
+          return createProblemResponse(c, getProblemOptionsForStatus(404));
+        }
+      }),
+      validator("json", walletArchiveStateRequestSchema, (result, c) => {
+        if (!result.success) {
+          return createProblemResponse(
+            c,
+            createInvalidCommandProblem(result.error),
+          );
+        }
+      }),
+      describeResponse<
+        AuthenticatedEnv,
+        typeof RESOURCE_PATH,
+        WalletArchiveStateValidatedInput,
+        {
+          200: typeof walletResponseSchema;
+          404: typeof problemDetailsSchema;
+          422: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const body = c.req.valid("json");
+          const changed = await setWalletArchived(db, {
+            ownerId: c.get("session").user.id,
+            id: c.req.valid("param").walletId,
+            archived: body.archived,
+          });
+          if (!changed.ok) {
+            return c.json(
+              createProblemDetails(getProblemOptionsForStatus(404)),
+              404,
+              { "Content-Type": PROBLEM_MEDIA_TYPE },
+            );
+          }
+          return c.json(presentWallet(changed.value), 200);
+        },
+        {
+          200: {
+            description: "The wallet with its changed archived state",
             content: {
               "application/json": { vSchema: walletResponseSchema },
             },

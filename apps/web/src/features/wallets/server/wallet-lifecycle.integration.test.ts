@@ -2,6 +2,7 @@ import { initializeDefaultCategories } from "@bookkeeping/application/categories
 import {
   listWallets,
   replaceWalletOpening,
+  setWalletArchived,
 } from "@bookkeeping/application/wallets";
 import type { Database } from "@bookkeeping/database/connection";
 import {
@@ -18,10 +19,7 @@ import {
   getTransaction,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import {
-  deleteWallet,
-  setWalletArchived,
-} from "@/features/wallets/server/wallet-lifecycle";
+import { deleteWallet } from "@/features/wallets/server/wallet-lifecycle";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();
@@ -125,7 +123,7 @@ describe("wallet lifecycle", () => {
       }
     });
   });
-  test("archive retains current/historical totals, permits retained edits, rejects new archived wallets, and restores eligibility", async () => {
+  test("archive through the application retains current/historical totals, permits retained edits, rejects new archived wallets, and restores eligibility", async () => {
     await withRollback(async (db) => {
       const { owned, movement, other } = await fixture(db);
       const created = await createTransaction(db, movement);
@@ -191,7 +189,7 @@ describe("wallet lifecycle", () => {
       });
       expect(
         await setWalletArchived(db, { ...foreign, archived: true }),
-      ).toEqual({ ok: false, error: "wallet-not-found" });
+      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
       const created = await createTransaction(db, movement);
       if (!created.ok) {
         throw new Error("Create failed");

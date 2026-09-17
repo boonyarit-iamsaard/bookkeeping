@@ -14,6 +14,7 @@ import {
   findWallet,
   listWallets,
   replaceWalletOpening,
+  setWalletArchived,
 } from "./wallet";
 
 const { withRollback, committed } = setupTestDatabase();
@@ -628,6 +629,123 @@ describe("replaceWalletOpening", () => {
       expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
         cash,
       );
+    });
+  });
+});
+
+describe("setWalletArchived", () => {
+  test("archives, records the change, and returns the updated wallet", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash } = await openCashPair(db);
+
+      const archived = await setWalletArchived(db, {
+        ownerId: owner.id,
+        id: cash.id,
+        archived: true,
+      });
+
+      expect(archived).toEqual({
+        ok: true,
+        value: { ...cash, archivedAt: expect.any(Date) },
+      });
+      expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
+        archived.ok ? archived.value : null,
+      );
+      expect(await listChanges(db, cash.id)).toEqual([
+        expect.objectContaining({
+          userId: owner.id,
+          action: "archive",
+          before: {
+            openingAmount: "10000",
+            openingDate: "2026-09-01",
+            archivedAt: null,
+          },
+          after: {
+            openingAmount: "10000",
+            openingDate: "2026-09-01",
+            archivedAt: expect.anything(),
+          },
+        }),
+      ]);
+    });
+  });
+
+  test("restores by clearing the archived instant and records the change", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash } = await openCashPair(db);
+      const archived = await setWalletArchived(db, {
+        ownerId: owner.id,
+        id: cash.id,
+        archived: true,
+      });
+      if (!archived.ok) {
+        throw new Error("Archive failed");
+      }
+
+      const restored = await setWalletArchived(db, {
+        ownerId: owner.id,
+        id: cash.id,
+        archived: false,
+      });
+
+      expect(restored).toEqual({ ok: true, value: cash });
+      expect(await listChanges(db, cash.id)).toEqual([
+        expect.objectContaining({ action: "archive" }),
+        expect.objectContaining({
+          action: "unarchive",
+          before: {
+            openingAmount: "10000",
+            openingDate: "2026-09-01",
+            archivedAt: expect.anything(),
+          },
+          after: {
+            openingAmount: "10000",
+            openingDate: "2026-09-01",
+            archivedAt: null,
+          },
+        }),
+      ]);
+    });
+  });
+
+  test("repeating the same state changes nothing and records no history", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash } = await openCashPair(db);
+
+      const first = await setWalletArchived(db, {
+        ownerId: owner.id,
+        id: cash.id,
+        archived: true,
+      });
+      const second = await setWalletArchived(db, {
+        ownerId: owner.id,
+        id: cash.id,
+        archived: true,
+      });
+
+      expect(second).toEqual(first);
+      expect(await listChanges(db, cash.id)).toHaveLength(1);
+    });
+  });
+
+  test("another owner's, an unknown, and a malformed wallet id are not found alike", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash } = await openCashPair(db);
+      const stranger = await createTestUser(db);
+
+      for (const attempt of [
+        { ownerId: stranger.id, id: cash.id },
+        { ownerId: owner.id, id: "01999999-0000-7000-8000-000000000000" },
+        { ownerId: owner.id, id: "not-a-uuid" },
+      ]) {
+        expect(
+          await setWalletArchived(db, { ...attempt, archived: true }),
+        ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      }
+      expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
+        cash,
+      );
+      expect(await listChanges(db, cash.id)).toEqual([]);
     });
   });
 });
