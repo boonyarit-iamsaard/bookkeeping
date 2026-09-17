@@ -12,9 +12,8 @@ import {
 import type { Database } from "@bookkeeping/database/connection";
 import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
-import type { Context, Input } from "hono";
+import type { Input } from "hono";
 import { Hono } from "hono";
-import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { describeResponse, describeRoute, validator } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
@@ -37,7 +36,6 @@ import type {
   ProblemOptions,
 } from "../../core/http/problem-details.js";
 import {
-  createProblemDetails,
   createProblemResponse,
   getProblemOptionsForStatus,
   PROBLEM_MEDIA_TYPE,
@@ -96,6 +94,44 @@ export function presentWallet(wallet: Readonly<WalletSummary>): WalletResponse {
 
 const walletParamsSchema = z.object({ walletId: z.uuid() });
 
+/**
+ * A malformed identifier is not found alike, so a client cannot tell it
+ * apart from an unknown or unowned wallet.
+ */
+const walletParamMiddleware = validator(
+  "param",
+  walletParamsSchema,
+  (result, c) => {
+    if (!result.success) {
+      return createProblemResponse(c, getProblemOptionsForStatus(404));
+    }
+  },
+);
+
+/** A well-formed command the schema rejects is a 422 addressed by field. */
+function createCommandMiddleware<Schema extends z.ZodType>(schema: Schema) {
+  return validator("json", schema, (result, c) => {
+    if (!result.success) {
+      return createProblemResponse(
+        c,
+        createInvalidCommandProblem(result.error),
+      );
+    }
+  });
+}
+
+/** What the param and command validators hand a handler. */
+interface WalletCommandValidatedInput<Schema extends z.ZodType> {
+  in: {
+    param: z.input<typeof walletParamsSchema>;
+    json: z.input<Schema>;
+  };
+  out: {
+    param: z.output<typeof walletParamsSchema>;
+    json: z.output<Schema>;
+  };
+}
+
 export const createWalletRequestSchema = z
   .object({
     name: z.string(),
@@ -136,18 +172,6 @@ export const walletOpeningRequestSchema = z
   })
   .meta({ id: "WalletOpeningRequest" });
 
-/** What the validators hand the opening handler. */
-interface WalletOpeningValidatedInput {
-  in: {
-    param: z.input<typeof walletParamsSchema>;
-    json: z.input<typeof walletOpeningRequestSchema>;
-  };
-  out: {
-    param: z.output<typeof walletParamsSchema>;
-    json: z.output<typeof walletOpeningRequestSchema>;
-  };
-}
-
 // The opening resource names its fields without the prefix the wallet
 // representation carries, so its pointers differ from the creation ones.
 const OPENING_ISSUE_POINTERS = {
@@ -177,43 +201,11 @@ export const walletArchiveStateRequestSchema = z
   .strictObject({ archived: z.boolean() })
   .meta({ id: "WalletArchiveStateRequest" });
 
-/** What the validators hand the archive-state handler. */
-interface WalletArchiveStateValidatedInput {
-  in: {
-    param: z.input<typeof walletParamsSchema>;
-    json: z.input<typeof walletArchiveStateRequestSchema>;
-  };
-  out: {
-    param: z.output<typeof walletParamsSchema>;
-    json: z.output<typeof walletArchiveStateRequestSchema>;
-  };
-}
-
 function describeProblem(problem: Readonly<ProblemOptions>) {
   return {
     description: problem.title,
     content: { [PROBLEM_MEDIA_TYPE]: { vSchema: problemDetailsSchema } },
   };
-}
-
-/**
- * Answers a described handler with a problem response. The core
- * `createProblemResponse` returns an untyped Response, which the handler's
- * documented response union rejects; the literal status keeps this typed
- * response inside it and overrides the body status so the two cannot
- * disagree. Validators answer through the core helper.
- */
-function createWalletProblemResponse<Status extends ContentfulStatusCode>(
-  c: Context<AuthenticatedEnv, string, Input>,
-  problem: Readonly<{ options: ProblemOptions; status: Status }>,
-) {
-  return c.json(
-    createProblemDetails({ ...problem.options, status: problem.status }),
-    problem.status,
-    {
-      "Content-Type": PROBLEM_MEDIA_TYPE,
-    },
-  );
 }
 
 const LOCATION_HEADER = "Location";
@@ -242,14 +234,7 @@ export function createWalletRoutes(db: Database) {
         },
       }),
       idempotencyKeyMiddleware,
-      validator("json", createWalletRequestSchema, (result, c) => {
-        if (!result.success) {
-          return createProblemResponse(
-            c,
-            createInvalidCommandProblem(result.error),
-          );
-        }
-      }),
+      createCommandMiddleware(createWalletRequestSchema),
       describeResponse<
         AuthenticatedEnv,
         typeof COLLECTION_PATH,
@@ -272,17 +257,11 @@ export function createWalletRoutes(db: Database) {
           });
           if (!created.ok) {
             if (created.error.code === "idempotency-conflict") {
-              return createWalletProblemResponse(c, {
-                options: idempotencyConflictProblem,
-                status: 409,
-              });
+              return createProblemResponse(c, idempotencyConflictProblem);
             }
-            return createWalletProblemResponse(c, {
-              options: {
-                ...getProblemOptionsForStatus(422),
-                errors: created.error.issues.map(toWalletFieldError),
-              },
-              status: 422,
+            return createProblemResponse(c, {
+              ...getProblemOptionsForStatus(422),
+              errors: created.error.issues.map(toWalletFieldError),
             });
           }
           const wallet = presentWallet(created.value.wallet);
@@ -362,11 +341,7 @@ export function createWalletRoutes(db: Database) {
         tags: ["Wallets"],
         responses: { 401: describeProblemResponse(401) },
       }),
-      validator("param", walletParamsSchema, (result, c) => {
-        if (!result.success) {
-          return createProblemResponse(c, getProblemOptionsForStatus(404));
-        }
-      }),
+      walletParamMiddleware,
       describeResponse<
         AuthenticatedEnv,
         typeof RESOURCE_PATH,
@@ -379,10 +354,7 @@ export function createWalletRoutes(db: Database) {
             id: c.req.param("walletId"),
           });
           if (wallet === null) {
-            return createWalletProblemResponse(c, {
-              options: getProblemOptionsForStatus(404),
-              status: 404,
-            });
+            return createProblemResponse(c, getProblemOptionsForStatus(404));
           }
           return c.json(presentWallet(wallet), 200);
         },
@@ -416,23 +388,12 @@ export function createWalletRoutes(db: Database) {
           401: describeProblemResponse(401),
         },
       }),
-      validator("param", walletParamsSchema, (result, c) => {
-        if (!result.success) {
-          return createProblemResponse(c, getProblemOptionsForStatus(404));
-        }
-      }),
-      validator("json", walletOpeningRequestSchema, (result, c) => {
-        if (!result.success) {
-          return createProblemResponse(
-            c,
-            createInvalidCommandProblem(result.error),
-          );
-        }
-      }),
+      walletParamMiddleware,
+      createCommandMiddleware(walletOpeningRequestSchema),
       describeResponse<
         AuthenticatedEnv,
         typeof OPENING_PATH,
-        WalletOpeningValidatedInput,
+        WalletCommandValidatedInput<typeof walletOpeningRequestSchema>,
         {
           200: typeof walletResponseSchema;
           404: typeof problemDetailsSchema;
@@ -449,17 +410,11 @@ export function createWalletRoutes(db: Database) {
           });
           if (!replaced.ok) {
             if (replaced.error.code === "wallet-not-found") {
-              return createWalletProblemResponse(c, {
-                options: getProblemOptionsForStatus(404),
-                status: 404,
-              });
+              return createProblemResponse(c, getProblemOptionsForStatus(404));
             }
-            return createWalletProblemResponse(c, {
-              options: {
-                ...getProblemOptionsForStatus(422),
-                errors: toOpeningFieldErrors(replaced.error),
-              },
-              status: 422,
+            return createProblemResponse(c, {
+              ...getProblemOptionsForStatus(422),
+              errors: toOpeningFieldErrors(replaced.error),
             });
           }
           return c.json(presentWallet(replaced.value), 200);
@@ -493,23 +448,12 @@ export function createWalletRoutes(db: Database) {
           401: describeProblemResponse(401),
         },
       }),
-      validator("param", walletParamsSchema, (result, c) => {
-        if (!result.success) {
-          return createProblemResponse(c, getProblemOptionsForStatus(404));
-        }
-      }),
-      validator("json", walletArchiveStateRequestSchema, (result, c) => {
-        if (!result.success) {
-          return createProblemResponse(
-            c,
-            createInvalidCommandProblem(result.error),
-          );
-        }
-      }),
+      walletParamMiddleware,
+      createCommandMiddleware(walletArchiveStateRequestSchema),
       describeResponse<
         AuthenticatedEnv,
         typeof RESOURCE_PATH,
-        WalletArchiveStateValidatedInput,
+        WalletCommandValidatedInput<typeof walletArchiveStateRequestSchema>,
         {
           200: typeof walletResponseSchema;
           404: typeof problemDetailsSchema;
@@ -524,10 +468,7 @@ export function createWalletRoutes(db: Database) {
             archived: body.archived,
           });
           if (!changed.ok) {
-            return createWalletProblemResponse(c, {
-              options: getProblemOptionsForStatus(404),
-              status: 404,
-            });
+            return createProblemResponse(c, getProblemOptionsForStatus(404));
           }
           return c.json(presentWallet(changed.value), 200);
         },

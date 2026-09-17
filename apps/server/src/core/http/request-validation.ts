@@ -53,7 +53,7 @@ export function toFieldError(issue: ValidationIssue): ProblemFieldError {
  */
 export function createInvalidCommandProblem(
   issues: readonly ValidationIssue[],
-): ProblemOptions {
+): ProblemOptions<422> {
   return {
     ...getProblemOptionsForStatus(422),
     errors: issues.map(toFieldError),

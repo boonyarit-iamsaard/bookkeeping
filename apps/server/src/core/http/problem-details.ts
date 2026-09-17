@@ -57,9 +57,15 @@ export interface ProblemDetails extends Omit<ProblemOptions, "errors"> {
   errors?: ProblemFieldError[];
 }
 
-export interface ProblemOptions {
+/**
+ * The status is generic so a caller answering a described handler keeps the
+ * literal it documented; the default covers callers that answer any status.
+ */
+export interface ProblemOptions<
+  Status extends ContentfulStatusCode = ContentfulStatusCode,
+> {
   code: ProblemCode;
-  status: ContentfulStatusCode;
+  status: Status;
   title: string;
   detail?: string;
   instance?: string;
@@ -101,18 +107,22 @@ export function createProblemDetails(
   };
 }
 
-export function createProblemResponse(
+/**
+ * The return type stays inferred: the response is typed by the literal
+ * status, which is what lets a described handler's response union accept it.
+ */
+export function createProblemResponse<Status extends ContentfulStatusCode>(
   c: Context,
-  options: Readonly<ProblemOptions>,
-): Response {
+  options: Readonly<ProblemOptions<Status>>,
+) {
   return c.json(createProblemDetails(options), options.status, {
     "Content-Type": PROBLEM_MEDIA_TYPE,
   });
 }
 
-export function getProblemOptionsForStatus(
-  status: ContentfulStatusCode,
-): ProblemOptions {
+export function getProblemOptionsForStatus<Status extends ContentfulStatusCode>(
+  status: Status,
+): ProblemOptions<Status> {
   const standardProblem = standardProblems[status];
 
   if (standardProblem !== undefined) {

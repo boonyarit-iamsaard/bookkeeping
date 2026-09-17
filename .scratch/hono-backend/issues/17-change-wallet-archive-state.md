@@ -11,7 +11,7 @@ archived without introducing command-style action routes.
 - [x] A partial wallet update accepts the documented archived state and rejects unrelated or malformed changes.
 - [x] Archive, restore, repeated state, missing resource, and cross-owner behavior have stable responses.
 - [x] Success returns the updated wallet representation.
-- [x] Application and HTTP tests preserve the existing restrictions on new entries involving archived wallets.
+- [ ] Application and HTTP tests preserve the existing restrictions on new entries involving archived wallets. _Deferred to tickets 25, 27, and 28: the restrictions are enforced and tested in the web transaction module until entry creation has an application operation and an HTTP route._
 
 ## Comments
 
@@ -69,3 +69,16 @@ archived without introducing command-style action routes.
   private helpers; the described wallet handlers answer through one
   `problemResponse` helper; and `wallet.actions.ts` maps both wallet
   results through one `toWalletActionResult` helper.
+- Second two-axis review: the archived-entry checkbox above is now marked
+  deferred rather than done, since no application or HTTP test can reach
+  the restriction until ticket 25. Standards follow-ups applied: the core
+  `createProblemResponse` is generic over the literal status (through
+  `ProblemOptions<Status>` and `getProblemOptionsForStatus`), so the
+  wallet-local `createWalletProblemResponse` wrapper and its doubled
+  `status` are gone; the wallet routes share one hoisted
+  `walletParamMiddleware` and a `createCommandMiddleware(schema)` factory
+  instead of repeating the validator hooks per route; and the three
+  per-route `ValidatedInput` interfaces collapsed into one
+  `WalletCommandValidatedInput<Schema>`. The web `ManageWalletInput` and
+  `lockWallet` mirror of `WalletRef`/`loadWalletForUpdate` is noted on
+  ticket 18, which retires them.

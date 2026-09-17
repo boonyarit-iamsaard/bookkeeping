@@ -25,7 +25,7 @@ export const idempotencyKeyRequiredProblem: ProblemOptions = {
   title: `A usable ${IDEMPOTENCY_KEY_HEADER} header is required`,
 };
 
-export const idempotencyConflictProblem: ProblemOptions = {
+export const idempotencyConflictProblem: ProblemOptions<409> = {
   code: "idempotency-conflict",
   status: 409,
   title: `${IDEMPOTENCY_KEY_HEADER} reused with a different payload`,
