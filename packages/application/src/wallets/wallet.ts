@@ -32,8 +32,16 @@ export interface ListWalletsOptions {
   asOf?: CalendarDate;
 }
 
-export interface FindWalletOptions extends ListWalletsOptions {
+/** A wallet addressed by its owner and id. */
+export interface WalletRef {
+  /** Always the session user; never a client-supplied identifier. */
+  ownerId: string;
   id: string;
+}
+
+export interface FindWalletOptions extends WalletRef {
+  /** End-of-day balances through this date; defaults to today in Bangkok. */
+  asOf?: CalendarDate;
 }
 
 // PostgreSQL rejects a malformed uuid as a query fault; such an id simply
@@ -356,11 +364,7 @@ async function insertWallet(
   };
 }
 
-export interface ReplaceWalletOpeningInput extends WalletOpening {
-  /** Always the session user; never a client-supplied identifier. */
-  ownerId: string;
-  id: string;
-}
+export interface ReplaceWalletOpeningInput extends WalletRef, WalletOpening {}
 
 export interface WalletNotFound {
   code: "wallet-not-found";
@@ -390,6 +394,87 @@ function snapshotWallet(
   };
 }
 
+type WalletRow = typeof wallets.$inferSelect;
+
+type WalletChangeAction = "opening" | "archive" | "unarchive";
+
+/**
+ * Loads the owned wallet under an exclusive row lock, so concurrent state
+ * changes serialize and every change applies to what was read.
+ */
+async function loadWalletForUpdate(
+  db: Database,
+  ref: Readonly<WalletRef>,
+): Promise<WalletRow | null> {
+  const [current] = await db
+    .select()
+    .from(wallets)
+    .where(and(eq(wallets.id, ref.id), eq(wallets.userId, ref.ownerId)))
+    .for("update");
+  return current ?? null;
+}
+
+/**
+ * Writes one wallet change inside the caller's transaction. The update
+ * targets the locked row, so its disappearance is a fault rather than a
+ * silent miss.
+ */
+async function updateWallet(
+  db: Database,
+  change: Readonly<{
+    id: string;
+    set: { archivedAt: Date | null } | WalletOpening;
+  }>,
+): Promise<WalletRow> {
+  const [updated] = await db
+    .update(wallets)
+    .set(change.set)
+    .where(eq(wallets.id, change.id))
+    .returning();
+  if (!updated) {
+    throw new Error("Locked wallet disappeared");
+  }
+  return updated;
+}
+
+/** Retains the before and after of a wallet change in internal history. */
+async function recordWalletChange(
+  db: Database,
+  change: Readonly<{
+    ref: WalletRef;
+    action: WalletChangeAction;
+    before: WalletRow;
+    after: WalletRow;
+  }>,
+): Promise<void> {
+  await db.insert(walletChanges).values({
+    userId: change.ref.ownerId,
+    walletId: change.ref.id,
+    action: change.action,
+    before: snapshotWallet(change.before),
+    after: snapshotWallet(change.after),
+  });
+}
+
+/**
+ * Reads the updated wallet through the shared balance query. The wallet is
+ * locked for the whole transaction, so its absence is a fault.
+ */
+async function readWalletSummaryAfterChange(
+  db: Database,
+  ref: Readonly<WalletRef>,
+): Promise<WalletSummary> {
+  const [wallet] = await selectWalletSummaries(db, {
+    ownerId: ref.ownerId,
+    asOf: todayIn({ timeZone: APP_TIME_ZONE }),
+    filter: eq(wallets.id, ref.id),
+  });
+  if (!wallet) {
+    throw new Error("Locked wallet disappeared");
+  }
+  return wallet;
+}
+
 /**
  * Replaces the opening balance as one value: amount and date change together
  * or not at all. An opening that predates no movement, deleted ones included,
@@ -412,11 +497,7 @@ export async function replaceWalletOpening(
     return err({ code: "wallet-not-found" });
   }
   return db.transaction(async (tx) => {
-    const [current] = await tx
-      .select()
-      .from(wallets)
-      .where(and(eq(wallets.id, input.id), eq(wallets.userId, input.ownerId)))
-      .for("update");
+    const current = await loadWalletForUpdate(tx, input);
     if (!current) {
       return err({ code: "wallet-not-found" });
     }
@@ -441,38 +522,19 @@ export async function replaceWalletOpening(
       current.openingAmount !== opening.openingAmount ||
       current.openingDate !== opening.openingDate
     ) {
-      const [updated] = await tx
-        .update(wallets)
-        .set(opening)
-        .where(eq(wallets.id, input.id))
-        .returning();
-      if (!updated) {
-        throw new Error("Locked wallet disappeared");
-      }
-      await tx.insert(walletChanges).values({
-        userId: input.ownerId,
-        walletId: input.id,
+      const updated = await updateWallet(tx, { id: input.id, set: opening });
+      await recordWalletChange(tx, {
+        ref: input,
         action: "opening",
-        before: snapshotWallet(current),
-        after: snapshotWallet(updated),
+        before: current,
+        after: updated,
       });
     }
-    const [wallet] = await selectWalletSummaries(tx, {
-      ownerId: input.ownerId,
-      asOf: todayIn({ timeZone: APP_TIME_ZONE }),
-      filter: eq(wallets.id, input.id),
-    });
-    if (!wallet) {
-      throw new Error("Locked wallet disappeared");
-    }
-    return ok(wallet);
+    return ok(await readWalletSummaryAfterChange(tx, input));
   });
 }
 
-export interface SetWalletArchivedInput {
-  /** Always the session user; never a client-supplied identifier. */
-  ownerId: string;
-  id: string;
+export interface SetWalletArchivedInput extends WalletRef {
   /** The complete archived state: true archives, false restores. */
   archived: boolean;
 }
@@ -494,39 +556,22 @@ export async function setWalletArchived(
     return err({ code: "wallet-not-found" });
   }
   return db.transaction(async (tx) => {
-    const [current] = await tx
-      .select()
-      .from(wallets)
-      .where(and(eq(wallets.id, input.id), eq(wallets.userId, input.ownerId)))
-      .for("update");
+    const current = await loadWalletForUpdate(tx, input);
     if (!current) {
       return err({ code: "wallet-not-found" });
     }
     if (Boolean(current.archivedAt) !== input.archived) {
-      const [updated] = await tx
-        .update(wallets)
-        .set({ archivedAt: input.archived ? new Date() : null })
-        .where(eq(wallets.id, input.id))
-        .returning();
-      if (!updated) {
-        throw new Error("Locked wallet disappeared");
-      }
-      await tx.insert(walletChanges).values({
-        userId: input.ownerId,
-        walletId: input.id,
+      const updated = await updateWallet(tx, {
+        id: input.id,
+        set: { archivedAt: input.archived ? new Date() : null },
+      });
+      await recordWalletChange(tx, {
+        ref: input,
         action: input.archived ? "archive" : "unarchive",
-        before: snapshotWallet(current),
-        after: snapshotWallet(updated),
+        before: current,
+        after: updated,
       });
     }
-    const [wallet] = await selectWalletSummaries(tx, {
-      ownerId: input.ownerId,
-      asOf: todayIn({ timeZone: APP_TIME_ZONE }),
-      filter: eq(wallets.id, input.id),
-    });
-    if (!wallet) {
-      throw new Error("Locked wallet disappeared");
-    }
-    return ok(wallet);
+    return ok(await readWalletSummaryAfterChange(tx, input));
   });
 }

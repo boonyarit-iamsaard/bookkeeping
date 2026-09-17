@@ -12,3 +12,15 @@ transactions with the same exact financial behavior as the current UI.
 - [ ] Creation uses the reusable idempotency seam and preserves late replay behavior after later edits or deletion.
 - [ ] Success returns `201`, the direct transaction detail, and its location.
 - [ ] Existing concurrency/idempotency tests and new runtime-schema, OpenAPI, and HTTP tests cover both types and all expected failures.
+
+## Comments
+
+- From ticket 17's review: ticket 17 moved archive behavior to
+  `@bookkeeping/application/wallets` and left the archived-entry
+  restrictions enforced by the web transaction module
+  (`apps/web/src/features/transactions/server/transaction.ts`), covered by
+  the web wallet-lifecycle and transaction tests (`wallet-archived`
+  rejection, retained edits allowed, restore re-eligible, and the
+  lock-recheck test). When this ticket moves transaction creation into the
+  application package, the restriction and those cases must move with it
+  into application and HTTP tests.

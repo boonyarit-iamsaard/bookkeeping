@@ -50,3 +50,22 @@ archived without introducing command-style action routes.
   construction repeats three times in the routes file; the transaction
   scaffolding mirrors `replaceWalletOpening` while only two operations
   share it).
+- Review follow-up correction: the self-report above named "server unit"
+  tests, but no wallet-routes unit test file exists. The OpenAPI operation
+  and request-body coverage lives in `core/http/openapi.unit.test.ts`
+  (which gained a `changeWalletArchiveState` block covering the operation,
+  path parameter, request body, and documented responses); the
+  200/404/422 responses are covered by `wallet.routes.integration.test.ts`
+  only.
+- Review follow-up resolution: the archived-entry restrictions (create
+  rejected, retained edits allowed, restore re-eligible, lock recheck)
+  stay in the web tests beside their enforcement in
+  `@/features/transactions/server/transaction`, driven through
+  `setWalletArchived`; they move into the application package and HTTP
+  tests with ticket 25, noted there.
+- Review follow-up refactors: `@bookkeeping/application/wallets` now
+  shares the lock/update/history/read-back scaffolding between
+  `replaceWalletOpening` and `setWalletArchived` through `WalletRef` and
+  private helpers; the described wallet handlers answer through one
+  `problemResponse` helper; and `wallet.actions.ts` maps both wallet
+  results through one `toWalletActionResult` helper.

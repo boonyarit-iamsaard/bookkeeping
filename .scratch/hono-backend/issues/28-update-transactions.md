@@ -12,3 +12,10 @@ without changing its type or violating linked financial history.
 - [ ] Expense and refund changes preserve combined refund amounts and linked date constraints under concurrency.
 - [ ] Success returns the updated transaction detail; missing and cross-owner resources remain non-disclosing.
 - [ ] PostgreSQL and HTTP tests cover every transaction type, no-op update, rollback, history, conflicts, and invalid input.
+
+## Comments
+
+- From ticket 17's review: the retained-edits-on-archived-wallet cases
+  currently live in the web wallet-lifecycle tests (see tickets 17 and
+  25); when this ticket moves transaction updates into the application
+  package, those cases move into application and HTTP tests with it.

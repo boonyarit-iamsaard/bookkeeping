@@ -218,6 +218,37 @@ describe("OpenAPI document", () => {
     ]);
   });
 
+  it("documents the archive-state change as a strict partial update", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const operation: DocumentedOperation =
+      document.paths["/v1/wallets/{walletId}"].patch;
+
+    expect(operation.operationId).toBe("changeWalletArchiveState");
+    expect(operation.parameters).toEqual([
+      expect.objectContaining({ in: "path", name: "walletId", required: true }),
+    ]);
+    expect(operation.requestBody?.required).toBe(true);
+    expect(operation.requestBody?.content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/WalletArchiveStateRequest",
+    );
+    expect(
+      operation.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/Wallet");
+    for (const status of ["400", "401", "404", "422", "500"]) {
+      expect(
+        operation.responses[status].content["application/problem+json"].schema
+          .$ref,
+      ).toBe("#/components/schemas/ProblemDetails");
+    }
+    expect(
+      document.components.schemas.WalletArchiveStateRequest.required,
+    ).toEqual(["archived"]);
+    expect(
+      document.components.schemas.WalletArchiveStateRequest
+        .additionalProperties,
+    ).toBe(false);
+  });
+
   it("documents every registered route", async () => {
     const app = createUnitTestApp();
     const document = await fetchDocument(app);

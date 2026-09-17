@@ -11,6 +11,7 @@ import {
 } from "@bookkeeping/application/wallets";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
+import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { getSession } from "@/core/auth/session";
@@ -79,6 +80,13 @@ export type ManageWalletActionError =
   | "unauthenticated"
   | "invalid";
 
+/** The UI shows one message per failure kind, so only the code travels. */
+function toWalletActionResult(
+  result: Result<WalletSummary, { code: ManageWalletActionError }>,
+): Result<{ id: string }, ManageWalletActionError> {
+  return result.ok ? ok({ id: result.value.id }) : err(result.error.code);
+}
+
 export async function manageWalletAction(
   input: unknown,
 ): Promise<Result<{ id: string }, ManageWalletActionError>> {
@@ -94,25 +102,21 @@ export async function manageWalletAction(
   const owned = { id: data.id, ownerId: session.user.id };
   let result: Result<{ id: string }, ManageWalletActionError>;
   if (data.operation === "opening") {
-    const replaced = await replaceWalletOpening(db, {
-      ...owned,
-      ...data.opening,
-    });
-    // The UI shows one message per failure kind, so only the code travels.
-    result = replaced.ok
-      ? ok({ id: replaced.value.id })
-      : err(replaced.error.code);
+    result = toWalletActionResult(
+      await replaceWalletOpening(db, {
+        ...owned,
+        ...data.opening,
+      }),
+    );
   } else if (data.operation === "delete") {
     result = await deleteWallet(db, owned);
   } else {
-    const changed = await setWalletArchived(db, {
-      ...owned,
-      archived: data.operation === "archive",
-    });
-    // The UI shows one message per failure kind, so only the code travels.
-    result = changed.ok
-      ? ok({ id: changed.value.id })
-      : err(changed.error.code);
+    result = toWalletActionResult(
+      await setWalletArchived(db, {
+        ...owned,
+        archived: data.operation === "archive",
+      }),
+    );
   }
   if (result.ok) {
     revalidatePath("/wallets");

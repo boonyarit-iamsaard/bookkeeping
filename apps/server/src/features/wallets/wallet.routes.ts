@@ -12,8 +12,9 @@ import {
 import type { Database } from "@bookkeeping/database/connection";
 import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
-import type { Input } from "hono";
+import type { Context, Input } from "hono";
 import { Hono } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { describeResponse, describeRoute, validator } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
@@ -195,6 +196,26 @@ function describeProblem(problem: Readonly<ProblemOptions>) {
   };
 }
 
+/**
+ * Answers a described handler with a problem response. The core
+ * `createProblemResponse` returns an untyped Response, which the handler's
+ * documented response union rejects; the literal status keeps this typed
+ * response inside it and overrides the body status so the two cannot
+ * disagree. Validators answer through the core helper.
+ */
+function createWalletProblemResponse<Status extends ContentfulStatusCode>(
+  c: Context<AuthenticatedEnv, string, Input>,
+  problem: Readonly<{ options: ProblemOptions; status: Status }>,
+) {
+  return c.json(
+    createProblemDetails({ ...problem.options, status: problem.status }),
+    problem.status,
+    {
+      "Content-Type": PROBLEM_MEDIA_TYPE,
+    },
+  );
+}
+
 const LOCATION_HEADER = "Location";
 const COLLECTION_PATH = "/wallets";
 const RESOURCE_PATH = "/wallets/:walletId";
@@ -251,22 +272,18 @@ export function createWalletRoutes(db: Database) {
           });
           if (!created.ok) {
             if (created.error.code === "idempotency-conflict") {
-              return c.json(
-                createProblemDetails(idempotencyConflictProblem),
-                409,
-                {
-                  "Content-Type": PROBLEM_MEDIA_TYPE,
-                },
-              );
+              return createWalletProblemResponse(c, {
+                options: idempotencyConflictProblem,
+                status: 409,
+              });
             }
-            return c.json(
-              createProblemDetails({
+            return createWalletProblemResponse(c, {
+              options: {
                 ...getProblemOptionsForStatus(422),
                 errors: created.error.issues.map(toWalletFieldError),
-              }),
-              422,
-              { "Content-Type": PROBLEM_MEDIA_TYPE },
-            );
+              },
+              status: 422,
+            });
           }
           const wallet = presentWallet(created.value.wallet);
           // The mount prefix is only known from the request, so the location
@@ -362,11 +379,10 @@ export function createWalletRoutes(db: Database) {
             id: c.req.param("walletId"),
           });
           if (wallet === null) {
-            return c.json(
-              createProblemDetails(getProblemOptionsForStatus(404)),
-              404,
-              { "Content-Type": PROBLEM_MEDIA_TYPE },
-            );
+            return createWalletProblemResponse(c, {
+              options: getProblemOptionsForStatus(404),
+              status: 404,
+            });
           }
           return c.json(presentWallet(wallet), 200);
         },
@@ -433,20 +449,18 @@ export function createWalletRoutes(db: Database) {
           });
           if (!replaced.ok) {
             if (replaced.error.code === "wallet-not-found") {
-              return c.json(
-                createProblemDetails(getProblemOptionsForStatus(404)),
-                404,
-                { "Content-Type": PROBLEM_MEDIA_TYPE },
-              );
+              return createWalletProblemResponse(c, {
+                options: getProblemOptionsForStatus(404),
+                status: 404,
+              });
             }
-            return c.json(
-              createProblemDetails({
+            return createWalletProblemResponse(c, {
+              options: {
                 ...getProblemOptionsForStatus(422),
                 errors: toOpeningFieldErrors(replaced.error),
-              }),
-              422,
-              { "Content-Type": PROBLEM_MEDIA_TYPE },
-            );
+              },
+              status: 422,
+            });
           }
           return c.json(presentWallet(replaced.value), 200);
         },
@@ -510,11 +524,10 @@ export function createWalletRoutes(db: Database) {
             archived: body.archived,
           });
           if (!changed.ok) {
-            return c.json(
-              createProblemDetails(getProblemOptionsForStatus(404)),
-              404,
-              { "Content-Type": PROBLEM_MEDIA_TYPE },
-            );
+            return createWalletProblemResponse(c, {
+              options: getProblemOptionsForStatus(404),
+              status: 404,
+            });
           }
           return c.json(presentWallet(changed.value), 200);
         },
