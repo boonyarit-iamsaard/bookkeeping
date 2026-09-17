@@ -92,7 +92,7 @@ describe("wallet lifecycle", () => {
       ).toEqual(created.value.transaction.recordedAt);
     });
   });
-  test("a deleted transfer still counts as history for both wallets", async () => {
+  test("a deleted transfer still guards deletion and opening dates for both wallets", async () => {
     await withRollback(async (db) => {
       const { owned, movement, other } = await fixture(db);
       const created = await createTransaction(db, {
@@ -114,6 +114,14 @@ describe("wallet lifecycle", () => {
           ok: false,
           error: "history-remains",
         });
+        expect(
+          await replaceWalletOpening(db, {
+            ...owned,
+            id,
+            openingAmount: 0n,
+            openingDate: "2026-09-03",
+          }),
+        ).toEqual({ ok: false, error: { code: "movement-before-opening" } });
       }
     });
   });

@@ -1,5 +1,6 @@
 "use server";
 
+import type { ReplaceWalletOpeningError } from "@bookkeeping/application/wallets";
 import {
   createWallet,
   replaceWalletOpening,
@@ -72,8 +73,7 @@ export async function createWalletAction(
 
 export type ManageWalletActionError =
   | WalletLifecycleError
-  | "invalid-opening"
-  | "movement-before-opening"
+  | ReplaceWalletOpeningError["code"]
   | "unauthenticated"
   | "invalid";
 

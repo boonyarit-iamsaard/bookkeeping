@@ -53,3 +53,8 @@ opening balance resource while preserving financial-date and history rules.
   The routine gate passed with Biome scoped to `apps packages` because the
   stray `.kilo/worktrees/` checkout still rejects root `biome ci .`; the
   focused `wallet-lifecycle.spec.ts` E2E passed on the desktop project.
+- Two-axis review: standards findings were judgement calls (the web
+  `snapshot` duplicate leaves with ticket 17; the action error union now
+  derives from `ReplaceWalletOpeningError["code"]`). The one spec finding,
+  that the deleted-movement guard was no longer exercised through the real
+  `deleteTransaction` path, is fixed in the web lifecycle test.
