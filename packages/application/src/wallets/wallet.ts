@@ -1,5 +1,8 @@
 import type { Database } from "@bookkeeping/database/connection";
-import { transactions } from "@bookkeeping/database/transactions";
+import {
+  transactionChanges,
+  transactions,
+} from "@bookkeeping/database/transactions";
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import {
@@ -573,5 +576,59 @@ export async function setWalletArchived(
       });
     }
     return ok(await readWalletSummaryAfterChange(tx, input));
+  });
+}
+
+export interface WalletHistoryRemains {
+  code: "history-remains";
+}
+
+export type DeleteWalletError = WalletNotFound | WalletHistoryRemains;
+
+/**
+ * Permanently removes an owned wallet only when neither its current records
+ * nor any retained wallet or transaction history still refers to it. The
+ * wallet lock serializes deletion with concurrent state changes.
+ */
+export async function deleteWallet(
+  db: Database,
+  input: Readonly<WalletRef>,
+): Promise<Result<{ id: string }, DeleteWalletError>> {
+  if (!UUID_PATTERN.test(input.id)) {
+    return err({ code: "wallet-not-found" });
+  }
+  return db.transaction(async (tx) => {
+    const current = await loadWalletForUpdate(tx, input);
+    if (!current) {
+      return err({ code: "wallet-not-found" });
+    }
+    const [movement] = await tx
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(
+        or(
+          eq(transactions.walletId, input.id),
+          eq(transactions.destinationWalletId, input.id),
+        ),
+      )
+      .limit(1);
+    const [change] = await tx
+      .select({ id: walletChanges.id })
+      .from(walletChanges)
+      .where(eq(walletChanges.walletId, input.id))
+      .limit(1);
+    // A corrected transaction may now point elsewhere; its snapshots still reference this wallet.
+    const [retained] = await tx
+      .select({ id: transactionChanges.id })
+      .from(transactionChanges)
+      .where(
+        sql`${transactionChanges.before}->>'walletId' = ${input.id} or ${transactionChanges.before}->>'destinationWalletId' = ${input.id} or ${transactionChanges.after}->>'walletId' = ${input.id} or ${transactionChanges.after}->>'destinationWalletId' = ${input.id}`,
+      )
+      .limit(1);
+    if (movement || change || retained) {
+      return err({ code: "history-remains" });
+    }
+    await tx.delete(wallets).where(eq(wallets.id, input.id));
+    return ok({ id: input.id });
   });
 }

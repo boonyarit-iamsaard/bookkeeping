@@ -1,6 +1,9 @@
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
-import { transactions } from "@bookkeeping/database/transactions";
+import {
+  transactionChanges,
+  transactions,
+} from "@bookkeeping/database/transactions";
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { WalletType } from "@bookkeeping/domain/wallets";
@@ -78,6 +81,21 @@ function getWallet(
   { id, cookie }: Readonly<GetWalletRequest>,
 ) {
   return app.request(`${WALLETS_URL}/${id}`, {
+    headers: { origin: TEST_CLIENT_ORIGIN, ...(cookie ? { cookie } : {}) },
+  });
+}
+
+interface DeleteWalletRequest {
+  id: string;
+  cookie?: string;
+}
+
+function deleteWallet(
+  app: Hono<AppEnv>,
+  { id, cookie }: Readonly<DeleteWalletRequest>,
+) {
+  return app.request(`${WALLETS_URL}/${id}`, {
+    method: "DELETE",
     headers: { origin: TEST_CLIENT_ORIGIN, ...(cookie ? { cookie } : {}) },
   });
 }
@@ -597,6 +615,57 @@ async function insertTransfer(
   });
 }
 
+interface RetainedTransferFixture {
+  ownerId: string;
+  currentWalletId: string;
+  currentDestinationWalletId: string;
+  retainedWalletId: string;
+}
+
+async function insertRetainedTransferSnapshot(
+  db: Database,
+  fixture: Readonly<RetainedTransferFixture>,
+) {
+  const [transaction] = await db
+    .insert(transactions)
+    .values({
+      userId: fixture.ownerId,
+      type: "transfer",
+      walletId: fixture.currentWalletId,
+      destinationWalletId: fixture.currentDestinationWalletId,
+      currency: "THB",
+      amount: 100n,
+      transactionDate: "2026-09-02",
+    })
+    .returning({ id: transactions.id });
+  if (!transaction) {
+    throw new Error("Transfer insert returned no row");
+  }
+  await db.insert(transactionChanges).values({
+    userId: fixture.ownerId,
+    transactionId: transaction.id,
+    action: "edit",
+    before: {
+      type: "transfer",
+      walletId: fixture.retainedWalletId,
+      categoryId: null,
+      destinationWalletId: fixture.currentDestinationWalletId,
+      amount: "100",
+      transactionDate: "2026-09-02",
+      note: "",
+    },
+    after: {
+      type: "transfer",
+      walletId: fixture.currentWalletId,
+      categoryId: null,
+      destinationWalletId: fixture.currentDestinationWalletId,
+      amount: "100",
+      transactionDate: "2026-09-02",
+      note: "",
+    },
+  });
+}
+
 async function createSavingsWallet(app: Hono<AppEnv>, cookie: string) {
   const response = await postWallet(app, {
     cookie,
@@ -951,6 +1020,140 @@ describe("PATCH /v1/wallets/{walletId}", () => {
       });
 
       await expectProblem(response, { status: 401, code: "unauthenticated" });
+    });
+  });
+});
+
+describe("DELETE /v1/wallets/{walletId}", () => {
+  test("deletes an eligible wallet with no response body and makes a repeat not found", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie, ownerId } = await signUp(app);
+      const id = await insertWallet(db, {
+        ownerId,
+        name: "Disposable cash",
+        type: "cash",
+        openingAmount: 250n,
+        openingDate: "2026-09-01",
+      });
+
+      const response = await deleteWallet(app, { id, cookie });
+
+      expect(response.status).toBe(204);
+      expect(response.headers.get("content-type")).toBeNull();
+      expect(await response.text()).toBe("");
+      await expectNotFoundProblem(await deleteWallet(app, { id, cookie }));
+    });
+  });
+
+  test("returns one stable conflict problem for every retained-history blocker", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie, ownerId } = await signUp(app);
+      const currentId = await insertWallet(db, {
+        ownerId,
+        name: "Current movement",
+        type: "cash",
+        openingAmount: 250n,
+        openingDate: "2026-09-01",
+      });
+      const destinationId = await insertWallet(db, {
+        ownerId,
+        name: "Destination",
+        type: "bank_account",
+        openingAmount: 250n,
+        openingDate: "2026-09-01",
+      });
+      const changedId = await insertWallet(db, {
+        ownerId,
+        name: "Changed",
+        type: "cash",
+        openingAmount: 250n,
+        openingDate: "2026-09-01",
+      });
+      const retainedId = await insertWallet(db, {
+        ownerId,
+        name: "Retained",
+        type: "cash",
+        openingAmount: 250n,
+        openingDate: "2026-09-01",
+      });
+      const currentAfterEditId = await insertWallet(db, {
+        ownerId,
+        name: "Current after edit",
+        type: "e_wallet",
+        openingAmount: 250n,
+        openingDate: "2026-09-01",
+      });
+      const currentAfterEditDestinationId = await insertWallet(db, {
+        ownerId,
+        name: "Current after edit destination",
+        type: "bank_account",
+        openingAmount: 250n,
+        openingDate: "2026-09-01",
+      });
+
+      await insertTransfer(db, {
+        ownerId,
+        walletId: currentId,
+        destinationWalletId: destinationId,
+        transactionDate: "2026-09-02",
+      });
+      expect((await patchWallet(app, { id: changedId, cookie })).status).toBe(
+        200,
+      );
+      await insertRetainedTransferSnapshot(db, {
+        ownerId,
+        currentWalletId: currentAfterEditId,
+        currentDestinationWalletId: currentAfterEditDestinationId,
+        retainedWalletId: retainedId,
+      });
+
+      for (const id of [currentId, changedId, retainedId]) {
+        await expectProblem(await deleteWallet(app, { id, cookie }), {
+          status: 409,
+          code: "conflict",
+        });
+      }
+    });
+  });
+
+  test("does not disclose missing or another owner's wallets", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const alice = await signUp(app);
+      const bob = await signUp(app);
+      const id = await insertWallet(db, {
+        ownerId: alice.ownerId,
+        name: "Alice cash",
+        type: "cash",
+        openingAmount: 50_000n,
+        openingDate: "2026-09-01",
+      });
+
+      for (const attempt of [
+        { id, cookie: bob.cookie },
+        { id: UNKNOWN_WALLET_ID, cookie: bob.cookie },
+        { id: "not-a-wallet", cookie: bob.cookie },
+      ]) {
+        await expectNotFoundProblem(await deleteWallet(app, attempt));
+      }
+      expect((await getWallet(app, { id, cookie: alice.cookie })).status).toBe(
+        200,
+      );
+    });
+  });
+
+  test("rejects an anonymous request with the standard problem", async () => {
+    await withRollback(async (db) => {
+      const response = await deleteWallet(createIntegrationTestApp(db), {
+        id: UNKNOWN_WALLET_ID,
+      });
+
+      await expectProblem(response, {
+        status: 401,
+        code: "unauthenticated",
+      });
     });
   });
 });

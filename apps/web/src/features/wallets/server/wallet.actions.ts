@@ -1,23 +1,22 @@
 "use server";
 
 import type {
+  DeleteWalletError,
   ReplaceWalletOpeningError,
   SetWalletArchivedError,
 } from "@bookkeeping/application/wallets";
 import {
   createWallet,
+  deleteWallet,
   replaceWalletOpening,
   setWalletArchived,
 } from "@bookkeeping/application/wallets";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
-import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
-import type { WalletLifecycleError } from "@/features/wallets/server/wallet-lifecycle";
-import { deleteWallet } from "@/features/wallets/server/wallet-lifecycle";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
 
 const manageWalletSchema = z.discriminatedUnion("operation", [
@@ -74,7 +73,7 @@ export async function createWalletAction(
 }
 
 export type ManageWalletActionError =
-  | WalletLifecycleError
+  | DeleteWalletError["code"]
   | ReplaceWalletOpeningError["code"]
   | SetWalletArchivedError["code"]
   | "unauthenticated"
@@ -82,7 +81,7 @@ export type ManageWalletActionError =
 
 /** The UI shows one message per failure kind, so only the code travels. */
 function toWalletActionResult(
-  result: Result<WalletSummary, { code: ManageWalletActionError }>,
+  result: Result<{ id: string }, { code: ManageWalletActionError }>,
 ): Result<{ id: string }, ManageWalletActionError> {
   return result.ok ? ok({ id: result.value.id }) : err(result.error.code);
 }
@@ -109,7 +108,7 @@ export async function manageWalletAction(
       }),
     );
   } else if (data.operation === "delete") {
-    result = await deleteWallet(db, owned);
+    result = toWalletActionResult(await deleteWallet(db, owned));
   } else {
     result = toWalletActionResult(
       await setWalletArchived(db, {

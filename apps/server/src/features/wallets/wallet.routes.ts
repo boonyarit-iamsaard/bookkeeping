@@ -4,6 +4,7 @@ import type {
 } from "@bookkeeping/application/wallets";
 import {
   createWallet,
+  deleteWallet,
   findWallet,
   listWallets,
   replaceWalletOpening,
@@ -483,5 +484,38 @@ export function createWalletRoutes(db: Database) {
           422: describeProblem(getProblemOptionsForStatus(422)),
         },
       ),
+    )
+    .delete(
+      RESOURCE_PATH,
+      describeRoute({
+        operationId: "deleteWallet",
+        summary: "Delete a wallet",
+        description:
+          "Permanently removes a wallet only when it has no current " +
+          "transactions, wallet changes, or retained transaction snapshots. " +
+          "A wallet that does not exist, belongs to another owner, or has a " +
+          "malformed identifier is not found alike.",
+        tags: ["Wallets"],
+        responses: {
+          204: { description: "The wallet was deleted" },
+          401: describeProblemResponse(401),
+          404: describeProblemResponse(404),
+          409: describeProblemResponse(409),
+        },
+      }),
+      walletParamMiddleware,
+      async (c) => {
+        const deleted = await deleteWallet(db, {
+          ownerId: c.get("session").user.id,
+          id: c.req.valid("param").walletId,
+        });
+        if (!deleted.ok) {
+          if (deleted.error.code === "wallet-not-found") {
+            return createProblemResponse(c, getProblemOptionsForStatus(404));
+          }
+          return createProblemResponse(c, getProblemOptionsForStatus(409));
+        }
+        return c.body(null, 204);
+      },
     );
 }

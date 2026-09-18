@@ -249,6 +249,28 @@ describe("OpenAPI document", () => {
     ).toBe(false);
   });
 
+  it("documents wallet deletion as a bodyless operation", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const operation: DocumentedOperation =
+      document.paths["/v1/wallets/{walletId}"].delete;
+
+    expect(operation.operationId).toBe("deleteWallet");
+    expect(operation.parameters).toEqual([
+      expect.objectContaining({ in: "path", name: "walletId", required: true }),
+    ]);
+    expect(operation.responses["204"]).toEqual(
+      expect.objectContaining({ description: "The wallet was deleted" }),
+    );
+    expect(operation.responses["204"]).not.toHaveProperty("content");
+    for (const status of ["401", "404", "409"]) {
+      expect(
+        operation.responses[status].content["application/problem+json"].schema
+          .$ref,
+      ).toBe("#/components/schemas/ProblemDetails");
+    }
+    expect(operation.responses["500"]).toBeDefined();
+  });
+
   it("documents every registered route", async () => {
     const app = createUnitTestApp();
     const document = await fetchDocument(app);

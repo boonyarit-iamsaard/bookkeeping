@@ -3,7 +3,10 @@ import {
   createTestUser,
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
-import { transactions } from "@bookkeeping/database/transactions";
+import {
+  transactionChanges,
+  transactions,
+} from "@bookkeeping/database/transactions";
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { WalletType } from "@bookkeeping/domain/wallets";
@@ -11,6 +14,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
 import {
   createWallet,
+  deleteWallet,
   findWallet,
   listWallets,
   replaceWalletOpening,
@@ -475,6 +479,57 @@ async function listChanges(db: Database, walletId: string) {
     .where(eq(walletChanges.walletId, walletId));
 }
 
+interface RetainedTransferFixture {
+  ownerId: string;
+  currentWalletId: string;
+  currentDestinationWalletId: string;
+  retainedWalletId: string;
+}
+
+async function insertRetainedTransferSnapshot(
+  db: Database,
+  fixture: Readonly<RetainedTransferFixture>,
+) {
+  const [transaction] = await db
+    .insert(transactions)
+    .values({
+      userId: fixture.ownerId,
+      type: "transfer",
+      walletId: fixture.currentWalletId,
+      destinationWalletId: fixture.currentDestinationWalletId,
+      currency: "THB",
+      amount: 100n,
+      transactionDate: "2026-09-02",
+    })
+    .returning({ id: transactions.id });
+  if (!transaction) {
+    throw new Error("Transfer insert returned no row");
+  }
+  await db.insert(transactionChanges).values({
+    userId: fixture.ownerId,
+    transactionId: transaction.id,
+    action: "edit",
+    before: {
+      type: "transfer",
+      walletId: fixture.retainedWalletId,
+      categoryId: null,
+      destinationWalletId: fixture.currentDestinationWalletId,
+      amount: "100",
+      transactionDate: "2026-09-02",
+      note: "",
+    },
+    after: {
+      type: "transfer",
+      walletId: fixture.currentWalletId,
+      categoryId: null,
+      destinationWalletId: fixture.currentDestinationWalletId,
+      amount: "100",
+      transactionDate: "2026-09-02",
+      note: "",
+    },
+  });
+}
+
 describe("replaceWalletOpening", () => {
   test("replaces amount and date together, records the change, and keeps recording times", async () => {
     await withRollback(async (db) => {
@@ -746,6 +801,105 @@ describe("setWalletArchived", () => {
         cash,
       );
       expect(await listChanges(db, cash.id)).toEqual([]);
+    });
+  });
+});
+
+describe("deleteWallet", () => {
+  test("deletes an eligible wallet and treats a repeat as not found", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash } = await openCashPair(db);
+
+      expect(
+        await deleteWallet(db, { ownerId: owner.id, id: cash.id }),
+      ).toEqual({ ok: true, value: { id: cash.id } });
+      expect(
+        await findWallet(db, { ownerId: owner.id, id: cash.id }),
+      ).toBeNull();
+      expect(
+        await deleteWallet(db, { ownerId: owner.id, id: cash.id }),
+      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+    });
+  });
+
+  test("rejects wallets with current transactions on either transfer side", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash, bank } = await openCashPair(db);
+      await insertTransfer(db, {
+        ownerId: owner.id,
+        walletId: cash.id,
+        destinationWalletId: bank.id,
+        transactionDate: "2026-09-02",
+      });
+
+      for (const id of [cash.id, bank.id]) {
+        expect(await deleteWallet(db, { ownerId: owner.id, id })).toEqual({
+          ok: false,
+          error: { code: "history-remains" },
+        });
+      }
+    });
+  });
+
+  test("rejects a wallet with retained wallet change history", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash } = await openCashPair(db);
+      expect(
+        await setWalletArchived(db, {
+          ownerId: owner.id,
+          id: cash.id,
+          archived: true,
+        }),
+      ).toMatchObject({ ok: true });
+
+      expect(
+        await deleteWallet(db, { ownerId: owner.id, id: cash.id }),
+      ).toEqual({ ok: false, error: { code: "history-remains" } });
+    });
+  });
+
+  test("rejects a wallet referenced only by a retained transaction snapshot", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash, bank } = await openCashPair(db);
+      const spare = await createSavingsWallet(db, {
+        ownerId: owner.id,
+        idempotencyKey: "spare",
+        name: "Spare",
+      });
+      if (!spare.ok) {
+        throw new Error("Expected wallet creation to succeed");
+      }
+      await insertRetainedTransferSnapshot(db, {
+        ownerId: owner.id,
+        currentWalletId: bank.id,
+        currentDestinationWalletId: spare.value.wallet.id,
+        retainedWalletId: cash.id,
+      });
+
+      expect(
+        await deleteWallet(db, { ownerId: owner.id, id: cash.id }),
+      ).toEqual({ ok: false, error: { code: "history-remains" } });
+    });
+  });
+
+  test("does not disclose an unknown or another owner's wallet", async () => {
+    await withRollback(async (db) => {
+      const { owner, cash } = await openCashPair(db);
+      const stranger = await createTestUser(db);
+
+      for (const attempt of [
+        { ownerId: stranger.id, id: cash.id },
+        { ownerId: owner.id, id: "01999999-0000-7000-8000-000000000000" },
+        { ownerId: owner.id, id: "not-a-uuid" },
+      ]) {
+        expect(await deleteWallet(db, attempt)).toEqual({
+          ok: false,
+          error: { code: "wallet-not-found" },
+        });
+      }
+      expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
+        cash,
+      );
     });
   });
 });

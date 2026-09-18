@@ -1,5 +1,6 @@
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import {
+  deleteWallet,
   listWallets,
   replaceWalletOpening,
   setWalletArchived,
@@ -19,7 +20,6 @@ import {
   getTransaction,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import { deleteWallet } from "@/features/wallets/server/wallet-lifecycle";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();
@@ -110,7 +110,7 @@ describe("wallet lifecycle", () => {
       for (const id of [owned.id, other.id]) {
         expect(await deleteWallet(db, { ...owned, id })).toEqual({
           ok: false,
-          error: "history-remains",
+          error: { code: "history-remains" },
         });
         expect(
           await replaceWalletOpening(db, {
@@ -185,7 +185,7 @@ describe("wallet lifecycle", () => {
       const foreign = { ...owned, ownerId: stranger.id };
       expect(await deleteWallet(db, foreign)).toEqual({
         ok: false,
-        error: "wallet-not-found",
+        error: { code: "wallet-not-found" },
       });
       expect(
         await setWalletArchived(db, { ...foreign, archived: true }),
@@ -201,7 +201,7 @@ describe("wallet lifecycle", () => {
       });
       expect(await deleteWallet(db, owned)).toEqual({
         ok: false,
-        error: "history-remains",
+        error: { code: "history-remains" },
       });
       const unused = await openWallet(db, {
         ownerId: owned.ownerId,
@@ -216,7 +216,7 @@ describe("wallet lifecycle", () => {
       await setWalletArchived(db, { ...owned, archived: true });
       expect(await deleteWallet(db, owned)).toEqual({
         ok: false,
-        error: "history-remains",
+        error: { code: "history-remains" },
       });
     });
   });
