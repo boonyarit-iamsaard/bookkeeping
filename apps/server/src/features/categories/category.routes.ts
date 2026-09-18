@@ -15,7 +15,7 @@ import type { Database } from "@bookkeeping/database/connection";
 import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";
 import type { Input } from "hono";
 import { Hono } from "hono";
-import { describeResponse, describeRoute, validator } from "hono-openapi";
+import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
@@ -36,8 +36,9 @@ import {
   createProblemResponse,
   getProblemOptionsForStatus,
 } from "../../core/http/problem-details.js";
+import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
 import {
-  createInvalidCommandProblem,
+  createCommandMiddleware,
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
 
@@ -107,17 +108,8 @@ interface CreateCategoryValidatedInput {
   };
 }
 
-/** What the param and command validators hand a handler. */
-interface CategoryCommandValidatedInput<Schema extends z.ZodType> {
-  in: {
-    param: z.input<typeof categoryParamsSchema>;
-    json: z.input<Schema>;
-  };
-  out: {
-    param: z.output<typeof categoryParamsSchema>;
-    json: z.output<Schema>;
-  };
-}
+type CategoryCommandValidatedInput<Schema extends z.ZodType> =
+  ResourceCommandValidatedInput<typeof categoryParamsSchema, Schema>;
 
 const CATEGORY_ISSUE_POINTERS: Record<CategoryErrorField, string> = {
   name: "#/name",
@@ -161,18 +153,7 @@ function toCategoryUpdateFieldError(
   }
 }
 
-function createCategoryCommandMiddleware(schema: z.ZodType) {
-  return validator("json", schema, (result, c) => {
-    if (!result.success) {
-      return createProblemResponse(
-        c,
-        createInvalidCommandProblem(result.error),
-      );
-    }
-  });
-}
-
-const categoryBodyMiddleware = createCategoryCommandMiddleware(
+const categoryCommandMiddleware = createCommandMiddleware(
   createCategoryRequestSchema,
 );
 
@@ -197,7 +178,7 @@ export function createCategoryRoutes(db: Database) {
         },
       }),
       idempotencyKeyMiddleware,
-      categoryBodyMiddleware,
+      categoryCommandMiddleware,
       describeResponse<
         AuthenticatedEnv,
         typeof COLLECTION_PATH,
@@ -354,7 +335,7 @@ export function createCategoryRoutes(db: Database) {
         },
       }),
       categoryParamMiddleware,
-      createCategoryCommandMiddleware(updateCategoryRequestSchema),
+      createCommandMiddleware(updateCategoryRequestSchema),
       describeResponse<
         AuthenticatedEnv,
         typeof RESOURCE_PATH,

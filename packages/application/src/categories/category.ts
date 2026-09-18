@@ -17,6 +17,7 @@ import {
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import * as z from "zod";
 import type {
   CreationResultCodec,
@@ -80,7 +81,7 @@ export async function findCategory(
 
 export interface UpdateCategoryInput
   extends CategoryRef,
-    UpdateCategoryCommand {}
+    CategoryUpdateCommand {}
 
 export type UpdateCategoryError =
   | { code: "category-not-found" }
@@ -92,7 +93,7 @@ export type UpdateCategoryError =
   /** Uncategorized keeps its name; only its icon may change. */
   | { code: "protected" };
 
-export interface UpdateCategoryCommand {
+export interface CategoryUpdateCommand {
   name: string;
   iconId: string;
 }
@@ -104,8 +105,8 @@ export type CategoryUpdateValidationError = Extract<
 
 /** Normalizes and validates presentation data before the row is touched. */
 export function validateCategoryUpdate(
-  command: Readonly<UpdateCategoryCommand>,
-): Result<UpdateCategoryCommand, CategoryUpdateValidationError> {
+  command: Readonly<CategoryUpdateCommand>,
+): Result<CategoryUpdateCommand, CategoryUpdateValidationError> {
   const name = normalizeCategoryName(command.name);
   const invalidName = validateName(name, "name");
   if (invalidName) {
@@ -182,7 +183,7 @@ export interface CategoryUsage {
 /**
  * The usage of one owned category, or `null` when the owner has no category
  * with that id. Refunds carry no category, so only the transactions and
- * children the management UX counts appear here.
+ * children the management UX counts appear here, read in one statement.
  */
 export async function findCategoryUsage(
   db: Database,
@@ -191,72 +192,63 @@ export async function findCategoryUsage(
   if (!isUuid(id)) {
     return null;
   }
-  const [category] = await db
-    .select({ parentId: categories.parentId })
+  const child = alias(categories, "child");
+  const currentTransactions = db
+    .select({ count: countRows() })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.userId, categories.userId),
+        eq(transactions.categoryId, categories.id),
+        isNull(transactions.deletedAt),
+      ),
+    );
+  const directChildren = db
+    .select({ count: countRows() })
+    .from(child)
+    .where(
+      and(
+        eq(child.userId, categories.userId),
+        eq(child.parentId, categories.id),
+      ),
+    );
+  const [usage] = await db
+    .select({
+      transactions: sql<number>`${currentTransactions}`,
+      children: sql<number>`${directChildren}`,
+    })
     .from(categories)
     .where(and(eq(categories.id, id), eq(categories.userId, ownerId)));
-  if (!category) {
-    return null;
-  }
-  const transactionsCount = await countCurrentTransactions(db, {
-    ownerId,
-    id,
-  });
-  const [childrenRow] = await db
-    .select({ count: countRows() })
-    .from(categories)
-    .where(and(eq(categories.parentId, id), eq(categories.userId, ownerId)));
-  return {
-    transactions: transactionsCount,
-    children: childrenRow?.count ?? 0,
-  };
+  return usage ?? null;
 }
 
 /**
- * How many current income and expense transactions each category holds,
- * keyed by category id; unused categories are absent. Refunds are not
- * counted: they follow their expense, which already is. Children are
- * counted per parent, since a parent with any cannot itself be removed.
+ * How many current income and expense transactions each category holds, keyed
+ * by category id; unused categories are absent. Refunds are not counted:
+ * they follow their expense, which already is.
  */
 export async function listCategoryUsage(
   db: Database,
   ownerId: string,
-): Promise<Readonly<Record<string, CategoryUsage>>> {
-  const [entryRows, childRows] = await Promise.all([
-    db
-      .select({
-        categoryId: transactions.categoryId,
-        count: countRows(),
-      })
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.userId, ownerId),
-          isNotNull(transactions.categoryId),
-          isNull(transactions.deletedAt),
-        ),
-      )
-      .groupBy(transactions.categoryId),
-    db
-      .select({ parentId: categories.parentId, count: countRows() })
-      .from(categories)
-      .where(
-        and(eq(categories.userId, ownerId), isNotNull(categories.parentId)),
-      )
-      .groupBy(categories.parentId),
-  ]);
-  const usage: Record<string, CategoryUsage> = {};
-  for (const row of entryRows) {
+): Promise<Readonly<Record<string, number>>> {
+  const rows = await db
+    .select({
+      categoryId: transactions.categoryId,
+      count: countRows(),
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.userId, ownerId),
+        isNotNull(transactions.categoryId),
+        isNull(transactions.deletedAt),
+      ),
+    )
+    .groupBy(transactions.categoryId);
+  const usage: Record<string, number> = {};
+  for (const row of rows) {
     if (row.categoryId) {
-      usage[row.categoryId] = { transactions: row.count, children: 0 };
-    }
-  }
-  for (const row of childRows) {
-    if (row.parentId) {
-      usage[row.parentId] = {
-        transactions: usage[row.parentId]?.transactions ?? 0,
-        children: row.count,
-      };
+      usage[row.categoryId] = row.count;
     }
   }
   return usage;
@@ -264,23 +256,6 @@ export async function listCategoryUsage(
 
 function countRows() {
   return sql<number>`count(*)::int`;
-}
-
-async function countCurrentTransactions(
-  db: Database,
-  { ownerId, id }: Readonly<CategoryRef>,
-): Promise<number> {
-  const [row] = await db
-    .select({ count: countRows() })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.userId, ownerId),
-        eq(transactions.categoryId, id),
-        isNull(transactions.deletedAt),
-      ),
-    );
-  return row?.count ?? 0;
 }
 
 /** Where a new child goes: under an existing parent, or under one created with it. */

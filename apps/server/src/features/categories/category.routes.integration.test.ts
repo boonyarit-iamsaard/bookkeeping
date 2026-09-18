@@ -1,8 +1,8 @@
 import {
   insertCategorizedTransaction,
   insertLinkedRefund,
-  openTestWallet,
 } from "@bookkeeping/application/testing/transaction-fixture";
+import { createWalletForTest } from "@bookkeeping/application/testing/wallet-fixture";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
@@ -67,6 +67,26 @@ function listCategories(app: Readonly<Hono<AppEnv>>, cookie?: string) {
       ...(cookie ? { cookie } : {}),
     },
   });
+}
+
+interface ListedCategoryRequest {
+  name: string;
+  cookie: string;
+}
+
+/** The owner's category of that name, as the collection lists it. */
+async function findListedCategory(
+  app: Readonly<Hono<AppEnv>>,
+  { name, cookie }: Readonly<ListedCategoryRequest>,
+) {
+  const collection = categoryCollectionResponseSchema.parse(
+    await (await listCategories(app, cookie)).json(),
+  );
+  const category = collection.items.find((item) => item.name === name);
+  if (!category) {
+    throw new Error(`Expected the ${name} category`);
+  }
+  return category;
 }
 
 interface GetCategoryRequest {
@@ -639,15 +659,10 @@ describe("PATCH /v1/categories/{categoryId}", () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
       const { cookie } = await signUp(app);
-      const collection = categoryCollectionResponseSchema.parse(
-        await (await listCategories(app, cookie)).json(),
-      );
-      const groceries = collection.items.find(
-        (category) => category.name === "Groceries",
-      );
-      if (!groceries) {
-        throw new Error("Expected the Groceries category");
-      }
+      const groceries = await findListedCategory(app, {
+        name: "Groceries",
+        cookie,
+      });
 
       const response = await patchCategory(app, {
         categoryId: groceries.id,
@@ -727,15 +742,10 @@ describe("PATCH /v1/categories/{categoryId}", () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
       const { cookie } = await signUp(app);
-      const collection = categoryCollectionResponseSchema.parse(
-        await (await listCategories(app, cookie)).json(),
-      );
-      const groceries = collection.items.find(
-        (category) => category.name === "Groceries",
-      );
-      if (!groceries) {
-        throw new Error("Expected the Groceries category");
-      }
+      const groceries = await findListedCategory(app, {
+        name: "Groceries",
+        cookie,
+      });
 
       const duplicate = await expectProblem(
         await patchCategory(app, {
@@ -863,26 +873,23 @@ describe("PATCH /v1/categories/{categoryId}", () => {
 });
 
 describe("GET /v1/categories/{categoryId}/usage", () => {
-  test("reports the entries a category holds and the children under a parent", async () => {
+  test("reports the transactions a category holds and the children under a parent", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
       const { cookie, ownerId } = await signUp(app);
-      const wallet = await openTestWallet(db, { ownerId });
-      const collection = categoryCollectionResponseSchema.parse(
-        await (await listCategories(app, cookie)).json(),
-      );
-      const groceries = collection.items.find(
-        (category) => category.name === "Groceries",
-      );
-      const restaurants = collection.items.find(
-        (category) => category.name === "Restaurants",
-      );
-      const foodAndDrink = collection.items.find(
-        (category) => category.name === "Food & Drink",
-      );
-      if (!groceries || !restaurants || !foodAndDrink) {
-        throw new Error("Expected the default expense categories");
-      }
+      const wallet = await createWalletForTest(db, { ownerId });
+      const groceries = await findListedCategory(app, {
+        name: "Groceries",
+        cookie,
+      });
+      const restaurants = await findListedCategory(app, {
+        name: "Restaurants",
+        cookie,
+      });
+      const foodAndDrink = await findListedCategory(app, {
+        name: "Food & Drink",
+        cookie,
+      });
       const expense = await insertCategorizedTransaction(db, {
         ownerId,
         walletId: wallet.id,

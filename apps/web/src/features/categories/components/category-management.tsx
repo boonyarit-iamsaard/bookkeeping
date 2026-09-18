@@ -1,7 +1,6 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import type { CategoryUsage } from "@bookkeeping/application/categories";
 import type {
   CategoryKind,
   CategorySummary,
@@ -26,8 +25,8 @@ import { cn } from "@/shared/helpers/cn";
 
 interface CategoryManagementProps {
   categories: readonly CategorySummary[];
-  /** Current entries and children by category id; absent means none. */
-  usage: Readonly<Record<string, CategoryUsage>>;
+  /** Current entry counts by category id; absent means none. */
+  usage: Readonly<Record<string, number>>;
 }
 
 // Expense first: it is the tree that gets customized.
@@ -143,7 +142,7 @@ export function CategoryManagement({
               removal={{
                 parentName: null,
                 childCount: group.children.length,
-                entries: usage[group.parent.id]?.transactions ?? 0,
+                entries: usage[group.parent.id] ?? 0,
               }}
               onDone={finishEdit}
             />
@@ -157,7 +156,7 @@ export function CategoryManagement({
                       removal={{
                         parentName: group.parent.name,
                         childCount: 0,
-                        entries: usage[child.id]?.transactions ?? 0,
+                        entries: usage[child.id] ?? 0,
                       }}
                       onDone={finishEdit}
                     />

@@ -15,7 +15,7 @@ import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import type { Input } from "hono";
 import { Hono } from "hono";
-import { describeResponse, describeRoute, validator } from "hono-openapi";
+import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
@@ -43,8 +43,9 @@ import {
   createProblemResponse,
   getProblemOptionsForStatus,
 } from "../../core/http/problem-details.js";
+import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
 import {
-  createInvalidCommandProblem,
+  createCommandMiddleware,
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
 
@@ -100,29 +101,8 @@ export function presentWallet(wallet: Readonly<WalletSummary>): WalletResponse {
 const walletParamsSchema = z.object({ walletId: z.uuid() });
 const walletParamMiddleware = createResourceParamMiddleware(walletParamsSchema);
 
-/** A well-formed command the schema rejects is a 422 addressed by field. */
-function createCommandMiddleware<Schema extends z.ZodType>(schema: Schema) {
-  return validator("json", schema, (result, c) => {
-    if (!result.success) {
-      return createProblemResponse(
-        c,
-        createInvalidCommandProblem(result.error),
-      );
-    }
-  });
-}
-
-/** What the param and command validators hand a handler. */
-interface WalletCommandValidatedInput<Schema extends z.ZodType> {
-  in: {
-    param: z.input<typeof walletParamsSchema>;
-    json: z.input<Schema>;
-  };
-  out: {
-    param: z.output<typeof walletParamsSchema>;
-    json: z.output<Schema>;
-  };
-}
+type WalletCommandValidatedInput<Schema extends z.ZodType> =
+  ResourceCommandValidatedInput<typeof walletParamsSchema, Schema>;
 
 export const createWalletRequestSchema = z
   .object({

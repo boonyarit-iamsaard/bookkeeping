@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type {
   CategoryCreationCommand,
-  UpdateCategoryCommand,
+  CategoryUpdateCommand,
 } from "./category";
 import { validateCategoryCreation, validateCategoryUpdate } from "./category";
 
@@ -43,7 +43,7 @@ describe("validateCategoryCreation", () => {
 });
 
 describe("validateCategoryUpdate", () => {
-  const update: UpdateCategoryCommand = { name: "Groceries", iconId: "cart" };
+  const update: CategoryUpdateCommand = { name: "Groceries", iconId: "cart" };
 
   test("normalizes the name and accepts a catalog icon", () => {
     expect(

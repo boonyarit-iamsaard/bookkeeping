@@ -10,14 +10,14 @@ import {
   GENERIC_ICON_ID,
   UNCATEGORIZED_NAME,
 } from "@bookkeeping/domain/categories";
-import { and, asc, eq, isNotNull } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { createCategoryForTest } from "../testing/category-fixture";
 import {
   insertCategorizedTransaction,
   insertLinkedRefund,
-  openTestWallet,
 } from "../testing/transaction-fixture";
+import { createWalletForTest } from "../testing/wallet-fixture";
 import {
   createCategory,
   findCategory,
@@ -645,10 +645,10 @@ describe("findCategoryUsage", () => {
     DEFAULT_CATEGORIES.expense.find((parent) => parent.name === "Food & Drink")
       ?.children?.length ?? 0;
 
-  test("counts current transactions and children; refunds and deleted entries do not count", async () => {
+  test("counts current transactions and children; refunds and deleted transactions do not count", async () => {
     await withRollback(async (db) => {
       const { owner, find } = await setupOwner(db);
-      const wallet = await openTestWallet(db, { ownerId: owner.id });
+      const wallet = await createWalletForTest(db, { ownerId: owner.id });
       const groceries = find("expense", "Groceries");
       const restaurants = find("expense", "Restaurants");
       const foodAndDrink = find("expense", "Food & Drink");
@@ -726,21 +726,12 @@ describe("findCategoryUsage", () => {
 });
 
 describe("listCategoryUsage", () => {
-  test("maps current transactions and children per category; unused categories are absent", async () => {
+  test("maps current transactions per category; unused categories are absent", async () => {
     await withRollback(async (db) => {
       const { owner, find } = await setupOwner(db);
-      const wallet = await openTestWallet(db, { ownerId: owner.id });
+      const wallet = await createWalletForTest(db, { ownerId: owner.id });
       const groceries = find("expense", "Groceries");
       const salary = find("income", "Salary");
-      const totalChildren = Object.values(DEFAULT_CATEGORIES).reduce(
-        (count, parents) =>
-          count +
-          parents.reduce(
-            (treeCount, parent) => treeCount + (parent.children?.length ?? 0),
-            0,
-          ),
-        0,
-      );
 
       await insertCategorizedTransaction(db, {
         ownerId: owner.id,
@@ -770,50 +761,16 @@ describe("listCategoryUsage", () => {
         .set({ deletedAt: new Date() })
         .where(eq(transactions.id, gone));
 
-      const usage = await listCategoryUsage(db, owner.id);
-      expect(usage[groceries.id]).toEqual({ transactions: 2, children: 0 });
-      expect(usage[salary.id]).toEqual({ transactions: 1, children: 0 });
-      const foodAndDrink = find("expense", "Food & Drink");
-      expect(usage[foodAndDrink.id]).toEqual({
-        transactions: 0,
-        children: DEFAULT_CATEGORIES.expense.find(
-          (parent) => parent.name === "Food & Drink",
-        )?.children?.length,
+      expect(await listCategoryUsage(db, owner.id)).toEqual({
+        [groceries.id]: 2,
+        [salary.id]: 1,
       });
-      // Only categories with usage appear; entries and children sum to truth.
-      expect(
-        Object.values(usage).reduce(
-          (sum, counted) => sum + counted.transactions,
-          0,
-        ),
-      ).toBe(3);
-      expect(
-        Object.values(usage).reduce(
-          (sum, counted) => sum + counted.children,
-          0,
-        ),
-      ).toBe(totalChildren);
-      // A childless parent with no entries is absent.
-      expect(usage[find("expense", "Personal care").id]).toBeUndefined();
     });
   });
 
-  test("an owner without children or entries has an empty usage map", async () => {
+  test("an owner without transactions has an empty usage map", async () => {
     await withRollback(async (db) => {
       const { owner } = await setupOwner(db);
-      await db
-        .delete(categories)
-        .where(
-          and(eq(categories.userId, owner.id), isNotNull(categories.parentId)),
-        );
-      await db
-        .delete(categories)
-        .where(
-          and(
-            eq(categories.userId, owner.id),
-            eq(categories.isProtected, false),
-          ),
-        );
 
       expect(await listCategoryUsage(db, owner.id)).toEqual({});
     });

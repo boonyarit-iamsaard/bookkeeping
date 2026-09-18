@@ -1,11 +1,8 @@
-import { randomUUID } from "node:crypto";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   transactionChanges,
   transactions,
 } from "@bookkeeping/database/transactions";
-import type { WalletSummary } from "@bookkeeping/domain/wallets";
-import { createWallet } from "../wallets/wallet";
 
 export interface RetainedTransferFixture {
   ownerId: string;
@@ -60,29 +57,6 @@ export async function insertRetainedTransferSnapshot(
       note: "",
     },
   });
-}
-
-export interface TestWalletFixture {
-  ownerId: string;
-}
-
-/** Opens a cash wallet through the application operation; each call is a fresh creation. */
-export async function openTestWallet(
-  db: Database,
-  { ownerId }: Readonly<TestWalletFixture>,
-): Promise<WalletSummary> {
-  const created = await createWallet(db, {
-    ownerId,
-    name: "Cash",
-    type: "cash",
-    openingAmount: 1_000_000n,
-    openingDate: "2026-09-01",
-    idempotencyKey: randomUUID(),
-  });
-  if (!created.ok) {
-    throw new Error(`Wallet fixture rejected: ${created.error.code}`);
-  }
-  return created.value.wallet;
 }
 
 export interface CategorizedTransactionFixture {

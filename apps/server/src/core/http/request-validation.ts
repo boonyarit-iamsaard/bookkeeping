@@ -78,3 +78,32 @@ export function createResourceParamMiddleware<Schema extends z.ZodType>(
     }
   });
 }
+
+/** A well-formed command the schema rejects is a 422 addressed by field. */
+export function createCommandMiddleware<Schema extends z.ZodType>(
+  schema: Schema,
+) {
+  return validator("json", schema, (result, c) => {
+    if (!result.success) {
+      return createProblemResponse(
+        c,
+        createInvalidCommandProblem(result.error),
+      );
+    }
+  });
+}
+
+/** What the resource param and command validators hand a handler. */
+export interface ResourceCommandValidatedInput<
+  ParamSchema extends z.ZodType,
+  CommandSchema extends z.ZodType,
+> {
+  in: {
+    param: z.input<ParamSchema>;
+    json: z.input<CommandSchema>;
+  };
+  out: {
+    param: z.output<ParamSchema>;
+    json: z.output<CommandSchema>;
+  };
+}
