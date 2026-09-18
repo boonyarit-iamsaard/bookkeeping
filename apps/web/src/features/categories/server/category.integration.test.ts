@@ -8,7 +8,7 @@ import {
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
 import { describe, expect, test } from "vitest";
-import { createCategory } from "@/features/categories/server/category";
+import { createCategoryForTest as createCategory } from "@/testing/category-fixture";
 
 const { withRollback, committed } = setupTestDatabase();
 

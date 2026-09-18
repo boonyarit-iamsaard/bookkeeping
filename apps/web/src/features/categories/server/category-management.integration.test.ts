@@ -9,7 +9,6 @@ import {
 } from "@bookkeeping/database/testing";
 import type { CategoryKind } from "@bookkeeping/domain/categories";
 import { describe, expect, test } from "vitest";
-import { createCategory } from "@/features/categories/server/category";
 import {
   listCategoryUsage,
   removeCategory,
@@ -23,6 +22,7 @@ import {
   listTransactions,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
+import { createCategoryForTest as createCategory } from "@/testing/category-fixture";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();

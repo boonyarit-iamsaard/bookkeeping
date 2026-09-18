@@ -1,3 +1,9 @@
+import {
+  databaseError,
+  isScopedNameViolation,
+  summaryColumns,
+  validateName,
+} from "@bookkeeping/application/categories";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { transactions } from "@bookkeeping/database/transactions";
@@ -7,12 +13,6 @@ import { err, ok } from "@bookkeeping/domain/result";
 import { and, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { normalizeCategoryName } from "@/features/categories/category-name";
 import { isIconId } from "@/features/categories/icons";
-import {
-  databaseError,
-  isScopedNameViolation,
-  summaryColumns,
-  validateName,
-} from "@/features/categories/server/category";
 
 export interface ManageCategoryInput {
   /** Always the session user; never a client-supplied identifier. */

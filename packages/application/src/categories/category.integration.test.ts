@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import {
@@ -11,10 +12,26 @@ import {
 } from "@bookkeeping/domain/categories";
 import { and, asc, eq } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
-import { initializeDefaultCategories, listCategories } from "./category";
+import type { CreateCategoryInput } from "./category";
+import {
+  createCategory,
+  initializeDefaultCategories,
+  listCategories,
+} from "./category";
 import { DEFAULT_CATEGORIES } from "./default-categories";
 
 const { withRollback, committed } = setupTestDatabase();
+
+type CategoryFixtureInput = Omit<CreateCategoryInput, "idempotencyKey"> & {
+  idempotencyKey?: string;
+};
+
+function createCategoryFixture(
+  db: Database,
+  { idempotencyKey = randomUUID(), ...input }: Readonly<CategoryFixtureInput>,
+) {
+  return createCategory(db, { ...input, idempotencyKey });
+}
 
 async function listTree(db: Database, ownerId: string) {
   return db
@@ -256,5 +273,132 @@ describe("listCategories", () => {
           .where(eq(categories.userId, owner.id)),
       ).toEqual([]);
     });
+  });
+});
+
+describe("createCategory", () => {
+  test("creates a parent and replays the same normalized command", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+      await initializeDefaultCategories(db, owner.id);
+
+      const first = await createCategoryFixture(db, {
+        ownerId: owner.id,
+        kind: "expense",
+        name: "  Subscriptions  ",
+        iconId: "tv",
+        parent: null,
+        idempotencyKey: "category-retry",
+      });
+      const retry = await createCategoryFixture(db, {
+        ownerId: owner.id,
+        kind: "expense",
+        name: "Subscriptions",
+        iconId: "tv",
+        parent: null,
+        idempotencyKey: "category-retry",
+      });
+
+      expect(first.ok).toBe(true);
+      expect(retry).toEqual({
+        ok: true,
+        value: first.ok
+          ? { ...first.value, replayed: true }
+          : expect.anything(),
+      });
+      expect(
+        (await listCategories(db, owner.id)).filter(
+          (category) => category.name === "Subscriptions",
+        ),
+      ).toHaveLength(1);
+    });
+  });
+
+  test("rejects changed payloads under an existing key without another row", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+      const input = {
+        ownerId: owner.id,
+        kind: "expense" as const,
+        name: "Subscriptions",
+        iconId: "tv",
+        parent: null,
+        idempotencyKey: "category-conflict",
+      };
+
+      await expect(createCategory(db, input)).resolves.toMatchObject({
+        ok: true,
+      });
+      expect(await createCategory(db, { ...input, iconId: "film" })).toEqual({
+        ok: false,
+        error: { code: "idempotency-conflict" },
+      });
+      expect(
+        (await listCategories(db, owner.id)).filter(
+          (category) => category.name === "Subscriptions",
+        ),
+      ).toHaveLength(1);
+    });
+  });
+
+  test("does not consume a key when validation rejects the command", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+      const rejected = await createCategoryFixture(db, {
+        ownerId: owner.id,
+        kind: "expense",
+        name: "   ",
+        iconId: "coffee",
+        parent: null,
+        idempotencyKey: "category-validation",
+      });
+      const corrected = await createCategoryFixture(db, {
+        ownerId: owner.id,
+        kind: "expense",
+        name: "Coffee",
+        iconId: "coffee",
+        parent: null,
+        idempotencyKey: "category-validation",
+      });
+
+      expect(rejected).toEqual({
+        ok: false,
+        error: { code: "blank-name", field: "name" },
+      });
+      expect(corrected).toMatchObject({
+        ok: true,
+        value: { replayed: false },
+      });
+    });
+  });
+
+  test("concurrent retries with one key create one category and replay it", async () => {
+    const db = committed();
+    const owner = await createTestUser(db);
+
+    const outcomes = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        createCategoryFixture(db, {
+          ownerId: owner.id,
+          kind: "expense",
+          name: "Subscriptions",
+          iconId: "tv",
+          parent: null,
+          idempotencyKey: "category-concurrent",
+        }),
+      ),
+    );
+
+    const successes = outcomes.flatMap((outcome) =>
+      outcome.ok ? [outcome.value] : [],
+    );
+    expect(successes).toHaveLength(5);
+    expect(new Set(successes.map(({ category }) => category.id)).size).toBe(1);
+    expect(successes.filter(({ replayed }) => !replayed)).toHaveLength(1);
+    expect(
+      (await listCategories(db, owner.id)).filter(
+        (category) => category.name === "Subscriptions",
+      ),
+    ).toHaveLength(1);
   });
 });

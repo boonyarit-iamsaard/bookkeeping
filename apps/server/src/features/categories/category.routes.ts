@@ -1,4 +1,9 @@
+import type {
+  CategoryErrorField,
+  CreateCategoryError,
+} from "@bookkeeping/application/categories";
 import {
+  createCategory,
   initializeDefaultCategories,
   listCategories,
 } from "@bookkeeping/application/categories";
@@ -7,11 +12,27 @@ import type { CategorySummary } from "@bookkeeping/domain/categories";
 import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";
 import type { Input } from "hono";
 import { Hono } from "hono";
-import { describeResponse, describeRoute } from "hono-openapi";
+import { describeResponse, describeRoute, validator } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
+import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
+import {
+  idempotencyConflictProblem,
+  idempotencyKeyMiddleware,
+} from "../../core/http/idempotency.js";
 import { describeProblemResponse } from "../../core/http/openapi.js";
+import type {
+  ProblemFieldError,
+  ProblemOptions,
+} from "../../core/http/problem-details.js";
+import {
+  createProblemResponse,
+  getProblemOptionsForStatus,
+  PROBLEM_MEDIA_TYPE,
+  problemDetailsSchema,
+} from "../../core/http/problem-details.js";
+import { createInvalidCommandProblem } from "../../core/http/request-validation.js";
 
 export const categoryResponseSchema = z
   .object({
@@ -36,6 +57,21 @@ export function presentCategory(
   return { ...category };
 }
 
+export const createCategoryRequestSchema = z
+  .strictObject({
+    kind: z.enum(CATEGORY_KINDS),
+    name: z.string(),
+    iconId: z.string(),
+    parent: z.union([
+      z.null(),
+      z.strictObject({ existingId: z.uuid() }),
+      z.strictObject({
+        create: z.strictObject({ name: z.string(), iconId: z.string() }),
+      }),
+    ]),
+  })
+  .meta({ id: "CreateCategoryRequest" });
+
 export const provisioningOutcomeResponseSchema = z
   .object({
     seededKinds: z.array(z.enum(CATEGORY_KINDS)),
@@ -44,9 +80,136 @@ export const provisioningOutcomeResponseSchema = z
 
 const DEFAULTS_PATH = "/categories/defaults";
 const COLLECTION_PATH = "/categories";
+const LOCATION_HEADER = "Location";
+
+interface CreateCategoryValidatedInput {
+  in: {
+    json: z.input<typeof createCategoryRequestSchema>;
+    header: z.input<typeof idempotencyKeyHeaderSchema>;
+  };
+  out: {
+    json: z.output<typeof createCategoryRequestSchema>;
+    header: z.output<typeof idempotencyKeyHeaderSchema>;
+  };
+}
+
+const CATEGORY_ISSUE_POINTERS: Record<CategoryErrorField, string> = {
+  name: "#/name",
+  iconId: "#/iconId",
+  parentName: "#/parent/create/name",
+  parentIconId: "#/parent/create/iconId",
+};
+
+function toCategoryFieldError(
+  error: Exclude<CreateCategoryError, { code: "idempotency-conflict" }>,
+): ProblemFieldError {
+  switch (error.code) {
+    case "blank-name":
+    case "name-too-long":
+    case "unknown-icon":
+    case "duplicate-name":
+      return {
+        pointer: CATEGORY_ISSUE_POINTERS[error.field],
+        code: error.code,
+      };
+    case "parent-not-found":
+    case "parent-is-child":
+    case "parent-protected":
+      return { pointer: "#/parent", code: error.code };
+  }
+}
+
+function describeProblem(problem: Readonly<ProblemOptions>) {
+  return {
+    description: problem.title,
+    content: { [PROBLEM_MEDIA_TYPE]: { vSchema: problemDetailsSchema } },
+  };
+}
+
+const categoryCommandMiddleware = validator(
+  "json",
+  createCategoryRequestSchema,
+  (result, c) => {
+    if (!result.success) {
+      return createProblemResponse(
+        c,
+        createInvalidCommandProblem(result.error),
+      );
+    }
+  },
+);
 
 export function createCategoryRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>()
+    .post(
+      COLLECTION_PATH,
+      describeRoute({
+        operationId: "createCategory",
+        summary: "Create a category",
+        description:
+          "Creates a parent or a child in the signed-in owner's income or " +
+          "expense tree. Names are trimmed and unique within their parent " +
+          "scope. The request must carry a client-generated Idempotency-Key: " +
+          "repeating it with the same normalized payload replays the original " +
+          "creation, while a different payload is a conflict. A rejected " +
+          "request never consumes its key.",
+        tags: ["Categories"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      idempotencyKeyMiddleware,
+      categoryCommandMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof COLLECTION_PATH,
+        CreateCategoryValidatedInput,
+        {
+          201: typeof categoryResponseSchema;
+          409: typeof problemDetailsSchema;
+          422: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const body = c.req.valid("json");
+          const created = await createCategory(db, {
+            ...body,
+            ownerId: c.get("session").user.id,
+            idempotencyKey: c.req.valid("header")["idempotency-key"],
+          });
+          if (!created.ok) {
+            if (created.error.code === "idempotency-conflict") {
+              return createProblemResponse(c, idempotencyConflictProblem);
+            }
+            return createProblemResponse(c, {
+              ...getProblemOptionsForStatus(422),
+              errors: [toCategoryFieldError(created.error)],
+            });
+          }
+          const category = presentCategory(created.value.category);
+          return c.json(category, 201, {
+            [LOCATION_HEADER]: `${c.req.path}/${category.id}`,
+          });
+        },
+        {
+          201: {
+            description: "The created category, or the original on a replay",
+            headers: {
+              [LOCATION_HEADER]: {
+                description: "Where the created category can be retrieved",
+                schema: { type: "string" },
+              },
+            },
+            content: {
+              "application/json": { vSchema: categoryResponseSchema },
+            },
+          },
+          409: describeProblem(idempotencyConflictProblem),
+          422: describeProblem(getProblemOptionsForStatus(422)),
+        },
+      ),
+    )
     .get(
       COLLECTION_PATH,
       describeRoute({

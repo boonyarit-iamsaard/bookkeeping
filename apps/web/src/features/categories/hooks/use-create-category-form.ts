@@ -72,9 +72,10 @@ export function useCreateCategoryForm({
 
       let result: Awaited<ReturnType<typeof createCategoryAction>>;
       try {
-        result = await createCategoryAction(
-          toCreateCategorySubmission(kind, value),
-        );
+        result = await createCategoryAction({
+          ...toCreateCategorySubmission(kind, value),
+          submissionKey: crypto.randomUUID(),
+        });
       } catch {
         setServerError(
           "The category could not be saved. Check your connection and try again.",

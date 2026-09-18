@@ -14,7 +14,6 @@ import {
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
 import { describe, expect, test, vi } from "vitest";
-import { createCategory } from "@/features/categories/server/category";
 import {
   removeCategory,
   updateCategory,
@@ -27,6 +26,7 @@ import {
   listTransactions,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
+import { createCategoryForTest as createCategory } from "@/testing/category-fixture";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback } = setupTestDatabase();

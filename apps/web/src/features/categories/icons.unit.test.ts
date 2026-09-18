@@ -1,5 +1,8 @@
 import { DEFAULT_CATEGORIES } from "@bookkeeping/application/categories/defaults";
-import { GENERIC_ICON_ID } from "@bookkeeping/domain/categories";
+import {
+  CATEGORY_ICON_IDS,
+  GENERIC_ICON_ID,
+} from "@bookkeeping/domain/categories";
 import { describe, expect, test } from "vitest";
 import { isIconId } from "@/features/categories/icons";
 
@@ -17,5 +20,9 @@ describe("icon catalog", () => {
     );
 
     expect(iconIds.filter((id) => !isIconId(id))).toEqual([]);
+  });
+
+  test("keeps the shared icon vocabulary renderable by the web catalog", () => {
+    expect(CATEGORY_ICON_IDS.filter((id) => !isIconId(id))).toEqual([]);
   });
 });

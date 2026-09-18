@@ -1,13 +1,9 @@
-/**
- * A defensive bound, not a product limit: names around 40 characters are
- * the expected range and the database column is unbounded text.
- */
-export const MAX_CATEGORY_NAME_LENGTH = 60;
+import { MAX_CATEGORY_NAME_LENGTH } from "@bookkeeping/domain/categories";
 
-/** Surrounding whitespace never counts; inner spacing is kept as typed. */
-export function normalizeCategoryName(raw: string): string {
-  return raw.trim();
-}
+export {
+  MAX_CATEGORY_NAME_LENGTH,
+  normalizeCategoryName,
+} from "@bookkeeping/domain/categories";
 
 /** One wording for the form schema and the server rejection. */
 export const CATEGORY_MESSAGES = {

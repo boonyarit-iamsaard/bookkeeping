@@ -1,12 +1,14 @@
 import type { CategoryKind } from "@bookkeeping/domain/categories";
-import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";
+import {
+  CATEGORY_KINDS,
+  isCategoryIconId,
+} from "@bookkeeping/domain/categories";
 import * as z from "zod";
 import {
   CATEGORY_MESSAGES,
   MAX_CATEGORY_NAME_LENGTH,
   normalizeCategoryName,
 } from "@/features/categories/category-name";
-import { isIconId } from "@/features/categories/icons";
 
 /** The parent select's value for "make this a top-level category". */
 export const NO_PARENT = "";
@@ -27,7 +29,7 @@ export const categoryNameSchema = z
 /** A catalog id the app can render: the one icon rule for creation and renaming. */
 export const categoryIconSchema = z
   .string()
-  .refine(isIconId, CATEGORY_MESSAGES.unknownIcon);
+  .refine(isCategoryIconId, CATEGORY_MESSAGES.unknownIcon);
 
 /**
  * What the create panel holds. The parent select carries one of three
@@ -55,7 +57,7 @@ export const categoryFormSchema = z
         message: issue.message,
       });
     }
-    if (!isIconId(value.parentIconId)) {
+    if (!isCategoryIconId(value.parentIconId)) {
       ctx.addIssue({
         code: "custom",
         path: ["parentIconId"],

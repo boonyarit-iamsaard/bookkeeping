@@ -159,6 +159,36 @@ describe("OpenAPI document", () => {
     expect(document.components.schemas.CategoryCollection).toBeDefined();
   });
 
+  it("documents category creation from its request and response schemas", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const operation: DocumentedOperation =
+      document.paths["/v1/categories"].post;
+
+    expect(operation.operationId).toBe("createCategory");
+    expect(operation.parameters).toEqual([
+      expect.objectContaining({
+        in: "header",
+        name: "idempotency-key",
+        required: true,
+      }),
+    ]);
+    expect(operation.requestBody?.required).toBe(true);
+    expect(operation.requestBody?.content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/CreateCategoryRequest",
+    );
+    expect(
+      operation.responses["201"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/Category");
+    expect(operation.responses["201"].headers).toHaveProperty("Location");
+    for (const status of ["400", "401", "409", "422", "500"]) {
+      expect(
+        operation.responses[status].content["application/problem+json"].schema
+          .$ref,
+      ).toBe("#/components/schemas/ProblemDetails");
+    }
+    expect(document.components.schemas.CreateCategoryRequest).toBeDefined();
+  });
+
   it("documents wallet creation from its request and response schemas", async () => {
     const document = await fetchDocument(createUnitTestApp());
     const operation: DocumentedOperation = document.paths["/v1/wallets"].post;

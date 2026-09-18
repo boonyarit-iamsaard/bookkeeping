@@ -94,7 +94,7 @@ apps/server/
       env/config.ts       # Server environment schemas and runtime validation
       http/               # Request context, CORS, Problem Details, Money, OpenAPI document
     features/
-      categories/         # GET /v1/categories and POST /v1/categories/defaults
+      categories/         # category reads, creation, and provisioning retry
       health/             # Health check resource
       wallets/            # /v1/wallets: list, get, create, and replace opening balances
     server.ts             # Node entrypoint: parses env and serves the app

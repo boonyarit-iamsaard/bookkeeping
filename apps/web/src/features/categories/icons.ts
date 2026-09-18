@@ -1,4 +1,8 @@
-import { GENERIC_ICON_ID } from "@bookkeeping/domain/categories";
+import type { CategoryIconId } from "@bookkeeping/domain/categories";
+import {
+  GENERIC_ICON_ID,
+  isCategoryIconId,
+} from "@bookkeeping/domain/categories";
 import type { LucideProps } from "lucide-react";
 import {
   Anchor,
@@ -140,14 +144,14 @@ export interface IconDefinition {
   readonly tags: readonly string[];
 }
 
-interface DefineIconOptions<Id extends string> {
+interface DefineIconOptions<Id extends CategoryIconId> {
   id: Id;
   glyph: React.ComponentType<LucideProps>;
   group: IconGroupId;
   tags: readonly string[];
 }
 
-function defineIcon<const Id extends string>({
+function defineIcon<const Id extends CategoryIconId>({
   id,
   glyph,
   group,
@@ -1181,7 +1185,7 @@ if (!GENERIC) {
 export const GENERIC_ICON: IconDefinition = GENERIC;
 
 export function isIconId(value: string): value is IconId {
-  return BY_ID.has(value);
+  return isCategoryIconId(value) && BY_ID.has(value);
 }
 
 /** Resolves a stored id to its definition, falling back to the generic icon. */

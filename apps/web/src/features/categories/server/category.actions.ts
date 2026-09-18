@@ -1,5 +1,10 @@
 "use server";
 
+import type {
+  CategoryErrorField,
+  CreateCategoryError,
+} from "@bookkeeping/application/categories";
+import { createCategory } from "@bookkeeping/application/categories";
 import type { CategorySummary } from "@bookkeeping/domain/categories";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
@@ -13,11 +18,6 @@ import {
   createCategorySubmissionSchema,
 } from "@/features/categories/category-form-schema";
 import { CATEGORY_MESSAGES } from "@/features/categories/category-name";
-import type {
-  CategoryErrorField,
-  CreateCategoryError,
-} from "@/features/categories/server/category";
-import { createCategory } from "@/features/categories/server/category";
 import type {
   RemoveCategoryError,
   RemoveCategoryOutcome,
@@ -36,6 +36,10 @@ const CATEGORY_FIELDS = [
   "parentIconId",
 ] as const satisfies readonly (CategoryErrorField | "parent")[];
 export type CategoryFormField = (typeof CATEGORY_FIELDS)[number];
+
+const createCategoryActionSchema = createCategorySubmissionSchema.extend({
+  submissionKey: z.string().min(1),
+});
 
 /** Every error is definitive: the server answered and nothing was saved. */
 export type CreateCategoryActionError =
@@ -60,7 +64,7 @@ export async function createCategoryAction(
     return err({ code: "unauthenticated" });
   }
 
-  const parsed = createCategorySubmissionSchema.safeParse(input);
+  const parsed = createCategoryActionSchema.safeParse(input);
   if (!parsed.success) {
     const [issue] = parsed.error.issues;
     return err({
@@ -71,8 +75,10 @@ export async function createCategoryAction(
   }
 
   // Ownership comes last so nothing in the parsed input can override it.
+  const { submissionKey, ...command } = parsed.data;
   const outcome = await createCategory(db, {
-    ...parsed.data,
+    ...command,
+    idempotencyKey: submissionKey,
     ownerId: session.user.id,
   });
   if (!outcome.ok) {
@@ -81,7 +87,12 @@ export async function createCategoryAction(
 
   // The client appends the saved rows itself; the form route is dynamic and
   // re-reads the tree on its next render regardless.
-  return ok(outcome.value);
+  return ok({
+    category: outcome.value.category,
+    ...(outcome.value.createdParent
+      ? { createdParent: outcome.value.createdParent }
+      : {}),
+  });
 }
 
 /** `["parent", "create", "name"]` is the new parent's name field. */
@@ -147,6 +158,12 @@ function describeRejection(
         code: "invalid",
         field: "parent",
         message: "Uncategorized cannot hold children. Choose another parent.",
+      };
+    case "idempotency-conflict":
+      return {
+        code: "invalid",
+        message:
+          "This category submission was already saved with different details. Start a new category.",
       };
   }
 }
