@@ -145,6 +145,20 @@ describe("OpenAPI document", () => {
     );
   });
 
+  it("documents category reads from their response schemas", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const operation: DocumentedOperation = document.paths["/v1/categories"].get;
+
+    expect(operation.operationId).toBe("listCategories");
+    expect(
+      operation.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/CategoryCollection");
+    expect(operation.responses["401"]).toBeDefined();
+    expect(operation.responses["404"]).toBeUndefined();
+    expect(document.components.schemas.Category).toBeDefined();
+    expect(document.components.schemas.CategoryCollection).toBeDefined();
+  });
+
   it("documents wallet creation from its request and response schemas", async () => {
     const document = await fetchDocument(createUnitTestApp());
     const operation: DocumentedOperation = document.paths["/v1/wallets"].post;

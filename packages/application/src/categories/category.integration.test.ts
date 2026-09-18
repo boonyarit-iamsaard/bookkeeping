@@ -11,7 +11,7 @@ import {
 } from "@bookkeeping/domain/categories";
 import { and, asc, eq } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
-import { initializeDefaultCategories } from "./category";
+import { initializeDefaultCategories, listCategories } from "./category";
 import { DEFAULT_CATEGORIES } from "./default-categories";
 
 const { withRollback, committed } = setupTestDatabase();
@@ -184,6 +184,77 @@ describe("initializeDefaultCategories", () => {
       expect(bobTree.some((c) => aliceTree.some((a) => a.id === c.id))).toBe(
         false,
       );
+    });
+  });
+});
+
+describe("listCategories", () => {
+  test("lists only the owner's ordered trees with protected metadata", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+      const stranger = await createTestUser(db);
+      await initializeDefaultCategories(db, owner.id);
+      await initializeDefaultCategories(db, stranger.id);
+
+      const tree = await listCategories(db, owner.id);
+      const foodAndDrink = tree.find(
+        (category) => category.name === "Food & Drink",
+      );
+      const groceries = tree.find((category) => category.name === "Groceries");
+      const strangerTree = await listCategories(db, stranger.id);
+      if (!foodAndDrink || !groceries) {
+        throw new Error("Expected the default expense categories");
+      }
+
+      expect(tree).toHaveLength(catalogSize("income") + catalogSize("expense"));
+      expect(tree.filter((category) => category.isProtected)).toEqual([
+        expect.objectContaining({
+          kind: "income",
+          name: UNCATEGORIZED_NAME,
+          parentId: null,
+        }),
+        expect.objectContaining({
+          kind: "expense",
+          name: UNCATEGORIZED_NAME,
+          parentId: null,
+        }),
+      ]);
+      expect(foodAndDrink).toEqual(
+        expect.objectContaining({
+          kind: "expense",
+          parentId: null,
+          isProtected: false,
+        }),
+      );
+      expect(groceries).toEqual(
+        expect.objectContaining({
+          kind: "expense",
+          parentId: foodAndDrink?.id,
+          isProtected: false,
+        }),
+      );
+      expect(tree.indexOf(foodAndDrink)).toBeLessThan(tree.indexOf(groceries));
+      expect(
+        tree.some((category) =>
+          strangerTree.some(
+            (strangerCategory) => strangerCategory.id === category.id,
+          ),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  test("does not initialize a missing tree while reading", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+
+      expect(await listCategories(db, owner.id)).toEqual([]);
+      expect(
+        await db
+          .select({ id: categories.id })
+          .from(categories)
+          .where(eq(categories.userId, owner.id)),
+      ).toEqual([]);
     });
   });
 });

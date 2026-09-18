@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { initializeDefaultCategories } from "@bookkeeping/application/categories";
+import {
+  initializeDefaultCategories,
+  listCategories,
+} from "@bookkeeping/application/categories";
 import {
   listWallets,
   replaceWalletOpening,
@@ -11,10 +14,7 @@ import {
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
 import { describe, expect, test, vi } from "vitest";
-import {
-  createCategory,
-  listCategories,
-} from "@/features/categories/server/category";
+import { createCategory } from "@/features/categories/server/category";
 import {
   removeCategory,
   updateCategory,

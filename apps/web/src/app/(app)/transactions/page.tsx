@@ -1,3 +1,4 @@
+import { listCategories } from "@bookkeeping/application/categories";
 import { listWallets } from "@bookkeeping/application/wallets";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
@@ -5,7 +6,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
-import { listCategories } from "@/features/categories/server/category";
 import { HistoryFilters } from "@/features/transactions/components/history-filters";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
 import {

@@ -1,13 +1,42 @@
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
-import type { CategoryKind } from "@bookkeeping/domain/categories";
+import type {
+  CategoryKind,
+  CategorySummary,
+} from "@bookkeeping/domain/categories";
 import {
   CATEGORY_KINDS,
   GENERIC_ICON_ID,
   UNCATEGORIZED_NAME,
 } from "@bookkeeping/domain/categories";
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { DEFAULT_CATEGORIES } from "./default-categories";
+
+/** Both trees, parents before their children, in picker order. */
+export async function listCategories(
+  db: Readonly<Database>,
+  ownerId: string,
+): Promise<readonly CategorySummary[]> {
+  const rows = await db
+    .select({
+      id: categories.id,
+      kind: categories.kind,
+      parentId: categories.parentId,
+      name: categories.name,
+      iconId: categories.iconId,
+      isProtected: categories.isProtected,
+    })
+    .from(categories)
+    .where(eq(categories.userId, ownerId))
+    .orderBy(
+      asc(categories.kind),
+      sql`${categories.parentId} is not null`,
+      asc(categories.sortOrder),
+      asc(categories.name),
+      asc(categories.id),
+    );
+  return rows;
+}
 
 export interface ProvisioningOutcome {
   /** The trees this call created; empty when the owner was already provisioned. */

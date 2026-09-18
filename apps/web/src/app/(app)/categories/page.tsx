@@ -1,9 +1,9 @@
+import { listCategories } from "@bookkeeping/application/categories";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { CategoryManagement } from "@/features/categories/components/category-management";
-import { listCategories } from "@/features/categories/server/category";
 import { listCategoryUsage } from "@/features/categories/server/category-management";
 
 export const metadata: Metadata = {

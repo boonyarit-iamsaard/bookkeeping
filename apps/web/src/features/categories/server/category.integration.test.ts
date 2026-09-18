@@ -1,14 +1,14 @@
-import { initializeDefaultCategories } from "@bookkeeping/application/categories";
+import {
+  initializeDefaultCategories,
+  listCategories,
+} from "@bookkeeping/application/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   createTestUser,
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
 import { describe, expect, test } from "vitest";
-import {
-  createCategory,
-  listCategories,
-} from "@/features/categories/server/category";
+import { createCategory } from "@/features/categories/server/category";
 
 const { withRollback, committed } = setupTestDatabase();
 

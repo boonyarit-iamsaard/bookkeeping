@@ -1,4 +1,7 @@
-import { initializeDefaultCategories } from "@bookkeeping/application/categories";
+import {
+  initializeDefaultCategories,
+  listCategories,
+} from "@bookkeeping/application/categories";
 import {
   deleteWallet,
   listWallets,
@@ -13,7 +16,6 @@ import {
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
-import { listCategories } from "@/features/categories/server/category";
 import {
   createTransaction,
   deleteTransaction,

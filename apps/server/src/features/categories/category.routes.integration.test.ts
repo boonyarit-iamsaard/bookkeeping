@@ -13,11 +13,15 @@ import {
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
-import { provisioningOutcomeResponseSchema } from "./category.routes.js";
+import {
+  categoryCollectionResponseSchema,
+  provisioningOutcomeResponseSchema,
+} from "./category.routes.js";
 
 const { withRollback, committed } = setupTestDatabase();
 
 const DEFAULTS_URL = `${TEST_API_ORIGIN}/v1/categories/defaults`;
+const CATEGORIES_URL = `${TEST_API_ORIGIN}/v1/categories`;
 
 const sessionResponseSchema = z.object({ user: z.object({ id: z.string() }) });
 
@@ -46,6 +50,117 @@ function retryProvisioning(app: Hono<AppEnv>, cookie: string) {
     headers: { cookie, origin: TEST_CLIENT_ORIGIN },
   });
 }
+
+function listCategories(app: Readonly<Hono<AppEnv>>, cookie?: string) {
+  return app.request(CATEGORIES_URL, {
+    headers: {
+      origin: TEST_CLIENT_ORIGIN,
+      ...(cookie ? { cookie } : {}),
+    },
+  });
+}
+
+describe("GET /v1/categories", () => {
+  test("lists the signed-in owner's ordered trees with protected metadata", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await signUp(app);
+      const stranger = await signUp(app);
+
+      const response = await listCategories(app, owner.cookie);
+      const collection = categoryCollectionResponseSchema.parse(
+        await response.json(),
+      );
+      const foodAndDrink = collection.items.find(
+        (category) => category.name === "Food & Drink",
+      );
+      const groceries = collection.items.find(
+        (category) => category.name === "Groceries",
+      );
+      const strangerResponse = await listCategories(app, stranger.cookie);
+      const strangerCollection = categoryCollectionResponseSchema.parse(
+        await strangerResponse.json(),
+      );
+      if (!foodAndDrink || !groceries) {
+        throw new Error("Expected the default expense categories");
+      }
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      expect(collection.page).toEqual({ nextCursor: null });
+      expect(
+        collection.items.filter((category) => category.isProtected),
+      ).toEqual([
+        expect.objectContaining({
+          kind: "income",
+          name: "Uncategorized",
+          parentId: null,
+        }),
+        expect.objectContaining({
+          kind: "expense",
+          name: "Uncategorized",
+          parentId: null,
+        }),
+      ]);
+      expect(foodAndDrink).toEqual(
+        expect.objectContaining({
+          kind: "expense",
+          parentId: null,
+          isProtected: false,
+        }),
+      );
+      expect(groceries).toEqual(
+        expect.objectContaining({
+          parentId: foodAndDrink.id,
+          isProtected: false,
+        }),
+      );
+      expect(collection.items.indexOf(foodAndDrink)).toBeLessThan(
+        collection.items.indexOf(groceries),
+      );
+      expect(collection.items).toHaveLength(
+        await countCategories(db, owner.ownerId),
+      );
+      expect(
+        collection.items.some((category) =>
+          strangerCollection.items.some(
+            (strangerCategory) => strangerCategory.id === category.id,
+          ),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  test("does not provision an incomplete owner while reading", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie, ownerId } = await signUp(app);
+      await db.delete(categories).where(eq(categories.userId, ownerId));
+
+      const before = await countCategories(db, ownerId);
+      const response = await listCategories(app, cookie);
+      const collection = categoryCollectionResponseSchema.parse(
+        await response.json(),
+      );
+
+      expect(collection.items).toEqual([]);
+      expect(await countCategories(db, ownerId)).toBe(before);
+    });
+  });
+
+  test("rejects an anonymous request with the standard problem", async () => {
+    await withRollback(async (db) => {
+      const response = await listCategories(createIntegrationTestApp(db));
+
+      expect(response.status).toBe(401);
+      expect(problemDetailsSchema.parse(await response.json()).code).toBe(
+        "unauthenticated",
+      );
+    });
+  });
+});
 
 describe("POST /v1/categories/defaults", () => {
   test("completes a signed-in owner's default set and reports what it seeded", async () => {

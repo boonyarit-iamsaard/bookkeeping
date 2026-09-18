@@ -6,38 +6,12 @@ import type {
 } from "@bookkeeping/domain/categories";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   MAX_CATEGORY_NAME_LENGTH,
   normalizeCategoryName,
 } from "@/features/categories/category-name";
 import { isIconId } from "@/features/categories/icons";
-
-/** Both trees, parents before their children, in picker order. */
-export async function listCategories(
-  db: Database,
-  ownerId: string,
-): Promise<readonly CategorySummary[]> {
-  const rows = await db
-    .select({
-      id: categories.id,
-      kind: categories.kind,
-      parentId: categories.parentId,
-      name: categories.name,
-      iconId: categories.iconId,
-      isProtected: categories.isProtected,
-    })
-    .from(categories)
-    .where(eq(categories.userId, ownerId))
-    .orderBy(
-      asc(categories.kind),
-      sql`${categories.parentId} is not null`,
-      asc(categories.sortOrder),
-      asc(categories.name),
-      asc(categories.id),
-    );
-  return rows;
-}
 
 /** Where a new child goes: under an existing parent, or under one created with it. */
 export type ParentChoice =

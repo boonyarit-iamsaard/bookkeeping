@@ -1,3 +1,4 @@
+import { listCategories } from "@bookkeeping/application/categories";
 import { listWallets } from "@bookkeeping/application/wallets";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
@@ -7,7 +8,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
-import { listCategories } from "@/features/categories/server/category";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
 import {
