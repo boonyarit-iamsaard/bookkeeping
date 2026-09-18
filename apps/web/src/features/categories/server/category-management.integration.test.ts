@@ -10,15 +10,10 @@ import {
 } from "@bookkeeping/database/testing";
 import type { CategoryKind } from "@bookkeeping/domain/categories";
 import { describe, expect, test } from "vitest";
-import {
-  listCategoryUsage,
-  removeCategory,
-  updateCategory,
-} from "@/features/categories/server/category-management";
+import { removeCategory } from "@/features/categories/server/category-management";
 import type { CreateTransactionInput } from "@/features/transactions/server/transaction";
 import {
   createTransaction,
-  deleteTransaction,
   getTransaction,
   listTransactions,
   updateTransaction,
@@ -80,106 +75,6 @@ async function setupLedger(db: Database) {
   }
   return { ...context, wallet, record };
 }
-
-describe("renaming and changing icons", () => {
-  test("a rename keeps the icon, and an icon change keeps the name, for either level", async () => {
-    await withRollback(async (db) => {
-      const { owner, find } = await setupOwner(db);
-      const groceries = await find("expense", "Groceries");
-      const transport = await find("expense", "Transport");
-
-      const renamed = await updateCategory(db, {
-        ownerId: owner.id,
-        id: groceries.id,
-        name: "  Supermarket ",
-        iconId: groceries.iconId,
-      });
-      expect(renamed).toEqual({
-        ok: true,
-        value: expect.objectContaining({
-          id: groceries.id,
-          name: "Supermarket",
-          iconId: "cart",
-          parentId: groceries.parentId,
-        }),
-      });
-      const reiconed = await updateCategory(db, {
-        ownerId: owner.id,
-        id: transport.id,
-        name: "Transport",
-        iconId: "bus",
-      });
-      expect(reiconed.ok && reiconed.value).toEqual(
-        expect.objectContaining({ name: "Transport", iconId: "bus" }),
-      );
-
-      expect(await find("expense", "Supermarket")).toEqual(
-        expect.objectContaining({ id: groceries.id, iconId: "cart" }),
-      );
-      expect((await find("expense", "Transport")).iconId).toBe("bus");
-    });
-  });
-
-  test("Uncategorized takes a new icon but never a new name; other rules match creation", async () => {
-    await withRollback(async (db) => {
-      const { owner, find } = await setupOwner(db);
-      const stranger = await setupOwner(db);
-      const uncategorized = await find("expense", "Uncategorized");
-      const groceries = await find("expense", "Groceries");
-      function attempt(
-        id: string,
-        fields: Readonly<{ name: string; iconId?: string }>,
-      ) {
-        return updateCategory(db, {
-          ownerId: owner.id,
-          id,
-          iconId: "generic",
-          ...fields,
-        });
-      }
-
-      const reiconed = await attempt(uncategorized.id, {
-        name: "Uncategorized",
-        iconId: "sparkles",
-      });
-      expect(reiconed.ok && reiconed.value).toEqual(
-        expect.objectContaining({ iconId: "sparkles", isProtected: true }),
-      );
-      expect(await attempt(uncategorized.id, { name: "Misc" })).toEqual({
-        ok: false,
-        error: { code: "protected" },
-      });
-      expect(await attempt(groceries.id, { name: " restaurants " })).toEqual({
-        ok: false,
-        error: { code: "duplicate-name" },
-      });
-      expect(await attempt(groceries.id, { name: "food & drink" })).toEqual({
-        ok: true,
-        value: expect.objectContaining({ name: "food & drink" }),
-      });
-      expect(await attempt(groceries.id, { name: " " })).toEqual({
-        ok: false,
-        error: { code: "blank-name" },
-      });
-      expect(await attempt(groceries.id, { name: "x".repeat(61) })).toEqual({
-        ok: false,
-        error: { code: "name-too-long" },
-      });
-      expect(
-        await attempt(groceries.id, {
-          name: "Groceries",
-          iconId: "retired-glyph",
-        }),
-      ).toEqual({ ok: false, error: { code: "unknown-icon" } });
-      const foreign = await stranger.find("expense", "Transport");
-      expect(await attempt(foreign.id, { name: "Mine" })).toEqual({
-        ok: false,
-        error: { code: "category-not-found" },
-      });
-      expect((await stranger.find("expense", "Transport")).id).toBe(foreign.id);
-    });
-  });
-});
 
 describe("removing categories", () => {
   test("a removed child hands its transactions to its parent, and linked refunds follow", async () => {
@@ -498,37 +393,5 @@ describe("removing categories", () => {
         });
       }
     }
-  });
-
-  test("usage counts current income and expenses per category; refunds and deleted entries do not count", async () => {
-    await withRollback(async (db) => {
-      const { owner, find, record } = await setupLedger(db);
-      const groceries = await find("expense", "Groceries");
-      const salary = await find("income", "Salary");
-      const expense = await record({
-        type: "expense",
-        categoryId: groceries.id,
-      });
-      await record({ type: "expense", categoryId: groceries.id });
-      await record({
-        type: "refund",
-        categoryId: null,
-        refundOfTransactionId: expense.id,
-        amount: 100n,
-        transactionDate: "2026-09-03",
-      });
-      const gone = await record({ type: "income", categoryId: salary.id });
-      await record({ type: "income", categoryId: salary.id });
-      const deleted = await deleteTransaction(db, {
-        ownerId: owner.id,
-        id: gone.id,
-      });
-      expect(deleted.ok).toBe(true);
-
-      expect(await listCategoryUsage(db, owner.id)).toEqual({
-        [groceries.id]: 2,
-        [salary.id]: 1,
-      });
-    });
   });
 });

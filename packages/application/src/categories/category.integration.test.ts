@@ -4,19 +4,28 @@ import {
   createTestUser,
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
+import { transactions } from "@bookkeeping/database/transactions";
 import type { CategoryKind } from "@bookkeeping/domain/categories";
 import {
   GENERIC_ICON_ID,
   UNCATEGORIZED_NAME,
 } from "@bookkeeping/domain/categories";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNotNull } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { createCategoryForTest } from "../testing/category-fixture";
 import {
+  insertCategorizedTransaction,
+  insertLinkedRefund,
+  openTestWallet,
+} from "../testing/transaction-fixture";
+import {
   createCategory,
   findCategory,
+  findCategoryUsage,
   initializeDefaultCategories,
   listCategories,
+  listCategoryUsage,
+  updateCategory,
 } from "./category";
 import { DEFAULT_CATEGORIES } from "./default-categories";
 
@@ -431,6 +440,382 @@ describe("findCategory", () => {
       expect(
         await findCategory(db, { ownerId: owner.id, id: "not-a-uuid" }),
       ).toBeNull();
+    });
+  });
+});
+
+describe("updateCategory", () => {
+  test("a rename keeps the icon, and an icon change keeps the name, at either level", async () => {
+    await withRollback(async (db) => {
+      const { owner, find } = await setupOwner(db);
+      const groceries = find("expense", "Groceries");
+      const transport = find("expense", "Transport");
+
+      const renamed = await updateCategory(db, {
+        ownerId: owner.id,
+        id: groceries.id,
+        name: "  Supermarket ",
+        iconId: groceries.iconId,
+      });
+      expect(renamed).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          id: groceries.id,
+          kind: "expense",
+          parentId: groceries.parentId,
+          name: "Supermarket",
+          iconId: "cart",
+          isProtected: false,
+        }),
+      });
+      const reiconed = await updateCategory(db, {
+        ownerId: owner.id,
+        id: transport.id,
+        name: "Transport",
+        iconId: "bus",
+      });
+      expect(reiconed).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          id: transport.id,
+          parentId: null,
+          name: "Transport",
+          iconId: "bus",
+        }),
+      });
+
+      const listed = await listCategories(db, owner.id);
+      expect(listed.find((category) => category.id === groceries.id)).toEqual(
+        expect.objectContaining({ name: "Supermarket", iconId: "cart" }),
+      );
+      expect(listed.find((category) => category.id === transport.id)).toEqual(
+        expect.objectContaining({ name: "Transport", iconId: "bus" }),
+      );
+    });
+  });
+
+  test("an update never moves the tree position or changes the kind", async () => {
+    await withRollback(async (db) => {
+      const { owner } = await setupOwner(db);
+      const created = await createCategoryForTest(db, {
+        ownerId: owner.id,
+        kind: "income",
+        name: "Royalties",
+        iconId: "trending",
+        parent: null,
+      });
+      if (!created.ok) {
+        throw new Error(`Rejected: ${created.error.code}`);
+      }
+      const royalties = created.value.category;
+
+      const updated = await updateCategory(db, {
+        ownerId: owner.id,
+        id: royalties.id,
+        name: "Licensing",
+        iconId: "coins",
+      });
+
+      expect(updated).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          id: royalties.id,
+          kind: "income",
+          parentId: null,
+        }),
+      });
+    });
+  });
+
+  test("Uncategorized takes a new icon but never a new name", async () => {
+    await withRollback(async (db) => {
+      const { owner, find } = await setupOwner(db);
+      const uncategorized = find("expense", "Uncategorized");
+
+      const reiconed = await updateCategory(db, {
+        ownerId: owner.id,
+        id: uncategorized.id,
+        name: "Uncategorized",
+        iconId: "sparkles",
+      });
+      expect(reiconed).toEqual({
+        ok: true,
+        value: expect.objectContaining({
+          id: uncategorized.id,
+          iconId: "sparkles",
+          isProtected: true,
+        }),
+      });
+      expect(
+        await updateCategory(db, {
+          ownerId: owner.id,
+          id: uncategorized.id,
+          name: "Misc",
+          iconId: "sparkles",
+        }),
+      ).toEqual({ ok: false, error: { code: "protected" } });
+
+      const listed = await listCategories(db, owner.id);
+      expect(
+        listed.find((category) => category.id === uncategorized.id),
+      ).toEqual(
+        expect.objectContaining({
+          name: "Uncategorized",
+          iconId: "sparkles",
+          isProtected: true,
+        }),
+      );
+    });
+  });
+
+  test("rejections match the creation rules without touching the row", async () => {
+    await withRollback(async (db) => {
+      const { owner, find } = await setupOwner(db);
+      const stranger = await setupOwner(db);
+      const groceries = find("expense", "Groceries");
+      function attempt(fields: Readonly<{ name: string; iconId: string }>) {
+        return updateCategory(db, {
+          ownerId: owner.id,
+          id: groceries.id,
+          ...fields,
+        });
+      }
+
+      expect(await attempt({ name: " restaurants ", iconId: "cart" })).toEqual({
+        ok: false,
+        error: { code: "duplicate-name" },
+      });
+      expect(await attempt({ name: "   ", iconId: "cart" })).toEqual({
+        ok: false,
+        error: { code: "blank-name" },
+      });
+      expect(
+        await attempt({ name: "Groceries", iconId: "retired-glyph" }),
+      ).toEqual({
+        ok: false,
+        error: { code: "unknown-icon" },
+      });
+      expect(await attempt({ name: "x".repeat(61), iconId: "cart" })).toEqual({
+        ok: false,
+        error: { code: "name-too-long" },
+      });
+      // The current name updates cleanly under its own case.
+      expect(await attempt({ name: " groceries ", iconId: "cart" })).toEqual({
+        ok: true,
+        value: expect.objectContaining({ name: "groceries" }),
+      });
+
+      const foreign = stranger.find("expense", "Transport");
+      expect(
+        await updateCategory(db, {
+          ownerId: owner.id,
+          id: foreign.id,
+          name: "Mine",
+          iconId: "bus",
+        }),
+      ).toEqual({ ok: false, error: { code: "category-not-found" } });
+      expect(
+        await updateCategory(db, {
+          ownerId: owner.id,
+          id: "00000000-0000-0000-0000-000000000000",
+          name: "Mine",
+          iconId: "bus",
+        }),
+      ).toEqual({ ok: false, error: { code: "category-not-found" } });
+      expect(
+        await updateCategory(db, {
+          ownerId: owner.id,
+          id: "not-a-uuid",
+          name: "Mine",
+          iconId: "bus",
+        }),
+      ).toEqual({ ok: false, error: { code: "category-not-found" } });
+      expect(
+        await findCategory(db, { ownerId: owner.id, id: foreign.id }),
+      ).toBeNull();
+      expect(await stranger.find("expense", "Transport")).toEqual(
+        expect.objectContaining({ id: foreign.id, name: "Transport" }),
+      );
+    });
+  });
+});
+
+describe("findCategoryUsage", () => {
+  const foodAndDrinkChildren =
+    DEFAULT_CATEGORIES.expense.find((parent) => parent.name === "Food & Drink")
+      ?.children?.length ?? 0;
+
+  test("counts current transactions and children; refunds and deleted entries do not count", async () => {
+    await withRollback(async (db) => {
+      const { owner, find } = await setupOwner(db);
+      const wallet = await openTestWallet(db, { ownerId: owner.id });
+      const groceries = find("expense", "Groceries");
+      const restaurants = find("expense", "Restaurants");
+      const foodAndDrink = find("expense", "Food & Drink");
+      const expense = await insertCategorizedTransaction(db, {
+        ownerId: owner.id,
+        walletId: wallet.id,
+        categoryId: groceries.id,
+      });
+      await insertCategorizedTransaction(db, {
+        ownerId: owner.id,
+        walletId: wallet.id,
+        categoryId: groceries.id,
+        amount: 12_500n,
+      });
+      // A refund follows its expense's category, so it counts for neither.
+      await insertLinkedRefund(db, {
+        ownerId: owner.id,
+        walletId: wallet.id,
+        refundOfTransactionId: expense,
+      });
+      const gone = await insertCategorizedTransaction(db, {
+        ownerId: owner.id,
+        walletId: wallet.id,
+        categoryId: restaurants.id,
+      });
+      await db
+        .update(transactions)
+        .set({ deletedAt: new Date() })
+        .where(eq(transactions.id, gone));
+
+      expect(
+        await findCategoryUsage(db, { ownerId: owner.id, id: groceries.id }),
+      ).toEqual({ transactions: 2, children: 0 });
+      expect(
+        await findCategoryUsage(db, { ownerId: owner.id, id: restaurants.id }),
+      ).toEqual({ transactions: 0, children: 0 });
+      // A parent reports its children beside its own transactions.
+      await insertCategorizedTransaction(db, {
+        ownerId: owner.id,
+        walletId: wallet.id,
+        categoryId: foodAndDrink.id,
+      });
+      expect(
+        await findCategoryUsage(db, { ownerId: owner.id, id: foodAndDrink.id }),
+      ).toEqual({ transactions: 1, children: foodAndDrinkChildren });
+    });
+  });
+
+  test("returns null for unknown, foreign, and malformed ids", async () => {
+    await withRollback(async (db) => {
+      const { owner, find } = await setupOwner(db);
+      const stranger = await setupOwner(db);
+      const groceries = find("expense", "Groceries");
+
+      expect(
+        await findCategoryUsage(db, { ownerId: owner.id, id: groceries.id }),
+      ).toEqual({ transactions: 0, children: 0 });
+      expect(
+        await findCategoryUsage(db, {
+          ownerId: owner.id,
+          id: stranger.find("expense", "Groceries").id,
+        }),
+      ).toBeNull();
+      expect(
+        await findCategoryUsage(db, {
+          ownerId: owner.id,
+          id: "00000000-0000-0000-0000-000000000000",
+        }),
+      ).toBeNull();
+      expect(
+        await findCategoryUsage(db, { ownerId: owner.id, id: "not-a-uuid" }),
+      ).toBeNull();
+    });
+  });
+});
+
+describe("listCategoryUsage", () => {
+  test("maps current transactions and children per category; unused categories are absent", async () => {
+    await withRollback(async (db) => {
+      const { owner, find } = await setupOwner(db);
+      const wallet = await openTestWallet(db, { ownerId: owner.id });
+      const groceries = find("expense", "Groceries");
+      const salary = find("income", "Salary");
+      const totalChildren = Object.values(DEFAULT_CATEGORIES).reduce(
+        (count, parents) =>
+          count +
+          parents.reduce(
+            (treeCount, parent) => treeCount + (parent.children?.length ?? 0),
+            0,
+          ),
+        0,
+      );
+
+      await insertCategorizedTransaction(db, {
+        ownerId: owner.id,
+        walletId: wallet.id,
+        categoryId: groceries.id,
+      });
+      await insertCategorizedTransaction(db, {
+        ownerId: owner.id,
+        walletId: wallet.id,
+        categoryId: groceries.id,
+        amount: 7_500n,
+      });
+      await insertCategorizedTransaction(db, {
+        ownerId: owner.id,
+        walletId: wallet.id,
+        categoryId: salary.id,
+        type: "income",
+      });
+      const gone = await insertCategorizedTransaction(db, {
+        ownerId: owner.id,
+        walletId: wallet.id,
+        categoryId: salary.id,
+        type: "income",
+      });
+      await db
+        .update(transactions)
+        .set({ deletedAt: new Date() })
+        .where(eq(transactions.id, gone));
+
+      const usage = await listCategoryUsage(db, owner.id);
+      expect(usage[groceries.id]).toEqual({ transactions: 2, children: 0 });
+      expect(usage[salary.id]).toEqual({ transactions: 1, children: 0 });
+      const foodAndDrink = find("expense", "Food & Drink");
+      expect(usage[foodAndDrink.id]).toEqual({
+        transactions: 0,
+        children: DEFAULT_CATEGORIES.expense.find(
+          (parent) => parent.name === "Food & Drink",
+        )?.children?.length,
+      });
+      // Only categories with usage appear; entries and children sum to truth.
+      expect(
+        Object.values(usage).reduce(
+          (sum, counted) => sum + counted.transactions,
+          0,
+        ),
+      ).toBe(3);
+      expect(
+        Object.values(usage).reduce(
+          (sum, counted) => sum + counted.children,
+          0,
+        ),
+      ).toBe(totalChildren);
+      // A childless parent with no entries is absent.
+      expect(usage[find("expense", "Personal care").id]).toBeUndefined();
+    });
+  });
+
+  test("an owner without children or entries has an empty usage map", async () => {
+    await withRollback(async (db) => {
+      const { owner } = await setupOwner(db);
+      await db
+        .delete(categories)
+        .where(
+          and(eq(categories.userId, owner.id), isNotNull(categories.parentId)),
+        );
+      await db
+        .delete(categories)
+        .where(
+          and(
+            eq(categories.userId, owner.id),
+            eq(categories.isProtected, false),
+          ),
+        );
+
+      expect(await listCategoryUsage(db, owner.id)).toEqual({});
     });
   });
 });

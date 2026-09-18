@@ -205,6 +205,63 @@ describe("OpenAPI document", () => {
     expect(document.components.schemas.CreateCategoryRequest).toBeDefined();
   });
 
+  it("documents the category update as a strict partial update", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const operation: DocumentedOperation =
+      document.paths["/v1/categories/{categoryId}"].patch;
+
+    expect(operation.operationId).toBe("updateCategory");
+    expect(operation.parameters).toEqual([
+      expect.objectContaining({
+        in: "path",
+        name: "categoryId",
+        required: true,
+      }),
+    ]);
+    expect(operation.requestBody?.required).toBe(true);
+    expect(operation.requestBody?.content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/UpdateCategoryRequest",
+    );
+    expect(
+      operation.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/Category");
+    expectProblemResponses(operation, ["400", "401", "404", "422", "500"]);
+    expect(document.components.schemas.UpdateCategoryRequest.required).toEqual([
+      "name",
+      "iconId",
+    ]);
+    expect(
+      document.components.schemas.UpdateCategoryRequest.additionalProperties,
+    ).toBe(false);
+  });
+
+  it("documents the category usage read", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const operation: DocumentedOperation =
+      document.paths["/v1/categories/{categoryId}/usage"].get;
+
+    expect(operation.operationId).toBe("getCategoryUsage");
+    expect(operation.parameters).toEqual([
+      expect.objectContaining({
+        in: "path",
+        name: "categoryId",
+        required: true,
+      }),
+    ]);
+    expect(
+      operation.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/CategoryUsage");
+    expectProblemResponses(operation, ["401", "404", "500"]);
+    expect(document.components.schemas.CategoryUsage).toEqual(
+      expect.objectContaining({
+        properties: expect.objectContaining({
+          transactions: expect.objectContaining({ type: "integer" }),
+          children: expect.objectContaining({ type: "integer" }),
+        }),
+      }),
+    );
+  });
+
   it("documents wallet creation from its request and response schemas", async () => {
     const document = await fetchDocument(createUnitTestApp());
     const operation: DocumentedOperation = document.paths["/v1/wallets"].post;

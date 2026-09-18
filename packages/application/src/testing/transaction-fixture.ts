@@ -1,8 +1,11 @@
+import { randomUUID } from "node:crypto";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   transactionChanges,
   transactions,
 } from "@bookkeeping/database/transactions";
+import type { WalletSummary } from "@bookkeeping/domain/wallets";
+import { createWallet } from "../wallets/wallet";
 
 export interface RetainedTransferFixture {
   ownerId: string;
@@ -57,4 +60,94 @@ export async function insertRetainedTransferSnapshot(
       note: "",
     },
   });
+}
+
+export interface TestWalletFixture {
+  ownerId: string;
+}
+
+/** Opens a cash wallet through the application operation; each call is a fresh creation. */
+export async function openTestWallet(
+  db: Database,
+  { ownerId }: Readonly<TestWalletFixture>,
+): Promise<WalletSummary> {
+  const created = await createWallet(db, {
+    ownerId,
+    name: "Cash",
+    type: "cash",
+    openingAmount: 1_000_000n,
+    openingDate: "2026-09-01",
+    idempotencyKey: randomUUID(),
+  });
+  if (!created.ok) {
+    throw new Error(`Wallet fixture rejected: ${created.error.code}`);
+  }
+  return created.value.wallet;
+}
+
+export interface CategorizedTransactionFixture {
+  ownerId: string;
+  walletId: string;
+  categoryId: string;
+  type?: "income" | "expense";
+  amount?: bigint;
+}
+
+/**
+ * Persists an income or expense row directly, without the creation history
+ * the later transaction operations own; usage reads count exactly these rows.
+ */
+export async function insertCategorizedTransaction(
+  db: Database,
+  fixture: Readonly<CategorizedTransactionFixture>,
+): Promise<string> {
+  const [row] = await db
+    .insert(transactions)
+    .values({
+      userId: fixture.ownerId,
+      type: fixture.type ?? "expense",
+      walletId: fixture.walletId,
+      categoryId: fixture.categoryId,
+      currency: "THB",
+      amount: fixture.amount ?? 5_000n,
+      transactionDate: "2026-09-02",
+    })
+    .returning({ id: transactions.id });
+  if (!row) {
+    throw new Error("Transaction insert returned no row");
+  }
+  return row.id;
+}
+
+export interface LinkedRefundFixture {
+  ownerId: string;
+  walletId: string;
+  refundOfTransactionId: string;
+  amount?: bigint;
+}
+
+/**
+ * Persists a refund row directly, linked to its expense; the schema forces
+ * its category to null, so usage reads never count it.
+ */
+export async function insertLinkedRefund(
+  db: Database,
+  fixture: Readonly<LinkedRefundFixture>,
+): Promise<string> {
+  const [row] = await db
+    .insert(transactions)
+    .values({
+      userId: fixture.ownerId,
+      type: "refund",
+      walletId: fixture.walletId,
+      refundOfTransactionId: fixture.refundOfTransactionId,
+      currency: "THB",
+      amount: fixture.amount ?? 2_000n,
+      transactionDate: "2026-09-03",
+    })
+    .returning({ id: transactions.id });
+  if (!row) {
+    throw new Error("Refund insert returned no row");
+  }
+  return row.id;
 }

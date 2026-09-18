@@ -1,12 +1,15 @@
 import type {
   CategoryErrorField,
   CreateCategoryError,
+  UpdateCategoryError,
 } from "@bookkeeping/application/categories";
 import {
   createCategory,
   findCategory,
+  findCategoryUsage,
   initializeDefaultCategories,
   listCategories,
+  updateCategory,
 } from "@bookkeeping/application/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";
@@ -68,6 +71,15 @@ export const createCategoryRequestSchema = z
   })
   .meta({ id: "CreateCategoryRequest" });
 
+/** The presentation details an update carries; nothing else can change. */
+export const updateCategoryRequestSchema = z
+  .strictObject({ name: z.string(), iconId: z.string() })
+  .meta({ id: "UpdateCategoryRequest" });
+
+export const categoryUsageResponseSchema = z
+  .object({ transactions: z.number().int(), children: z.number().int() })
+  .meta({ id: "CategoryUsage" });
+
 export const provisioningOutcomeResponseSchema = z
   .object({
     seededKinds: z.array(z.enum(CATEGORY_KINDS)),
@@ -77,6 +89,7 @@ export const provisioningOutcomeResponseSchema = z
 const DEFAULTS_PATH = "/categories/defaults";
 const COLLECTION_PATH = "/categories";
 const RESOURCE_PATH = "/categories/:categoryId";
+const USAGE_PATH = "/categories/:categoryId/usage";
 const LOCATION_HEADER = "Location";
 
 const categoryParamsSchema = z.object({ categoryId: z.uuid() });
@@ -91,6 +104,18 @@ interface CreateCategoryValidatedInput {
   out: {
     json: z.output<typeof createCategoryRequestSchema>;
     header: z.output<typeof idempotencyKeyHeaderSchema>;
+  };
+}
+
+/** What the param and command validators hand a handler. */
+interface CategoryCommandValidatedInput<Schema extends z.ZodType> {
+  in: {
+    param: z.input<typeof categoryParamsSchema>;
+    json: z.input<Schema>;
+  };
+  out: {
+    param: z.output<typeof categoryParamsSchema>;
+    json: z.output<Schema>;
   };
 }
 
@@ -120,17 +145,35 @@ function toCategoryFieldError(
   }
 }
 
-const categoryCommandMiddleware = validator(
-  "json",
-  createCategoryRequestSchema,
-  (result, c) => {
+// An update rejects on name or icon alone; Uncategorized's fixed name is a
+// name problem, since choosing its current name is the correction.
+function toCategoryUpdateFieldError(
+  error: Exclude<UpdateCategoryError, { code: "category-not-found" }>,
+): ProblemFieldError {
+  switch (error.code) {
+    case "blank-name":
+    case "name-too-long":
+    case "duplicate-name":
+    case "protected":
+      return { pointer: "#/name", code: error.code };
+    case "unknown-icon":
+      return { pointer: "#/iconId", code: error.code };
+  }
+}
+
+function createCategoryCommandMiddleware(schema: z.ZodType) {
+  return validator("json", schema, (result, c) => {
     if (!result.success) {
       return createProblemResponse(
         c,
         createInvalidCommandProblem(result.error),
       );
     }
-  },
+  });
+}
+
+const categoryBodyMiddleware = createCategoryCommandMiddleware(
+  createCategoryRequestSchema,
 );
 
 export function createCategoryRoutes(db: Database) {
@@ -154,7 +197,7 @@ export function createCategoryRoutes(db: Database) {
         },
       }),
       idempotencyKeyMiddleware,
-      categoryCommandMiddleware,
+      categoryBodyMiddleware,
       describeResponse<
         AuthenticatedEnv,
         typeof COLLECTION_PATH,
@@ -285,6 +328,116 @@ export function createCategoryRoutes(db: Database) {
             description: "The category",
             content: {
               "application/json": { vSchema: categoryResponseSchema },
+            },
+          },
+          404: describeProblem(getProblemOptionsForStatus(404)),
+        },
+      ),
+    )
+    .patch(
+      RESOURCE_PATH,
+      describeRoute({
+        operationId: "updateCategory",
+        summary: "Update a category",
+        description:
+          "Renames the category and/or changes its icon in one save. The " +
+          "tree position and kind never change, and names stay unique " +
+          "within their scope, case-insensitively. Uncategorized keeps its " +
+          "name; its icon can still change, so repeating its exact current " +
+          "name and icon succeeds without effect. A category that does not " +
+          "exist, belongs to another owner, or has a malformed identifier " +
+          "is not found alike.",
+        tags: ["Categories"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      categoryParamMiddleware,
+      createCategoryCommandMiddleware(updateCategoryRequestSchema),
+      describeResponse<
+        AuthenticatedEnv,
+        typeof RESOURCE_PATH,
+        CategoryCommandValidatedInput<typeof updateCategoryRequestSchema>,
+        {
+          200: typeof categoryResponseSchema;
+          404: typeof problemDetailsSchema;
+          422: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const body = c.req.valid("json");
+          const updated = await updateCategory(db, {
+            ownerId: c.get("session").user.id,
+            id: c.req.valid("param").categoryId,
+            name: body.name,
+            iconId: body.iconId,
+          });
+          if (!updated.ok) {
+            if (updated.error.code === "category-not-found") {
+              return createProblemResponse(c, getProblemOptionsForStatus(404));
+            }
+            return createProblemResponse(c, {
+              ...getProblemOptionsForStatus(422),
+              errors: [toCategoryUpdateFieldError(updated.error)],
+            });
+          }
+          return c.json(updated.value, 200);
+        },
+        {
+          200: {
+            description: "The category with its updated presentation",
+            content: {
+              "application/json": { vSchema: categoryResponseSchema },
+            },
+          },
+          404: describeProblem(getProblemOptionsForStatus(404)),
+          422: describeProblem(getProblemOptionsForStatus(422)),
+        },
+      ),
+    )
+    .get(
+      USAGE_PATH,
+      describeRoute({
+        operationId: "getCategoryUsage",
+        summary: "Get a category's usage",
+        description:
+          "The current income and expense transactions filed under the " +
+          "category and the child categories it holds: the information " +
+          "needed before removing it. Refunds follow their expense's " +
+          "category and are not counted. A category that does not exist, " +
+          "belongs to another owner, or has a malformed identifier is not " +
+          "found alike.",
+        tags: ["Categories"],
+        responses: { 401: describeProblemResponse(401) },
+      }),
+      categoryParamMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof USAGE_PATH,
+        Input,
+        {
+          200: typeof categoryUsageResponseSchema;
+          404: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const usage = await findCategoryUsage(db, {
+            ownerId: c.get("session").user.id,
+            id: c.req.param("categoryId"),
+          });
+          if (usage === null) {
+            return createProblemResponse(c, getProblemOptionsForStatus(404));
+          }
+          return c.json(usage, 200);
+        },
+        {
+          200: {
+            description: "The category's transactions and children",
+            content: {
+              "application/json": {
+                vSchema: categoryUsageResponseSchema,
+              },
             },
           },
           404: describeProblem(getProblemOptionsForStatus(404)),

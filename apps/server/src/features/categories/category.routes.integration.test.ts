@@ -1,6 +1,12 @@
+import {
+  insertCategorizedTransaction,
+  insertLinkedRefund,
+  openTestWallet,
+} from "@bookkeeping/application/testing/transaction-fixture";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
+import { transactions } from "@bookkeeping/database/transactions";
 import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { describe, expect, test } from "vitest";
@@ -17,6 +23,7 @@ import { expectProblem } from "../../testing/expect-problem.js";
 import {
   categoryCollectionResponseSchema,
   categoryResponseSchema,
+  categoryUsageResponseSchema,
   provisioningOutcomeResponseSchema,
 } from "./category.routes.js";
 
@@ -114,6 +121,66 @@ function postCategory(
     },
     body: rawBody ?? JSON.stringify(body),
   });
+}
+
+const UPDATE_REQUEST = { name: "Beverages", iconId: "wine" };
+
+interface UpdateCategoryRequest {
+  categoryId: string;
+  cookie?: string;
+  body?: unknown;
+  rawBody?: string;
+}
+
+function patchCategory(
+  app: Hono<AppEnv>,
+  {
+    categoryId,
+    cookie,
+    body = UPDATE_REQUEST,
+    rawBody,
+  }: Readonly<UpdateCategoryRequest>,
+) {
+  return app.request(`${CATEGORIES_URL}/${categoryId}`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      origin: TEST_CLIENT_ORIGIN,
+      ...(cookie ? { cookie } : {}),
+    },
+    body: rawBody ?? JSON.stringify(body),
+  });
+}
+
+interface GetCategoryUsageRequest {
+  categoryId: string;
+  cookie?: string;
+}
+
+function getCategoryUsage(
+  app: Readonly<Hono<AppEnv>>,
+  { categoryId, cookie }: Readonly<GetCategoryUsageRequest>,
+) {
+  return app.request(`${CATEGORIES_URL}/${categoryId}/usage`, {
+    headers: {
+      origin: TEST_CLIENT_ORIGIN,
+      ...(cookie ? { cookie } : {}),
+    },
+  });
+}
+
+/** Asserts a route answers the same 404 for unknown, foreign, and malformed ids. */
+async function expectNotFoundAlike(
+  attempt: (id: string) => Response | Promise<Response>,
+  foreignId: string,
+) {
+  for (const id of [
+    "00000000-0000-0000-0000-000000000000",
+    foreignId,
+    "not-a-uuid",
+  ]) {
+    await expectProblem(await attempt(id), { status: 404, code: "not-found" });
+  }
 }
 
 describe("POST /v1/categories", () => {
@@ -549,25 +616,356 @@ describe("GET /v1/categories/{categoryId}", () => {
         throw new Error("Expected Bob to have categories");
       }
 
-      for (const id of [
-        "00000000-0000-0000-0000-000000000000",
+      await expectNotFoundAlike(
+        (id) => getCategory(app, { categoryId: id, cookie: alice.cookie }),
         bobsCategory.id,
-        "not-a-uuid",
-      ]) {
-        await expectProblem(
-          await getCategory(app, { categoryId: id, cookie: alice.cookie }),
-          {
-            status: 404,
-            code: "not-found",
-          },
-        );
-      }
+      );
     });
   });
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
       const response = await getCategory(createIntegrationTestApp(db), {
+        categoryId: "00000000-0000-0000-0000-000000000000",
+      });
+
+      await expectProblem(response, { status: 401, code: "unauthenticated" });
+    });
+  });
+});
+
+describe("PATCH /v1/categories/{categoryId}", () => {
+  test("renames and re-icons in one save, leaving the tree position alone", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const collection = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, cookie)).json(),
+      );
+      const groceries = collection.items.find(
+        (category) => category.name === "Groceries",
+      );
+      if (!groceries) {
+        throw new Error("Expected the Groceries category");
+      }
+
+      const response = await patchCategory(app, {
+        categoryId: groceries.id,
+        cookie,
+        body: { name: "  Supermarket  ", iconId: "store" },
+      });
+      const updated = categoryResponseSchema.parse(await response.json());
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      expect(updated).toEqual({
+        id: groceries.id,
+        kind: "expense",
+        parentId: groceries.parentId,
+        name: "Supermarket",
+        iconId: "store",
+        isProtected: false,
+      });
+      const after = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, cookie)).json(),
+      );
+      expect(
+        after.items.find((category) => category.id === groceries.id),
+      ).toEqual(updated);
+      const located = await getCategory(app, {
+        categoryId: groceries.id,
+        cookie,
+      });
+      expect(categoryResponseSchema.parse(await located.json())).toEqual(
+        updated,
+      );
+    });
+  });
+
+  test("lets Uncategorized change its icon but never its name", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const collection = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, cookie)).json(),
+      );
+      const uncategorized = collection.items.find(
+        (category) => category.kind === "expense" && category.isProtected,
+      );
+      if (!uncategorized) {
+        throw new Error("Expected the protected expense category");
+      }
+
+      const reiconed = await patchCategory(app, {
+        categoryId: uncategorized.id,
+        cookie,
+        body: { name: "Uncategorized", iconId: "sparkles" },
+      });
+      expect(reiconed.status).toBe(200);
+      expect(categoryResponseSchema.parse(await reiconed.json())).toEqual(
+        expect.objectContaining({ iconId: "sparkles", isProtected: true }),
+      );
+
+      const renamed = await patchCategory(app, {
+        categoryId: uncategorized.id,
+        cookie,
+        body: { name: "Misc", iconId: "sparkles" },
+      });
+      const problem = await expectProblem(renamed, {
+        status: 422,
+        code: "invalid-command",
+      });
+      expect(problem.errors).toEqual([
+        { pointer: "#/name", code: "protected" },
+      ]);
+    });
+  });
+
+  test("maps duplicate, invalid, and unknown-field commands to field errors", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const collection = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, cookie)).json(),
+      );
+      const groceries = collection.items.find(
+        (category) => category.name === "Groceries",
+      );
+      if (!groceries) {
+        throw new Error("Expected the Groceries category");
+      }
+
+      const duplicate = await expectProblem(
+        await patchCategory(app, {
+          categoryId: groceries.id,
+          cookie,
+          body: { name: " restaurants ", iconId: "cart" },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(duplicate.errors).toEqual([
+        { pointer: "#/name", code: "duplicate-name" },
+      ]);
+
+      const blank = await expectProblem(
+        await patchCategory(app, {
+          categoryId: groceries.id,
+          cookie,
+          body: { name: "   ", iconId: "cart" },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(blank.errors).toEqual([{ pointer: "#/name", code: "blank-name" }]);
+
+      const unknownIcon = await expectProblem(
+        await patchCategory(app, {
+          categoryId: groceries.id,
+          cookie,
+          body: { name: "Groceries", iconId: "retired-glyph" },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(unknownIcon.errors).toEqual([
+        { pointer: "#/iconId", code: "unknown-icon" },
+      ]);
+
+      const tooLong = await expectProblem(
+        await patchCategory(app, {
+          categoryId: groceries.id,
+          cookie,
+          body: { name: "x".repeat(61), iconId: "cart" },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(tooLong.errors).toEqual([
+        { pointer: "#/name", code: "name-too-long" },
+      ]);
+
+      await expectProblem(
+        await patchCategory(app, {
+          categoryId: groceries.id,
+          cookie,
+          body: { ...UPDATE_REQUEST, parentId: groceries.parentId },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+
+      const unchanged = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, cookie)).json(),
+      );
+      expect(unchanged.items.find((c) => c.id === groceries.id)).toEqual(
+        groceries,
+      );
+    });
+  });
+
+  test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const alice = await signUp(app);
+      const bob = await signUp(app);
+      const bobsTree = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, bob.cookie)).json(),
+      );
+      const bobsCategory = bobsTree.items[0];
+      if (!bobsCategory) {
+        throw new Error("Expected Bob to have categories");
+      }
+
+      await expectNotFoundAlike(
+        (id) =>
+          patchCategory(app, {
+            categoryId: id,
+            cookie: alice.cookie,
+            body: { name: "Mine", iconId: "bus" },
+          }),
+        bobsCategory.id,
+      );
+      const bobsAfter = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, bob.cookie)).json(),
+      );
+      expect(bobsAfter.items.find((c) => c.id === bobsCategory.id)).toEqual(
+        bobsCategory,
+      );
+    });
+  });
+
+  test("rejects malformed JSON and anonymous requests with standard problems", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const collection = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, cookie)).json(),
+      );
+      const anyCategory = collection.items[0];
+      if (!anyCategory) {
+        throw new Error("Expected the default categories");
+      }
+
+      await expectProblem(
+        await patchCategory(app, {
+          categoryId: anyCategory.id,
+          cookie,
+          rawBody: "{",
+        }),
+        { status: 400, code: "bad-request" },
+      );
+      await expectProblem(
+        await patchCategory(createIntegrationTestApp(db), {
+          categoryId: anyCategory.id,
+        }),
+        { status: 401, code: "unauthenticated" },
+      );
+    });
+  });
+});
+
+describe("GET /v1/categories/{categoryId}/usage", () => {
+  test("reports the entries a category holds and the children under a parent", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie, ownerId } = await signUp(app);
+      const wallet = await openTestWallet(db, { ownerId });
+      const collection = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, cookie)).json(),
+      );
+      const groceries = collection.items.find(
+        (category) => category.name === "Groceries",
+      );
+      const restaurants = collection.items.find(
+        (category) => category.name === "Restaurants",
+      );
+      const foodAndDrink = collection.items.find(
+        (category) => category.name === "Food & Drink",
+      );
+      if (!groceries || !restaurants || !foodAndDrink) {
+        throw new Error("Expected the default expense categories");
+      }
+      const expense = await insertCategorizedTransaction(db, {
+        ownerId,
+        walletId: wallet.id,
+        categoryId: groceries.id,
+      });
+      await insertCategorizedTransaction(db, {
+        ownerId,
+        walletId: wallet.id,
+        categoryId: groceries.id,
+        amount: 12_500n,
+      });
+      // Refunds follow their expense's category and are not counted.
+      await insertLinkedRefund(db, {
+        ownerId,
+        walletId: wallet.id,
+        refundOfTransactionId: expense,
+      });
+      const gone = await insertCategorizedTransaction(db, {
+        ownerId,
+        walletId: wallet.id,
+        categoryId: restaurants.id,
+      });
+      await db
+        .update(transactions)
+        .set({ deletedAt: new Date() })
+        .where(
+          and(eq(transactions.id, gone), eq(transactions.userId, ownerId)),
+        );
+
+      const groceriesResponse = await getCategoryUsage(app, {
+        categoryId: groceries.id,
+        cookie,
+      });
+      expect(groceriesResponse.status).toBe(200);
+      expect(groceriesResponse.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      expect(
+        categoryUsageResponseSchema.parse(await groceriesResponse.json()),
+      ).toEqual({ transactions: 2, children: 0 });
+      expect(
+        categoryUsageResponseSchema.parse(
+          await (
+            await getCategoryUsage(app, { categoryId: foodAndDrink.id, cookie })
+          ).json(),
+        ),
+      ).toEqual({ transactions: 0, children: 4 });
+      expect(
+        categoryUsageResponseSchema.parse(
+          await (
+            await getCategoryUsage(app, {
+              categoryId: restaurants.id,
+              cookie,
+            })
+          ).json(),
+        ),
+      ).toEqual({ transactions: 0, children: 0 });
+    });
+  });
+
+  test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const alice = await signUp(app);
+      const bob = await signUp(app);
+      const bobsTree = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, bob.cookie)).json(),
+      );
+      const bobsCategory = bobsTree.items[0];
+      if (!bobsCategory) {
+        throw new Error("Expected Bob to have categories");
+      }
+
+      await expectNotFoundAlike(
+        (id) => getCategoryUsage(app, { categoryId: id, cookie: alice.cookie }),
+        bobsCategory.id,
+      );
+    });
+  });
+
+  test("rejects an anonymous request with the standard problem", async () => {
+    await withRollback(async (db) => {
+      const response = await getCategoryUsage(createIntegrationTestApp(db), {
         categoryId: "00000000-0000-0000-0000-000000000000",
       });
 

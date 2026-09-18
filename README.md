@@ -94,7 +94,7 @@ apps/server/
       env/config.ts       # Server environment schemas and runtime validation
       http/               # Request context, CORS, Problem Details, Money, OpenAPI document
     features/
-      categories/         # /v1/categories: list, get, create, and provisioning retry
+      categories/         # /v1/categories: list, get, create, update, usage, and provisioning retry
       health/             # Health check resource
       wallets/            # /v1/wallets: list, get, create, replace opening balances, archive, and delete
     server.ts             # Node entrypoint: parses env and serves the app
@@ -156,7 +156,7 @@ proof of ownership, atomicity, concurrency, and idempotency:
 ```text
 packages/application/
   src/
-    categories/           # @bookkeeping/application/categories: listCategories, findCategory, createCategory, initializeDefaultCategories
+    categories/           # @bookkeeping/application/categories: listCategories, findCategory, createCategory, updateCategory, category usage, initializeDefaultCategories
                           # @bookkeeping/application/categories/defaults: the default trees
     idempotency/          # @bookkeeping/application/idempotency: replay-safe creation
     testing/              # @bookkeeping/application/testing/*: fixtures shared by application and server tests

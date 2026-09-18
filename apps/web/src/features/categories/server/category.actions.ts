@@ -3,8 +3,12 @@
 import type {
   CategoryErrorField,
   CreateCategoryError,
+  UpdateCategoryError,
 } from "@bookkeeping/application/categories";
-import { createCategory } from "@bookkeeping/application/categories";
+import {
+  createCategory,
+  updateCategory,
+} from "@bookkeeping/application/categories";
 import type { CategorySummary } from "@bookkeeping/domain/categories";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
@@ -21,12 +25,8 @@ import { CATEGORY_MESSAGES } from "@/features/categories/category-name";
 import type {
   RemoveCategoryError,
   RemoveCategoryOutcome,
-  UpdateCategoryError,
 } from "@/features/categories/server/category-management";
-import {
-  removeCategory,
-  updateCategory,
-} from "@/features/categories/server/category-management";
+import { removeCategory } from "@/features/categories/server/category-management";
 
 const CATEGORY_FIELDS = [
   "name",

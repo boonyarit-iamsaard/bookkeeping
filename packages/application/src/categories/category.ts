@@ -1,6 +1,7 @@
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { databaseError } from "@bookkeeping/database/errors";
+import { transactions } from "@bookkeeping/database/transactions";
 import type {
   CategoryKind,
   CategorySummary,
@@ -15,7 +16,7 @@ import {
 } from "@bookkeeping/domain/categories";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import * as z from "zod";
 import type {
   CreationResultCodec,
@@ -77,6 +78,211 @@ export async function findCategory(
   return category ?? null;
 }
 
+export interface UpdateCategoryInput
+  extends CategoryRef,
+    UpdateCategoryCommand {}
+
+export type UpdateCategoryError =
+  | { code: "category-not-found" }
+  | { code: "blank-name" }
+  | { code: "name-too-long" }
+  | { code: "unknown-icon" }
+  /** Same name, case-insensitively, already in scope (tree or parent). */
+  | { code: "duplicate-name" }
+  /** Uncategorized keeps its name; only its icon may change. */
+  | { code: "protected" };
+
+export interface UpdateCategoryCommand {
+  name: string;
+  iconId: string;
+}
+
+export type CategoryUpdateValidationError = Extract<
+  UpdateCategoryError,
+  { code: "blank-name" | "name-too-long" | "unknown-icon" }
+>;
+
+/** Normalizes and validates presentation data before the row is touched. */
+export function validateCategoryUpdate(
+  command: Readonly<UpdateCategoryCommand>,
+): Result<UpdateCategoryCommand, CategoryUpdateValidationError> {
+  const name = normalizeCategoryName(command.name);
+  const invalidName = validateName(name, "name");
+  if (invalidName) {
+    return err({ code: invalidName.code });
+  }
+  if (!isCategoryIconId(command.iconId)) {
+    return err({ code: "unknown-icon" });
+  }
+  return ok({ name, iconId: command.iconId });
+}
+
+/**
+ * Renames a category and/or changes its icon. The level and parent never
+ * change here; scoped uniqueness is enforced by the same partial indexes
+ * that guard creation. Uncategorized's name is fixed by a guard on the
+ * update itself, so no read-then-write window exists.
+ */
+export async function updateCategory(
+  db: Database,
+  input: Readonly<UpdateCategoryInput>,
+): Promise<Result<CategorySummary, UpdateCategoryError>> {
+  const validated = validateCategoryUpdate(input);
+  if (!validated.ok) {
+    return validated;
+  }
+  const { name, iconId } = validated.value;
+  if (!isUuid(input.id)) {
+    return err({ code: "category-not-found" });
+  }
+  try {
+    return await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(categories)
+        .set({ name, iconId })
+        .where(
+          and(
+            eq(categories.id, input.id),
+            eq(categories.userId, input.ownerId),
+            or(eq(categories.isProtected, false), eq(categories.name, name)),
+          ),
+        )
+        .returning(categorySummaryColumns);
+      if (row) {
+        return ok(row);
+      }
+      const [current] = await tx
+        .select({ isProtected: categories.isProtected })
+        .from(categories)
+        .where(
+          and(
+            eq(categories.id, input.id),
+            eq(categories.userId, input.ownerId),
+          ),
+        );
+      return err({
+        code: current?.isProtected ? "protected" : "category-not-found",
+      });
+    });
+  } catch (error) {
+    if (isScopedNameViolation(error)) {
+      return err({ code: "duplicate-name" });
+    }
+    throw error;
+  }
+}
+
+export interface CategoryUsage {
+  /** Current (not deleted) income and expense transactions filed here. */
+  transactions: number;
+  /** Direct children; a parent with any cannot itself be removed. */
+  children: number;
+}
+
+/**
+ * The usage of one owned category, or `null` when the owner has no category
+ * with that id. Refunds carry no category, so only the transactions and
+ * children the management UX counts appear here.
+ */
+export async function findCategoryUsage(
+  db: Database,
+  { ownerId, id }: Readonly<CategoryRef>,
+): Promise<CategoryUsage | null> {
+  if (!isUuid(id)) {
+    return null;
+  }
+  const [category] = await db
+    .select({ parentId: categories.parentId })
+    .from(categories)
+    .where(and(eq(categories.id, id), eq(categories.userId, ownerId)));
+  if (!category) {
+    return null;
+  }
+  const transactionsCount = await countCurrentTransactions(db, {
+    ownerId,
+    id,
+  });
+  const [childrenRow] = await db
+    .select({ count: countRows() })
+    .from(categories)
+    .where(and(eq(categories.parentId, id), eq(categories.userId, ownerId)));
+  return {
+    transactions: transactionsCount,
+    children: childrenRow?.count ?? 0,
+  };
+}
+
+/**
+ * How many current income and expense transactions each category holds,
+ * keyed by category id; unused categories are absent. Refunds are not
+ * counted: they follow their expense, which already is. Children are
+ * counted per parent, since a parent with any cannot itself be removed.
+ */
+export async function listCategoryUsage(
+  db: Database,
+  ownerId: string,
+): Promise<Readonly<Record<string, CategoryUsage>>> {
+  const [entryRows, childRows] = await Promise.all([
+    db
+      .select({
+        categoryId: transactions.categoryId,
+        count: countRows(),
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, ownerId),
+          isNotNull(transactions.categoryId),
+          isNull(transactions.deletedAt),
+        ),
+      )
+      .groupBy(transactions.categoryId),
+    db
+      .select({ parentId: categories.parentId, count: countRows() })
+      .from(categories)
+      .where(
+        and(eq(categories.userId, ownerId), isNotNull(categories.parentId)),
+      )
+      .groupBy(categories.parentId),
+  ]);
+  const usage: Record<string, CategoryUsage> = {};
+  for (const row of entryRows) {
+    if (row.categoryId) {
+      usage[row.categoryId] = { transactions: row.count, children: 0 };
+    }
+  }
+  for (const row of childRows) {
+    if (row.parentId) {
+      usage[row.parentId] = {
+        transactions: usage[row.parentId]?.transactions ?? 0,
+        children: row.count,
+      };
+    }
+  }
+  return usage;
+}
+
+function countRows() {
+  return sql<number>`count(*)::int`;
+}
+
+async function countCurrentTransactions(
+  db: Database,
+  { ownerId, id }: Readonly<CategoryRef>,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: countRows() })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.userId, ownerId),
+        eq(transactions.categoryId, id),
+        isNull(transactions.deletedAt),
+      ),
+    );
+  return row?.count ?? 0;
+}
+
 /** Where a new child goes: under an existing parent, or under one created with it. */
 export type ParentChoice =
   | { readonly existingId: string }
@@ -136,12 +342,12 @@ export interface CreateCategoryOutcome extends CreateCategoryData {
 }
 
 /** The two shape rules every category name obeys, on creation or rename. */
-export type NameRejection = Extract<
+type NameRejection = Extract<
   CategoryCreationValidationError,
   { code: "blank-name" | "name-too-long" }
 >;
 
-export function validateName(
+function validateName(
   name: string,
   field: "name" | "parentName",
 ): NameRejection | undefined {
@@ -430,7 +636,7 @@ function duplicateNameField(
 }
 
 /** Whether a write tripped either scoped name index: tree-level or per-parent. */
-export function isScopedNameViolation(error: unknown): boolean {
+function isScopedNameViolation(error: unknown): boolean {
   const cause = databaseError(error);
   return (
     cause?.code === UNIQUE_VIOLATION &&

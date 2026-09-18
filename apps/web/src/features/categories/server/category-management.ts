@@ -1,94 +1,13 @@
-import {
-  categorySummaryColumns,
-  isScopedNameViolation,
-  validateName,
-} from "@bookkeeping/application/categories";
+import type { CategoryRef } from "@bookkeeping/application/categories";
+import { categorySummaryColumns } from "@bookkeeping/application/categories";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { databaseError } from "@bookkeeping/database/errors";
 import { transactions } from "@bookkeeping/database/transactions";
 import type { CategorySummary } from "@bookkeeping/domain/categories";
-import { normalizeCategoryName } from "@bookkeeping/domain/categories";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
-import { and, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
-import { isIconId } from "@/features/categories/icons";
-
-export interface ManageCategoryInput {
-  /** Always the session user; never a client-supplied identifier. */
-  ownerId: string;
-  id: string;
-}
-
-export interface UpdateCategoryInput extends ManageCategoryInput {
-  name: string;
-  iconId: string;
-}
-
-export type UpdateCategoryError =
-  | { code: "category-not-found" }
-  | { code: "blank-name" }
-  | { code: "name-too-long" }
-  | { code: "unknown-icon" }
-  /** Same name, case-insensitively, already in scope (tree or parent). */
-  | { code: "duplicate-name" }
-  /** Uncategorized keeps its name; only its icon may change. */
-  | { code: "protected" };
-
-/**
- * Renames a category and/or changes its icon. The level and parent never
- * change here; scoped uniqueness is enforced by the same partial indexes
- * that guard creation. Uncategorized's name is fixed by a guard on the
- * update itself, so no read-then-write window exists.
- */
-export async function updateCategory(
-  db: Database,
-  input: Readonly<UpdateCategoryInput>,
-): Promise<Result<CategorySummary, UpdateCategoryError>> {
-  const name = normalizeCategoryName(input.name);
-  const invalidName = validateName(name, "name");
-  if (invalidName) {
-    return err({ code: invalidName.code });
-  }
-  if (!isIconId(input.iconId)) {
-    return err({ code: "unknown-icon" });
-  }
-  try {
-    return await db.transaction(async (tx) => {
-      const [row] = await tx
-        .update(categories)
-        .set({ name, iconId: input.iconId })
-        .where(
-          and(
-            eq(categories.id, input.id),
-            eq(categories.userId, input.ownerId),
-            or(eq(categories.isProtected, false), eq(categories.name, name)),
-          ),
-        )
-        .returning(categorySummaryColumns);
-      if (row) {
-        return ok(row);
-      }
-      const [current] = await tx
-        .select({ isProtected: categories.isProtected })
-        .from(categories)
-        .where(
-          and(
-            eq(categories.id, input.id),
-            eq(categories.userId, input.ownerId),
-          ),
-        );
-      return err({
-        code: current?.isProtected ? "protected" : "category-not-found",
-      });
-    });
-  } catch (error) {
-    if (isScopedNameViolation(error)) {
-      return err({ code: "duplicate-name" });
-    }
-    throw error;
-  }
-}
+import { and, eq } from "drizzle-orm";
 
 export type RemoveCategoryError =
   | { code: "category-not-found" }
@@ -121,7 +40,7 @@ const CHILD_PARENT_FK = "categories_parent_id_categories_id_fk";
  */
 export async function removeCategory(
   db: Database,
-  input: Readonly<ManageCategoryInput>,
+  input: Readonly<CategoryRef>,
 ): Promise<Result<RemoveCategoryOutcome, RemoveCategoryError>> {
   try {
     return await db.transaction(async (tx) => {
@@ -220,36 +139,4 @@ async function fallbackFor(
 interface FallbackOptions {
   ownerId: string;
   category: CategorySummary;
-}
-
-/**
- * How many current income and expense entries each category holds, keyed
- * by category id; unused categories are absent. Refunds are not counted:
- * they follow their expense, which already is.
- */
-export async function listCategoryUsage(
-  db: Database,
-  ownerId: string,
-): Promise<Readonly<Record<string, number>>> {
-  const rows = await db
-    .select({
-      categoryId: transactions.categoryId,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.userId, ownerId),
-        isNotNull(transactions.categoryId),
-        isNull(transactions.deletedAt),
-      ),
-    )
-    .groupBy(transactions.categoryId);
-  const usage: Record<string, number> = {};
-  for (const row of rows) {
-    if (row.categoryId) {
-      usage[row.categoryId] = row.count;
-    }
-  }
-  return usage;
 }
