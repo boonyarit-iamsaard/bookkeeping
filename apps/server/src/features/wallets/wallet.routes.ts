@@ -43,7 +43,10 @@ import {
   createProblemResponse,
   getProblemOptionsForStatus,
 } from "../../core/http/problem-details.js";
-import { createInvalidCommandProblem } from "../../core/http/request-validation.js";
+import {
+  createInvalidCommandProblem,
+  createResourceParamMiddleware,
+} from "../../core/http/request-validation.js";
 
 export const walletResponseSchema = z
   .object({
@@ -95,20 +98,7 @@ export function presentWallet(wallet: Readonly<WalletSummary>): WalletResponse {
 }
 
 const walletParamsSchema = z.object({ walletId: z.uuid() });
-
-/**
- * A malformed identifier is not found alike, so a client cannot tell it
- * apart from an unknown or unowned wallet.
- */
-const walletParamMiddleware = validator(
-  "param",
-  walletParamsSchema,
-  (result, c) => {
-    if (!result.success) {
-      return createProblemResponse(c, getProblemOptionsForStatus(404));
-    }
-  },
-);
+const walletParamMiddleware = createResourceParamMiddleware(walletParamsSchema);
 
 /** A well-formed command the schema rejects is a 422 addressed by field. */
 function createCommandMiddleware<Schema extends z.ZodType>(schema: Schema) {

@@ -9,7 +9,6 @@ import {
   listCategories,
 } from "@bookkeeping/application/categories";
 import type { Database } from "@bookkeeping/database/connection";
-
 import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";
 import type { Input } from "hono";
 import { Hono } from "hono";
@@ -34,7 +33,10 @@ import {
   createProblemResponse,
   getProblemOptionsForStatus,
 } from "../../core/http/problem-details.js";
-import { createInvalidCommandProblem } from "../../core/http/request-validation.js";
+import {
+  createInvalidCommandProblem,
+  createResourceParamMiddleware,
+} from "../../core/http/request-validation.js";
 
 export const categoryResponseSchema = z
   .object({
@@ -78,20 +80,8 @@ const RESOURCE_PATH = "/categories/:categoryId";
 const LOCATION_HEADER = "Location";
 
 const categoryParamsSchema = z.object({ categoryId: z.uuid() });
-
-/**
- * A malformed identifier is not found alike, so a client cannot tell it
- * apart from an unknown or unowned category.
- */
-const categoryParamMiddleware = validator(
-  "param",
-  categoryParamsSchema,
-  (result, c) => {
-    if (!result.success) {
-      return createProblemResponse(c, getProblemOptionsForStatus(404));
-    }
-  },
-);
+const categoryParamMiddleware =
+  createResourceParamMiddleware(categoryParamsSchema);
 
 interface CreateCategoryValidatedInput {
   in: {
@@ -241,6 +231,8 @@ export function createCategoryRoutes(db: Database) {
           const categories = await listCategories(db, c.get("session").user.id);
           return c.json(
             {
+              // The response schema types a mutable array; the summaries
+              // themselves are already the wire shape.
               items: [...categories],
               page: { nextCursor: null },
             },

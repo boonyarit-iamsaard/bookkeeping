@@ -1,6 +1,10 @@
+import { validator } from "hono-openapi";
 import * as z from "zod";
 import type { ProblemFieldError, ProblemOptions } from "./problem-details.js";
-import { getProblemOptionsForStatus } from "./problem-details.js";
+import {
+  createProblemResponse,
+  getProblemOptionsForStatus,
+} from "./problem-details.js";
 
 /** A Standard Schema issue as the validator hook reports it. */
 export interface ValidationIssue {
@@ -58,4 +62,19 @@ export function createInvalidCommandProblem(
     ...getProblemOptionsForStatus(422),
     errors: issues.map(toFieldError),
   };
+}
+
+/**
+ * Validates a resource identifier in the path. A malformed identifier is not
+ * found alike, so a client cannot tell it apart from an unknown or unowned
+ * resource.
+ */
+export function createResourceParamMiddleware<Schema extends z.ZodType>(
+  schema: Schema,
+) {
+  return validator("param", schema, (result, c) => {
+    if (!result.success) {
+      return createProblemResponse(c, getProblemOptionsForStatus(404));
+    }
+  });
 }

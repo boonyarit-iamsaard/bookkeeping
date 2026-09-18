@@ -35,3 +35,8 @@ safely across retries while preserving tree and uniqueness rules.
   discover a pnpm binary for Turbo, and direct integration execution cannot
   start PostgreSQL because Docker/Testcontainers is unavailable; the existing
   integration suites therefore remain unrun in this environment.
+- Review follow-up: `Location` on `201` named a resource no route served, so
+  `GET /v1/categories/{categoryId}` now exists as the same non-disclosing
+  read the wallet detail uses, backed by `findCategory` in the application
+  package. The operation rule tests moved from the Next.js adapter into
+  `@bookkeeping/application/categories` beside their owner.
