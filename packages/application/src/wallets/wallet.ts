@@ -27,6 +27,7 @@ import type {
   IdempotencyConflict,
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
+import { isUuid } from "../shared/identifier";
 
 export interface ListWalletsOptions {
   /** Always the session user; never a client-supplied identifier. */
@@ -46,11 +47,6 @@ export interface FindWalletOptions extends WalletRef {
   /** End-of-day balances through this date; defaults to today in Bangkok. */
   asOf?: CalendarDate;
 }
-
-// PostgreSQL rejects a malformed uuid as a query fault; such an id simply
-// names no wallet.
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface WalletSummaryQuery extends ListWalletsOptions {
   asOf: CalendarDate;
@@ -85,7 +81,7 @@ export async function findWallet(
     asOf = todayIn({ timeZone: APP_TIME_ZONE }),
   }: Readonly<FindWalletOptions>,
 ): Promise<WalletSummary | null> {
-  if (!UUID_PATTERN.test(id)) {
+  if (!isUuid(id)) {
     return null;
   }
   const [wallet] = await selectWalletSummaries(db, {
@@ -496,7 +492,7 @@ export async function replaceWalletOpening(
     return validated;
   }
   const opening = validated.value;
-  if (!UUID_PATTERN.test(input.id)) {
+  if (!isUuid(input.id)) {
     return err({ code: "wallet-not-found" });
   }
   return db.transaction(async (tx) => {
@@ -555,7 +551,7 @@ export async function setWalletArchived(
   db: Database,
   input: Readonly<SetWalletArchivedInput>,
 ): Promise<Result<WalletSummary, SetWalletArchivedError>> {
-  if (!UUID_PATTERN.test(input.id)) {
+  if (!isUuid(input.id)) {
     return err({ code: "wallet-not-found" });
   }
   return db.transaction(async (tx) => {
@@ -594,7 +590,7 @@ export async function deleteWallet(
   db: Database,
   input: Readonly<WalletRef>,
 ): Promise<Result<{ id: string }, DeleteWalletError>> {
-  if (!UUID_PATTERN.test(input.id)) {
+  if (!isUuid(input.id)) {
     return err({ code: "wallet-not-found" });
   }
   return db.transaction(async (tx) => {

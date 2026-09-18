@@ -4,11 +4,12 @@ import type {
 } from "@bookkeeping/application/categories";
 import {
   createCategory,
+  findCategory,
   initializeDefaultCategories,
   listCategories,
 } from "@bookkeeping/application/categories";
 import type { Database } from "@bookkeeping/database/connection";
-import type { CategorySummary } from "@bookkeeping/domain/categories";
+
 import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";
 import type { Input } from "hono";
 import { Hono } from "hono";
@@ -21,16 +22,17 @@ import {
   idempotencyConflictProblem,
   idempotencyKeyMiddleware,
 } from "../../core/http/idempotency.js";
-import { describeProblemResponse } from "../../core/http/openapi.js";
+import {
+  describeProblem,
+  describeProblemResponse,
+} from "../../core/http/openapi.js";
 import type {
   ProblemFieldError,
-  ProblemOptions,
+  problemDetailsSchema,
 } from "../../core/http/problem-details.js";
 import {
   createProblemResponse,
   getProblemOptionsForStatus,
-  PROBLEM_MEDIA_TYPE,
-  problemDetailsSchema,
 } from "../../core/http/problem-details.js";
 import { createInvalidCommandProblem } from "../../core/http/request-validation.js";
 
@@ -48,14 +50,6 @@ export const categoryResponseSchema = z
 export const categoryCollectionResponseSchema = createCollectionResponseSchema(
   categoryResponseSchema,
 ).meta({ id: "CategoryCollection" });
-
-export interface CategoryResponse extends CategorySummary {}
-
-export function presentCategory(
-  category: Readonly<CategorySummary>,
-): CategoryResponse {
-  return { ...category };
-}
 
 export const createCategoryRequestSchema = z
   .strictObject({
@@ -80,7 +74,24 @@ export const provisioningOutcomeResponseSchema = z
 
 const DEFAULTS_PATH = "/categories/defaults";
 const COLLECTION_PATH = "/categories";
+const RESOURCE_PATH = "/categories/:categoryId";
 const LOCATION_HEADER = "Location";
+
+const categoryParamsSchema = z.object({ categoryId: z.uuid() });
+
+/**
+ * A malformed identifier is not found alike, so a client cannot tell it
+ * apart from an unknown or unowned category.
+ */
+const categoryParamMiddleware = validator(
+  "param",
+  categoryParamsSchema,
+  (result, c) => {
+    if (!result.success) {
+      return createProblemResponse(c, getProblemOptionsForStatus(404));
+    }
+  },
+);
 
 interface CreateCategoryValidatedInput {
   in: {
@@ -117,13 +128,6 @@ function toCategoryFieldError(
     case "parent-protected":
       return { pointer: "#/parent", code: error.code };
   }
-}
-
-function describeProblem(problem: Readonly<ProblemOptions>) {
-  return {
-    description: problem.title,
-    content: { [PROBLEM_MEDIA_TYPE]: { vSchema: problemDetailsSchema } },
-  };
 }
 
 const categoryCommandMiddleware = validator(
@@ -187,7 +191,7 @@ export function createCategoryRoutes(db: Database) {
               errors: [toCategoryFieldError(created.error)],
             });
           }
-          const category = presentCategory(created.value.category);
+          const category = created.value.category;
           return c.json(category, 201, {
             [LOCATION_HEADER]: `${c.req.path}/${category.id}`,
           });
@@ -237,7 +241,7 @@ export function createCategoryRoutes(db: Database) {
           const categories = await listCategories(db, c.get("session").user.id);
           return c.json(
             {
-              items: categories.map(presentCategory),
+              items: [...categories],
               page: { nextCursor: null },
             },
             200,
@@ -252,6 +256,46 @@ export function createCategoryRoutes(db: Database) {
               },
             },
           },
+        },
+      ),
+    )
+    .get(
+      RESOURCE_PATH,
+      describeRoute({
+        operationId: "getCategory",
+        summary: "Get a category",
+        description:
+          "One category the signed-in owner holds, as listed in its tree. " +
+          "A category that does not exist, belongs to another owner, or has " +
+          "a malformed identifier is not found alike.",
+        tags: ["Categories"],
+        responses: { 401: describeProblemResponse(401) },
+      }),
+      categoryParamMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof RESOURCE_PATH,
+        Input,
+        { 200: typeof categoryResponseSchema; 404: typeof problemDetailsSchema }
+      >(
+        async (c) => {
+          const category = await findCategory(db, {
+            ownerId: c.get("session").user.id,
+            id: c.req.param("categoryId"),
+          });
+          if (category === null) {
+            return createProblemResponse(c, getProblemOptionsForStatus(404));
+          }
+          return c.json(category, 200);
+        },
+        {
+          200: {
+            description: "The category",
+            content: {
+              "application/json": { vSchema: categoryResponseSchema },
+            },
+          },
+          404: describeProblem(getProblemOptionsForStatus(404)),
         },
       ),
     )

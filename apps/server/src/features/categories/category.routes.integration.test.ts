@@ -13,6 +13,7 @@ import {
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
+import { expectProblem } from "../../testing/expect-problem.js";
 import {
   categoryCollectionResponseSchema,
   categoryResponseSchema,
@@ -61,6 +62,23 @@ function listCategories(app: Readonly<Hono<AppEnv>>, cookie?: string) {
   });
 }
 
+interface GetCategoryRequest {
+  categoryId: string;
+  cookie?: string;
+}
+
+function getCategory(
+  app: Readonly<Hono<AppEnv>>,
+  { categoryId, cookie }: Readonly<GetCategoryRequest>,
+) {
+  return app.request(`${CATEGORIES_URL}/${categoryId}`, {
+    headers: {
+      origin: TEST_CLIENT_ORIGIN,
+      ...(cookie ? { cookie } : {}),
+    },
+  });
+}
+
 interface CreateCategoryRequest {
   cookie?: string;
   idempotencyKey?: string;
@@ -98,26 +116,6 @@ function postCategory(
   });
 }
 
-interface ExpectedProblem {
-  status: number;
-  code: string;
-}
-
-async function expectProblem(
-  response: Response,
-  expected: Readonly<ExpectedProblem>,
-) {
-  expect(response.status).toBe(expected.status);
-  expect(response.headers.get("content-type")).toContain(
-    "application/problem+json",
-  );
-  const problem = problemDetailsSchema.parse(await response.json());
-  expect(problem.code).toBe(expected.code);
-  expect(problem.type).toBe(`urn:bookkeeping:problem:${expected.code}`);
-  expect(problem.status).toBe(expected.status);
-  return problem;
-}
-
 describe("POST /v1/categories", () => {
   test("creates a parent, returns its representation, and gives its location", async () => {
     await withRollback(async (db) => {
@@ -146,9 +144,16 @@ describe("POST /v1/categories", () => {
         isProtected: false,
       });
 
-      const located = await listCategories(app, cookie);
+      const located = await app.request(
+        `${TEST_API_ORIGIN}${response.headers.get("location")}`,
+        { headers: { cookie, origin: TEST_CLIENT_ORIGIN } },
+      );
+      expect(located.status).toBe(200);
+      expect(categoryResponseSchema.parse(await located.json())).toEqual(
+        category,
+      );
       const collection = categoryCollectionResponseSchema.parse(
-        await located.json(),
+        await (await listCategories(app, cookie)).json(),
       );
       expect(collection.items).toContainEqual(category);
     });
@@ -497,6 +502,76 @@ describe("GET /v1/categories", () => {
       expect(problemDetailsSchema.parse(await response.json()).code).toBe(
         "unauthenticated",
       );
+    });
+  });
+});
+
+describe("GET /v1/categories/{categoryId}", () => {
+  test("returns one owned category as its tree lists it", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const collection = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, cookie)).json(),
+      );
+      const uncategorized = collection.items.find(
+        (category) => category.kind === "income" && category.isProtected,
+      );
+      if (!uncategorized) {
+        throw new Error("Expected a protected income category");
+      }
+
+      const response = await getCategory(app, {
+        categoryId: uncategorized.id,
+        cookie,
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      expect(categoryResponseSchema.parse(await response.json())).toEqual(
+        uncategorized,
+      );
+    });
+  });
+
+  test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const alice = await signUp(app);
+      const bob = await signUp(app);
+      const bobsTree = categoryCollectionResponseSchema.parse(
+        await (await listCategories(app, bob.cookie)).json(),
+      );
+      const bobsCategory = bobsTree.items[0];
+      if (!bobsCategory) {
+        throw new Error("Expected Bob to have categories");
+      }
+
+      for (const id of [
+        "00000000-0000-0000-0000-000000000000",
+        bobsCategory.id,
+        "not-a-uuid",
+      ]) {
+        await expectProblem(
+          await getCategory(app, { categoryId: id, cookie: alice.cookie }),
+          {
+            status: 404,
+            code: "not-found",
+          },
+        );
+      }
+    });
+  });
+
+  test("rejects an anonymous request with the standard problem", async () => {
+    await withRollback(async (db) => {
+      const response = await getCategory(createIntegrationTestApp(db), {
+        categoryId: "00000000-0000-0000-0000-000000000000",
+      });
+
+      await expectProblem(response, { status: 401, code: "unauthenticated" });
     });
   });
 });

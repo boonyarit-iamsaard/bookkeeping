@@ -1,8 +1,8 @@
 "use client";
 
 import type { CategorySummary } from "@bookkeeping/domain/categories";
+import { MAX_CATEGORY_NAME_LENGTH } from "@bookkeeping/domain/categories";
 import { useId, useState } from "react";
-import { MAX_CATEGORY_NAME_LENGTH } from "@/features/categories/category-name";
 import { IconPicker } from "@/features/categories/components/icon-picker";
 import { useEditCategoryForm } from "@/features/categories/hooks/use-edit-category-form";
 import type { ManageCategoryActionSuccess } from "@/features/categories/server/category.actions";

@@ -76,6 +76,18 @@ async function expectResponseToSatisfyDocumentation({
   expect(schema.safeParse(await response.json()).success).toBe(true);
 }
 
+function expectProblemResponses(
+  operation: Readonly<DocumentedOperation>,
+  statuses: readonly string[],
+) {
+  for (const status of statuses) {
+    expect(
+      operation.responses[status].content["application/problem+json"].schema
+        .$ref,
+    ).toBe("#/components/schemas/ProblemDetails");
+  }
+}
+
 async function fetchDocument(app: Hono<AppEnv>) {
   return (await app.request(OPENAPI_DOCUMENT_PATH)).json();
 }
@@ -126,12 +138,7 @@ describe("OpenAPI document", () => {
     expect(
       resource.responses["200"].content["application/json"].schema.$ref,
     ).toBe("#/components/schemas/Wallet");
-    for (const status of ["401", "404"]) {
-      expect(
-        resource.responses[status].content["application/problem+json"].schema
-          .$ref,
-      ).toBe("#/components/schemas/ProblemDetails");
-    }
+    expectProblemResponses(resource, ["401", "404"]);
     expect(resource.parameters).toEqual([
       expect.objectContaining({ in: "path", name: "walletId", required: true }),
     ]);
@@ -155,6 +162,20 @@ describe("OpenAPI document", () => {
     ).toBe("#/components/schemas/CategoryCollection");
     expect(operation.responses["401"]).toBeDefined();
     expect(operation.responses["404"]).toBeUndefined();
+    const resource: DocumentedOperation =
+      document.paths["/v1/categories/{categoryId}"].get;
+    expect(resource.operationId).toBe("getCategory");
+    expect(
+      resource.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/Category");
+    expectProblemResponses(resource, ["401", "404"]);
+    expect(resource.parameters).toEqual([
+      expect.objectContaining({
+        in: "path",
+        name: "categoryId",
+        required: true,
+      }),
+    ]);
     expect(document.components.schemas.Category).toBeDefined();
     expect(document.components.schemas.CategoryCollection).toBeDefined();
   });
@@ -180,12 +201,7 @@ describe("OpenAPI document", () => {
       operation.responses["201"].content["application/json"].schema.$ref,
     ).toBe("#/components/schemas/Category");
     expect(operation.responses["201"].headers).toHaveProperty("Location");
-    for (const status of ["400", "401", "409", "422", "500"]) {
-      expect(
-        operation.responses[status].content["application/problem+json"].schema
-          .$ref,
-      ).toBe("#/components/schemas/ProblemDetails");
-    }
+    expectProblemResponses(operation, ["400", "401", "409", "422", "500"]);
     expect(document.components.schemas.CreateCategoryRequest).toBeDefined();
   });
 
@@ -209,12 +225,7 @@ describe("OpenAPI document", () => {
       operation.responses["201"].content["application/json"].schema.$ref,
     ).toBe("#/components/schemas/Wallet");
     expect(operation.responses["201"].headers).toHaveProperty("Location");
-    for (const status of ["400", "401", "409", "422", "500"]) {
-      expect(
-        operation.responses[status].content["application/problem+json"].schema
-          .$ref,
-      ).toBe("#/components/schemas/ProblemDetails");
-    }
+    expectProblemResponses(operation, ["400", "401", "409", "422", "500"]);
     expect(document.components.schemas.MoneyInput).toEqual(
       expect.objectContaining({
         properties: expect.objectContaining({
@@ -247,12 +258,7 @@ describe("OpenAPI document", () => {
       operation.responses["200"].content["application/json"].schema.$ref,
     ).toBe("#/components/schemas/Wallet");
     expect(operation.responses["201"]).toBeUndefined();
-    for (const status of ["400", "401", "404", "422", "500"]) {
-      expect(
-        operation.responses[status].content["application/problem+json"].schema
-          .$ref,
-      ).toBe("#/components/schemas/ProblemDetails");
-    }
+    expectProblemResponses(operation, ["400", "401", "404", "422", "500"]);
     expect(
       document.components.schemas.WalletOpeningRequest.properties.amount,
     ).toHaveProperty("$ref", "#/components/schemas/MoneyInput");
@@ -278,12 +284,7 @@ describe("OpenAPI document", () => {
     expect(
       operation.responses["200"].content["application/json"].schema.$ref,
     ).toBe("#/components/schemas/Wallet");
-    for (const status of ["400", "401", "404", "422", "500"]) {
-      expect(
-        operation.responses[status].content["application/problem+json"].schema
-          .$ref,
-      ).toBe("#/components/schemas/ProblemDetails");
-    }
+    expectProblemResponses(operation, ["400", "401", "404", "422", "500"]);
     expect(
       document.components.schemas.WalletArchiveStateRequest.required,
     ).toEqual(["archived"]);
@@ -306,12 +307,7 @@ describe("OpenAPI document", () => {
       expect.objectContaining({ description: "The wallet was deleted" }),
     );
     expect(operation.responses["204"]).not.toHaveProperty("content");
-    for (const status of ["401", "404", "409"]) {
-      expect(
-        operation.responses[status].content["application/problem+json"].schema
-          .$ref,
-      ).toBe("#/components/schemas/ProblemDetails");
-    }
+    expectProblemResponses(operation, ["401", "404", "409"]);
     expect(operation.responses["500"]).toBeDefined();
   });
 

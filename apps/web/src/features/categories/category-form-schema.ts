@@ -2,13 +2,11 @@ import type { CategoryKind } from "@bookkeeping/domain/categories";
 import {
   CATEGORY_KINDS,
   isCategoryIconId,
-} from "@bookkeeping/domain/categories";
-import * as z from "zod";
-import {
-  CATEGORY_MESSAGES,
   MAX_CATEGORY_NAME_LENGTH,
   normalizeCategoryName,
-} from "@/features/categories/category-name";
+} from "@bookkeeping/domain/categories";
+import * as z from "zod";
+import { CATEGORY_MESSAGES } from "@/features/categories/category-name";
 
 /** The parent select's value for "make this a top-level category". */
 export const NO_PARENT = "";

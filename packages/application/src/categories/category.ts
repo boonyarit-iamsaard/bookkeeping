@@ -1,5 +1,6 @@
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
+import { databaseError } from "@bookkeeping/database/errors";
 import type {
   CategoryKind,
   CategorySummary,
@@ -23,22 +24,26 @@ import type {
   ValidatedPayload,
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
+import { isUuid } from "../shared/identifier";
 import { DEFAULT_CATEGORIES } from "./default-categories";
+
+/** The columns every read and write returns: a `CategorySummary` row. */
+export const categorySummaryColumns = {
+  id: categories.id,
+  kind: categories.kind,
+  parentId: categories.parentId,
+  name: categories.name,
+  iconId: categories.iconId,
+  isProtected: categories.isProtected,
+};
 
 /** Both trees, parents before their children, in picker order. */
 export async function listCategories(
-  db: Readonly<Database>,
+  db: Database,
   ownerId: string,
 ): Promise<readonly CategorySummary[]> {
   const rows = await db
-    .select({
-      id: categories.id,
-      kind: categories.kind,
-      parentId: categories.parentId,
-      name: categories.name,
-      iconId: categories.iconId,
-      isProtected: categories.isProtected,
-    })
+    .select(categorySummaryColumns)
     .from(categories)
     .where(eq(categories.userId, ownerId))
     .orderBy(
@@ -49,6 +54,27 @@ export async function listCategories(
       asc(categories.id),
     );
   return rows;
+}
+
+export interface CategoryRef {
+  /** Always the session user; never a client-supplied identifier. */
+  ownerId: string;
+  id: string;
+}
+
+/** One owned category, or `null` when the owner has no category with that id. */
+export async function findCategory(
+  db: Database,
+  { ownerId, id }: Readonly<CategoryRef>,
+): Promise<CategorySummary | null> {
+  if (!isUuid(id)) {
+    return null;
+  }
+  const [category] = await db
+    .select(categorySummaryColumns)
+    .from(categories)
+    .where(and(eq(categories.id, id), eq(categories.userId, ownerId)));
+  return category ?? null;
 }
 
 /** Where a new child goes: under an existing parent, or under one created with it. */
@@ -209,10 +235,6 @@ function encodeCategorySummary(
 
 const CATEGORY_CREATION_OPERATION = "categories.create";
 
-/** PostgreSQL rejects malformed UUIDs before the application can query them. */
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * Creates a parent, a child under an existing parent, or a child together
  * with its missing parent, once per idempotency key.
@@ -287,13 +309,13 @@ async function createCategoryRows({
     let parent: CategorySummary | undefined;
     let createdParent: CategorySummary | undefined;
     if (command.parent && "existingId" in command.parent) {
-      if (!UUID_PATTERN.test(command.parent.existingId)) {
+      if (!isUuid(command.parent.existingId)) {
         return err({ code: "parent-not-found" });
       }
       // A share lock holds the parent's removal until this child lands, and a
       // removal already under way makes the parent vanish here.
       const [row] = await db
-        .select(summaryColumns)
+        .select(categorySummaryColumns)
         .from(categories)
         .where(
           and(
@@ -343,15 +365,6 @@ async function createCategoryRows({
   }
 }
 
-export const summaryColumns = {
-  id: categories.id,
-  kind: categories.kind,
-  parentId: categories.parentId,
-  name: categories.name,
-  iconId: categories.iconId,
-  isProtected: categories.isProtected,
-};
-
 interface InsertCategoryValues {
   ownerId: string;
   kind: CategoryKind;
@@ -388,7 +401,7 @@ async function insertCategory(
       iconId,
       sortOrder: (last?.sortOrder ?? 0) + 1,
     })
-    .returning(summaryColumns);
+    .returning(categorySummaryColumns);
   if (!row) {
     throw new Error("Category insert returned no row");
   }
@@ -424,32 +437,6 @@ export function isScopedNameViolation(error: unknown): boolean {
     (cause.constraint === PARENT_NAME_INDEX ||
       cause.constraint === CHILD_NAME_INDEX)
   );
-}
-
-interface DatabaseErrorShape {
-  code: string;
-  constraint: string | undefined;
-}
-
-/** Drizzle wraps driver errors; the Postgres detail is on `cause`. */
-export function databaseError(error: unknown): DatabaseErrorShape | undefined {
-  if (!(error instanceof Error)) {
-    return undefined;
-  }
-  const candidate: unknown = error.cause instanceof Error ? error.cause : error;
-  if (
-    typeof candidate !== "object" ||
-    candidate === null ||
-    !("code" in candidate) ||
-    typeof candidate.code !== "string"
-  ) {
-    return undefined;
-  }
-  const constraint =
-    "constraint" in candidate && typeof candidate.constraint === "string"
-      ? candidate.constraint
-      : undefined;
-  return { code: candidate.code, constraint };
 }
 
 export interface ProvisioningOutcome {

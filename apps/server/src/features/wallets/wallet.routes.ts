@@ -31,16 +31,17 @@ import {
   moneySchema,
   presentMoney,
 } from "../../core/http/money.js";
-import { describeProblemResponse } from "../../core/http/openapi.js";
+import {
+  describeProblem,
+  describeProblemResponse,
+} from "../../core/http/openapi.js";
 import type {
   ProblemFieldError,
-  ProblemOptions,
+  problemDetailsSchema,
 } from "../../core/http/problem-details.js";
 import {
   createProblemResponse,
   getProblemOptionsForStatus,
-  PROBLEM_MEDIA_TYPE,
-  problemDetailsSchema,
 } from "../../core/http/problem-details.js";
 import { createInvalidCommandProblem } from "../../core/http/request-validation.js";
 
@@ -201,13 +202,6 @@ function toOpeningFieldErrors(
 export const walletArchiveStateRequestSchema = z
   .strictObject({ archived: z.boolean() })
   .meta({ id: "WalletArchiveStateRequest" });
-
-function describeProblem(problem: Readonly<ProblemOptions>) {
-  return {
-    description: problem.title,
-    content: { [PROBLEM_MEDIA_TYPE]: { vSchema: problemDetailsSchema } },
-  };
-}
 
 const LOCATION_HEADER = "Location";
 const COLLECTION_PATH = "/wallets";

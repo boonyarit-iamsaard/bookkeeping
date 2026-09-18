@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./connection": "./src/connection.ts",
+    "./errors": "./src/database-error.ts",
     "./auth": "./src/auth/auth.schema.ts",
     "./wallets": "./src/wallets/wallet.schema.ts",
     "./categories": "./src/categories/category.schema.ts",

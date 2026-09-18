@@ -1,17 +1,17 @@
 import {
-  databaseError,
+  categorySummaryColumns,
   isScopedNameViolation,
-  summaryColumns,
   validateName,
 } from "@bookkeeping/application/categories";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
+import { databaseError } from "@bookkeeping/database/errors";
 import { transactions } from "@bookkeeping/database/transactions";
 import type { CategorySummary } from "@bookkeeping/domain/categories";
+import { normalizeCategoryName } from "@bookkeeping/domain/categories";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { and, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
-import { normalizeCategoryName } from "@/features/categories/category-name";
 import { isIconId } from "@/features/categories/icons";
 
 export interface ManageCategoryInput {
@@ -65,7 +65,7 @@ export async function updateCategory(
             or(eq(categories.isProtected, false), eq(categories.name, name)),
           ),
         )
-        .returning(summaryColumns);
+        .returning(categorySummaryColumns);
       if (row) {
         return ok(row);
       }
@@ -126,7 +126,7 @@ export async function removeCategory(
   try {
     return await db.transaction(async (tx) => {
       const [category] = await tx
-        .select(summaryColumns)
+        .select(categorySummaryColumns)
         .from(categories)
         .where(
           and(

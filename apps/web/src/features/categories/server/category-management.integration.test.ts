@@ -2,6 +2,7 @@ import {
   initializeDefaultCategories,
   listCategories,
 } from "@bookkeeping/application/categories";
+import { createCategoryForTest as createCategory } from "@bookkeeping/application/testing/category-fixture";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   createTestUser,
@@ -22,7 +23,6 @@ import {
   listTransactions,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
-import { createCategoryForTest as createCategory } from "@/testing/category-fixture";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();

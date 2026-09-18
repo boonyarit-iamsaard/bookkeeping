@@ -94,9 +94,9 @@ apps/server/
       env/config.ts       # Server environment schemas and runtime validation
       http/               # Request context, CORS, Problem Details, Money, OpenAPI document
     features/
-      categories/         # category reads, creation, and provisioning retry
+      categories/         # /v1/categories: list, get, create, and provisioning retry
       health/             # Health check resource
-      wallets/            # /v1/wallets: list, get, create, and replace opening balances
+      wallets/            # /v1/wallets: list, get, create, replace opening balances, archive, and delete
     server.ts             # Node entrypoint: parses env and serves the app
   scripts/build.ts        # esbuild bundle of the entrypoint and workspace packages
 ```
@@ -156,10 +156,11 @@ proof of ownership, atomicity, concurrency, and idempotency:
 ```text
 packages/application/
   src/
-    categories/           # @bookkeeping/application/categories: listCategories, initializeDefaultCategories
+    categories/           # @bookkeeping/application/categories: listCategories, findCategory, createCategory, initializeDefaultCategories
                           # @bookkeeping/application/categories/defaults: the default trees
     idempotency/          # @bookkeeping/application/idempotency: replay-safe creation
-    wallets/              # @bookkeeping/application/wallets: listWallets, findWallet
+    testing/              # @bookkeeping/application/testing/*: fixtures shared by application and server tests
+    wallets/              # @bookkeeping/application/wallets: listWallets, findWallet, createWallet, deleteWallet, ...
 ```
 
 Resource creation uses `executeIdempotentCreation` with an authenticated owner,

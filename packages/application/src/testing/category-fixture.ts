@@ -1,16 +1,16 @@
 import { randomUUID } from "node:crypto";
+import type { Database } from "@bookkeeping/database/connection";
+import type { Result } from "@bookkeeping/domain/result";
 import type {
   CreateCategoryError,
   CreateCategoryInput,
   CreateCategoryOutcome,
-} from "@bookkeeping/application/categories";
-import { createCategory } from "@bookkeeping/application/categories";
-import type { Database } from "@bookkeeping/database/connection";
-import type { Result } from "@bookkeeping/domain/result";
+} from "../categories/category";
+import { createCategory } from "../categories/category";
 
 export type CategoryFixtureInput = Omit<CreateCategoryInput, "idempotencyKey">;
 
-/** Creates an isolated category fixture through the shared application operation. */
+/** Creates a category through the shared operation under a fresh key. */
 export function createCategoryForTest(
   db: Database,
   input: Readonly<CategoryFixtureInput>,

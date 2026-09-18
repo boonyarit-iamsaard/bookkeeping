@@ -1,9 +1,7 @@
+import { insertRetainedTransferSnapshot } from "@bookkeeping/application/testing/transaction-fixture";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
-import {
-  transactionChanges,
-  transactions,
-} from "@bookkeeping/database/transactions";
+import { transactions } from "@bookkeeping/database/transactions";
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { WalletType } from "@bookkeeping/domain/wallets";
@@ -19,6 +17,7 @@ import {
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
+import { expectProblem } from "../../testing/expect-problem.js";
 import {
   walletCollectionResponseSchema,
   walletResponseSchema,
@@ -323,26 +322,6 @@ function postWallet(
   });
 }
 
-interface ExpectedProblem {
-  status: number;
-  code: string;
-}
-
-async function expectProblem(
-  response: Response,
-  expected: Readonly<ExpectedProblem>,
-) {
-  expect(response.status).toBe(expected.status);
-  expect(response.headers.get("content-type")).toContain(
-    "application/problem+json",
-  );
-  const problem = problemDetailsSchema.parse(await response.json());
-  expect(problem.code).toBe(expected.code);
-  expect(problem.type).toBe(`urn:bookkeeping:problem:${expected.code}`);
-  expect(problem.status).toBe(expected.status);
-  return problem;
-}
-
 async function listWalletItems(app: Hono<AppEnv>, cookie: string) {
   const response = await getWallets(app, cookie);
   return walletCollectionResponseSchema.parse(await response.json()).items;
@@ -612,57 +591,6 @@ async function insertTransfer(
     amount: 100n,
     transactionDate: fixture.transactionDate,
     deletedAt: fixture.deletedAt,
-  });
-}
-
-interface RetainedTransferFixture {
-  ownerId: string;
-  currentWalletId: string;
-  currentDestinationWalletId: string;
-  retainedWalletId: string;
-}
-
-async function insertRetainedTransferSnapshot(
-  db: Database,
-  fixture: Readonly<RetainedTransferFixture>,
-) {
-  const [transaction] = await db
-    .insert(transactions)
-    .values({
-      userId: fixture.ownerId,
-      type: "transfer",
-      walletId: fixture.currentWalletId,
-      destinationWalletId: fixture.currentDestinationWalletId,
-      currency: "THB",
-      amount: 100n,
-      transactionDate: "2026-09-02",
-    })
-    .returning({ id: transactions.id });
-  if (!transaction) {
-    throw new Error("Transfer insert returned no row");
-  }
-  await db.insert(transactionChanges).values({
-    userId: fixture.ownerId,
-    transactionId: transaction.id,
-    action: "edit",
-    before: {
-      type: "transfer",
-      walletId: fixture.retainedWalletId,
-      categoryId: null,
-      destinationWalletId: fixture.currentDestinationWalletId,
-      amount: "100",
-      transactionDate: "2026-09-02",
-      note: "",
-    },
-    after: {
-      type: "transfer",
-      walletId: fixture.currentWalletId,
-      categoryId: null,
-      destinationWalletId: fixture.currentDestinationWalletId,
-      amount: "100",
-      transactionDate: "2026-09-02",
-      note: "",
-    },
   });
 }
 

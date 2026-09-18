@@ -7,6 +7,7 @@ import {
   openAPIRouteHandler,
   resolver,
 } from "hono-openapi";
+import type { ProblemOptions } from "./problem-details.js";
 import {
   getProblemOptionsForStatus,
   PROBLEM_MEDIA_TYPE,
@@ -26,6 +27,14 @@ export function describeProblemResponse(
     content: {
       [PROBLEM_MEDIA_TYPE]: { schema: resolver(problemDetailsSchema) },
     },
+  };
+}
+
+/** The `describeResponse` entry for one problem a validated handler returns. */
+export function describeProblem(problem: Readonly<ProblemOptions>) {
+  return {
+    description: problem.title,
+    content: { [PROBLEM_MEDIA_TYPE]: { vSchema: problemDetailsSchema } },
   };
 }
 
