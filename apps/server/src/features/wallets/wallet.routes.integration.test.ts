@@ -1,4 +1,7 @@
-import { insertRetainedTransferSnapshot } from "@bookkeeping/application/testing/transaction-fixture";
+import {
+  insertRetainedTransferSnapshot,
+  insertTransaction,
+} from "@bookkeeping/application/testing/transaction-fixture";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { transactions } from "@bookkeeping/database/transactions";
@@ -67,6 +70,20 @@ async function insertWallet(db: Database, fixture: Readonly<WalletFixture>) {
 function getWallets(app: Hono<AppEnv>, cookie?: string) {
   return app.request(WALLETS_URL, {
     headers: { origin: TEST_CLIENT_ORIGIN, ...(cookie ? { cookie } : {}) },
+  });
+}
+
+interface WalletsAsOfRequest {
+  asOf: string;
+  cookie: string;
+}
+
+function getWalletsAsOf(
+  app: Hono<AppEnv>,
+  { asOf, cookie }: Readonly<WalletsAsOfRequest>,
+) {
+  return app.request(`${WALLETS_URL}?asOf=${encodeURIComponent(asOf)}`, {
+    headers: { origin: TEST_CLIENT_ORIGIN, cookie },
   });
 }
 
@@ -207,6 +224,77 @@ describe("GET /v1/wallets", () => {
       expect(problemDetailsSchema.parse(await response.json()).code).toBe(
         "unauthenticated",
       );
+    });
+  });
+
+  test("an as-of date reports the end-of-day balance on that date", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie, ownerId } = await signUp(app);
+      const id = await insertWallet(db, {
+        ownerId,
+        name: "Cash",
+        type: "cash",
+        openingAmount: 120_000n,
+        openingDate: "2026-09-02",
+      });
+      const savingsId = await insertWallet(db, {
+        ownerId,
+        name: "Savings",
+        type: "bank_account",
+        openingAmount: 0n,
+        openingDate: "2026-09-02",
+      });
+      await insertTransaction(db, {
+        ownerId,
+        type: "transfer",
+        walletId: id,
+        destinationWalletId: savingsId,
+        amount: 50_000n,
+        transactionDate: "2026-09-05",
+      });
+
+      async function balanceOn(asOf: string) {
+        const response = await getWalletsAsOf(app, { asOf, cookie });
+        const body = walletCollectionResponseSchema.parse(
+          await response.json(),
+        );
+        return body.items[0]?.balance.value;
+      }
+
+      // Before the opening date the wallet holds nothing; the opening
+      // amount counts from its own date, and later movements from theirs.
+      expect(await balanceOn("2026-09-01")).toBe("0.00");
+      expect(await balanceOn("2026-09-02")).toBe("1200.00");
+      expect(await balanceOn("2026-09-04")).toBe("1200.00");
+      expect(await balanceOn("2026-09-05")).toBe("700.00");
+    });
+  });
+
+  test("a malformed as-of date is a bad request", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+
+      for (const asOf of ["2026-02-30", "05-09-2026", ""]) {
+        await expectProblem(await getWalletsAsOf(app, { asOf, cookie }), {
+          status: 400,
+          code: "bad-request",
+        });
+      }
+    });
+  });
+
+  test("an unknown query parameter is a bad request", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+
+      const response = await app.request(`${WALLETS_URL}?archived=true`, {
+        headers: { origin: TEST_CLIENT_ORIGIN, cookie },
+      });
+
+      await expectProblem(response, { status: 400, code: "bad-request" });
     });
   });
 });

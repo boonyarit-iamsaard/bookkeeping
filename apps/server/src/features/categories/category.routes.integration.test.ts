@@ -25,6 +25,7 @@ import { expectProblem } from "../../testing/expect-problem.js";
 import {
   categoryCollectionResponseSchema,
   categoryResponseSchema,
+  categoryUsageCollectionResponseSchema,
   categoryUsageResponseSchema,
   provisioningOutcomeResponseSchema,
 } from "./category.routes.js";
@@ -33,6 +34,7 @@ const { withRollback, committed } = setupTestDatabase();
 
 const DEFAULTS_URL = `${TEST_API_ORIGIN}/v1/categories/defaults`;
 const CATEGORIES_URL = `${TEST_API_ORIGIN}/v1/categories`;
+const USAGE_URL = `${CATEGORIES_URL}/usage`;
 
 const sessionResponseSchema = z.object({ user: z.object({ id: z.string() }) });
 
@@ -1006,6 +1008,106 @@ describe("GET /v1/categories/{categoryId}/usage", () => {
       });
 
       await expectProblem(response, { status: 401, code: "unauthenticated" });
+    });
+  });
+});
+
+describe("GET /v1/categories/usage", () => {
+  function listUsage(app: Readonly<Hono<AppEnv>>, cookie?: string) {
+    return app.request(USAGE_URL, {
+      headers: { origin: TEST_CLIENT_ORIGIN, ...(cookie ? { cookie } : {}) },
+    });
+  }
+
+  test("counts each category's current transactions in one read", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie, ownerId } = await signUp(app);
+      const wallet = await createWalletForTest(db, { ownerId });
+      const groceries = await findListedCategory(app, {
+        name: "Groceries",
+        cookie,
+      });
+      const restaurants = await findListedCategory(app, {
+        name: "Restaurants",
+        cookie,
+      });
+      const expense = await insertCategorizedTransaction(db, {
+        ownerId,
+        walletId: wallet.id,
+        categoryId: groceries.id,
+      });
+      await insertCategorizedTransaction(db, {
+        ownerId,
+        walletId: wallet.id,
+        categoryId: groceries.id,
+        amount: 12_500n,
+      });
+      // Refunds follow their expense's category and never count.
+      await insertLinkedRefund(db, {
+        ownerId,
+        walletId: wallet.id,
+        refundOfTransactionId: expense,
+      });
+      const gone = await insertCategorizedTransaction(db, {
+        ownerId,
+        walletId: wallet.id,
+        categoryId: restaurants.id,
+      });
+      await db
+        .update(transactions)
+        .set({ deletedAt: new Date() })
+        .where(
+          and(eq(transactions.id, gone), eq(transactions.userId, ownerId)),
+        );
+
+      const response = await listUsage(app, cookie);
+      const body = categoryUsageCollectionResponseSchema.parse(
+        await response.json(),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain(
+        "application/json",
+      );
+      // A category with no current transactions is absent, not zero.
+      expect(body).toEqual({
+        items: [{ categoryId: groceries.id, transactions: 2 }],
+        page: { nextCursor: null },
+      });
+    });
+  });
+
+  test("never counts another owner's transactions", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const alice = await signUp(app);
+      const bob = await signUp(app);
+      const wallet = await createWalletForTest(db, { ownerId: alice.ownerId });
+      const groceries = await findListedCategory(app, {
+        name: "Groceries",
+        cookie: alice.cookie,
+      });
+      await insertCategorizedTransaction(db, {
+        ownerId: alice.ownerId,
+        walletId: wallet.id,
+        categoryId: groceries.id,
+      });
+
+      const body = categoryUsageCollectionResponseSchema.parse(
+        await (await listUsage(app, bob.cookie)).json(),
+      );
+
+      expect(body).toEqual({ items: [], page: { nextCursor: null } });
+    });
+  });
+
+  test("rejects an anonymous request with the standard problem", async () => {
+    await withRollback(async (db) => {
+      await expectProblem(await listUsage(createIntegrationTestApp(db)), {
+        status: 401,
+        code: "unauthenticated",
+      });
     });
   });
 });

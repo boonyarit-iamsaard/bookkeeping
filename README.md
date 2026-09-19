@@ -64,10 +64,7 @@ apps/web/
     core/
       auth/               # Next.js mount of @bookkeeping/auth, browser client, and session helper
       env/config.ts       # T3 Env schemas and runtime validation
-      database/
-        client.ts         # Server-only Drizzle client for the app
-        database.ts       # Database factory and the Database type operations accept
-        schema/           # Tables and relations, also used by Drizzle CLI
+      database/client.ts  # Server-only Drizzle client over @bookkeeping/database
     features/
       auth/               # Sign-in/sign-up forms, hooks, and sign-out button
       categories/         # Category vocabulary, behavior, and picker forms
@@ -78,9 +75,9 @@ apps/web/
       components/form/    # Reusable form feedback
       helpers/            # Helpers independent of business features
     styles/               # Global styles and fonts
+    testing/              # Fixtures shared by the app's own Vitest suites
   tests/
-    database/             # PostgreSQL test harness (setup, rollback helper)
-    e2e/                  # Playwright browser tests
+    e2e/                  # Playwright browser tests (the frozen compatibility suite)
 ```
 
 The server app mirrors the same layout:
@@ -92,14 +89,21 @@ apps/server/
       app.ts              # Hono app assembly shared by tests and the entrypoint
       auth/               # Better Auth mount and the session requirement for /v1
       env/config.ts       # Server environment schemas and runtime validation
-      http/               # Request context, CORS, Problem Details, Money, OpenAPI document
+      http/               # Request context, CORS, Problem Details, Money, idempotency, OpenAPI document
     features/
-      categories/         # /v1/categories: list, get, create, update, usage, and provisioning retry
+      categories/         # /v1/categories: list, get, create, update, usage, remove, and provisioning retry
       health/             # Health check resource
-      wallets/            # /v1/wallets: list, get, create, replace opening balances, archive, and delete
+      reports/            # /v1/reports/monthly: server-calculated monthly totals
+      transactions/       # /v1/transactions: list with cursors, get, create, update, delete, refunds, entry defaults
+      wallets/            # /v1/wallets: list with as-of balances, get, create, replace opening balances, archive, and delete
     server.ts             # Node entrypoint: parses env and serves the app
+    testing/              # Unit and integration app factories and problem assertions
   scripts/build.ts        # esbuild bundle of the entrypoint and workspace packages
 ```
+
+[docs/api-parity.md](docs/api-parity.md) maps every user-visible Next.js flow
+to the Hono operation that covers it, and records the differences that are
+deliberate.
 
 Better Auth answers under `/api/auth/*` on the API origin; every route below
 `/v1` requires the API session cookie and otherwise returns an
@@ -160,6 +164,7 @@ packages/application/
                           # @bookkeeping/application/categories/defaults: the default trees
     idempotency/          # @bookkeeping/application/idempotency: replay-safe creation
     testing/              # @bookkeeping/application/testing/*: fixtures shared by application and server tests
+    transactions/         # @bookkeeping/application/transactions: listTransactions, findTransaction, createTransaction, updateTransaction, deleteTransaction, findExpenseRefunds, getMonthlySummary, ...
     wallets/              # @bookkeeping/application/wallets: listWallets, findWallet, createWallet, deleteWallet, ...
 ```
 
@@ -233,10 +238,13 @@ The local Docker Compose infrastructure reads the root `.env.local` (see
 `.env.local.example`); its `POSTGRES_PASSWORD` must match the password embedded
 in `DATABASE_URL`.
 
-`pnpm build` sets `SKIP_ENV_VALIDATION=1` only for the build process, allowing the
-app to build without runtime secrets or a running database. Do not set that flag
-in the deployed server environment. `pnpm start` runs the production build with
-runtime validation enabled.
+`pnpm build` builds both apps and every package through Turborepo: the Next.js
+production build and the server's esbuild bundle. The web build sets
+`SKIP_ENV_VALIDATION=1` only for the build process, allowing the app to build
+without runtime secrets or a running database. Do not set that flag in the
+deployed server environment. `pnpm start` builds if needed and then runs both
+production outputs with runtime validation enabled; `pnpm start:web` and
+`pnpm start:server` run one app alone.
 
 The Hono server owns its own environment. `apps/server/src/core/env/config.ts`
 validates optional `PORT` (default `5000`) and `HOST` (default `0.0.0.0`)
@@ -256,7 +264,8 @@ Each app owns its local origin:
 
 Next.js reads its port from the CLI, not from `.env`, so the web scripts pass
 `-p 4000` explicitly; change it with `pnpm dev:web -- -p 4001` and update
-`BETTER_AUTH_URL` to match. The web `start` script uses `${PORT:-4000}` so a
+`BETTER_AUTH_URL` to match. The web `start` script names port 4000 through
+dotenvx, which leaves a `PORT` the environment already sets in place, so a
 deployment platform that injects `PORT` still wins. The server reads `HOST`
 and `PORT` from its environment; `pnpm dev:server` loads `apps/server/.env`,
 and the `dev` task passes shell `HOST` and `PORT` through Turborepo, so
@@ -290,9 +299,10 @@ changing credentials.
 ## Tests
 
 ```bash
-pnpm test          # Vitest: unit and PostgreSQL integration tests
+pnpm test          # Vitest: unit and PostgreSQL integration tests, both apps and every package
+pnpm test:watch    # The same suites in watch mode, per workspace, through Turborepo
 pnpm test:e2e      # Playwright: browser flows against an isolated app/database
-pnpm run ci        # Routine static, type, unit, integration, and contract checks
+pnpm run ci        # Routine static, type, unit, integration, and contract checks, then both app builds
 pnpm run ci:e2e    # Explicit production-build browser compatibility gate
 ```
 
@@ -396,9 +406,13 @@ pnpm build
 pnpm test:e2e
 ```
 
-`pnpm run ci` runs the routine check sequence without browser tests. The explicit
-`pnpm run ci:e2e` compatibility gate builds the application and runs the browser
-suite against the production server using `next start`.
+`pnpm run ci` runs the routine check sequence without browser tests: formatting,
+linting, every workspace type check, the package and app suites (unit,
+PostgreSQL integration, and the Hono contract tests), and then both app builds
+as a separate step, so a production build never runs beside the test suites.
+The explicit `pnpm run ci:e2e` compatibility gate builds the application and
+runs the browser suite against the production server using `next start`; run it
+on its own, never beside another heavy task.
 `pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
 caches and parallelizes per-workspace tasks across `apps/web`, `apps/server`,
 and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).

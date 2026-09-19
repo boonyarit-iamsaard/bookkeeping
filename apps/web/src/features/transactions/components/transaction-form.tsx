@@ -4,7 +4,10 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { addDays, formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney, parseMoneyInput } from "@bookkeeping/domain/money";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
-import { CREATABLE_TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
+import {
+  CREATABLE_TRANSACTION_TYPES,
+  MAX_NOTE_LENGTH,
+} from "@bookkeeping/domain/transactions";
 import { ArrowDownUp, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,7 +26,6 @@ import {
   uncategorizedFor,
   useTransactionForm,
 } from "@/features/transactions/hooks/use-transaction-form";
-import { MAX_NOTE_LENGTH } from "@/features/transactions/money-limits";
 import {
   createTransactionAction,
   updateTransactionAction,

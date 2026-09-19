@@ -7,6 +7,7 @@ import {
 } from "@bookkeeping/application/categories";
 import { createCategoryForTest as createCategory } from "@bookkeeping/application/testing/category-fixture";
 import {
+  createTransaction,
   deleteTransaction,
   findTransaction,
   getMonthlySummary,
@@ -24,7 +25,6 @@ import {
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
 import { describe, expect, test, vi } from "vitest";
-import { createTransaction } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback } = setupTestDatabase();
@@ -83,7 +83,7 @@ describe("filtered financial history", () => {
       const f = await fixture(db);
       const expense = await createTransaction(db, {
         ownerId: f.ownerId,
-        submissionKey: randomUUID(),
+        idempotencyKey: randomUUID(),
         type: "expense",
         walletId: f.cash.id,
         categoryId: f.child.id,
@@ -96,7 +96,7 @@ describe("filtered financial history", () => {
       }
       const direct = await createTransaction(db, {
         ownerId: f.ownerId,
-        submissionKey: randomUUID(),
+        idempotencyKey: randomUUID(),
         type: "expense",
         walletId: f.cash.id,
         categoryId: f.parent.id,
@@ -109,7 +109,7 @@ describe("filtered financial history", () => {
       }
       const refund = await createTransaction(db, {
         ownerId: f.ownerId,
-        submissionKey: randomUUID(),
+        idempotencyKey: randomUUID(),
         type: "refund",
         walletId: f.bank.id,
         categoryId: null,
@@ -123,7 +123,7 @@ describe("filtered financial history", () => {
       }
       const transfer = await createTransaction(db, {
         ownerId: f.ownerId,
-        submissionKey: randomUUID(),
+        idempotencyKey: randomUUID(),
         type: "transfer",
         walletId: f.cash.id,
         destinationWalletId: f.bank.id,
@@ -215,7 +215,7 @@ test("monthly totals use financial dates, own-month refunds and exact satang ind
       };
       const expense = await createTransaction(db, {
         ...base,
-        submissionKey: randomUUID(),
+        idempotencyKey: randomUUID(),
         type: "expense",
         categoryId: f.child.id,
         amount: 50_000n,
@@ -227,7 +227,7 @@ test("monthly totals use financial dates, own-month refunds and exact satang ind
         (
           await createTransaction(db, {
             ...base,
-            submissionKey: randomUUID(),
+            idempotencyKey: randomUUID(),
             type: "income",
             categoryId: f.income.id,
             amount: 100_000n,
@@ -238,7 +238,7 @@ test("monthly totals use financial dates, own-month refunds and exact satang ind
         (
           await createTransaction(db, {
             ...base,
-            submissionKey: randomUUID(),
+            idempotencyKey: randomUUID(),
             type: "refund",
             categoryId: null,
             refundOfTransactionId: expense.value.transaction.id,
@@ -250,7 +250,7 @@ test("monthly totals use financial dates, own-month refunds and exact satang ind
         (
           await createTransaction(db, {
             ...base,
-            submissionKey: randomUUID(),
+            idempotencyKey: randomUUID(),
             type: "transfer",
             currency: "THB",
             categoryId: null,
@@ -274,7 +274,7 @@ test("monthly totals use financial dates, own-month refunds and exact satang ind
         (
           await createTransaction(db, {
             ...base,
-            submissionKey: randomUUID(),
+            idempotencyKey: randomUUID(),
             type: "refund",
             categoryId: null,
             refundOfTransactionId: expense.value.transaction.id,
@@ -297,7 +297,7 @@ test("monthly totals use financial dates, own-month refunds and exact satang ind
           (
             await createTransaction(db, {
               ...base,
-              submissionKey: randomUUID(),
+              idempotencyKey: randomUUID(),
               type: "income",
               categoryId: f.income.id,
               amount: 9_999_999_999n,
@@ -335,7 +335,7 @@ test("corrections, archiving and category fallbacks replace effects across histo
     const f = await fixture(db);
     const expense = await createTransaction(db, {
       ownerId: f.ownerId,
-      submissionKey: randomUUID(),
+      idempotencyKey: randomUUID(),
       type: "expense",
       walletId: f.cash.id,
       categoryId: f.child.id,
@@ -349,7 +349,7 @@ test("corrections, archiving and category fallbacks replace effects across histo
     const expenseId = expense.value.transaction.id;
     const refund = await createTransaction(db, {
       ownerId: f.ownerId,
-      submissionKey: randomUUID(),
+      idempotencyKey: randomUUID(),
       type: "refund",
       walletId: f.bank.id,
       categoryId: null,

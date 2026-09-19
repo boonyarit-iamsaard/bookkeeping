@@ -46,6 +46,7 @@ import {
 import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
 import {
   createCommandMiddleware,
+  createQueryMiddleware,
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
 
@@ -96,6 +97,24 @@ export function presentWallet(wallet: Readonly<WalletSummary>): WalletResponse {
       currency: wallet.currency,
     }),
   };
+}
+
+/**
+ * The collection reports end-of-day balances on one Bangkok calendar date.
+ * Omitting the date reports today's, which is what the picker starts from.
+ */
+export const walletListQuerySchema = z.strictObject({
+  asOf: z.iso
+    .date()
+    .meta({ description: "End-of-day balance date, YYYY-MM-DD" })
+    .optional(),
+});
+
+const walletListQueryMiddleware = createQueryMiddleware(walletListQuerySchema);
+
+interface WalletListValidatedInput {
+  in: { query: z.input<typeof walletListQuerySchema> };
+  out: { query: z.output<typeof walletListQuerySchema> };
 }
 
 const walletParamsSchema = z.object({ walletId: z.uuid() });
@@ -261,23 +280,37 @@ export function createWalletRoutes(db: Database) {
         summary: "List wallets",
         description:
           "Every wallet the signed-in owner holds, archived ones included, " +
-          "in creation order with today's end-of-day balance in Bangkok. " +
-          "The collection is small and unpaginated; `nextCursor` is always null.",
+          "in creation order with an end-of-day balance in Bangkok. The " +
+          "optional `asOf` calendar date reports balances as they stood at " +
+          "the end of that day, counting the opening amount and every " +
+          "transaction dated on or before it; omitting it reports today's. " +
+          "A date before a wallet opened reports zero, and a malformed " +
+          "date or an unknown parameter is a bad request. The collection " +
+          "is small and unpaginated; `nextCursor` is always null.",
         tags: ["Wallets"],
-        responses: { 401: describeProblemResponse(401) },
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
       }),
+      walletListQueryMiddleware,
       // The generics are explicit because the library cannot infer the
       // authenticated environment from an async handler; without them the
       // session variable types as `never`.
       describeResponse<
         AuthenticatedEnv,
         typeof COLLECTION_PATH,
-        Input,
-        { 200: typeof walletCollectionResponseSchema }
+        WalletListValidatedInput,
+        {
+          200: typeof walletCollectionResponseSchema;
+          400: typeof problemDetailsSchema;
+        }
       >(
         async (c) => {
+          const { asOf } = c.req.valid("query");
           const wallets = await listWallets(db, {
             ownerId: c.get("session").user.id,
+            ...(asOf === undefined ? {} : { asOf }),
           });
           return c.json(
             { items: wallets.map(presentWallet), page: { nextCursor: null } },
@@ -291,6 +324,7 @@ export function createWalletRoutes(db: Database) {
               "application/json": { vSchema: walletCollectionResponseSchema },
             },
           },
+          400: describeProblem(getProblemOptionsForStatus(400)),
         },
       ),
     )

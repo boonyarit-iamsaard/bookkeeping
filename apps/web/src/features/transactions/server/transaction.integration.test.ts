@@ -2,7 +2,9 @@ import {
   initializeDefaultCategories,
   listCategories,
 } from "@bookkeeping/application/categories";
+import type { CreateTransactionInput } from "@bookkeeping/application/transactions";
 import {
+  createTransaction,
   deleteTransaction,
   findExpenseRefunds,
   findTransaction,
@@ -22,8 +24,6 @@ import {
 import { wallets } from "@bookkeeping/database/wallets";
 import { eq, inArray, sql } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
-import type { CreateTransactionInput } from "@/features/transactions/server/transaction";
-import { createTransaction } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();
@@ -76,7 +76,7 @@ describe("recording income and expenses", () => {
 
       const expense = await createTransaction(db, {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "expense",
         walletId: wallet.id,
         categoryId: groceries.id,
@@ -86,7 +86,7 @@ describe("recording income and expenses", () => {
       });
       const income = await createTransaction(db, {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "income",
         walletId: wallet.id,
         categoryId: salary.id,
@@ -124,7 +124,7 @@ describe("recording income and expenses", () => {
       const { owner, wallet, expenseUncategorized } = await setupOwner(db);
       await createTransaction(db, {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "expense",
         walletId: wallet.id,
         categoryId: expenseUncategorized.id,
@@ -152,7 +152,7 @@ describe("recording income and expenses", () => {
       function attempt(amount: bigint) {
         return createTransaction(db, {
           ownerId: owner.id,
-          submissionKey: freshKey(),
+          idempotencyKey: freshKey(),
           type: "expense",
           walletId: wallet.id,
           categoryId: expenseUncategorized.id,
@@ -185,7 +185,7 @@ describe("recording income and expenses", () => {
       const { owner, wallet, expenseUncategorized } = await setupOwner(db);
       const rejected = await createTransaction(db, {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "expense",
         walletId: wallet.id,
         categoryId: expenseUncategorized.id,
@@ -204,7 +204,7 @@ describe("recording income and expenses", () => {
       function attemptOn(date: string) {
         return createTransaction(db, {
           ownerId: owner.id,
-          submissionKey: freshKey(),
+          idempotencyKey: freshKey(),
           type: "expense",
           walletId: wallet.id,
           categoryId: expenseUncategorized.id,
@@ -237,7 +237,7 @@ describe("recording income and expenses", () => {
       function attemptOn(date: string) {
         return createTransaction(db, {
           ownerId: owner.id,
-          submissionKey: freshKey(),
+          idempotencyKey: freshKey(),
           type: "income",
           walletId: wallet.id,
           categoryId: incomeUncategorized.id,
@@ -259,7 +259,7 @@ describe("recording income and expenses", () => {
       const { owner, wallet, salary } = await setupOwner(db);
       const rejected = await createTransaction(db, {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "expense",
         walletId: wallet.id,
         categoryId: salary.id,
@@ -280,7 +280,7 @@ describe("recording income and expenses", () => {
       const bob = await setupOwner(db);
       const saved = await createTransaction(db, {
         ownerId: alice.owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "expense",
         walletId: alice.wallet.id,
         categoryId: alice.groceries.id,
@@ -295,7 +295,7 @@ describe("recording income and expenses", () => {
       expect(
         await createTransaction(db, {
           ownerId: bob.owner.id,
-          submissionKey: freshKey(),
+          idempotencyKey: freshKey(),
           type: "expense",
           walletId: alice.wallet.id,
           categoryId: bob.groceries.id,
@@ -307,7 +307,7 @@ describe("recording income and expenses", () => {
       expect(
         await createTransaction(db, {
           ownerId: bob.owner.id,
-          submissionKey: freshKey(),
+          idempotencyKey: freshKey(),
           type: "expense",
           walletId: bob.wallet.id,
           categoryId: alice.groceries.id,
@@ -334,7 +334,7 @@ describe("recording income and expenses", () => {
       const before = new Date();
       const saved = await createTransaction(db, {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "expense",
         walletId: wallet.id,
         categoryId: expenseUncategorized.id,
@@ -361,7 +361,7 @@ describe("submission receipts", () => {
       const { owner, wallet, expenseUncategorized } = await setupOwner(db);
       const input = {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "expense" as const,
         walletId: wallet.id,
         categoryId: expenseUncategorized.id,
@@ -374,7 +374,7 @@ describe("submission receipts", () => {
       const retry = await createTransaction(db, input);
       const intentional = await createTransaction(db, {
         ...input,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
       });
 
       if (!first.ok || !retry.ok || !intentional.ok) {
@@ -396,7 +396,7 @@ describe("submission receipts", () => {
       const { owner, wallet, expenseUncategorized } = await setupOwner(db);
       const input = {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "expense" as const,
         walletId: wallet.id,
         categoryId: expenseUncategorized.id,
@@ -413,7 +413,7 @@ describe("submission receipts", () => {
 
       expect(changed).toEqual({
         ok: false,
-        error: { code: "submission-conflict" },
+        error: { code: "idempotency-conflict" },
       });
       const listed = await listTransactions(db, { ownerId: owner.id });
       expect(listed.map((t) => t.amount)).toEqual([12_000n]);
@@ -425,7 +425,7 @@ describe("submission receipts", () => {
       const { owner, wallet, expenseUncategorized } = await setupOwner(db);
       const input = {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "expense" as const,
         walletId: wallet.id,
         categoryId: expenseUncategorized.id,
@@ -448,7 +448,7 @@ describe("submission receipts", () => {
     const { owner, wallet, expenseUncategorized } = await setupOwner(db);
     const input = {
       ownerId: owner.id,
-      submissionKey: freshKey(),
+      idempotencyKey: freshKey(),
       type: "expense" as const,
       walletId: wallet.id,
       categoryId: expenseUncategorized.id,
@@ -490,7 +490,7 @@ async function recordExpense({
 }: Readonly<RecordExpenseOptions>) {
   const input: CreateTransactionInput = {
     ownerId: owner.owner.id,
-    submissionKey: freshKey(),
+    idempotencyKey: freshKey(),
     type: "expense",
     walletId: owner.wallet.id,
     categoryId: owner.groceries.id,
@@ -983,7 +983,7 @@ describe("wallet transfers", () => {
       });
       const result = await createTransaction(db, {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "transfer",
         currency: "THB",
         walletId: wallet.id,
@@ -1037,7 +1037,7 @@ test("editing a transfer replaces both wallets and deletion removes both effects
     });
     const input = {
       ownerId: owner.id,
-      submissionKey: freshKey(),
+      idempotencyKey: freshKey(),
       type: "transfer",
       currency: "THB",
       walletId: wallet.id,
@@ -1111,7 +1111,7 @@ test("transfer validation rejects same wallets, foreign wallets, missing currenc
     const foreign = await setupOwner(db);
     const input = {
       ownerId: owner.id,
-      submissionKey: freshKey(),
+      idempotencyKey: freshKey(),
       type: "transfer",
       currency: "THB",
       walletId: wallet.id,
@@ -1174,7 +1174,7 @@ test("archived transfer wallets reject creation but existing edits can retain or
     });
     const input = {
       ownerId: owner.id,
-      submissionKey: freshKey(),
+      idempotencyKey: freshKey(),
       type: "transfer",
       currency: "THB",
       walletId: wallet.id,
@@ -1194,7 +1194,7 @@ test("archived transfer wallets reject creation but existing edits can retain or
       .where(eq(wallets.userId, owner.id));
     const rejected = await createTransaction(db, {
       ...input,
-      submissionKey: freshKey(),
+      idempotencyKey: freshKey(),
     });
     expect(rejected).toEqual({
       ok: false,
@@ -1243,7 +1243,7 @@ test("simultaneous duplicate transfers commit one pair of effects and changed de
   });
   const input = {
     ownerId: owner.id,
-    submissionKey: freshKey(),
+    idempotencyKey: freshKey(),
     type: "transfer",
     currency: "THB",
     walletId: wallet.id,
@@ -1270,10 +1270,10 @@ test("simultaneous duplicate transfers commit one pair of effects and changed de
       walletId: bank.id,
       destinationWalletId: wallet.id,
     }),
-  ).toEqual({ ok: false, error: { code: "submission-conflict" } });
+  ).toEqual({ ok: false, error: { code: "idempotency-conflict" } });
   const again = await createTransaction(db, {
     ...input,
-    submissionKey: freshKey(),
+    idempotencyKey: freshKey(),
   });
   expect(again.ok && again.value.replayed).toBe(false);
   expect(
@@ -1293,7 +1293,7 @@ test("receipt or history write failures roll back both transfer effects and leav
     });
     const input = {
       ownerId: owner.id,
-      submissionKey: "fail-transfer-receipt",
+      idempotencyKey: "fail-transfer-receipt",
       type: "transfer",
       currency: "THB",
       walletId: wallet.id,
@@ -1356,7 +1356,7 @@ describe("linked refunds", () => {
     const context = await setupOwner(db);
     const created = await createTransaction(db, {
       ownerId: context.owner.id,
-      submissionKey: freshKey(),
+      idempotencyKey: freshKey(),
       type: "expense",
       walletId: context.wallet.id,
       categoryId: context.groceries.id,
@@ -1380,7 +1380,7 @@ describe("linked refunds", () => {
   ) {
     return {
       ownerId: context.owner.id,
-      submissionKey: freshKey(),
+      idempotencyKey: freshKey(),
       type: "refund",
       walletId: context.wallet.id,
       categoryId: null,
@@ -1481,7 +1481,7 @@ describe("linked refunds", () => {
       const foreign = await setupExpense(db);
       const income = await createTransaction(db, {
         ownerId: owner.id,
-        submissionKey: freshKey(),
+        idempotencyKey: freshKey(),
         type: "income",
         walletId: wallet.id,
         categoryId: context.salary.id,
@@ -1803,7 +1803,7 @@ describe("linked refunds", () => {
     expect(replays.filter((r) => r.ok && !r.value.replayed)).toHaveLength(1);
     expect(await createTransaction(db, { ...duplicate, amount: 1n })).toEqual({
       ok: false,
-      error: { code: "submission-conflict" },
+      error: { code: "idempotency-conflict" },
     });
     expect(
       await findExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),

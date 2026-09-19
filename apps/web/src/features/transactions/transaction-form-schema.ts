@@ -7,13 +7,13 @@ import {
 } from "@bookkeeping/domain/dates";
 import type { MoneyParseError } from "@bookkeeping/domain/money";
 import { formatMoney, parseMoneyInput } from "@bookkeeping/domain/money";
-import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
-import * as z from "zod";
 import {
   MAX_NOTE_LENGTH,
   MAX_TRANSACTION_AMOUNT,
   MIN_TRANSACTION_AMOUNT,
-} from "@/features/transactions/money-limits";
+  TRANSACTION_TYPES,
+} from "@bookkeeping/domain/transactions";
+import * as z from "zod";
 
 const AMOUNT_MESSAGES: Record<MoneyParseError, string> = {
   empty: "Enter an amount, for example 120 or 85.50",

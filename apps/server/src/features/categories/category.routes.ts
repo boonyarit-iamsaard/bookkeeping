@@ -10,6 +10,7 @@ import {
   findCategoryUsage,
   initializeDefaultCategories,
   listCategories,
+  listCategoryUsage,
   removeCategory,
   updateCategory,
 } from "@bookkeeping/application/categories";
@@ -83,6 +84,19 @@ export const categoryUsageResponseSchema = z
   .object({ transactions: z.number().int(), children: z.number().int() })
   .meta({ id: "CategoryUsage" });
 
+/**
+ * One category's transaction count in the collection read. Child counts are
+ * absent because the caller already holds the tree they can be read from.
+ */
+export const categoryUsageEntrySchema = z
+  .object({ categoryId: z.uuid(), transactions: z.number().int() })
+  .meta({ id: "CategoryUsageEntry" });
+
+export const categoryUsageCollectionResponseSchema =
+  createCollectionResponseSchema(categoryUsageEntrySchema).meta({
+    id: "CategoryUsageCollection",
+  });
+
 export const provisioningOutcomeResponseSchema = z
   .object({
     seededKinds: z.array(z.enum(CATEGORY_KINDS)),
@@ -91,6 +105,7 @@ export const provisioningOutcomeResponseSchema = z
 
 const DEFAULTS_PATH = "/categories/defaults";
 const COLLECTION_PATH = "/categories";
+const USAGE_COLLECTION_PATH = "/categories/usage";
 const RESOURCE_PATH = "/categories/:categoryId";
 const USAGE_PATH = "/categories/:categoryId/usage";
 const LOCATION_HEADER = "Location";
@@ -281,6 +296,54 @@ export function createCategoryRoutes(db: Database) {
             content: {
               "application/json": {
                 vSchema: categoryCollectionResponseSchema,
+              },
+            },
+          },
+        },
+      ),
+    )
+    .get(
+      USAGE_COLLECTION_PATH,
+      describeRoute({
+        operationId: "listCategoryUsage",
+        summary: "List category usage",
+        description:
+          "How many current transactions each of the signed-in owner's " +
+          "categories holds, for deciding what can be removed without " +
+          "reading every category in turn. Only categories with at least " +
+          "one transaction appear; a category that is absent holds none. " +
+          "Refunds follow their expense's category and are never counted, " +
+          "and deleted transactions stop counting. The collection is " +
+          "unpaginated; `nextCursor` is always null.",
+        tags: ["Categories"],
+        responses: { 401: describeProblemResponse(401) },
+      }),
+      // Registered before the resource path so this static read is never
+      // captured by the identifier route.
+      describeResponse<
+        AuthenticatedEnv,
+        typeof USAGE_COLLECTION_PATH,
+        Input,
+        { 200: typeof categoryUsageCollectionResponseSchema }
+      >(
+        async (c) => {
+          const usage = await listCategoryUsage(db, c.get("session").user.id);
+          const items = Object.entries(usage)
+            .map(([categoryId, transactions]) => ({
+              categoryId,
+              transactions,
+            }))
+            .toSorted((left, right) =>
+              left.categoryId.localeCompare(right.categoryId),
+            );
+          return c.json({ items, page: { nextCursor: null } }, 200);
+        },
+        {
+          200: {
+            description: "Transaction counts by category",
+            content: {
+              "application/json": {
+                vSchema: categoryUsageCollectionResponseSchema,
               },
             },
           },

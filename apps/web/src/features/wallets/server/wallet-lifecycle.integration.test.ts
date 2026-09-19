@@ -3,6 +3,7 @@ import {
   listCategories,
 } from "@bookkeeping/application/categories";
 import {
+  createTransaction,
   deleteTransaction,
   findTransaction,
   updateTransaction,
@@ -21,7 +22,6 @@ import {
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
-import { createTransaction } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();
@@ -45,7 +45,7 @@ async function fixture(db: Database) {
   const other = await openWallet(db, { ...input, name: "Bank" });
   const movement = {
     ownerId: owner.id,
-    submissionKey: crypto.randomUUID(),
+    idempotencyKey: crypto.randomUUID(),
     type: "expense",
     walletId: wallet.id,
     categoryId: category.id,
@@ -143,7 +143,7 @@ describe("wallet lifecycle", () => {
       expect(
         await createTransaction(db, {
           ...movement,
-          submissionKey: crypto.randomUUID(),
+          idempotencyKey: crypto.randomUUID(),
         }),
       ).toEqual({
         ok: false,
@@ -154,7 +154,7 @@ describe("wallet lifecycle", () => {
         (
           await createTransaction(db, {
             ...movement,
-            submissionKey: crypto.randomUUID(),
+            idempotencyKey: crypto.randomUUID(),
           })
         ).ok,
       ).toBe(true);

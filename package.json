@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-    "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && turbo run types:check types:check:scripts test",
+    "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && turbo run types:check types:check:scripts test && turbo run build",
     "ci:e2e": "turbo run test:e2e:ci",
     "db:push": "pnpm --filter @bookkeeping/database db:push",
     "db:start": "docker compose --env-file .env.local up -d --wait",
@@ -25,10 +25,12 @@
     "sonar:stop": "docker compose -f docker-compose.sonar.yaml down",
     "sonar:scan": "tsx --env-file=.env.sonar scripts/sonar-scan.ts",
     "sonar:export": "tsx --env-file=.env.sonar scripts/sonar-export.ts",
-    "start": "pnpm --filter @bookkeeping/web start",
+    "start": "turbo run start",
+    "start:server": "turbo run start --filter=@bookkeeping/server",
+    "start:web": "turbo run start --filter=@bookkeeping/web",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
-    "test:watch": "pnpm --filter @bookkeeping/web test:watch",
+    "test:watch": "turbo run test:watch",
     "types:check": "turbo run types:check types:check:scripts",
     "types:check:scripts": "tsc --noEmit"
   },

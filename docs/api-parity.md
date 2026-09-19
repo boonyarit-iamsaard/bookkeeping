@@ -1,0 +1,122 @@
+# API parity inventory
+
+Every user-visible backend behavior the Next.js adapter offers today, and the
+Hono operation that covers it. This is the closing audit for the Hono backend
+and shared-package extraction: a flow is either mapped to a tested HTTP
+operation or recorded below as an explicit difference with its reason.
+
+Parity here is behavioral. It covers what a person can do through the product,
+not every exported internal helper. Both backends call the same
+`@bookkeeping/application` operations, so the question this table answers is
+whether the HTTP surface reaches all of them, not whether the rules agree.
+
+Read [ADR 0003](adr/0003-hono-application-backend.md) for the migration
+decision and `.scratch/hono-backend/spec.md` for the contract decisions the
+operations follow.
+
+## Authentication and provisioning
+
+| Next.js flow                                   | Hono operation                 | Proven by                                                                 |
+| ---------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------- |
+| Sign up (`useSignUpForm`)                      | `POST /api/auth/sign-up/email` | `apps/server/src/core/auth/gateway.integration.test.ts`                   |
+| Sign in (`useSignInForm`)                      | `POST /api/auth/sign-in/email` | Better Auth owned; gateway tests prove the mount and CSRF rejection only  |
+| Sign out (`AccountMenu`)                       | `POST /api/auth/sign-out`      | Better Auth owned; gateway tests prove the mount only                     |
+| Session behind every page                      | `GET /api/auth/get-session`    | `apps/server/src/core/auth/session.unit.test.ts`, gateway tests           |
+| Provisioning retry (`retryProvisioningAction`) | `initializeDefaultCategories`  | `apps/server/src/features/categories/category.routes.integration.test.ts` |
+
+Better Auth routes stay outside `/v1`; every `/v1` route requires the API
+session cookie. Owner identity is always derived from the session, never from
+a request body.
+
+## Wallets
+
+| Next.js flow                               | Hono operation             | Proven by                           |
+| ------------------------------------------ | -------------------------- | ----------------------------------- |
+| `/wallets` list                            | `listWallets`              | `wallet.routes.integration.test.ts` |
+| Dashboard balances on a chosen date        | `listWallets?asOf=`        | `wallet.routes.integration.test.ts` |
+| `/wallets/[id]` detail                     | `getWallet`                | `wallet.routes.integration.test.ts` |
+| `createWalletAction`                       | `createWallet`             | `wallet.routes.integration.test.ts` |
+| `manageWalletAction` — opening correction  | `replaceWalletOpening`     | `wallet.routes.integration.test.ts` |
+| `manageWalletAction` — archive and restore | `changeWalletArchiveState` | `wallet.routes.integration.test.ts` |
+| `manageWalletAction` — delete              | `deleteWallet`             | `wallet.routes.integration.test.ts` |
+
+## Categories
+
+| Next.js flow                                   | Hono operation      | Proven by                             |
+| ---------------------------------------------- | ------------------- | ------------------------------------- |
+| `/categories` tree, transaction-form pickers   | `listCategories`    | `category.routes.integration.test.ts` |
+| `/categories` entry counts per category        | `listCategoryUsage` | `category.routes.integration.test.ts` |
+| Removal pre-check for one category             | `getCategoryUsage`  | `category.routes.integration.test.ts` |
+| Single category read                           | `getCategory`       | `category.routes.integration.test.ts` |
+| `createCategoryAction`                         | `createCategory`    | `category.routes.integration.test.ts` |
+| `manageCategoryAction` — rename or change icon | `updateCategory`    | `category.routes.integration.test.ts` |
+| `manageCategoryAction` — remove with fallback  | `deleteCategory`    | `category.routes.integration.test.ts` |
+
+## Transactions
+
+| Next.js flow                                                          | Hono operation                | Proven by                                |
+| --------------------------------------------------------------------- | ----------------------------- | ---------------------------------------- |
+| `/transactions` history with date, wallet, category, and type filters | `listTransactions`            | `transaction.routes.integration.test.ts` |
+| `/transactions/[id]` detail                                           | `getTransaction`              | `transaction.routes.integration.test.ts` |
+| Refund panel on an expense                                            | `getTransactionRefunds`       | `transaction.routes.integration.test.ts` |
+| `/transactions/new` last-used wallet                                  | `getTransactionEntryDefaults` | `transaction.routes.integration.test.ts` |
+| `createTransactionAction` — income and expense                        | `createTransaction`           | `transaction.routes.integration.test.ts` |
+| `createTransactionAction` — transfer                                  | `createTransaction`           | `transaction.routes.integration.test.ts` |
+| `createTransactionAction` — linked refund                             | `createTransaction`           | `transaction.routes.integration.test.ts` |
+| `updateTransactionAction`                                             | `updateTransaction`           | `transaction.routes.integration.test.ts` |
+| `deleteTransactionAction`                                             | `deleteTransaction`           | `transaction.routes.integration.test.ts` |
+
+## Reports and operations
+
+| Next.js flow              | Hono operation      | Proven by                           |
+| ------------------------- | ------------------- | ----------------------------------- |
+| Dashboard monthly summary | `getMonthlyReport`  | `report.routes.integration.test.ts` |
+| —                         | `getHealth`         | `health.routes.unit.test.ts`        |
+| —                         | `GET /openapi.json` | `core/http/openapi.unit.test.ts`    |
+
+`getHealth` and the OpenAPI document have no Next.js counterpart; they serve
+the deployment boundary itself.
+
+## Contract coverage
+
+`apps/server/src/core/http/api-contract.integration.test.ts` drives every
+published operation over HTTP and checks each response against the schema the
+generated document names for it, then fails if the set of exercised operations
+differs from the set the document publishes. It also answers every Problem
+Details code the API produces and checks each against its documented variant.
+`core/http/openapi.unit.test.ts` fails when a registered route is undocumented,
+and `core/http/problem-details.unit.test.ts` covers every declared problem
+code, including the four the transport maps but no current operation answers.
+
+## Explicit differences
+
+These are decided, not overlooked.
+
+- **Category removal reports no reassignment summary.** `deleteCategory`
+  answers `204` with no body ([ticket 22](../.scratch/hono-backend/issues/22-remove-categories-over-http.md)).
+  The Next.js page's "N entries moved to X" message comes from the application
+  result it already holds; an HTTP client re-reads the tree and its usage. A
+  removal-outcome representation needs a real client asking for one.
+- **Transaction change history stays private.** `listTransactionChanges` backs
+  atomicity and concurrency tests, not a user-facing feature, so the spec keeps
+  it off the API.
+- **Presentation stays with the app that renders it.** Labels, the icon
+  catalog and its search, form schemas, and money formatting are client
+  concerns; the API publishes exact semantic values and lets each client
+  render them.
+- **Next.js cache invalidation has no API surface.** `revalidatePath` is how
+  the temporary adapter refreshes its own rendered pages.
+- **The API paginates where Next.js does not.** `listTransactions` returns
+  opaque cursors from its first version; the Next.js history page reads an
+  unpaginated list. The API is a superset here, not a gap.
+- **Wallet and category collections stay unpaginated.** Both are small and
+  bounded by one owner's own records.
+
+## What this does not close
+
+The Next.js app remains a working temporary adapter over the same application
+operations. It still renders with Server Components and writes with Server
+Actions rather than calling this API, and its Playwright suite remains the
+compatibility oracle for that adapter. Replacing it is the later SPA
+initiative's work, which also removes the Next.js Better Auth mount and the
+frozen browser suite.

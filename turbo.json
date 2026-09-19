@@ -15,8 +15,18 @@
       "persistent": true,
       "passThroughEnv": ["HOST", "PORT"]
     },
+    "start": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["build"],
+      "passThroughEnv": ["HOST", "PORT"]
+    },
     "//#types:check:scripts": {},
     "types:check": {},
-    "test": {}
+    "test": {},
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    }
   }
 }

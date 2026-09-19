@@ -134,6 +134,12 @@ describe("OpenAPI document", () => {
       collection.responses["200"].content["application/json"].schema.$ref,
     ).toBe("#/components/schemas/WalletCollection");
     expect(collection.responses["404"]).toBeUndefined();
+    expectProblemResponses(collection, ["400", "401"]);
+    // The as-of date is the collection's only parameter and is optional.
+    expect(collection.parameters).toEqual([
+      expect.objectContaining({ in: "query", name: "asOf" }),
+    ]);
+    expect(collection.parameters?.[0].required).toBeUndefined();
     expect(resource.operationId).toBe("getWallet");
     expect(
       resource.responses["200"].content["application/json"].schema.$ref,
@@ -233,6 +239,25 @@ describe("OpenAPI document", () => {
     expect(
       document.components.schemas.UpdateCategoryRequest.additionalProperties,
     ).toBe(false);
+  });
+
+  it("documents the category usage collection as a static read", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const operation: DocumentedOperation =
+      document.paths["/v1/categories/usage"].get;
+
+    expect(operation.operationId).toBe("listCategoryUsage");
+    expect(operation.parameters).toBeUndefined();
+    expect(
+      operation.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/CategoryUsageCollection");
+    expectProblemResponses(operation, ["401", "500"]);
+    expect(operation.responses["404"]).toBeUndefined();
+    expect(document.components.schemas.CategoryUsageEntry).toEqual(
+      expect.objectContaining({
+        required: ["categoryId", "transactions"],
+      }),
+    );
   });
 
   it("documents the category usage read", async () => {
