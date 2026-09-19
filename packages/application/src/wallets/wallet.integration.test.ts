@@ -142,6 +142,39 @@ describe("listWallets", () => {
     });
   });
 
+  test("overall balances retain satang beyond JavaScript integer precision and allow negative holdings", async () => {
+    await withRollback(async (db) => {
+      const owner = await createTestUser(db);
+      await insertWallet(db, {
+        ownerId: owner.id,
+        name: "Large",
+        type: "bank_account",
+        openingAmount: 90_071_992_547_409_919n,
+        openingDate: "2026-09-01",
+      });
+      await insertWallet(db, {
+        ownerId: owner.id,
+        name: "Negative",
+        type: "cash",
+        openingAmount: -123n,
+        openingDate: "2026-09-02",
+      });
+
+      const dated = await listWallets(db, {
+        ownerId: owner.id,
+        asOf: "2026-09-01",
+      });
+      expect(dated.map((wallet) => wallet.balance)).toEqual([
+        90_071_992_547_409_919n,
+        0n,
+      ]);
+      const current = await listWallets(db, { ownerId: owner.id });
+      expect(
+        current.reduce((total, wallet) => total + wallet.balance, 0n),
+      ).toBe(90_071_992_547_409_796n);
+    });
+  });
+
   test("another user's wallets never appear in a listing", async () => {
     await withRollback(async (db) => {
       const alice = await createTestUser(db);

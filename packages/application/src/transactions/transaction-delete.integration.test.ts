@@ -372,6 +372,90 @@ describe("deleteTransaction", () => {
     });
   });
 
+  test("receipt or history write failures roll back both transfer effects and leave no partial receipt or history", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const input = {
+        ownerId: owner.ownerId,
+        idempotencyKey: "fail-transfer-delete-history",
+        type: "transfer",
+        currency: "THB",
+        walletId: owner.cashId,
+        destinationWalletId: owner.bankId,
+        categoryId: null,
+        amount: 100_000n,
+        transactionDate: "2026-09-05",
+        note: "",
+      } satisfies CreateTransactionInput;
+      const created = await createTransaction(db, input);
+      if (!created.ok) {
+        throw new Error("Transfer failed");
+      }
+      const id = created.value.transaction.id;
+      await db.execute(
+        sql`alter table transaction_changes add constraint fail_transfer_delete_history check (transaction_id is null) not valid`,
+      );
+      await expect(
+        deleteTransaction(db, { ownerId: owner.ownerId, id }),
+      ).rejects.toThrow();
+      expect(await findTransaction(db, { ownerId: owner.ownerId, id })).toEqual(
+        created.value.transaction,
+      );
+      expect(
+        await listTransactionChanges(db, { ownerId: owner.ownerId, id }),
+      ).toEqual([]);
+      expect(
+        (await listWallets(db, { ownerId: owner.ownerId })).map(
+          (wallet) => wallet.balance,
+        ),
+      ).toEqual([900_000n, 100_000n]);
+    });
+  });
+
+  test("a failed history write rolls back refund corrections and expense guards leave no partial effect", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const expense = await recordExpense(db, owner);
+      const refund = await createTransaction(db, {
+        ownerId: owner.ownerId,
+        idempotencyKey: "fail-refund-delete-history",
+        type: "refund",
+        walletId: owner.cashId,
+        categoryId: null,
+        refundOfTransactionId: expense.id,
+        amount: 20_000n,
+        transactionDate: "2026-09-03",
+        note: "",
+      });
+      if (!refund.ok) {
+        throw new Error("Refund failed");
+      }
+      const id = refund.value.transaction.id;
+      await db.execute(
+        sql`alter table transaction_changes add constraint fail_refund_delete_history check (transaction_id is null) not valid`,
+      );
+      await expect(
+        deleteTransaction(db, { ownerId: owner.ownerId, id }),
+      ).rejects.toThrow();
+      expect(await findTransaction(db, { ownerId: owner.ownerId, id })).toEqual(
+        refund.value.transaction,
+      );
+      expect(
+        await findExpenseRefunds(db, {
+          ownerId: owner.ownerId,
+          id: expense.id,
+        }),
+      ).toEqual(
+        expect.objectContaining({ refundedTotal: 20_000n, remaining: 30_000n }),
+      );
+      expect(
+        (await listWallets(db, { ownerId: owner.ownerId })).map(
+          (wallet) => wallet.balance,
+        ),
+      ).toEqual([970_000n, 0n]);
+    });
+  });
+
   test("a refund deletion and an expense reduction serialize so the committed records stay consistent", async () => {
     const db = committed();
     const owner = await setupOwner(db);

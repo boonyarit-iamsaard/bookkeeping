@@ -1,6 +1,10 @@
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { describe, expect, test } from "vitest";
-import { removeCategory } from "../categories/category";
+import {
+  listCategories,
+  removeCategory,
+  updateCategory,
+} from "../categories/category";
 import { insertTransaction } from "../testing/transaction-fixture";
 import {
   recordExpense,
@@ -9,6 +13,11 @@ import {
   withClock,
 } from "../testing/transaction-suite-fixture";
 import {
+  listWallets,
+  replaceWalletOpening,
+  setWalletArchived,
+} from "../wallets/wallet";
+import {
   createTransaction,
   deleteTransaction,
   findExpenseRefunds,
@@ -16,6 +25,7 @@ import {
   findReplayedTransaction,
   findTransaction,
   getMonthlySummary,
+  listTransactionChanges,
   listTransactionPage,
   listTransactions,
   updateTransaction,
@@ -764,5 +774,391 @@ describe("getMonthlySummary", () => {
         transactionCount: 0,
       });
     });
+  });
+});
+
+describe("monthly wallet balances", () => {
+  test("monthly totals use financial dates, own-month refunds and exact satang independently of transfers", async () => {
+    await withClock("2026-09-30T17:00:00Z", async () => {
+      await withRollback(async (db) => {
+        const owner = await setupOwner(db);
+        const expense = await createTransaction(db, {
+          ownerId: owner.ownerId,
+          idempotencyKey: `wallet-summary-expense-${crypto.randomUUID()}`,
+          type: "expense",
+          walletId: owner.cashId,
+          categoryId: owner.childId,
+          amount: 50_000n,
+          transactionDate: "2026-09-30",
+          note: "",
+        });
+        if (!expense.ok) {
+          throw new Error("Expected the expense to save");
+        }
+        const income = await createTransaction(db, {
+          ownerId: owner.ownerId,
+          idempotencyKey: `wallet-summary-income-${crypto.randomUUID()}`,
+          type: "income",
+          walletId: owner.cashId,
+          categoryId: owner.incomeId,
+          amount: 100_000n,
+          transactionDate: "2026-09-30",
+          note: "",
+        });
+        if (!income.ok) {
+          throw new Error("Expected the income to save");
+        }
+        const refund = await createTransaction(db, {
+          ownerId: owner.ownerId,
+          idempotencyKey: `wallet-summary-refund-${crypto.randomUUID()}`,
+          type: "refund",
+          walletId: owner.cashId,
+          categoryId: null,
+          refundOfTransactionId: expense.value.transaction.id,
+          amount: 10_000n,
+          transactionDate: "2026-09-30",
+          note: "",
+        });
+        if (!refund.ok) {
+          throw new Error("Expected the refund to save");
+        }
+        const transfer = await createTransaction(db, {
+          ownerId: owner.ownerId,
+          idempotencyKey: `wallet-summary-transfer-${crypto.randomUUID()}`,
+          type: "transfer",
+          walletId: owner.cashId,
+          destinationWalletId: owner.bankId,
+          currency: "THB",
+          categoryId: null,
+          amount: 200_000n,
+          transactionDate: "2026-09-30",
+          note: "",
+        });
+        if (!transfer.ok) {
+          throw new Error("Expected the transfer to save");
+        }
+        expect(
+          (
+            await listWallets(db, {
+              ownerId: owner.ownerId,
+              asOf: "2026-09-30",
+            })
+          ).map((wallet) => wallet.balance),
+        ).toEqual([860_000n, 200_000n]);
+      });
+    });
+  });
+});
+
+describe("listTransactionChanges", () => {
+  test("another user cannot edit, delete, or read the history of a transaction", async () => {
+    await withRollback(async (db) => {
+      const alice = await setupOwner(db);
+      const bob = await setupOwner(db);
+      const transaction = await recordExpense(db, alice);
+
+      expect(
+        await listTransactionChanges(db, {
+          ownerId: bob.ownerId,
+          id: transaction.id,
+        }),
+      ).toEqual([]);
+    });
+  });
+});
+
+describe("filtered financial history", () => {
+  test("combines dates, wallet, type and category descendants; transfers match both wallets", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const expense = await createTransaction(db, {
+        ownerId: owner.ownerId,
+        idempotencyKey: `history-expense-${crypto.randomUUID()}`,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        amount: 50_000n,
+        transactionDate: "2026-09-02",
+        note: "Child expense",
+      });
+      if (!expense.ok) {
+        throw new Error("Expense rejected");
+      }
+      const direct = await createTransaction(db, {
+        ownerId: owner.ownerId,
+        idempotencyKey: `history-direct-${crypto.randomUUID()}`,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.parentId,
+        amount: 100n,
+        transactionDate: "2026-09-03",
+        note: "Direct expense",
+      });
+      if (!direct.ok) {
+        throw new Error("Expense rejected");
+      }
+      const refund = await createTransaction(db, {
+        ownerId: owner.ownerId,
+        idempotencyKey: `history-refund-${crypto.randomUUID()}`,
+        type: "refund",
+        walletId: owner.bankId,
+        categoryId: null,
+        refundOfTransactionId: expense.value.transaction.id,
+        amount: 10_000n,
+        transactionDate: "2026-09-04",
+        note: "Refund",
+      });
+      if (!refund.ok) {
+        throw new Error("Refund rejected");
+      }
+      const transfer = await createTransaction(db, {
+        ownerId: owner.ownerId,
+        idempotencyKey: `history-transfer-${crypto.randomUUID()}`,
+        type: "transfer",
+        walletId: owner.cashId,
+        destinationWalletId: owner.bankId,
+        currency: "THB",
+        categoryId: null,
+        amount: 1_000n,
+        transactionDate: "2026-09-02",
+        note: "Transfer",
+      });
+      if (!transfer.ok) {
+        throw new Error("Transfer rejected");
+      }
+      const combined = await listTransactions(db, {
+        ownerId: owner.ownerId,
+        from: "2026-09-02",
+        to: "2026-09-02",
+        walletId: owner.cashId,
+        categoryId: owner.parentId,
+        type: "expense",
+      });
+      expect(combined.map((row) => row.id)).toEqual([
+        expense.value.transaction.id,
+      ]);
+      expect(
+        (
+          await listTransactions(db, {
+            ownerId: owner.ownerId,
+            categoryId: owner.parentId,
+          })
+        ).map((row) => row.id),
+      ).toEqual([
+        refund.value.transaction.id,
+        direct.value.transaction.id,
+        expense.value.transaction.id,
+      ]);
+      expect(
+        (
+          await listTransactions(db, {
+            ownerId: owner.ownerId,
+            categoryId: owner.childId,
+            type: "refund",
+          })
+        )[0]?.refundOf?.id,
+      ).toBe(expense.value.transaction.id);
+      for (const wallet of [owner.cashId, owner.bankId]) {
+        expect(
+          (
+            await listTransactions(db, {
+              ownerId: owner.ownerId,
+              walletId: wallet,
+              type: "transfer",
+            })
+          ).map((row) => row.id),
+        ).toEqual([transfer.value.transaction.id]);
+      }
+      const foreign = await setupOwner(db);
+      expect(
+        await listTransactions(db, {
+          ownerId: foreign.ownerId,
+          walletId: owner.cashId,
+        }),
+      ).toEqual([]);
+      expect(
+        await listTransactions(db, {
+          ownerId: foreign.ownerId,
+          categoryId: owner.parentId,
+        }),
+      ).toEqual([]);
+      expect(
+        (
+          await listWallets(db, { ownerId: owner.ownerId, asOf: "2026-08-31" })
+        ).map((wallet) => wallet.balance),
+      ).toEqual([0n, 0n]);
+    });
+  });
+});
+
+test("corrections, archiving and category fallbacks replace effects across history and reports", async () => {
+  await withRollback(async (db) => {
+    const owner = await setupOwner(db);
+    const expense = await createTransaction(db, {
+      ownerId: owner.ownerId,
+      idempotencyKey: `fallback-expense-${crypto.randomUUID()}`,
+      type: "expense",
+      walletId: owner.cashId,
+      categoryId: owner.childId,
+      amount: 50_000n,
+      transactionDate: "2026-09-02",
+      note: "",
+    });
+    if (!expense.ok) {
+      throw new Error("Expense rejected");
+    }
+    const expenseId = expense.value.transaction.id;
+    const childIconId = expense.value.transaction.category?.iconId;
+    if (!childIconId) {
+      throw new Error("Expected the expense to carry a category");
+    }
+    const refund = await createTransaction(db, {
+      ownerId: owner.ownerId,
+      idempotencyKey: `fallback-refund-${crypto.randomUUID()}`,
+      type: "refund",
+      walletId: owner.bankId,
+      categoryId: null,
+      refundOfTransactionId: expenseId,
+      amount: 10_000n,
+      transactionDate: "2026-09-03",
+      note: "",
+    });
+    if (!refund.ok) {
+      throw new Error("Refund rejected");
+    }
+    expect(
+      (
+        await updateTransaction(db, {
+          ownerId: owner.ownerId,
+          id: expenseId,
+          walletId: owner.cashId,
+          categoryId: owner.childId,
+          amount: 60_000n,
+          transactionDate: "2026-09-01",
+          note: "Corrected",
+        })
+      ).ok,
+    ).toBe(true);
+    expect(
+      (
+        await replaceWalletOpening(db, {
+          ownerId: owner.ownerId,
+          id: owner.cashId,
+          openingAmount: 1_100_000n,
+          openingDate: "2026-09-01",
+        })
+      ).ok,
+    ).toBe(true);
+    expect(
+      (
+        await setWalletArchived(db, {
+          ownerId: owner.ownerId,
+          id: owner.cashId,
+          archived: true,
+        })
+      ).ok,
+    ).toBe(true);
+    expect(
+      (
+        await listWallets(db, { ownerId: owner.ownerId, asOf: "2026-09-01" })
+      ).map((wallet) => wallet.balance),
+    ).toEqual([1_040_000n, 0n]);
+    expect(
+      (
+        await updateCategory(db, {
+          ownerId: owner.ownerId,
+          id: owner.childId,
+          name: "Renamed child",
+          iconId: childIconId,
+        })
+      ).ok,
+    ).toBe(true);
+    expect(
+      (
+        await listTransactions(db, { ownerId: owner.ownerId, type: "refund" })
+      )[0]?.category?.name,
+    ).toBe("Renamed child");
+    expect(
+      (await removeCategory(db, { ownerId: owner.ownerId, id: owner.childId }))
+        .ok,
+    ).toBe(true);
+    expect(
+      await listTransactions(db, {
+        ownerId: owner.ownerId,
+        categoryId: owner.childId,
+      }),
+    ).toHaveLength(0);
+    expect(
+      await listTransactions(db, {
+        ownerId: owner.ownerId,
+        categoryId: owner.parentId,
+      }),
+    ).toHaveLength(2);
+    const siblings = (await listCategories(db, owner.ownerId)).filter(
+      (category) => category.parentId === owner.parentId,
+    );
+    for (const sibling of siblings) {
+      expect(
+        (await removeCategory(db, { ownerId: owner.ownerId, id: sibling.id }))
+          .ok,
+      ).toBe(true);
+    }
+    expect(
+      (await removeCategory(db, { ownerId: owner.ownerId, id: owner.parentId }))
+        .ok,
+    ).toBe(true);
+    const uncategorized = (await listCategories(db, owner.ownerId)).find(
+      (category) => category.kind === "expense" && category.isProtected,
+    );
+    if (!uncategorized) {
+      throw new Error("Missing Uncategorized");
+    }
+    expect(
+      await listTransactions(db, {
+        ownerId: owner.ownerId,
+        categoryId: uncategorized.id,
+      }),
+    ).toHaveLength(2);
+    expect(
+      (
+        await getMonthlySummary(db, {
+          ownerId: owner.ownerId,
+          month: "2026-09",
+        })
+      ).netExpenses,
+    ).toBe(50_000n);
+    expect(
+      (
+        await deleteTransaction(db, {
+          ownerId: owner.ownerId,
+          id: refund.value.transaction.id,
+        })
+      ).ok,
+    ).toBe(true);
+    expect(
+      (await deleteTransaction(db, { ownerId: owner.ownerId, id: expenseId }))
+        .ok,
+    ).toBe(true);
+    expect(await listTransactions(db, { ownerId: owner.ownerId })).toEqual([]);
+    expect(
+      (
+        await getMonthlySummary(db, {
+          ownerId: owner.ownerId,
+          month: "2026-09",
+        })
+      ).net,
+    ).toBe(0n);
+    expect(
+      (await listWallets(db, { ownerId: owner.ownerId })).map(
+        (wallet) => wallet.balance,
+      ),
+    ).toEqual([1_100_000n, 0n]);
+    const foreign = await setupOwner(db);
+    expect(
+      await findTransaction(db, {
+        ownerId: foreign.ownerId,
+        id: refund.value.transaction.id,
+      }),
+    ).toBeNull();
   });
 });
