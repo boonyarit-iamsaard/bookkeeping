@@ -73,3 +73,26 @@ exists; do not merge into it or change it.
 - [ ] Test count unchanged (51 across the four files); 137 in the package
 - [ ] No test body edited (reviewer spot-checks by diff of moved blocks)
 - [ ] Types and lint clean
+
+## Comments
+
+2026-09-19 (agent):
+
+- Ran `pnpm --filter @bookkeeping/application exec vitest run` — 10 files,
+  137 tests, all pass. `pnpm --filter @bookkeeping/application types:check`
+  and `pnpm lint` pass.
+- Test counts: original `grep -c "test("` on
+  `transaction.integration.test.ts` = 51. New files: create 15, update 12,
+  delete 9, reads 15 — sum 51. Vitest per-file assertion counts match
+  (15/12/9/15).
+- Byte-for-byte check: each moved describe block diffed clean against the
+  original extracted from `git show HEAD`; the helper module diffed clean
+  modulo the added `export` keyword on its declarations.
+- One deviation to flag: `transaction-reads.integration.test.ts` destructures
+  only `{ withRollback }` from `setupTestDatabase()` because no test in its
+  describes calls `committed()`; the full destructure would trip the
+  unused-variable lint. The other three files start with the prescribed
+  `const { withRollback, committed } = setupTestDatabase();` line.
+- No "Stop and ask" trigger fired. Housekeeping note: an extra `--reporter=json`
+  verification run I made created an untracked `packages/application/.vitest/`
+  artifact; deleted. The plain verify command above does not create it.
