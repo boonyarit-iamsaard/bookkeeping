@@ -15,9 +15,12 @@ import { problemDetailsSchema } from "../../core/http/problem-details.js";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
   createIntegrationTestApp,
-  signUpWithSession,
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
+import {
+  createOwnerSession,
+  createTestAuthGateway,
+} from "../../testing/create-test-auth-gateway.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { expectProblem } from "../../testing/expect-problem.js";
 import {
@@ -116,8 +119,10 @@ async function expectNotFoundProblem(response: Response) {
 describe("GET /v1/wallets", () => {
   test("lists the signed-in owner's wallets with exact money in creation order", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createOwnerSession(db);
       const bigId = await insertWallet(db, {
         ownerId,
         name: "Big",
@@ -170,8 +175,10 @@ describe("GET /v1/wallets", () => {
 
   test("an owner with no wallets receives an empty collection", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       const response = await getWallets(app, cookie);
 
@@ -185,9 +192,11 @@ describe("GET /v1/wallets", () => {
 
   test("never lists another owner's wallets", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "wallets");
-      const bob = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createOwnerSession(db);
+      const bob = await createOwnerSession(db);
       await insertWallet(db, {
         ownerId: alice.ownerId,
         name: "Alice cash",
@@ -205,7 +214,9 @@ describe("GET /v1/wallets", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await getWallets(createIntegrationTestApp(db));
+      const response = await getWallets(
+        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+      );
 
       expect(response.status).toBe(401);
       expect(problemDetailsSchema.parse(await response.json()).code).toBe(
@@ -216,8 +227,10 @@ describe("GET /v1/wallets", () => {
 
   test("an as-of date reports the end-of-day balance on that date", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createOwnerSession(db);
       const id = await insertWallet(db, {
         ownerId,
         name: "Cash",
@@ -260,8 +273,10 @@ describe("GET /v1/wallets", () => {
 
   test("a malformed as-of date is a bad request", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       for (const asOf of ["2026-02-30", "05-09-2026", ""]) {
         await expectProblem(await getWalletsAsOf(app, { asOf, cookie }), {
@@ -274,8 +289,10 @@ describe("GET /v1/wallets", () => {
 
   test("an unknown query parameter is a bad request", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       const response = await app.request(`${WALLETS_URL}?archived=true`, {
         headers: { origin: TEST_CLIENT_ORIGIN, cookie },
@@ -289,8 +306,10 @@ describe("GET /v1/wallets", () => {
 describe("GET /v1/wallets/{walletId}", () => {
   test("returns the owner's wallet with its archived instant", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createOwnerSession(db);
       const id = await insertWallet(db, {
         ownerId,
         name: "Old cash",
@@ -323,9 +342,11 @@ describe("GET /v1/wallets/{walletId}", () => {
 
   test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "wallets");
-      const bob = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createOwnerSession(db);
+      const bob = await createOwnerSession(db);
       const id = await insertWallet(db, {
         ownerId: alice.ownerId,
         name: "Alice cash",
@@ -348,9 +369,12 @@ describe("GET /v1/wallets/{walletId}", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await getWallet(createIntegrationTestApp(db), {
-        id: UNKNOWN_WALLET_ID,
-      });
+      const response = await getWallet(
+        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+        {
+          id: UNKNOWN_WALLET_ID,
+        },
+      );
 
       expect(response.status).toBe(401);
       expect(problemDetailsSchema.parse(await response.json()).code).toBe(
@@ -405,8 +429,10 @@ async function listWalletItems(app: Hono<AppEnv>, cookie: string) {
 describe("POST /v1/wallets", () => {
   test("creates the wallet and answers with its representation and location", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       const response = await postWallet(app, { cookie, idempotencyKey: "k1" });
       const wallet = walletResponseSchema.parse(await response.json());
@@ -436,8 +462,10 @@ describe("POST /v1/wallets", () => {
 
   test("a retry with the same key and payload replays the original creation", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
       const first = await postWallet(app, { cookie, idempotencyKey: "retry" });
       const original = await first.json();
 
@@ -460,8 +488,10 @@ describe("POST /v1/wallets", () => {
 
   test("the same key with a different payload conflicts and creates nothing more", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
       await postWallet(app, { cookie, idempotencyKey: "changed" });
 
       const conflict = await postWallet(app, {
@@ -480,8 +510,10 @@ describe("POST /v1/wallets", () => {
 
   test("distinct keys open distinct wallets from the same payload", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       await postWallet(app, { cookie, idempotencyKey: "one" });
       await postWallet(app, { cookie, idempotencyKey: "two" });
@@ -491,8 +523,11 @@ describe("POST /v1/wallets", () => {
   });
 
   test("concurrent retries create one wallet and answer every request alike", async () => {
-    const app = createIntegrationTestApp(committed());
-    const { cookie } = await signUpWithSession(app, "wallets");
+    const db = committed();
+    const app = createIntegrationTestApp(db, {
+      auth: createTestAuthGateway(db),
+    });
+    const { cookie } = await createOwnerSession(db);
 
     const responses = await Promise.all(
       Array.from({ length: 5 }, () =>
@@ -512,8 +547,10 @@ describe("POST /v1/wallets", () => {
 
   test("a missing, blank, or over-long Idempotency-Key is a bad request that creates nothing", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       await expectProblem(await postWallet(app, { cookie }), {
         status: 400,
@@ -533,8 +570,10 @@ describe("POST /v1/wallets", () => {
 
   test("a malformed body is rejected field by field and does not consume the key", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       const rejected = await postWallet(app, {
         cookie,
@@ -568,8 +607,10 @@ describe("POST /v1/wallets", () => {
 
   test("a well-formed command the application rejects is addressed by field", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       const rejected = await postWallet(app, {
         cookie,
@@ -591,8 +632,10 @@ describe("POST /v1/wallets", () => {
 
   test("malformed JSON is a bad request", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       await expectProblem(
         await postWallet(app, { cookie, idempotencyKey: "json", rawBody: "{" }),
@@ -603,9 +646,12 @@ describe("POST /v1/wallets", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await postWallet(createIntegrationTestApp(db), {
-        idempotencyKey: "anonymous",
-      });
+      const response = await postWallet(
+        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+        {
+          idempotencyKey: "anonymous",
+        },
+      );
 
       await expectProblem(response, { status: 401, code: "unauthenticated" });
     });
@@ -695,8 +741,10 @@ async function readWallet(
 describe("PUT /v1/wallets/{walletId}/opening", () => {
   test("replaces the opening and answers with the updated wallet", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
       const created = await createSavingsWallet(app, cookie);
 
       const response = await putWalletOpening(app, { id: created.id, cookie });
@@ -721,8 +769,10 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
 
   test("repeating the same replacement answers alike and records nothing more", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
       const created = await createSavingsWallet(app, cookie);
 
       const first = await putWalletOpening(app, { id: created.id, cookie });
@@ -743,8 +793,10 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
 
   test("a malformed body is rejected field by field", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
       const created = await createSavingsWallet(app, cookie);
 
       const rejected = await putWalletOpening(app, {
@@ -773,8 +825,10 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
 
   test("an opening the application rejects is addressed by field", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
       const created = await createSavingsWallet(app, cookie);
 
       // The money grammar already caps whole digits, so a future date is
@@ -800,8 +854,10 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
 
   test("a movement before the proposed opening, even a deleted one, is addressed to the date", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createOwnerSession(db);
       const cash = await createSavingsWallet(app, cookie);
       const bank = await createSavingsWallet(app, cookie);
       await insertTransfer(db, {
@@ -833,9 +889,11 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
 
   test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "wallets");
-      const bob = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createOwnerSession(db);
+      const bob = await createOwnerSession(db);
       const wallet = await createSavingsWallet(app, alice.cookie);
 
       for (const id of [wallet.id, UNKNOWN_WALLET_ID, "not-a-wallet"]) {
@@ -851,8 +909,10 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
 
   test("malformed JSON is a bad request", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       await expectProblem(
         await putWalletOpening(app, {
@@ -867,9 +927,12 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await putWalletOpening(createIntegrationTestApp(db), {
-        id: UNKNOWN_WALLET_ID,
-      });
+      const response = await putWalletOpening(
+        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+        {
+          id: UNKNOWN_WALLET_ID,
+        },
+      );
 
       await expectProblem(response, { status: 401, code: "unauthenticated" });
     });
@@ -901,8 +964,10 @@ function patchWallet(
 describe("PATCH /v1/wallets/{walletId}", () => {
   test("archives and answers with the updated wallet", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
       const created = await createSavingsWallet(app, cookie);
 
       const response = await patchWallet(app, { id: created.id, cookie });
@@ -922,8 +987,10 @@ describe("PATCH /v1/wallets/{walletId}", () => {
 
   test("restores by clearing the archived instant", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
       const created = await createSavingsWallet(app, cookie);
       await patchWallet(app, { id: created.id, cookie });
 
@@ -945,8 +1012,10 @@ describe("PATCH /v1/wallets/{walletId}", () => {
 
   test("repeating the same state answers alike and records nothing more", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
       const created = await createSavingsWallet(app, cookie);
 
       const first = await patchWallet(app, { id: created.id, cookie });
@@ -960,8 +1029,10 @@ describe("PATCH /v1/wallets/{walletId}", () => {
 
   test("a malformed or unrelated body is rejected field by field", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
       const created = await createSavingsWallet(app, cookie);
 
       const rejected = await patchWallet(app, {
@@ -988,9 +1059,11 @@ describe("PATCH /v1/wallets/{walletId}", () => {
 
   test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "wallets");
-      const bob = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createOwnerSession(db);
+      const bob = await createOwnerSession(db);
       const wallet = await createSavingsWallet(app, alice.cookie);
 
       for (const id of [wallet.id, UNKNOWN_WALLET_ID, "not-a-wallet"]) {
@@ -1006,8 +1079,10 @@ describe("PATCH /v1/wallets/{walletId}", () => {
 
   test("malformed JSON is a bad request", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createOwnerSession(db);
 
       await expectProblem(
         await patchWallet(app, { id: UNKNOWN_WALLET_ID, cookie, rawBody: "{" }),
@@ -1018,9 +1093,12 @@ describe("PATCH /v1/wallets/{walletId}", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await patchWallet(createIntegrationTestApp(db), {
-        id: UNKNOWN_WALLET_ID,
-      });
+      const response = await patchWallet(
+        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+        {
+          id: UNKNOWN_WALLET_ID,
+        },
+      );
 
       await expectProblem(response, { status: 401, code: "unauthenticated" });
     });
@@ -1030,8 +1108,10 @@ describe("PATCH /v1/wallets/{walletId}", () => {
 describe("DELETE /v1/wallets/{walletId}", () => {
   test("deletes an eligible wallet with no response body and makes a repeat not found", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createOwnerSession(db);
       const id = await insertWallet(db, {
         ownerId,
         name: "Disposable cash",
@@ -1051,8 +1131,10 @@ describe("DELETE /v1/wallets/{walletId}", () => {
 
   test("returns one stable conflict problem for every retained-history blocker", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createOwnerSession(db);
       const currentId = await insertWallet(db, {
         ownerId,
         name: "Current movement",
@@ -1123,9 +1205,11 @@ describe("DELETE /v1/wallets/{walletId}", () => {
 
   test("does not disclose missing or another owner's wallets", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "wallets");
-      const bob = await signUpWithSession(app, "wallets");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createOwnerSession(db);
+      const bob = await createOwnerSession(db);
       const id = await insertWallet(db, {
         ownerId: alice.ownerId,
         name: "Alice cash",
@@ -1149,9 +1233,12 @@ describe("DELETE /v1/wallets/{walletId}", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await deleteWallet(createIntegrationTestApp(db), {
-        id: UNKNOWN_WALLET_ID,
-      });
+      const response = await deleteWallet(
+        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+        {
+          id: UNKNOWN_WALLET_ID,
+        },
+      );
 
       await expectProblem(response, {
         status: 401,

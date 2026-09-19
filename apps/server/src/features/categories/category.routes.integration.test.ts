@@ -1,3 +1,4 @@
+import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import { createCategoryForTest } from "@bookkeeping/application/testing/category-fixture";
 import {
   insertCategorizedTransaction,
@@ -16,9 +17,12 @@ import { problemDetailsSchema } from "../../core/http/problem-details.js";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
   createIntegrationTestApp,
-  signUpWithSession,
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
+import {
+  createOwnerSession,
+  createTestAuthGateway,
+} from "../../testing/create-test-auth-gateway.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { expectProblem } from "../../testing/expect-problem.js";
 import {
@@ -34,6 +38,19 @@ const { withRollback, committed } = setupTestDatabase();
 const DEFAULTS_URL = `${TEST_API_ORIGIN}/v1/categories/defaults`;
 const CATEGORIES_URL = `${TEST_API_ORIGIN}/v1/categories`;
 const USAGE_URL = `${CATEGORIES_URL}/usage`;
+
+/**
+ * A fresh owner with the complete default category trees, the way sign-up's
+ * provisioning hook leaves one.
+ */
+async function createProvisionedOwner(db: Database): Promise<{
+  cookie: string;
+  ownerId: string;
+}> {
+  const { cookie, ownerId } = await createOwnerSession(db);
+  await initializeDefaultCategories(db, ownerId);
+  return { cookie, ownerId };
+}
 
 async function countCategories(db: Database, ownerId: string) {
   return (
@@ -224,8 +241,10 @@ async function expectNotFoundAlike(
 describe("POST /v1/categories", () => {
   test("creates a parent, returns its representation, and gives its location", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
 
       const response = await postCategory(app, {
         cookie,
@@ -266,8 +285,10 @@ describe("POST /v1/categories", () => {
 
   test("creates a child together with a new parent in one request", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
 
       const response = await postCategory(app, {
         cookie,
@@ -311,8 +332,10 @@ describe("POST /v1/categories", () => {
 
   test("replays a normalized payload and conflicts on a changed payload", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
       const first = await postCategory(app, {
         cookie,
         idempotencyKey: "retry",
@@ -347,8 +370,10 @@ describe("POST /v1/categories", () => {
 
   test("does not consume an idempotency key when command validation rejects it", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
 
       await expectProblem(
         await postCategory(app, {
@@ -369,9 +394,11 @@ describe("POST /v1/categories", () => {
 
   test("maps invalid, duplicate, protected, and cross-owner parents to field errors", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "defaults");
-      const bob = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createProvisionedOwner(db);
+      const bob = await createProvisionedOwner(db);
       const parentResponse = await postCategory(app, {
         cookie: alice.cookie,
         idempotencyKey: "alice-parent",
@@ -447,8 +474,10 @@ describe("POST /v1/categories", () => {
 
   test("requires a usable idempotency key", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
 
       for (const idempotencyKey of [undefined, "   ", "x".repeat(256)]) {
         await expectProblem(
@@ -461,8 +490,10 @@ describe("POST /v1/categories", () => {
 
   test("concurrent requests with one key create one category and replay it", async () => {
     const db = committed();
-    const app = createIntegrationTestApp(db);
-    const { cookie } = await signUpWithSession(app, "defaults");
+    const app = createIntegrationTestApp(db, {
+      auth: createTestAuthGateway(db),
+    });
+    const { cookie } = await createProvisionedOwner(db);
     const responses = await Promise.all(
       Array.from({ length: 5 }, () =>
         postCategory(app, { cookie, idempotencyKey: "concurrent" }),
@@ -488,8 +519,10 @@ describe("POST /v1/categories", () => {
 
   test("rejects malformed JSON and anonymous requests with standard problems", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
 
       await expectProblem(
         await postCategory(app, {
@@ -500,9 +533,12 @@ describe("POST /v1/categories", () => {
         { status: 400, code: "bad-request" },
       );
       await expectProblem(
-        await postCategory(createIntegrationTestApp(db), {
-          idempotencyKey: "anonymous",
-        }),
+        await postCategory(
+          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+          {
+            idempotencyKey: "anonymous",
+          },
+        ),
         { status: 401, code: "unauthenticated" },
       );
     });
@@ -512,9 +548,11 @@ describe("POST /v1/categories", () => {
 describe("GET /v1/categories", () => {
   test("lists the signed-in owner's ordered trees with protected metadata", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await signUpWithSession(app, "defaults");
-      const stranger = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createProvisionedOwner(db);
+      const stranger = await createProvisionedOwner(db);
 
       const response = await listCategories(app, owner.cookie);
       const collection = categoryCollectionResponseSchema.parse(
@@ -584,8 +622,10 @@ describe("GET /v1/categories", () => {
 
   test("does not provision an incomplete owner while reading", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createProvisionedOwner(db);
       await db.delete(categories).where(eq(categories.userId, ownerId));
 
       const before = await countCategories(db, ownerId);
@@ -601,7 +641,9 @@ describe("GET /v1/categories", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await listCategories(createIntegrationTestApp(db));
+      const response = await listCategories(
+        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+      );
 
       expect(response.status).toBe(401);
       expect(problemDetailsSchema.parse(await response.json()).code).toBe(
@@ -614,8 +656,10 @@ describe("GET /v1/categories", () => {
 describe("GET /v1/categories/{categoryId}", () => {
   test("returns one owned category as its tree lists it", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
       const collection = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, cookie)).json(),
       );
@@ -643,9 +687,11 @@ describe("GET /v1/categories/{categoryId}", () => {
 
   test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "defaults");
-      const bob = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createProvisionedOwner(db);
+      const bob = await createProvisionedOwner(db);
       const bobsTree = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, bob.cookie)).json(),
       );
@@ -663,9 +709,12 @@ describe("GET /v1/categories/{categoryId}", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await getCategory(createIntegrationTestApp(db), {
-        categoryId: "00000000-0000-0000-0000-000000000000",
-      });
+      const response = await getCategory(
+        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+        {
+          categoryId: "00000000-0000-0000-0000-000000000000",
+        },
+      );
 
       await expectProblem(response, { status: 401, code: "unauthenticated" });
     });
@@ -675,8 +724,10 @@ describe("GET /v1/categories/{categoryId}", () => {
 describe("PATCH /v1/categories/{categoryId}", () => {
   test("renames and re-icons in one save, leaving the tree position alone", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
       const groceries = await findListedCategory(app, {
         name: "Groceries",
         cookie,
@@ -719,8 +770,10 @@ describe("PATCH /v1/categories/{categoryId}", () => {
 
   test("lets Uncategorized change its icon but never its name", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
       const collection = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, cookie)).json(),
       );
@@ -758,8 +811,10 @@ describe("PATCH /v1/categories/{categoryId}", () => {
 
   test("maps duplicate, invalid, and unknown-field commands to field errors", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
       const groceries = await findListedCategory(app, {
         name: "Groceries",
         cookie,
@@ -831,9 +886,11 @@ describe("PATCH /v1/categories/{categoryId}", () => {
 
   test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "defaults");
-      const bob = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createProvisionedOwner(db);
+      const bob = await createProvisionedOwner(db);
       const bobsTree = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, bob.cookie)).json(),
       );
@@ -862,8 +919,10 @@ describe("PATCH /v1/categories/{categoryId}", () => {
 
   test("rejects malformed JSON and anonymous requests with standard problems", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
       const collection = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, cookie)).json(),
       );
@@ -881,9 +940,12 @@ describe("PATCH /v1/categories/{categoryId}", () => {
         { status: 400, code: "bad-request" },
       );
       await expectProblem(
-        await patchCategory(createIntegrationTestApp(db), {
-          categoryId: anyCategory.id,
-        }),
+        await patchCategory(
+          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+          {
+            categoryId: anyCategory.id,
+          },
+        ),
         { status: 401, code: "unauthenticated" },
       );
     });
@@ -893,8 +955,10 @@ describe("PATCH /v1/categories/{categoryId}", () => {
 describe("GET /v1/categories/{categoryId}/usage", () => {
   test("reports the transactions a category holds and the children under a parent", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createProvisionedOwner(db);
       const wallet = await createWalletForTest(db, { ownerId });
       const groceries = await findListedCategory(app, {
         name: "Groceries",
@@ -970,9 +1034,11 @@ describe("GET /v1/categories/{categoryId}/usage", () => {
 
   test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "defaults");
-      const bob = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createProvisionedOwner(db);
+      const bob = await createProvisionedOwner(db);
       const bobsTree = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, bob.cookie)).json(),
       );
@@ -990,9 +1056,12 @@ describe("GET /v1/categories/{categoryId}/usage", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await getCategoryUsage(createIntegrationTestApp(db), {
-        categoryId: "00000000-0000-0000-0000-000000000000",
-      });
+      const response = await getCategoryUsage(
+        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+        {
+          categoryId: "00000000-0000-0000-0000-000000000000",
+        },
+      );
 
       await expectProblem(response, { status: 401, code: "unauthenticated" });
     });
@@ -1008,8 +1077,10 @@ describe("GET /v1/categories/usage", () => {
 
   test("counts each category's current transactions in one read", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createProvisionedOwner(db);
       const wallet = await createWalletForTest(db, { ownerId });
       const groceries = await findListedCategory(app, {
         name: "Groceries",
@@ -1067,9 +1138,11 @@ describe("GET /v1/categories/usage", () => {
 
   test("never counts another owner's transactions", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "defaults");
-      const bob = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createProvisionedOwner(db);
+      const bob = await createProvisionedOwner(db);
       const wallet = await createWalletForTest(db, { ownerId: alice.ownerId });
       const groceries = await findListedCategory(app, {
         name: "Groceries",
@@ -1091,10 +1164,15 @@ describe("GET /v1/categories/usage", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      await expectProblem(await listUsage(createIntegrationTestApp(db)), {
-        status: 401,
-        code: "unauthenticated",
-      });
+      await expectProblem(
+        await listUsage(
+          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+        ),
+        {
+          status: 401,
+          code: "unauthenticated",
+        },
+      );
     });
   });
 });
@@ -1102,9 +1180,11 @@ describe("GET /v1/categories/usage", () => {
 describe("POST /v1/categories/defaults", () => {
   test("completes a signed-in owner's default set and reports what it seeded", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "defaults");
-      // Sign-up already provisioned; remove one tree to leave the owner
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createProvisionedOwner(db);
+      // The fixture provisions; remove one tree to leave the owner
       // incomplete the way an interrupted hook would.
       await db
         .delete(categories)
@@ -1132,13 +1212,12 @@ describe("POST /v1/categories/defaults", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await createIntegrationTestApp(db).request(
-        DEFAULTS_URL,
-        {
-          method: "POST",
-          headers: { origin: TEST_CLIENT_ORIGIN },
-        },
-      );
+      const response = await createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      }).request(DEFAULTS_URL, {
+        method: "POST",
+        headers: { origin: TEST_CLIENT_ORIGIN },
+      });
 
       expect(response.status).toBe(401);
       expect(problemDetailsSchema.parse(await response.json()).code).toBe(
@@ -1151,8 +1230,10 @@ describe("POST /v1/categories/defaults", () => {
     // Concurrency needs separate transactions, so this test commits; each
     // owner is fresh, so nothing else observes the rows.
     const db = committed();
-    const app = createIntegrationTestApp(db);
-    const { cookie, ownerId } = await signUpWithSession(app, "defaults");
+    const app = createIntegrationTestApp(db, {
+      auth: createTestAuthGateway(db),
+    });
+    const { cookie, ownerId } = await createProvisionedOwner(db);
     await db.delete(categories).where(eq(categories.userId, ownerId));
 
     const responses = await Promise.all(
@@ -1185,9 +1266,11 @@ describe("POST /v1/categories/defaults", () => {
 
   test("one owner's retry never touches another owner's categories", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "defaults");
-      const bob = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createProvisionedOwner(db);
+      const bob = await createProvisionedOwner(db);
       await db.delete(categories).where(eq(categories.userId, bob.ownerId));
       const aliceBefore = await countCategories(db, alice.ownerId);
 
@@ -1210,8 +1293,10 @@ describe("POST /v1/categories/defaults", () => {
 describe("DELETE /v1/categories/{categoryId}", () => {
   test("removes an unused child with no response body and makes a repeat not found", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
       const groceries = await findListedCategory(app, {
         name: "Groceries",
         cookie,
@@ -1234,8 +1319,10 @@ describe("DELETE /v1/categories/{categoryId}", () => {
 
   test("reassigns a removed child's transactions to its parent", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie, ownerId } = await createProvisionedOwner(db);
       const wallet = await createWalletForTest(db, { ownerId });
       const groceries = await findListedCategory(app, {
         name: "Groceries",
@@ -1278,8 +1365,10 @@ describe("DELETE /v1/categories/{categoryId}", () => {
 
   test("returns one stable conflict problem for protected and for a parent with children", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const { cookie } = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const { cookie } = await createProvisionedOwner(db);
       const uncategorized = await findListedCategory(app, {
         name: "Uncategorized",
         cookie,
@@ -1306,8 +1395,10 @@ describe("DELETE /v1/categories/{categoryId}", () => {
     // The race needs separate transactions, so this test commits; the owner
     // is fresh, so nothing else observes the rows.
     const db = committed();
-    const app = createIntegrationTestApp(db);
-    const { cookie, ownerId } = await signUpWithSession(app, "defaults");
+    const app = createIntegrationTestApp(db, {
+      auth: createTestAuthGateway(db),
+    });
+    const { cookie, ownerId } = await createProvisionedOwner(db);
     const wallet = await createWalletForTest(db, { ownerId });
     const foodAndDrink = await findListedCategory(app, {
       name: "Food & Drink",
@@ -1354,9 +1445,11 @@ describe("DELETE /v1/categories/{categoryId}", () => {
 
   test("does not disclose missing or another owner's categories", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const alice = await signUpWithSession(app, "defaults");
-      const bob = await signUpWithSession(app, "defaults");
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const alice = await createProvisionedOwner(db);
+      const bob = await createProvisionedOwner(db);
       const groceries = await findListedCategory(app, {
         name: "Groceries",
         cookie: alice.cookie,
@@ -1379,9 +1472,12 @@ describe("DELETE /v1/categories/{categoryId}", () => {
 
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
-      const response = await deleteCategory(createIntegrationTestApp(db), {
-        categoryId: "00000000-0000-0000-0000-000000000000",
-      });
+      const response = await deleteCategory(
+        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+        {
+          categoryId: "00000000-0000-0000-0000-000000000000",
+        },
+      );
 
       await expectProblem(response, {
         status: 401,

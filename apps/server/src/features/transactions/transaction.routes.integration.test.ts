@@ -14,9 +14,12 @@ import type * as z from "zod";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
   createIntegrationTestApp,
-  signUpWithSession,
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
+import {
+  createOwnerSession,
+  createTestAuthGateway,
+} from "../../testing/create-test-auth-gateway.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { expectProblem } from "../../testing/expect-problem.js";
 import { walletCollectionResponseSchema } from "../wallets/wallet.routes.js";
@@ -75,15 +78,13 @@ interface OwnerFixture {
 
 interface OwnerRequest {
   db: Database;
-  label: string;
 }
 
 /** A fresh owner with two wallets and the default expense tree to file under. */
-async function createOwner(
-  app: Hono<AppEnv>,
-  { db, label }: Readonly<OwnerRequest>,
-): Promise<OwnerFixture> {
-  const { cookie, ownerId } = await signUpWithSession(app, label);
+async function createOwner({
+  db,
+}: Readonly<OwnerRequest>): Promise<OwnerFixture> {
+  const { cookie, ownerId } = await createOwnerSession(db);
   await initializeDefaultCategories(db, ownerId);
   const cashId = await insertWallet(db, {
     ownerId,
@@ -297,8 +298,10 @@ function deleteTransaction(
 describe("POST /v1/transactions", () => {
   test("creates a transfer without category or refund fields and changes both balances", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "transfer-create" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const response = await postTransaction(app, {
         cookie: owner.cookie,
         idempotencyKey: "transfer-create",
@@ -353,8 +356,10 @@ describe("POST /v1/transactions", () => {
   });
   test("replays a transfer and conflicts when its payload changes", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "transfer-retry" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const body = {
         ...transferBody(owner),
         amount: { value: "123.4", currency: "THB" },
@@ -419,15 +424,11 @@ describe("POST /v1/transactions", () => {
 
   test("rejects invalid transfer shapes and maps ownership failures", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, {
-        db,
-        label: "transfer-validation",
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
       });
-      const foreign = await createOwner(app, {
-        db,
-        label: "transfer-validation-foreign",
-      });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
       const body = transferBody(owner);
 
       const missingDestination = await expectProblem(
@@ -561,8 +562,10 @@ describe("POST /v1/transactions", () => {
 
   test("creates income and expense details with semantic money and locations", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "create-details" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expenseResponse = await postTransaction(app, {
         cookie: owner.cookie,
         idempotencyKey: "expense-create",
@@ -622,8 +625,10 @@ describe("POST /v1/transactions", () => {
 
   test("replays normalized money and the original snapshot, and conflicts on a changed payload", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "create-retry" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const originalBody = {
         ...expenseBody(owner),
         amount: { value: "123.4", currency: "THB" },
@@ -679,8 +684,10 @@ describe("POST /v1/transactions", () => {
 
   test("does not consume a key after application validation and maps field failures", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "create-validation" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const base = expenseBody(owner);
       const invalidDate = await expectProblem(
         await postTransaction(app, {
@@ -752,12 +759,11 @@ describe("POST /v1/transactions", () => {
 
   test("rejects foreign, archived, and wrong-tree resources", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "create-resources" });
-      const foreign = await createOwner(app, {
-        db,
-        label: "create-resources-foreign",
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
       });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
       const wallet = await expectProblem(
         await postTransaction(app, {
           cookie: owner.cookie,
@@ -812,8 +818,10 @@ describe("POST /v1/transactions", () => {
 
   test("requires authentication, a usable idempotency key, and valid JSON", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "create-boundary" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       for (const idempotencyKey of [undefined, "   ", "x".repeat(256)]) {
         await expectProblem(
           await postTransaction(app, {
@@ -833,10 +841,13 @@ describe("POST /v1/transactions", () => {
         { status: 400, code: "bad-request" },
       );
       await expectProblem(
-        await postTransaction(createIntegrationTestApp(db), {
-          idempotencyKey: "anonymous",
-          body: expenseBody(owner),
-        }),
+        await postTransaction(
+          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+          {
+            idempotencyKey: "anonymous",
+            body: expenseBody(owner),
+          },
+        ),
         { status: 401, code: "unauthenticated" },
       );
     });
@@ -844,8 +855,10 @@ describe("POST /v1/transactions", () => {
 
   test("creates a full refund with its expense link and inherited category", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "refund-create" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -936,8 +949,10 @@ describe("POST /v1/transactions", () => {
 
   test("refunds part of an expense to an alternate wallet and tracks what remains", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "refund-partial" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -1013,12 +1028,11 @@ describe("POST /v1/transactions", () => {
 
   test("rejects invalid refund shapes and maps refund failures", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "refund-validation" });
-      const foreign = await createOwner(app, {
-        db,
-        label: "refund-validation-foreign",
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
       });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -1228,8 +1242,10 @@ describe("POST /v1/transactions", () => {
 
   test("replays a refund and conflicts when its payload changes", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "refund-retry" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -1299,8 +1315,10 @@ describe("POST /v1/transactions", () => {
 
   test("concurrent refund requests cannot exceed the expense", async () => {
     const db = committed();
-    const app = createIntegrationTestApp(db);
-    const owner = await createOwner(app, { db, label: "refund-concurrent" });
+    const app = createIntegrationTestApp(db, {
+      auth: createTestAuthGateway(db),
+    });
+    const owner = await createOwner({ db });
     const expense = transactionResponseSchema.parse(
       await (
         await postTransaction(app, {
@@ -1350,8 +1368,10 @@ describe("POST /v1/transactions", () => {
 
   test("concurrent requests with one key create one transaction and replay it", async () => {
     const db = committed();
-    const app = createIntegrationTestApp(db);
-    const owner = await createOwner(app, { db, label: "create-concurrent" });
+    const app = createIntegrationTestApp(db, {
+      auth: createTestAuthGateway(db),
+    });
+    const owner = await createOwner({ db });
     const responses = await Promise.all(
       Array.from({ length: 5 }, () =>
         postTransaction(app, {
@@ -1374,8 +1394,10 @@ describe("POST /v1/transactions", () => {
 
   test("concurrent transfer requests move money exactly once", async () => {
     const db = committed();
-    const app = createIntegrationTestApp(db);
-    const owner = await createOwner(app, { db, label: "transfer-concurrent" });
+    const app = createIntegrationTestApp(db, {
+      auth: createTestAuthGateway(db),
+    });
+    const owner = await createOwner({ db });
     const responses = await Promise.all(
       Array.from({ length: 5 }, () =>
         postTransaction(app, {
@@ -1418,8 +1440,10 @@ describe("POST /v1/transactions", () => {
 describe("PUT /v1/transactions/{transactionId}", () => {
   test("corrects an expense with exact money, wallet, category, and date", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "update-expense" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -1487,8 +1511,10 @@ describe("PUT /v1/transactions/{transactionId}", () => {
 
   test("succeeds without effect when the update changes nothing", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "update-noop" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -1528,8 +1554,10 @@ describe("PUT /v1/transactions/{transactionId}", () => {
 
   test("corrects a transfer's wallets and amount", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "update-transfer" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const transfer = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -1597,8 +1625,10 @@ describe("PUT /v1/transactions/{transactionId}", () => {
 
   test("corrects a refund inside its expense, keeping the link and inherited category", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "update-refund" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -1773,8 +1803,10 @@ describe("PUT /v1/transactions/{transactionId}", () => {
 
   test("an expense keeps covering its refunds in amount and date", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "update-refunded" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -1881,8 +1913,10 @@ describe("PUT /v1/transactions/{transactionId}", () => {
 
   test("an edit keeps its archived wallet but cannot move to a different archived one", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "update-retain" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -1946,11 +1980,10 @@ describe("PUT /v1/transactions/{transactionId}", () => {
 
   test("a transfer edit keeps or swaps its archived wallets but rejects a different archived destination", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, {
-        db,
-        label: "update-retain-transfer",
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
       });
+      const owner = await createOwner({ db });
       const transfer = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -2041,12 +2074,11 @@ describe("PUT /v1/transactions/{transactionId}", () => {
 
   test("maps invalid update input to field errors", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "update-validation" });
-      const foreign = await createOwner(app, {
-        db,
-        label: "update-validation-foreign",
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
       });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -2128,12 +2160,11 @@ describe("PUT /v1/transactions/{transactionId}", () => {
 
   test("unknown, cross-owner, malformed, and deleted identifiers are not found alike", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "update-hidden" });
-      const foreign = await createOwner(app, {
-        db,
-        label: "update-hidden-foreign",
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
       });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -2173,8 +2204,10 @@ describe("PUT /v1/transactions/{transactionId}", () => {
 
   test("requires authentication and valid JSON", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "update-boundary" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -2185,10 +2218,13 @@ describe("PUT /v1/transactions/{transactionId}", () => {
         ).json(),
       );
       await expectProblem(
-        await putTransaction(createIntegrationTestApp(db), {
-          id: expense.id,
-          body: updateExpenseBody(owner),
-        }),
+        await putTransaction(
+          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+          {
+            id: expense.id,
+            body: updateExpenseBody(owner),
+          },
+        ),
         { status: 401, code: "unauthenticated" },
       );
       await expectProblem(
@@ -2206,8 +2242,10 @@ describe("PUT /v1/transactions/{transactionId}", () => {
 describe("DELETE /v1/transactions/{transactionId}", () => {
   test("deletes an eligible transaction with no response body and repeats without a second history entry", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "delete-eligible" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -2267,8 +2305,10 @@ describe("DELETE /v1/transactions/{transactionId}", () => {
 
   test("an expense with linked refunds stays and answers one stable conflict problem", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "delete-blocked" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -2321,12 +2361,11 @@ describe("DELETE /v1/transactions/{transactionId}", () => {
 
   test("does not disclose missing, another owner's, or malformed identifiers", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "delete-hidden" });
-      const foreign = await createOwner(app, {
-        db,
-        label: "delete-hidden-foreign",
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
       });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -2358,9 +2397,12 @@ describe("DELETE /v1/transactions/{transactionId}", () => {
   test("requires authentication", async () => {
     await withRollback(async (db) => {
       await expectProblem(
-        await deleteTransaction(createIntegrationTestApp(db), {
-          id: UNKNOWN_TRANSACTION_ID,
-        }),
+        await deleteTransaction(
+          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
+          {
+            id: UNKNOWN_TRANSACTION_ID,
+          },
+        ),
         { status: 401, code: "unauthenticated" },
       );
     });
@@ -2370,8 +2412,10 @@ describe("DELETE /v1/transactions/{transactionId}", () => {
 describe("GET /v1/transactions", () => {
   test("pages ties in deterministic order and ignores inserts before the cursor", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "list-page" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const recordedAt = new Date("2026-09-05T03:07:08.123Z");
       const oldestId = await insertTransaction(db, {
         ownerId: owner.ownerId,
@@ -2435,12 +2479,11 @@ describe("GET /v1/transactions", () => {
 
   test("applies date, wallet, category, and type filters without leaking owners", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "list-filters" });
-      const foreign = await createOwner(app, {
-        db,
-        label: "list-filters-foreign",
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
       });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
       const expenseId = await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "expense",
@@ -2518,8 +2561,10 @@ describe("GET /v1/transactions", () => {
 
   test("rejects invalid or mismatched cursors, caps limits, and returns empty pages explicitly", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "list-validation" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       for (let index = 0; index < 101; index += 1) {
         await insertTransaction(db, {
           ownerId: owner.ownerId,
@@ -2572,7 +2617,9 @@ describe("GET /v1/transactions", () => {
 
   test("requires authentication", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
       await expectProblem(await listTransactions(app), {
         status: 401,
         code: "unauthenticated",
@@ -2584,8 +2631,10 @@ describe("GET /v1/transactions", () => {
 describe("GET /v1/transactions/{transactionId}", () => {
   test("presents an expense with exact money, calendar date, recording instant, wallet, and category tree", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "detail" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const id = await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "expense",
@@ -2631,8 +2680,10 @@ describe("GET /v1/transactions/{transactionId}", () => {
 
   test("presents a transfer with its destination wallet and a refund with its expense link", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "links" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expenseId = await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "expense",
@@ -2693,9 +2744,11 @@ describe("GET /v1/transactions/{transactionId}", () => {
 
   test("unknown, cross-owner, malformed, and deleted identifiers are not found alike", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "hidden" });
-      const foreign = await createOwner(app, { db, label: "hidden-foreign" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
       const id = await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "expense",
@@ -2729,8 +2782,10 @@ describe("GET /v1/transactions/{transactionId}", () => {
 describe("GET /v1/transactions/{transactionId}/refunds", () => {
   test("totals an expense's refunds with the refundable remainder, oldest date first", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "refunds" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expenseId = await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "expense",
@@ -2798,8 +2853,10 @@ describe("GET /v1/transactions/{transactionId}/refunds", () => {
 
   test("an expense without refunds has an empty list and the full remainder", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "unrefunded" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const expenseId = await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "expense",
@@ -2826,12 +2883,11 @@ describe("GET /v1/transactions/{transactionId}/refunds", () => {
 
   test("only a current owned expense has an allowance; everything else is not found alike", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "allowance" });
-      const foreign = await createOwner(app, {
-        db,
-        label: "allowance-foreign",
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
       });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
       const expenseId = await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "expense",
@@ -2895,8 +2951,10 @@ describe("GET /v1/transactions/{transactionId}/refunds", () => {
 describe("GET /v1/transactions/entry-defaults", () => {
   test("names the most recently recorded wallet for the entry form", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "defaults" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "expense",
@@ -2924,9 +2982,11 @@ describe("GET /v1/transactions/entry-defaults", () => {
 
   test("ignores deleted transactions and leaves a fresh owner without a default", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "fresh" });
-      const foreign = await createOwner(app, { db, label: "fresh-foreign" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
 
       expect(
         transactionEntryDefaultsResponseSchema.parse(
@@ -2958,8 +3018,10 @@ describe("GET /v1/transactions/entry-defaults", () => {
 describe("unauthenticated transaction reads", () => {
   test("every read requires authentication", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "anon" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const id = await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "expense",

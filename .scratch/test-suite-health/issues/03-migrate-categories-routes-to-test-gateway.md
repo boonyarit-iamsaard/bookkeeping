@@ -56,3 +56,56 @@ runs several times faster with identical assertions.
 - [ ] Suite uses the test gateway; 35 tests pass; no assertion changed
 - [ ] Duration before/after recorded in Comments
 - [ ] Types and lint clean
+
+## Comments
+
+Agent run, 2026-09-19.
+
+**What was built**
+
+- Same pattern as ticket 01: every app creation passes
+  `{ auth: createTestAuthGateway(db) }`, and every
+  `signUpWithSession(app, "defaults")` became a new local wrapper
+  `createProvisionedOwner(db)` returning the same `{ cookie, ownerId }` shape.
+- **Why a wrapper instead of bare `createOwnerSession`:** sign-up provisions
+  default categories through the Better Auth database hook
+  (`packages/auth/src/config.ts`, `databaseHooks.user.create.after` →
+  `initializeDefaultCategories`), which `createTestUser` does not do. This
+  suite (unlike wallets/transactions) never provisions explicitly — its tree
+  listings and defaults-retry tests depend on the provisioned set. The wrapper
+  calls `createOwnerSession(db)` + `initializeDefaultCategories(db, ownerId)`,
+  exactly what the hook did. No assertion changed.
+- One setup comment updated for truthfulness ("Sign-up already provisioned" →
+  "The fixture provisions") in the defaults-retry test; no code or assertion
+  in that test changed.
+- No test in this file has the managed auth routes as its subject (sign-up,
+  sign-in, get-session), so no second real-auth app instance was needed.
+- No test, assertion, or test order was touched; verified by diffing the
+  assertion lists before/after (35 identical full names).
+
+**What I ran**
+
+- This file alone before (change stashed) and after, both with
+  `vitest run --reporter=json`: 35/35 pass both ways; sum of test durations
+  11.55 s → 6.20 s (330 → 177 ms/test, ≈ 1.9×). facts.md's 9.5 s file time used
+  a different measurement, so I re-measured before with the same method.
+  In the green full-suite JSON run
+  (`--reporter=json --outputFile=/tmp/server.json`), this file's window is
+  9.10 s (before per facts.md: 9.5 s). The remaining cost sits in the tests'
+  own work (concurrency commits and the multi-request DELETE round trips),
+  not in owner provisioning.
+- Full server suite: 209/209 pass (one earlier run had two 5 s timeouts under
+  machine load — the untouched `api-contract` test and one concurrency test
+  here; an immediate re-run was green. Same flake ticket 01 flagged).
+- `pnpm --filter @bookkeeping/server types:check` — clean. `pnpm lint` —
+  clean. `biome check --write` on the touched file.
+
+**Unsure about / notes**
+
+- The wrapper addition goes slightly beyond the literal "use
+  `createOwnerSession(db)`" step; without the provisioning replication four
+  tests (tree listing, both defaults-retry tests, and the incomplete-owner
+  read) would have failed because `createTestUser` inserts no categories.
+  Flagging for the reviewer; no stop-and-ask trigger seemed to apply (no test
+  depends on real cookie format or expiry, and the diff touches only this
+  file).
