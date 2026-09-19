@@ -1048,6 +1048,63 @@ interface ExpenseGuardCheck {
 }
 
 /**
+ * Soft-deletes a transaction: it leaves lists, detail, and every balance,
+ * while the row and its receipts stay so a late create retry confirms the
+ * original outcome instead of recreating it. The internal `delete` history
+ * is written in the same transaction as the soft deletion. Repeating a
+ * deletion is the same outcome, without new history. An expense keeps its
+ * row while any of its refunds still count, and the blocking refunds are
+ * returned so a client can remove them first.
+ */
+export type DeleteTransactionError =
+  /** Also covers another owner's record and an unknown identifier. */
+  | { code: "transaction-not-found" }
+  /** An expense keeps its row while any of these refunds still count. */
+  | { code: "refunds-exist"; refunds: readonly RefundSummary[] };
+
+export async function deleteTransaction(
+  db: Database,
+  { ownerId, id }: Readonly<TransactionRef>,
+): Promise<Result<{ id: string }, DeleteTransactionError>> {
+  let found = false;
+  let blocking: readonly RefundSummary[] = [];
+  await db.transaction(async (tx) => {
+    const current = await lockCurrentTransaction(tx, { ownerId, id });
+    if (!current) {
+      return;
+    }
+    found = true;
+    if (current.deletedAt) {
+      return;
+    }
+    if (current.type === "expense") {
+      blocking = await currentRefundsOf(tx, current.id);
+      if (blocking.length > 0) {
+        return;
+      }
+    }
+    await tx
+      .update(transactions)
+      .set({ deletedAt: new Date() })
+      .where(eq(transactions.id, current.id));
+    await recordChange(tx, {
+      ownerId,
+      transactionId: current.id,
+      action: "delete",
+      before: snapshotOf(current),
+      after: null,
+    });
+  });
+  if (!found) {
+    return err({ code: "transaction-not-found" });
+  }
+  if (blocking.length > 0) {
+    return err({ code: "refunds-exist", refunds: blocking });
+  }
+  return ok({ id });
+}
+
+/**
  * With the expense locked, checks that its new amount still covers every
  * linked refund and that no refund would come to predate it.
  */

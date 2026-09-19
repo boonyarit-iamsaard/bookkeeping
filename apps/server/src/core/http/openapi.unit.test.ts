@@ -398,6 +398,8 @@ describe("OpenAPI document", () => {
       document.paths["/v1/transactions/{transactionId}"].get;
     const update: DocumentedOperation =
       document.paths["/v1/transactions/{transactionId}"].put;
+    const remove: DocumentedOperation =
+      document.paths["/v1/transactions/{transactionId}"].delete;
     const refunds: DocumentedOperation =
       document.paths["/v1/transactions/{transactionId}/refunds"].get;
     const defaults: DocumentedOperation =
@@ -555,6 +557,21 @@ describe("OpenAPI document", () => {
       refunds.responses["200"].content["application/json"].schema.$ref,
     ).toBe("#/components/schemas/TransactionRefunds");
     expectProblemResponses(refunds, ["401", "404"]);
+
+    expect(remove.operationId).toBe("deleteTransaction");
+    expect(remove.parameters).toEqual([
+      expect.objectContaining({
+        in: "path",
+        name: "transactionId",
+        required: true,
+      }),
+    ]);
+    expect(remove.requestBody).toBeUndefined();
+    expect(remove.responses["204"]).toEqual(
+      expect.objectContaining({ description: "The transaction was deleted" }),
+    );
+    expect(remove.responses["204"]).not.toHaveProperty("content");
+    expectProblemResponses(remove, ["401", "404", "409"]);
 
     expect(defaults.operationId).toBe("getTransactionEntryDefaults");
     expect(

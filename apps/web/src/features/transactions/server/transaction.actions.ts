@@ -2,10 +2,12 @@
 
 import type {
   CreateTransactionError,
+  DeleteTransactionError,
   UpdateTransactionError,
 } from "@bookkeeping/application/transactions";
 import {
   createTransaction,
+  deleteTransaction,
   updateTransaction,
 } from "@bookkeeping/application/transactions";
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
@@ -18,8 +20,6 @@ import { redirect } from "next/navigation";
 import * as z from "zod";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
-import type { DeleteTransactionError } from "@/features/transactions/server/transaction";
-import { deleteTransaction } from "@/features/transactions/server/transaction";
 import {
   createTransactionSubmissionSchema,
   updateTransactionSubmissionSchema,

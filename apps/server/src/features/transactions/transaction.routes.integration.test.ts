@@ -291,6 +291,21 @@ function putTransaction(
   });
 }
 
+interface DeleteTransactionRequest {
+  id: string;
+  cookie?: string;
+}
+
+function deleteTransaction(
+  app: Hono<AppEnv>,
+  { id, cookie }: Readonly<DeleteTransactionRequest>,
+) {
+  return app.request(`${TRANSACTIONS_URL}/${id}`, {
+    method: "DELETE",
+    headers: { origin: TEST_CLIENT_ORIGIN, ...(cookie ? { cookie } : {}) },
+  });
+}
+
 describe("POST /v1/transactions", () => {
   test("creates a transfer without category or refund fields and changes both balances", async () => {
     await withRollback(async (db) => {
@@ -2195,6 +2210,170 @@ describe("PUT /v1/transactions/{transactionId}", () => {
           rawBody: "{",
         }),
         { status: 400, code: "bad-request" },
+      );
+    });
+  });
+});
+
+describe("DELETE /v1/transactions/{transactionId}", () => {
+  test("deletes an eligible transaction with no response body and repeats without a second history entry", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "delete-eligible" });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "delete-eligible",
+            body: expenseBody(owner),
+          })
+        ).json(),
+      );
+
+      const response = await deleteTransaction(app, {
+        id: expense.id,
+        cookie: owner.cookie,
+      });
+
+      expect(response.status).toBe(204);
+      expect(response.headers.get("content-type")).toBeNull();
+      expect(await response.text()).toBe("");
+      await expectProblem(
+        await getTransaction(app, { id: expense.id, cookie: owner.cookie }),
+        {
+          status: 404,
+          code: "not-found",
+        },
+      );
+      expect(
+        await listTransactionChanges(db, {
+          ownerId: owner.ownerId,
+          id: expense.id,
+        }),
+      ).toEqual([
+        expect.objectContaining({
+          action: "delete",
+          before: expect.objectContaining({ amount: "12345" }),
+          after: null,
+        }),
+      ]);
+
+      const wallet = walletCollectionResponseSchema
+        .parse(await (await listWallets(app, owner.cookie)).json())
+        .items.find((entry) => entry.id === owner.cashId);
+      expect(wallet?.balance).toEqual({ value: "10000.00", currency: "THB" });
+
+      // Repeating the deletion is the same outcome, not a second entry.
+      expect(
+        (await deleteTransaction(app, { id: expense.id, cookie: owner.cookie }))
+          .status,
+      ).toBe(204);
+      expect(
+        await listTransactionChanges(db, {
+          ownerId: owner.ownerId,
+          id: expense.id,
+        }),
+      ).toHaveLength(1);
+    });
+  });
+
+  test("an expense with linked refunds stays and answers one stable conflict problem", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "delete-blocked" });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "delete-blocked-expense",
+            body: expenseBody(owner),
+          })
+        ).json(),
+      );
+      const refund = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "delete-blocked-refund",
+            body: refundBody(owner, expense.id),
+          })
+        ).json(),
+      );
+
+      await expectProblem(
+        await deleteTransaction(app, { id: expense.id, cookie: owner.cookie }),
+        { status: 409, code: "conflict" },
+      );
+      // The blocked expense keeps its detail, its refunds, and its effects.
+      expect(
+        (await getTransaction(app, { id: expense.id, cookie: owner.cookie }))
+          .status,
+      ).toBe(200);
+
+      // Deleting the refund frees the expense.
+      expect(
+        (await deleteTransaction(app, { id: refund.id, cookie: owner.cookie }))
+          .status,
+      ).toBe(204);
+      expect(
+        (await deleteTransaction(app, { id: expense.id, cookie: owner.cookie }))
+          .status,
+      ).toBe(204);
+      const wallets = walletCollectionResponseSchema.parse(
+        await (await listWallets(app, owner.cookie)).json(),
+      );
+      expect(
+        wallets.items.map((wallet) => [wallet.name, wallet.balance.value]),
+      ).toEqual([
+        ["Cash", "10000.00"],
+        ["Bank", "0.00"],
+      ]);
+    });
+  });
+
+  test("does not disclose missing, another owner's, or malformed identifiers", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "delete-hidden" });
+      const foreign = await createOwner(app, {
+        db,
+        label: "delete-hidden-foreign",
+      });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "delete-hidden",
+            body: expenseBody(owner),
+          })
+        ).json(),
+      );
+
+      for (const attempt of [
+        { id: UNKNOWN_TRANSACTION_ID, cookie: foreign.cookie },
+        // Another owner's transaction reads as missing, not forbidden.
+        { id: expense.id, cookie: foreign.cookie },
+        { id: "not-a-uuid", cookie: foreign.cookie },
+      ]) {
+        await expectProblem(await deleteTransaction(app, attempt), {
+          status: 404,
+          code: "not-found",
+        });
+      }
+      expect(
+        (await getTransaction(app, { id: expense.id, cookie: owner.cookie }))
+          .status,
+      ).toBe(200);
+    });
+  });
+
+  test("requires authentication", async () => {
+    await withRollback(async (db) => {
+      await expectProblem(
+        await deleteTransaction(createIntegrationTestApp(db), {
+          id: UNKNOWN_TRANSACTION_ID,
+        }),
+        { status: 401, code: "unauthenticated" },
       );
     });
   });

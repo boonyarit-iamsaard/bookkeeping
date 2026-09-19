@@ -4,6 +4,7 @@ import type {
 } from "@bookkeeping/application/transactions";
 import {
   createTransaction,
+  deleteTransaction,
   findExpenseRefunds,
   findLastUsedWalletId,
   findTransaction,
@@ -748,6 +749,42 @@ export function createTransactionRoutes(db: Database) {
           422: describeProblem(getProblemOptionsForStatus(422)),
         },
       ),
+    )
+    .delete(
+      RESOURCE_PATH,
+      describeRoute({
+        operationId: "deleteTransaction",
+        summary: "Delete a transaction",
+        description:
+          "Removes one of the signed-in owner's transactions from current " +
+          "history while retaining the internal record, writing its change " +
+          "history atomically with the deletion. An expense that still has " +
+          "linked refunds stays; delete each refund first. Repeating a " +
+          "deletion succeeds without effect, so a client may safely retry. " +
+          "A transaction that does not exist, belongs to another owner, or " +
+          "has a malformed identifier is not found alike.",
+        tags: ["Transactions"],
+        responses: {
+          204: { description: "The transaction was deleted" },
+          401: describeProblemResponse(401),
+          404: describeProblemResponse(404),
+          409: describeProblemResponse(409),
+        },
+      }),
+      transactionParamMiddleware,
+      async (c) => {
+        const deleted = await deleteTransaction(db, {
+          ownerId: c.get("session").user.id,
+          id: c.req.valid("param").transactionId,
+        });
+        if (!deleted.ok) {
+          if (deleted.error.code === "transaction-not-found") {
+            return createProblemResponse(c, getProblemOptionsForStatus(404));
+          }
+          return createProblemResponse(c, getProblemOptionsForStatus(409));
+        }
+        return c.body(null, 204);
+      },
     )
     .get(
       REFUNDS_PATH,

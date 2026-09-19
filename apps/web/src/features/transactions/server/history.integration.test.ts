@@ -7,6 +7,7 @@ import {
 } from "@bookkeeping/application/categories";
 import { createCategoryForTest as createCategory } from "@bookkeeping/application/testing/category-fixture";
 import {
+  deleteTransaction,
   findTransaction,
   listTransactions,
   updateTransaction,
@@ -23,10 +24,7 @@ import {
 } from "@bookkeeping/database/testing";
 import { describe, expect, test, vi } from "vitest";
 import { getMonthlySummary } from "@/features/transactions/server/history";
-import {
-  createTransaction,
-  deleteTransaction,
-} from "@/features/transactions/server/transaction";
+import { createTransaction } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback } = setupTestDatabase();

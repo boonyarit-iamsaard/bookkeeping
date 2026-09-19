@@ -3,6 +3,7 @@ import {
   listCategories,
 } from "@bookkeeping/application/categories";
 import {
+  deleteTransaction,
   findTransaction,
   updateTransaction,
 } from "@bookkeeping/application/transactions";
@@ -20,10 +21,7 @@ import {
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
-import {
-  createTransaction,
-  deleteTransaction,
-} from "@/features/transactions/server/transaction";
+import { createTransaction } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
 
 const { withRollback, committed } = setupTestDatabase();
