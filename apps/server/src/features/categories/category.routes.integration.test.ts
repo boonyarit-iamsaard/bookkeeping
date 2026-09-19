@@ -209,6 +209,15 @@ function deleteCategory(
   });
 }
 
+/** Where one committed transaction is currently filed. */
+async function filedCategory(db: Database, transactionId: string) {
+  const [row] = await db
+    .select({ categoryId: transactions.categoryId })
+    .from(transactions)
+    .where(eq(transactions.id, transactionId));
+  return row?.categoryId ?? null;
+}
+
 /** Asserts a route answers the same 404 for unknown, foreign, and malformed ids. */
 async function expectNotFoundAlike(
   attempt: (id: string) => Response | Promise<Response>,
@@ -1239,20 +1248,13 @@ describe("DELETE /v1/categories/{categoryId}", () => {
       ),
     ]);
     if ("filed" in inserted) {
+      const filed = await filedCategory(db, inserted.filed);
       if (removed.status === 204) {
         // The removal's reassignment claimed the entry as it moved up.
-        const [row] = await db
-          .select({ categoryId: transactions.categoryId })
-          .from(transactions)
-          .where(eq(transactions.id, inserted.filed));
-        expect(row?.categoryId).toBe(foodAndDrink.id);
+        expect(filed).toBe(foodAndDrink.id);
       } else {
         await expectProblem(removed, { status: 409, code: "conflict" });
-        const [row] = await db
-          .select({ categoryId: transactions.categoryId })
-          .from(transactions)
-          .where(eq(transactions.id, inserted.filed));
-        expect(row?.categoryId).toBe(takeaway.id);
+        expect(filed).toBe(takeaway.id);
       }
     } else {
       // The category vanished under the insert; its restrict FK refused it.

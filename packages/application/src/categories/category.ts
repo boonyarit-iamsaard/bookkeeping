@@ -282,13 +282,15 @@ const CHILD_PARENT_FK = "categories_parent_id_categories_id_fk";
 /** Unwinds the removal transaction once the category is found already gone. */
 class AlreadyRemoved extends Error {}
 
-type Fallback = { kind: "fallback"; id: string } | { kind: "has-children" };
+type RemovalFallback =
+  | { kind: "fallback"; id: string }
+  | { kind: "has-children" };
 
 /** The parent of a child; for a childless parent, its tree's Uncategorized. */
-async function fallbackFor(
+async function removalFallback(
   tx: Database,
   { ownerId, category }: Readonly<FallbackOptions>,
-): Promise<Fallback> {
+): Promise<RemovalFallback> {
   if (category.parentId) {
     return { kind: "fallback", id: category.parentId };
   }
@@ -350,14 +352,14 @@ export async function removeCategory(
       if (category.isProtected) {
         return err({ code: "protected" });
       }
-      const fallback = await fallbackFor(tx, {
+      const outcome = await removalFallback(tx, {
         ownerId: input.ownerId,
         category,
       });
-      if (fallback.kind === "has-children") {
+      if (outcome.kind === "has-children") {
         return err({ code: "has-children" });
       }
-      const fallbackId = fallback.id;
+      const fallbackId = outcome.id;
       const moved = await tx
         .update(transactions)
         .set({ categoryId: fallbackId })

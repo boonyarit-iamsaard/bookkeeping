@@ -32,10 +32,11 @@ atomically preserving valid categorization for existing transactions.
   conflict code. Documented as a bodyless operation in the OpenAPI document.
 - Application PostgreSQL coverage ports the removal suite to the shared
   fixtures: child → parent reassignment with a linked refund present, parent
-  → Uncategorized once childless, protected/foreign/repeat rejections,
-  re-initialization not resurrecting removed defaults, and the concurrency
-  races (removal vs child creation, removal vs transaction assignment,
-  removal vs removal) asserting exactly one winner and rollback intact. The
+  → Uncategorized once childless, the rejections of protected, foreign, and
+  repeat removals, re-initialization not resurrecting removed defaults (all
+  asserted within the parent-removal flow), and the concurrency races
+  (removal vs child creation, removal vs transaction assignment, removal vs
+  removal) asserting exactly one winner and rollback intact. The
   web suite's removal-vs-edit race returns with the transaction operations in
   ticket 28, which will lock transaction rows in the documented order.
 - Full `pnpm run ci` passed (Biome, prettier, markdownlint, all typechecks,
