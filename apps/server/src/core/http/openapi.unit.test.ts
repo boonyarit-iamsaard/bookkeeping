@@ -422,11 +422,12 @@ describe("OpenAPI document", () => {
     expectProblemResponses(create, ["400", "401", "409", "422", "500"]);
 
     const requestSchema = document.components.schemas.CreateTransactionRequest;
-    expect(requestSchema.oneOf).toHaveLength(2);
-    const transferBranch = requestSchema.oneOf.find(
+    expect(requestSchema.oneOf).toHaveLength(3);
+    const branchWithType =
+      (expected: string) =>
       (branch: Readonly<{ properties?: { type?: { const?: string } } }>) =>
-        branch.properties?.type?.const === "transfer",
-    );
+        branch.properties?.type?.const === expected;
+    const transferBranch = requestSchema.oneOf.find(branchWithType("transfer"));
     expect(transferBranch).toEqual(
       expect.objectContaining({
         additionalProperties: false,
@@ -448,6 +449,26 @@ describe("OpenAPI document", () => {
     expect(transferBranch.properties).not.toHaveProperty(
       "refundOfTransactionId",
     );
+    const refundBranch = requestSchema.oneOf.find(branchWithType("refund"));
+    expect(refundBranch).toEqual(
+      expect.objectContaining({
+        additionalProperties: false,
+        required: expect.arrayContaining([
+          "type",
+          "amount",
+          "walletId",
+          "refundOfTransactionId",
+          "transactionDate",
+          "note",
+        ]),
+        properties: expect.objectContaining({
+          refundOfTransactionId: expect.any(Object),
+        }),
+      }),
+    );
+    expect(refundBranch.required).not.toContain("categoryId");
+    expect(refundBranch.properties).not.toHaveProperty("categoryId");
+    expect(refundBranch.properties).not.toHaveProperty("destinationWalletId");
     expect(requestSchema.oneOf).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

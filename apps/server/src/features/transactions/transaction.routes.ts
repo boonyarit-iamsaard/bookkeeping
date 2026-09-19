@@ -139,10 +139,20 @@ const createTransferTransactionRequestSchema = z.strictObject({
   note: z.string(),
 });
 
+const createRefundTransactionRequestSchema = z.strictObject({
+  type: z.literal("refund"),
+  amount: moneyInputSchema,
+  walletId: z.uuid(),
+  refundOfTransactionId: z.uuid(),
+  transactionDate: calendarDateInputSchema,
+  note: z.string(),
+});
+
 export const createTransactionRequestSchema = z
   .discriminatedUnion("type", [
     createIncomeExpenseTransactionRequestSchema,
     createTransferTransactionRequestSchema,
+    createRefundTransactionRequestSchema,
   ])
   .meta({ id: "CreateTransactionRequest" });
 
@@ -182,8 +192,9 @@ function toTransactionFieldErrors(
       return [{ pointer: "#/amount/currency", code: error.code }];
     case "invalid-transfer":
     case "invalid-refund":
-    case "expense-not-found":
       return [{ pointer: "#/type", code: error.code }];
+    case "expense-not-found":
+      return [{ pointer: "#/refundOfTransactionId", code: error.code }];
     case "category-not-found":
     case "category-kind-mismatch":
       return [{ pointer: "#/categoryId", code: error.code }];
@@ -358,16 +369,18 @@ export function createTransactionRoutes(db: Database) {
       COLLECTION_PATH,
       describeRoute({
         operationId: "createTransaction",
-        summary: "Create an income, expense, or transfer",
+        summary: "Create an income, expense, transfer, or refund",
         description:
-          "Records income, expense, or a wallet transfer for the signed-in " +
-          "owner using an exact THB amount and a real calendar date. Income " +
-          "and expense requests name a matching category and active owned " +
-          "wallet; transfers name distinct active owned source and destination " +
-          "wallets. The request must carry a client-generated Idempotency-Key: " +
-          "repeating it with the same normalized payload replays the original " +
-          "detail, while a different payload is a conflict. A rejected request " +
-          "never consumes its key.",
+          "Records income, expense, a wallet transfer, or a refund for the " +
+          "signed-in owner using an exact THB amount and a real calendar date. " +
+          "Income and expense requests name a matching category and active " +
+          "owned wallet; transfers name distinct active owned source and " +
+          "destination wallets; refunds name an active owned receiving wallet " +
+          "and one of the owner's own expenses, follow the expense's category, " +
+          "and cannot exceed what remains of it. The request must carry a " +
+          "client-generated Idempotency-Key: repeating it with the same " +
+          "normalized payload replays the original detail, while a different " +
+          "payload is a conflict. A rejected request never consumes its key.",
         tags: ["Transactions"],
         responses: {
           400: describeProblemResponse(400),
@@ -395,9 +408,14 @@ export function createTransactionRoutes(db: Database) {
             amount: body.amount.amountInMinorUnits,
             currency: body.amount.currency,
             walletId: body.walletId,
-            categoryId: body.type === "transfer" ? null : body.categoryId,
+            categoryId:
+              body.type === "transfer" || body.type === "refund"
+                ? null
+                : body.categoryId,
             destinationWalletId:
               body.type === "transfer" ? body.destinationWalletId : null,
+            refundOfTransactionId:
+              body.type === "refund" ? body.refundOfTransactionId : null,
             transactionDate: body.transactionDate,
             note: body.note,
           });
