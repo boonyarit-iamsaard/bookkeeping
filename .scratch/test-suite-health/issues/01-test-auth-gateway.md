@@ -89,3 +89,48 @@ gateway and migrates the smallest route suite (reports) to prove it.
 - [ ] Report route suite uses the test gateway; assertions unchanged; per-test time recorded
 - [ ] Server suite: 209 tests pass; types and lint clean
 - [ ] `gateway.integration.test.ts` and the contract test still use real auth
+
+## Comments
+
+Agent run, 2026-09-19.
+
+**What was built**
+
+- New `apps/server/src/testing/create-test-auth-gateway.ts` exporting
+  `createTestAuthGateway(db)` and `createOwnerSession(db)`; the cookie value is
+  validated with `z.uuid()` (house rule: parse untrusted input with the schema
+  library) and malformed/unknown ids resolve to `null`.
+- `createIntegrationTestApp(db, options?)` with `options.auth` substituting the
+  real Better Auth gateway; default path unchanged; both auth-routes helpers
+  still exported.
+- `report.routes.integration.test.ts` passes `{ auth: createTestAuthGateway(db) }`
+  to the factory and provisions owners via `createOwnerSession(db)`. Every
+  assertion is unchanged. The local `createOwner` lost its now-dead `app` and
+  `label` plumbing (`createOwnerSession` generates its own email); `Hono` /
+  `AppEnv` imports kept for `getMonthlyReport`.
+- `gateway.integration.test.ts` and `api-contract.integration.test.ts`
+  untouched and still on real auth; `create-unit-test-app.ts` untouched.
+
+**What I ran**
+
+- `pnpm --filter @bookkeeping/server exec vitest run` — 209/209 pass
+  (before: 209/209; run three full times plus the isolated runs below).
+- `pnpm --filter @bookkeeping/server types:check` — clean.
+- `pnpm lint` — clean.
+- Reports suite measured via
+  `vitest run --reporter=json --outputFile=/tmp/server.json`:
+  - before: 2036 ms test time for 5 tests (≈ 400 ms/test)
+  - after, inside the full-suite JSON run: 890 ms (≈ 180 ms/test); when the
+    file runs alone: ≈ 453 ms. Well under the 1000 ms expectation.
+
+**Unsure about / notes**
+
+- The first full-suite run had a one-off failure in
+  `api-contract.integration.test.ts` ("every published operation answers its
+  documented success response"), which I did not touch and which passes
+  consistently in isolation (ran it twice) and in every later full run. Looks
+  like an infrastructure flake, not something this change can explain — its
+  file is untouched and still uses real auth. Flagging for the reviewer.
+- Two code-review nudges applied: zod for the cookie value instead of a
+  hand-rolled regex, and `TEST_USER_COOKIE` kept module-private (the ticket
+  only asked to export the two functions).

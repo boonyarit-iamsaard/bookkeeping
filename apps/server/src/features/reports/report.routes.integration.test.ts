@@ -13,9 +13,12 @@ import { describe, expect, test } from "vitest";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
   createIntegrationTestApp,
-  signUpWithSession,
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
+import {
+  createOwnerSession,
+  createTestAuthGateway,
+} from "../../testing/create-test-auth-gateway.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { expectProblem } from "../../testing/expect-problem.js";
 import { monthlyReportResponseSchema } from "./report.routes.js";
@@ -33,15 +36,13 @@ interface OwnerFixture {
 
 interface OwnerRequest {
   db: Database;
-  label: string;
 }
 
 /** A fresh owner with two wallets and the default category trees. */
-async function createOwner(
-  app: Hono<AppEnv>,
-  { db, label }: Readonly<OwnerRequest>,
-): Promise<OwnerFixture> {
-  const { cookie, ownerId } = await signUpWithSession(app, label);
+async function createOwner({
+  db,
+}: Readonly<OwnerRequest>): Promise<OwnerFixture> {
+  const { cookie, ownerId } = await createOwnerSession(db);
   await initializeDefaultCategories(db, ownerId);
   const [cash, bank] = await db
     .insert(wallets)
@@ -103,8 +104,10 @@ function getMonthlyReport(
 describe("GET /v1/reports/monthly", () => {
   test("totals a month as exact canonical money and excludes transfers", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "report-totals" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const categories = await defaultCategories(db, owner.ownerId);
       const expenseId = await insertTransaction(db, {
         ownerId: owner.ownerId,
@@ -160,8 +163,10 @@ describe("GET /v1/reports/monthly", () => {
 
   test("counts refunds in their own transaction month and deleted transactions out", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "report-refund" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const categories = await defaultCategories(db, owner.ownerId);
       const expenseId = await insertTransaction(db, {
         ownerId: owner.ownerId,
@@ -232,9 +237,11 @@ describe("GET /v1/reports/monthly", () => {
 
   test("reports an empty month and another owner's month as zeros", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "report-empty" });
-      const foreign = await createOwner(app, { db, label: "report-foreign" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
+      const foreign = await createOwner({ db });
       const categories = await defaultCategories(db, foreign.ownerId);
       await insertTransaction(db, {
         ownerId: foreign.ownerId,
@@ -285,8 +292,10 @@ describe("GET /v1/reports/monthly", () => {
 
   test("carries aggregates past JavaScript's safe integers exactly", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "report-exact" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
       const categories = await defaultCategories(db, owner.ownerId);
       for (let index = 0; index < 3; index += 1) {
         await insertTransaction(db, {
@@ -315,8 +324,10 @@ describe("GET /v1/reports/monthly", () => {
 
   test("a malformed month is a bad request and every read requires authentication", async () => {
     await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db);
-      const owner = await createOwner(app, { db, label: "report-guard" });
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
 
       for (const query of [
         "month=2026-13",

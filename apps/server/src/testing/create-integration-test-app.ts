@@ -3,6 +3,7 @@ import type { Database } from "@bookkeeping/database/connection";
 import type { Hono } from "hono";
 import * as z from "zod";
 import { createApp } from "../core/app.js";
+import type { AuthGateway } from "../core/auth/gateway.js";
 import { API_COOKIE_PREFIX, createAuthGateway } from "../core/auth/gateway.js";
 import type { AppEnv } from "../core/http/request-context.js";
 import { TEST_CLIENT_ORIGIN } from "./create-unit-test-app.js";
@@ -19,20 +20,32 @@ export function createUniqueTestEmail(label: string): string {
   return `${label}-${process.pid}-${Date.now()}-${emailSequence}@test.local`;
 }
 
+export interface IntegrationTestAppOptions {
+  /** Substitutes the real Better Auth gateway, e.g. the test auth gateway. */
+  auth?: AuthGateway;
+}
+
 /**
  * The server app as the entrypoint assembles it — real authentication over the
  * given database — trusting the test client origin.
  */
-export function createIntegrationTestApp(db: Database): Hono<AppEnv> {
-  const auth = createAuth({
-    db,
-    secret: TEST_AUTH_SECRET,
-    baseURL: TEST_API_ORIGIN,
-    trustedOrigins: [TEST_CLIENT_ORIGIN],
-    cookiePrefix: API_COOKIE_PREFIX,
-  });
+export function createIntegrationTestApp(
+  db: Database,
+  { auth }: Readonly<IntegrationTestAppOptions> = {},
+): Hono<AppEnv> {
+  const gateway =
+    auth ??
+    createAuthGateway(
+      createAuth({
+        db,
+        secret: TEST_AUTH_SECRET,
+        baseURL: TEST_API_ORIGIN,
+        trustedOrigins: [TEST_CLIENT_ORIGIN],
+        cookiePrefix: API_COOKIE_PREFIX,
+      }),
+    );
   return createApp({
-    auth: createAuthGateway(auth),
+    auth: gateway,
     db,
     clientOrigins: [TEST_CLIENT_ORIGIN],
   });
