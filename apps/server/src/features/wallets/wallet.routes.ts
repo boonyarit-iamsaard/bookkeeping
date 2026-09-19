@@ -43,7 +43,10 @@ import {
   createProblemResponse,
   getProblemOptionsForStatus,
 } from "../../core/http/problem-details.js";
-import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
+import type {
+  QueryValidatedInput,
+  ResourceCommandValidatedInput,
+} from "../../core/http/request-validation.js";
 import {
   createCommandMiddleware,
   createQueryMiddleware,
@@ -111,11 +114,6 @@ export const walletListQuerySchema = z.strictObject({
 });
 
 const walletListQueryMiddleware = createQueryMiddleware(walletListQuerySchema);
-
-interface WalletListValidatedInput {
-  in: { query: z.input<typeof walletListQuerySchema> };
-  out: { query: z.output<typeof walletListQuerySchema> };
-}
 
 const walletParamsSchema = z.object({ walletId: z.uuid() });
 const walletParamMiddleware = createResourceParamMiddleware(walletParamsSchema);
@@ -300,7 +298,7 @@ export function createWalletRoutes(db: Database) {
       describeResponse<
         AuthenticatedEnv,
         typeof COLLECTION_PATH,
-        WalletListValidatedInput,
+        QueryValidatedInput<typeof walletListQuerySchema>,
         {
           200: typeof walletCollectionResponseSchema;
           400: typeof problemDetailsSchema;

@@ -104,6 +104,12 @@ export function createCommandMiddleware<Schema extends z.ZodType>(
   });
 }
 
+/** What a query validator hands a handler. */
+export interface QueryValidatedInput<QuerySchema extends z.ZodType> {
+  in: { query: z.input<QuerySchema> };
+  out: { query: z.output<QuerySchema> };
+}
+
 /** What the resource param and command validators hand a handler. */
 export interface ResourceCommandValidatedInput<
   ParamSchema extends z.ZodType,

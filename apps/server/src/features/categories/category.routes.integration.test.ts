@@ -12,12 +12,11 @@ import { transactions } from "@bookkeeping/database/transactions";
 import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { describe, expect, test } from "vitest";
-import * as z from "zod";
 import { problemDetailsSchema } from "../../core/http/problem-details.js";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
   createIntegrationTestApp,
-  signUpThroughAuthRoutes,
+  signUpWithSession,
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
@@ -35,18 +34,6 @@ const { withRollback, committed } = setupTestDatabase();
 const DEFAULTS_URL = `${TEST_API_ORIGIN}/v1/categories/defaults`;
 const CATEGORIES_URL = `${TEST_API_ORIGIN}/v1/categories`;
 const USAGE_URL = `${CATEGORIES_URL}/usage`;
-
-const sessionResponseSchema = z.object({ user: z.object({ id: z.string() }) });
-
-/** Signs up through the auth routes and returns the cookie plus the owner's id. */
-async function signUp(app: Hono<AppEnv>) {
-  const { cookie } = await signUpThroughAuthRoutes(app, "defaults");
-  const session = await app.request(`${TEST_API_ORIGIN}/api/auth/get-session`, {
-    headers: { cookie, origin: TEST_CLIENT_ORIGIN },
-  });
-  const { user } = sessionResponseSchema.parse(await session.json());
-  return { cookie, ownerId: user.id };
-}
 
 async function countCategories(db: Database, ownerId: string) {
   return (
@@ -238,7 +225,7 @@ describe("POST /v1/categories", () => {
   test("creates a parent, returns its representation, and gives its location", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
 
       const response = await postCategory(app, {
         cookie,
@@ -280,7 +267,7 @@ describe("POST /v1/categories", () => {
   test("creates a child together with a new parent in one request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
 
       const response = await postCategory(app, {
         cookie,
@@ -325,7 +312,7 @@ describe("POST /v1/categories", () => {
   test("replays a normalized payload and conflicts on a changed payload", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
       const first = await postCategory(app, {
         cookie,
         idempotencyKey: "retry",
@@ -361,7 +348,7 @@ describe("POST /v1/categories", () => {
   test("does not consume an idempotency key when command validation rejects it", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
 
       await expectProblem(
         await postCategory(app, {
@@ -383,8 +370,8 @@ describe("POST /v1/categories", () => {
   test("maps invalid, duplicate, protected, and cross-owner parents to field errors", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "defaults");
+      const bob = await signUpWithSession(app, "defaults");
       const parentResponse = await postCategory(app, {
         cookie: alice.cookie,
         idempotencyKey: "alice-parent",
@@ -461,7 +448,7 @@ describe("POST /v1/categories", () => {
   test("requires a usable idempotency key", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
 
       for (const idempotencyKey of [undefined, "   ", "x".repeat(256)]) {
         await expectProblem(
@@ -475,7 +462,7 @@ describe("POST /v1/categories", () => {
   test("concurrent requests with one key create one category and replay it", async () => {
     const db = committed();
     const app = createIntegrationTestApp(db);
-    const { cookie } = await signUp(app);
+    const { cookie } = await signUpWithSession(app, "defaults");
     const responses = await Promise.all(
       Array.from({ length: 5 }, () =>
         postCategory(app, { cookie, idempotencyKey: "concurrent" }),
@@ -502,7 +489,7 @@ describe("POST /v1/categories", () => {
   test("rejects malformed JSON and anonymous requests with standard problems", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
 
       await expectProblem(
         await postCategory(app, {
@@ -526,8 +513,8 @@ describe("GET /v1/categories", () => {
   test("lists the signed-in owner's ordered trees with protected metadata", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const owner = await signUp(app);
-      const stranger = await signUp(app);
+      const owner = await signUpWithSession(app, "defaults");
+      const stranger = await signUpWithSession(app, "defaults");
 
       const response = await listCategories(app, owner.cookie);
       const collection = categoryCollectionResponseSchema.parse(
@@ -598,7 +585,7 @@ describe("GET /v1/categories", () => {
   test("does not provision an incomplete owner while reading", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "defaults");
       await db.delete(categories).where(eq(categories.userId, ownerId));
 
       const before = await countCategories(db, ownerId);
@@ -628,7 +615,7 @@ describe("GET /v1/categories/{categoryId}", () => {
   test("returns one owned category as its tree lists it", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
       const collection = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, cookie)).json(),
       );
@@ -657,8 +644,8 @@ describe("GET /v1/categories/{categoryId}", () => {
   test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "defaults");
+      const bob = await signUpWithSession(app, "defaults");
       const bobsTree = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, bob.cookie)).json(),
       );
@@ -689,7 +676,7 @@ describe("PATCH /v1/categories/{categoryId}", () => {
   test("renames and re-icons in one save, leaving the tree position alone", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
       const groceries = await findListedCategory(app, {
         name: "Groceries",
         cookie,
@@ -733,7 +720,7 @@ describe("PATCH /v1/categories/{categoryId}", () => {
   test("lets Uncategorized change its icon but never its name", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
       const collection = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, cookie)).json(),
       );
@@ -772,7 +759,7 @@ describe("PATCH /v1/categories/{categoryId}", () => {
   test("maps duplicate, invalid, and unknown-field commands to field errors", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
       const groceries = await findListedCategory(app, {
         name: "Groceries",
         cookie,
@@ -845,8 +832,8 @@ describe("PATCH /v1/categories/{categoryId}", () => {
   test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "defaults");
+      const bob = await signUpWithSession(app, "defaults");
       const bobsTree = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, bob.cookie)).json(),
       );
@@ -876,7 +863,7 @@ describe("PATCH /v1/categories/{categoryId}", () => {
   test("rejects malformed JSON and anonymous requests with standard problems", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
       const collection = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, cookie)).json(),
       );
@@ -907,7 +894,7 @@ describe("GET /v1/categories/{categoryId}/usage", () => {
   test("reports the transactions a category holds and the children under a parent", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "defaults");
       const wallet = await createWalletForTest(db, { ownerId });
       const groceries = await findListedCategory(app, {
         name: "Groceries",
@@ -984,8 +971,8 @@ describe("GET /v1/categories/{categoryId}/usage", () => {
   test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "defaults");
+      const bob = await signUpWithSession(app, "defaults");
       const bobsTree = categoryCollectionResponseSchema.parse(
         await (await listCategories(app, bob.cookie)).json(),
       );
@@ -1022,7 +1009,7 @@ describe("GET /v1/categories/usage", () => {
   test("counts each category's current transactions in one read", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "defaults");
       const wallet = await createWalletForTest(db, { ownerId });
       const groceries = await findListedCategory(app, {
         name: "Groceries",
@@ -1081,8 +1068,8 @@ describe("GET /v1/categories/usage", () => {
   test("never counts another owner's transactions", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "defaults");
+      const bob = await signUpWithSession(app, "defaults");
       const wallet = await createWalletForTest(db, { ownerId: alice.ownerId });
       const groceries = await findListedCategory(app, {
         name: "Groceries",
@@ -1116,7 +1103,7 @@ describe("POST /v1/categories/defaults", () => {
   test("completes a signed-in owner's default set and reports what it seeded", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "defaults");
       // Sign-up already provisioned; remove one tree to leave the owner
       // incomplete the way an interrupted hook would.
       await db
@@ -1165,7 +1152,7 @@ describe("POST /v1/categories/defaults", () => {
     // owner is fresh, so nothing else observes the rows.
     const db = committed();
     const app = createIntegrationTestApp(db);
-    const { cookie, ownerId } = await signUp(app);
+    const { cookie, ownerId } = await signUpWithSession(app, "defaults");
     await db.delete(categories).where(eq(categories.userId, ownerId));
 
     const responses = await Promise.all(
@@ -1199,8 +1186,8 @@ describe("POST /v1/categories/defaults", () => {
   test("one owner's retry never touches another owner's categories", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "defaults");
+      const bob = await signUpWithSession(app, "defaults");
       await db.delete(categories).where(eq(categories.userId, bob.ownerId));
       const aliceBefore = await countCategories(db, alice.ownerId);
 
@@ -1224,7 +1211,7 @@ describe("DELETE /v1/categories/{categoryId}", () => {
   test("removes an unused child with no response body and makes a repeat not found", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
       const groceries = await findListedCategory(app, {
         name: "Groceries",
         cookie,
@@ -1248,7 +1235,7 @@ describe("DELETE /v1/categories/{categoryId}", () => {
   test("reassigns a removed child's transactions to its parent", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "defaults");
       const wallet = await createWalletForTest(db, { ownerId });
       const groceries = await findListedCategory(app, {
         name: "Groceries",
@@ -1292,7 +1279,7 @@ describe("DELETE /v1/categories/{categoryId}", () => {
   test("returns one stable conflict problem for protected and for a parent with children", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "defaults");
       const uncategorized = await findListedCategory(app, {
         name: "Uncategorized",
         cookie,
@@ -1320,7 +1307,7 @@ describe("DELETE /v1/categories/{categoryId}", () => {
     // is fresh, so nothing else observes the rows.
     const db = committed();
     const app = createIntegrationTestApp(db);
-    const { cookie, ownerId } = await signUp(app);
+    const { cookie, ownerId } = await signUpWithSession(app, "defaults");
     const wallet = await createWalletForTest(db, { ownerId });
     const foodAndDrink = await findListedCategory(app, {
       name: "Food & Drink",
@@ -1368,8 +1355,8 @@ describe("DELETE /v1/categories/{categoryId}", () => {
   test("does not disclose missing or another owner's categories", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "defaults");
+      const bob = await signUpWithSession(app, "defaults");
       const groceries = await findListedCategory(app, {
         name: "Groceries",
         cookie: alice.cookie,

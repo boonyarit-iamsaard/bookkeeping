@@ -18,34 +18,33 @@ import {
  * answers directly. The table is exhaustive over `ProblemCode`, so a new
  * code cannot be published without naming where it comes from.
  */
-const problemSources: Record<ProblemCode, ProblemOptions> = {
-  "bad-request": getProblemOptionsForStatus(400),
-  unauthenticated: getProblemOptionsForStatus(401),
-  forbidden: getProblemOptionsForStatus(403),
-  "not-found": getProblemOptionsForStatus(404),
-  "method-not-allowed": getProblemOptionsForStatus(405),
-  conflict: getProblemOptionsForStatus(409),
-  "invalid-command": getProblemOptionsForStatus(422),
-  "rate-limited": getProblemOptionsForStatus(429),
-  "internal-error": getProblemOptionsForStatus(500),
-  "service-unavailable": getProblemOptionsForStatus(503),
-  "idempotency-key-required": idempotencyKeyRequiredProblem,
-  "idempotency-conflict": idempotencyConflictProblem,
-};
+interface ProblemSource {
+  options: ProblemOptions;
+  status: number;
+}
 
-const expectedStatuses: Record<ProblemCode, number> = {
-  "bad-request": 400,
-  unauthenticated: 401,
-  forbidden: 403,
-  "not-found": 404,
-  "method-not-allowed": 405,
-  conflict: 409,
-  "invalid-command": 422,
-  "rate-limited": 429,
-  "internal-error": 500,
-  "service-unavailable": 503,
-  "idempotency-key-required": 400,
-  "idempotency-conflict": 409,
+const problemSources: Record<ProblemCode, ProblemSource> = {
+  "bad-request": { options: getProblemOptionsForStatus(400), status: 400 },
+  unauthenticated: { options: getProblemOptionsForStatus(401), status: 401 },
+  forbidden: { options: getProblemOptionsForStatus(403), status: 403 },
+  "not-found": { options: getProblemOptionsForStatus(404), status: 404 },
+  "method-not-allowed": {
+    options: getProblemOptionsForStatus(405),
+    status: 405,
+  },
+  conflict: { options: getProblemOptionsForStatus(409), status: 409 },
+  "invalid-command": { options: getProblemOptionsForStatus(422), status: 422 },
+  "rate-limited": { options: getProblemOptionsForStatus(429), status: 429 },
+  "internal-error": { options: getProblemOptionsForStatus(500), status: 500 },
+  "service-unavailable": {
+    options: getProblemOptionsForStatus(503),
+    status: 503,
+  },
+  "idempotency-key-required": {
+    options: idempotencyKeyRequiredProblem,
+    status: 400,
+  },
+  "idempotency-conflict": { options: idempotencyConflictProblem, status: 409 },
 };
 
 describe("Problem Details variants", () => {
@@ -58,13 +57,13 @@ describe("Problem Details variants", () => {
   it.for([...problemCodes])(
     "presents %s as a documented urn type at its own status",
     (code) => {
-      const problem = createProblemDetails(problemSources[code]);
+      const problem = createProblemDetails(problemSources[code].options);
 
       expect(problem).toEqual(
         expect.objectContaining({
           type: `urn:bookkeeping:problem:${code}`,
           code,
-          status: expectedStatuses[code],
+          status: problemSources[code].status,
           title: expect.any(String),
         }),
       );

@@ -13,6 +13,7 @@ import {
 } from "../../core/http/openapi.js";
 import type { problemDetailsSchema } from "../../core/http/problem-details.js";
 import { getProblemOptionsForStatus } from "../../core/http/problem-details.js";
+import type { QueryValidatedInput } from "../../core/http/request-validation.js";
 import { createQueryMiddleware } from "../../core/http/request-validation.js";
 
 export const monthlyReportResponseSchema = z
@@ -44,15 +45,6 @@ export const monthlyReportQuerySchema = z.strictObject({
 const monthlyReportQueryMiddleware = createQueryMiddleware(
   monthlyReportQuerySchema,
 );
-
-interface MonthlyReportValidatedInput {
-  in: {
-    query: z.input<typeof monthlyReportQuerySchema>;
-  };
-  out: {
-    query: z.output<typeof monthlyReportQuerySchema>;
-  };
-}
 
 export function presentMonthlyReport(
   summary: Readonly<MonthlySummary>,
@@ -112,7 +104,7 @@ export function createReportRoutes(db: Database) {
     describeResponse<
       AuthenticatedEnv,
       typeof MONTHLY_REPORT_PATH,
-      MonthlyReportValidatedInput,
+      QueryValidatedInput<typeof monthlyReportQuerySchema>,
       {
         200: typeof monthlyReportResponseSchema;
         400: typeof problemDetailsSchema;

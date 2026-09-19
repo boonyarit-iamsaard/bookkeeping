@@ -23,12 +23,17 @@ import {
 } from "../../features/wallets/wallet.routes.js";
 import {
   createIntegrationTestApp,
-  signUpThroughAuthRoutes,
+  signUpWithSession,
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
+import type { OpenApiDocument } from "../../testing/openapi-document.js";
+import {
+  documentedOperation,
+  fetchDocument,
+  publishedOperationIds,
+} from "../../testing/openapi-document.js";
 import { IDEMPOTENCY_KEY_HEADER } from "./idempotency.js";
-import { OPENAPI_DOCUMENT_PATH } from "./openapi.js";
 import type { ProblemCode } from "./problem-details.js";
 import {
   PROBLEM_MEDIA_TYPE,
@@ -51,23 +56,6 @@ const UNANSWERED_PROBLEM_CODES: readonly ProblemCode[] = [
   "service-unavailable",
 ];
 
-interface DocumentedMedia {
-  schema: { $ref?: string };
-}
-
-interface DocumentedOperation {
-  operationId?: string;
-  responses: {
-    [status: string]: {
-      content?: { [mediaType: string]: DocumentedMedia };
-    };
-  };
-}
-
-interface OpenApiDocument {
-  paths: { [path: string]: { [method: string]: DocumentedOperation } };
-}
-
 /** One published operation answering one documented response. */
 interface ContractExchange {
   operationId: string;
@@ -76,17 +64,6 @@ interface ContractExchange {
   response: Response;
   /** The schema the document must name; a bodyless response names none. */
   schema?: z.ZodType;
-}
-
-function documentedOperation(
-  document: Readonly<OpenApiDocument>,
-  exchange: Readonly<Pick<ContractExchange, "method" | "path">>,
-): DocumentedOperation {
-  const operation = document.paths[exchange.path]?.[exchange.method];
-  if (operation === undefined) {
-    throw new Error(`Undocumented ${exchange.method} ${exchange.path}`);
-  }
-  return operation;
 }
 
 /**
@@ -131,21 +108,11 @@ async function expectDocumentedExchange(
   expect(JSON.parse(JSON.stringify(parsed.data))).toEqual(body);
 }
 
-const sessionResponseSchema = z.object({ user: z.object({ id: z.string() }) });
-
-async function signUp(app: Hono<AppEnv>) {
-  const { cookie } = await signUpThroughAuthRoutes(app, "contract");
-  const session = await app.request(`${TEST_API_ORIGIN}/api/auth/get-session`, {
-    headers: { cookie, origin: TEST_CLIENT_ORIGIN },
-  });
-  sessionResponseSchema.parse(await session.json());
-  return cookie;
-}
-
 interface ApiRequest {
   method?: string;
   path: string;
-  cookie?: string;
+  /** Sends no session cookie, as a signed-out client would. */
+  anonymous?: boolean;
   idempotencyKey?: string;
   body?: unknown;
 }
@@ -154,16 +121,15 @@ function createClient(app: Hono<AppEnv>, cookie: string) {
   return async function call({
     method = "GET",
     path,
-    cookie: override,
+    anonymous = false,
     idempotencyKey,
     body,
   }: Readonly<ApiRequest>): Promise<Response> {
-    const session = override === undefined ? cookie : override;
     return app.request(`${TEST_API_ORIGIN}${path}`, {
       method,
       headers: {
         origin: TEST_CLIENT_ORIGIN,
-        ...(session === "" ? {} : { cookie: session }),
+        ...(anonymous ? {} : { cookie }),
         ...(idempotencyKey === undefined
           ? {}
           : { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey }),
@@ -176,25 +142,13 @@ function createClient(app: Hono<AppEnv>, cookie: string) {
 
 type ApiClient = ReturnType<typeof createClient>;
 
-async function fetchDocument(app: Hono<AppEnv>): Promise<OpenApiDocument> {
-  return (
-    await app.request(`${TEST_API_ORIGIN}${OPENAPI_DOCUMENT_PATH}`)
-  ).json();
-}
-
-function publishedOperationIds(document: Readonly<OpenApiDocument>): string[] {
-  return Object.values(document.paths)
-    .flatMap((methods) => Object.values(methods))
-    .flatMap((operation) =>
-      operation.operationId === undefined ? [] : [operation.operationId],
-    );
-}
-
 /** The wire form of an exact baht amount. */
 function money(value: string) {
   return { value, currency: "THB" };
 }
 
+/** A well-formed wallet id no test ever creates. */
+const UNKNOWN_WALLET_ID = "01999999-0000-7000-8000-000000000000";
 const OPENING_DATE = "2026-09-01";
 const ENTRY_DATE = "2026-09-02";
 const REPORT_MONTH = "2026-09";
@@ -239,9 +193,9 @@ describe("published API contract", () => {
   test("every published operation answers its documented success response", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const cookie = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "contract");
       const call = createClient(app, cookie);
-      const document = await fetchDocument(app);
+      const document = await fetchDocument(app, TEST_API_ORIGIN);
       const { exchanges, record } = createCollector();
 
       record({
@@ -249,7 +203,7 @@ describe("published API contract", () => {
         method: "get",
         path: "/health",
         schema: healthResponseSchema,
-        response: await call({ path: "/health", cookie: "" }),
+        response: await call({ path: "/health", anonymous: true }),
       });
 
       record({
@@ -502,9 +456,9 @@ describe("published API contract", () => {
       app.get("/health/fault", () => {
         throw new Error("contract fault");
       });
-      const cookie = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "contract");
       const call = createClient(app, cookie);
-      const document = await fetchDocument(app);
+      const document = await fetchDocument(app, TEST_API_ORIGIN);
       const { exchanges, record } = createCollector();
 
       await call({ method: "POST", path: "/v1/categories/defaults" });
@@ -538,7 +492,7 @@ describe("published API contract", () => {
         method: "get",
         path: "/v1/wallets",
         schema: problemDetailsSchema,
-        response: await call({ path: "/v1/wallets", cookie: "" }),
+        response: await call({ path: "/v1/wallets", anonymous: true }),
       });
       record({
         operationId: "getWallet",
@@ -546,7 +500,7 @@ describe("published API contract", () => {
         path: "/v1/wallets/{walletId}",
         schema: problemDetailsSchema,
         response: await call({
-          path: "/v1/wallets/01999999-0000-7000-8000-000000000000",
+          path: `/v1/wallets/${UNKNOWN_WALLET_ID}`,
         }),
       });
       record({
@@ -621,7 +575,7 @@ describe("published API contract", () => {
         method: "get",
         path: "/health",
         schema: problemDetailsSchema,
-        response: await call({ path: "/health/fault", cookie: "" }),
+        response: await call({ path: "/health/fault", anonymous: true }),
       });
 
       for (const exchange of exchanges) {
@@ -651,7 +605,7 @@ describe("published API contract", () => {
   test("a validation problem addresses each rejected field by JSON Pointer", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const cookie = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "contract");
       const call = createClient(app, cookie);
 
       const response = await call({

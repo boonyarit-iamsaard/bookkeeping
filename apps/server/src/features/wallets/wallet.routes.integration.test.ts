@@ -11,12 +11,11 @@ import type { WalletType } from "@bookkeeping/domain/wallets";
 import { eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { describe, expect, test } from "vitest";
-import * as z from "zod";
 import { problemDetailsSchema } from "../../core/http/problem-details.js";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
   createIntegrationTestApp,
-  signUpThroughAuthRoutes,
+  signUpWithSession,
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
@@ -30,18 +29,6 @@ const { withRollback, committed } = setupTestDatabase();
 
 const WALLETS_URL = `${TEST_API_ORIGIN}/v1/wallets`;
 const UNKNOWN_WALLET_ID = "01999999-0000-7000-8000-000000000000";
-
-const sessionResponseSchema = z.object({ user: z.object({ id: z.string() }) });
-
-/** Signs up through the auth routes and returns the cookie plus the owner's id. */
-async function signUp(app: Hono<AppEnv>) {
-  const { cookie } = await signUpThroughAuthRoutes(app, "wallets");
-  const session = await app.request(`${TEST_API_ORIGIN}/api/auth/get-session`, {
-    headers: { cookie, origin: TEST_CLIENT_ORIGIN },
-  });
-  const { user } = sessionResponseSchema.parse(await session.json());
-  return { cookie, ownerId: user.id };
-}
 
 interface WalletFixture {
   ownerId: string;
@@ -130,7 +117,7 @@ describe("GET /v1/wallets", () => {
   test("lists the signed-in owner's wallets with exact money in creation order", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
       const bigId = await insertWallet(db, {
         ownerId,
         name: "Big",
@@ -184,7 +171,7 @@ describe("GET /v1/wallets", () => {
   test("an owner with no wallets receives an empty collection", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       const response = await getWallets(app, cookie);
 
@@ -199,8 +186,8 @@ describe("GET /v1/wallets", () => {
   test("never lists another owner's wallets", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "wallets");
+      const bob = await signUpWithSession(app, "wallets");
       await insertWallet(db, {
         ownerId: alice.ownerId,
         name: "Alice cash",
@@ -230,7 +217,7 @@ describe("GET /v1/wallets", () => {
   test("an as-of date reports the end-of-day balance on that date", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
       const id = await insertWallet(db, {
         ownerId,
         name: "Cash",
@@ -274,7 +261,7 @@ describe("GET /v1/wallets", () => {
   test("a malformed as-of date is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       for (const asOf of ["2026-02-30", "05-09-2026", ""]) {
         await expectProblem(await getWalletsAsOf(app, { asOf, cookie }), {
@@ -288,7 +275,7 @@ describe("GET /v1/wallets", () => {
   test("an unknown query parameter is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       const response = await app.request(`${WALLETS_URL}?archived=true`, {
         headers: { origin: TEST_CLIENT_ORIGIN, cookie },
@@ -303,7 +290,7 @@ describe("GET /v1/wallets/{walletId}", () => {
   test("returns the owner's wallet with its archived instant", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
       const id = await insertWallet(db, {
         ownerId,
         name: "Old cash",
@@ -337,8 +324,8 @@ describe("GET /v1/wallets/{walletId}", () => {
   test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "wallets");
+      const bob = await signUpWithSession(app, "wallets");
       const id = await insertWallet(db, {
         ownerId: alice.ownerId,
         name: "Alice cash",
@@ -419,7 +406,7 @@ describe("POST /v1/wallets", () => {
   test("creates the wallet and answers with its representation and location", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       const response = await postWallet(app, { cookie, idempotencyKey: "k1" });
       const wallet = walletResponseSchema.parse(await response.json());
@@ -450,7 +437,7 @@ describe("POST /v1/wallets", () => {
   test("a retry with the same key and payload replays the original creation", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
       const first = await postWallet(app, { cookie, idempotencyKey: "retry" });
       const original = await first.json();
 
@@ -474,7 +461,7 @@ describe("POST /v1/wallets", () => {
   test("the same key with a different payload conflicts and creates nothing more", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
       await postWallet(app, { cookie, idempotencyKey: "changed" });
 
       const conflict = await postWallet(app, {
@@ -494,7 +481,7 @@ describe("POST /v1/wallets", () => {
   test("distinct keys open distinct wallets from the same payload", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       await postWallet(app, { cookie, idempotencyKey: "one" });
       await postWallet(app, { cookie, idempotencyKey: "two" });
@@ -505,7 +492,7 @@ describe("POST /v1/wallets", () => {
 
   test("concurrent retries create one wallet and answer every request alike", async () => {
     const app = createIntegrationTestApp(committed());
-    const { cookie } = await signUp(app);
+    const { cookie } = await signUpWithSession(app, "wallets");
 
     const responses = await Promise.all(
       Array.from({ length: 5 }, () =>
@@ -526,7 +513,7 @@ describe("POST /v1/wallets", () => {
   test("a missing, blank, or over-long Idempotency-Key is a bad request that creates nothing", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       await expectProblem(await postWallet(app, { cookie }), {
         status: 400,
@@ -547,7 +534,7 @@ describe("POST /v1/wallets", () => {
   test("a malformed body is rejected field by field and does not consume the key", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       const rejected = await postWallet(app, {
         cookie,
@@ -582,7 +569,7 @@ describe("POST /v1/wallets", () => {
   test("a well-formed command the application rejects is addressed by field", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       const rejected = await postWallet(app, {
         cookie,
@@ -605,7 +592,7 @@ describe("POST /v1/wallets", () => {
   test("malformed JSON is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       await expectProblem(
         await postWallet(app, { cookie, idempotencyKey: "json", rawBody: "{" }),
@@ -709,7 +696,7 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
   test("replaces the opening and answers with the updated wallet", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
       const created = await createSavingsWallet(app, cookie);
 
       const response = await putWalletOpening(app, { id: created.id, cookie });
@@ -735,7 +722,7 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
   test("repeating the same replacement answers alike and records nothing more", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
       const created = await createSavingsWallet(app, cookie);
 
       const first = await putWalletOpening(app, { id: created.id, cookie });
@@ -757,7 +744,7 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
   test("a malformed body is rejected field by field", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
       const created = await createSavingsWallet(app, cookie);
 
       const rejected = await putWalletOpening(app, {
@@ -787,7 +774,7 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
   test("an opening the application rejects is addressed by field", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
       const created = await createSavingsWallet(app, cookie);
 
       // The money grammar already caps whole digits, so a future date is
@@ -814,7 +801,7 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
   test("a movement before the proposed opening, even a deleted one, is addressed to the date", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
       const cash = await createSavingsWallet(app, cookie);
       const bank = await createSavingsWallet(app, cookie);
       await insertTransfer(db, {
@@ -847,8 +834,8 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
   test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "wallets");
+      const bob = await signUpWithSession(app, "wallets");
       const wallet = await createSavingsWallet(app, alice.cookie);
 
       for (const id of [wallet.id, UNKNOWN_WALLET_ID, "not-a-wallet"]) {
@@ -865,7 +852,7 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
   test("malformed JSON is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       await expectProblem(
         await putWalletOpening(app, {
@@ -915,7 +902,7 @@ describe("PATCH /v1/wallets/{walletId}", () => {
   test("archives and answers with the updated wallet", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
       const created = await createSavingsWallet(app, cookie);
 
       const response = await patchWallet(app, { id: created.id, cookie });
@@ -936,7 +923,7 @@ describe("PATCH /v1/wallets/{walletId}", () => {
   test("restores by clearing the archived instant", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
       const created = await createSavingsWallet(app, cookie);
       await patchWallet(app, { id: created.id, cookie });
 
@@ -959,7 +946,7 @@ describe("PATCH /v1/wallets/{walletId}", () => {
   test("repeating the same state answers alike and records nothing more", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
       const created = await createSavingsWallet(app, cookie);
 
       const first = await patchWallet(app, { id: created.id, cookie });
@@ -974,7 +961,7 @@ describe("PATCH /v1/wallets/{walletId}", () => {
   test("a malformed or unrelated body is rejected field by field", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
       const created = await createSavingsWallet(app, cookie);
 
       const rejected = await patchWallet(app, {
@@ -1002,8 +989,8 @@ describe("PATCH /v1/wallets/{walletId}", () => {
   test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "wallets");
+      const bob = await signUpWithSession(app, "wallets");
       const wallet = await createSavingsWallet(app, alice.cookie);
 
       for (const id of [wallet.id, UNKNOWN_WALLET_ID, "not-a-wallet"]) {
@@ -1020,7 +1007,7 @@ describe("PATCH /v1/wallets/{walletId}", () => {
   test("malformed JSON is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie } = await signUp(app);
+      const { cookie } = await signUpWithSession(app, "wallets");
 
       await expectProblem(
         await patchWallet(app, { id: UNKNOWN_WALLET_ID, cookie, rawBody: "{" }),
@@ -1044,7 +1031,7 @@ describe("DELETE /v1/wallets/{walletId}", () => {
   test("deletes an eligible wallet with no response body and makes a repeat not found", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
       const id = await insertWallet(db, {
         ownerId,
         name: "Disposable cash",
@@ -1065,7 +1052,7 @@ describe("DELETE /v1/wallets/{walletId}", () => {
   test("returns one stable conflict problem for every retained-history blocker", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const { cookie, ownerId } = await signUp(app);
+      const { cookie, ownerId } = await signUpWithSession(app, "wallets");
       const currentId = await insertWallet(db, {
         ownerId,
         name: "Current movement",
@@ -1137,8 +1124,8 @@ describe("DELETE /v1/wallets/{walletId}", () => {
   test("does not disclose missing or another owner's wallets", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db);
-      const alice = await signUp(app);
-      const bob = await signUp(app);
+      const alice = await signUpWithSession(app, "wallets");
+      const bob = await signUpWithSession(app, "wallets");
       const id = await insertWallet(db, {
         ownerId: alice.ownerId,
         name: "Alice cash",

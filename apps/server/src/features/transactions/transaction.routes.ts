@@ -47,7 +47,10 @@ import {
   getProblemOptionsForStatus,
 } from "../../core/http/problem-details.js";
 
-import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
+import type {
+  QueryValidatedInput,
+  ResourceCommandValidatedInput,
+} from "../../core/http/request-validation.js";
 import {
   createCommandMiddleware,
   createQueryMiddleware,
@@ -393,15 +396,6 @@ const transactionListQueryMiddleware = createQueryMiddleware(
   transactionListQuerySchema,
 );
 
-interface TransactionListValidatedInput {
-  in: {
-    query: z.input<typeof transactionListQuerySchema>;
-  };
-  out: {
-    query: z.output<typeof transactionListQuerySchema>;
-  };
-}
-
 function toTransactionCursorFilters(
   query: Readonly<z.output<typeof transactionListQuerySchema>>,
 ) {
@@ -535,7 +529,7 @@ export function createTransactionRoutes(db: Database) {
       describeResponse<
         AuthenticatedEnv,
         typeof COLLECTION_PATH,
-        TransactionListValidatedInput,
+        QueryValidatedInput<typeof transactionListQuerySchema>,
         {
           200: typeof transactionCollectionResponseSchema;
           400: typeof problemDetailsSchema;

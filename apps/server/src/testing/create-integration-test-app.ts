@@ -1,6 +1,7 @@
 import { createAuth } from "@bookkeeping/auth/config";
 import type { Database } from "@bookkeeping/database/connection";
 import type { Hono } from "hono";
+import * as z from "zod";
 import { createApp } from "../core/app.js";
 import { API_COOKIE_PREFIX, createAuthGateway } from "../core/auth/gateway.js";
 import type { AppEnv } from "../core/http/request-context.js";
@@ -62,4 +63,22 @@ export async function signUpThroughAuthRoutes(
     throw new Error(`Sign-up through auth routes failed: ${response.status}`);
   }
   return { cookie: response.headers.get("set-cookie") ?? "", email };
+}
+
+const sessionResponseSchema = z.object({ user: z.object({ id: z.string() }) });
+
+/**
+ * Signs up a fresh user and reads the session back through the auth routes;
+ * returns the API cookie plus the owner id the session carries.
+ */
+export async function signUpWithSession(
+  app: Hono<AppEnv>,
+  label: string,
+): Promise<{ cookie: string; ownerId: string }> {
+  const { cookie } = await signUpThroughAuthRoutes(app, label);
+  const session = await app.request(`${TEST_API_ORIGIN}/api/auth/get-session`, {
+    headers: { cookie, origin: TEST_CLIENT_ORIGIN },
+  });
+  const { user } = sessionResponseSchema.parse(await session.json());
+  return { cookie, ownerId: user.id };
 }

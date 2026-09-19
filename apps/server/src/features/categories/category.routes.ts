@@ -97,6 +97,20 @@ export const categoryUsageCollectionResponseSchema =
     id: "CategoryUsageCollection",
   });
 
+type CategoryUsageCollectionResponse = z.infer<
+  typeof categoryUsageCollectionResponseSchema
+>;
+
+/** The usage record as an unpaginated collection, ordered by category id. */
+export function presentCategoryUsage(
+  usage: Readonly<Record<string, number>>,
+): CategoryUsageCollectionResponse {
+  const items = Object.entries(usage)
+    .map(([categoryId, transactions]) => ({ categoryId, transactions }))
+    .toSorted((left, right) => left.categoryId.localeCompare(right.categoryId));
+  return { items, page: { nextCursor: null } };
+}
+
 export const provisioningOutcomeResponseSchema = z
   .object({
     seededKinds: z.array(z.enum(CATEGORY_KINDS)),
@@ -185,397 +199,400 @@ const categoryCommandMiddleware = createCommandMiddleware(
 );
 
 export function createCategoryRoutes(db: Database) {
-  return new Hono<AuthenticatedEnv>()
-    .post(
-      COLLECTION_PATH,
-      describeRoute({
-        operationId: "createCategory",
-        summary: "Create a category",
-        description:
-          "Creates a parent or a child in the signed-in owner's income or " +
-          "expense tree. Names are trimmed and unique within their parent " +
-          "scope. The request must carry a client-generated Idempotency-Key: " +
-          "repeating it with the same normalized payload replays the original " +
-          "creation, while a different payload is a conflict. A rejected " +
-          "request never consumes its key.",
-        tags: ["Categories"],
-        responses: {
-          400: describeProblemResponse(400),
-          401: describeProblemResponse(401),
-        },
-      }),
-      idempotencyKeyMiddleware,
-      categoryCommandMiddleware,
-      describeResponse<
-        AuthenticatedEnv,
-        typeof COLLECTION_PATH,
-        CreateCategoryValidatedInput,
-        {
-          201: typeof categoryResponseSchema;
-          409: typeof problemDetailsSchema;
-          422: typeof problemDetailsSchema;
-        }
-      >(
-        async (c) => {
-          const body = c.req.valid("json");
-          const created = await createCategory(db, {
-            ...body,
-            ownerId: c.get("session").user.id,
-            idempotencyKey: c.req.valid("header")["idempotency-key"],
-          });
-          if (!created.ok) {
-            if (created.error.code === "idempotency-conflict") {
-              return createProblemResponse(c, idempotencyConflictProblem);
-            }
-            return createProblemResponse(c, {
-              ...getProblemOptionsForStatus(422),
-              errors: [toCategoryFieldError(created.error)],
-            });
+  return (
+    new Hono<AuthenticatedEnv>()
+      .post(
+        COLLECTION_PATH,
+        describeRoute({
+          operationId: "createCategory",
+          summary: "Create a category",
+          description:
+            "Creates a parent or a child in the signed-in owner's income or " +
+            "expense tree. Names are trimmed and unique within their parent " +
+            "scope. The request must carry a client-generated Idempotency-Key: " +
+            "repeating it with the same normalized payload replays the original " +
+            "creation, while a different payload is a conflict. A rejected " +
+            "request never consumes its key.",
+          tags: ["Categories"],
+          responses: {
+            400: describeProblemResponse(400),
+            401: describeProblemResponse(401),
+          },
+        }),
+        idempotencyKeyMiddleware,
+        categoryCommandMiddleware,
+        describeResponse<
+          AuthenticatedEnv,
+          typeof COLLECTION_PATH,
+          CreateCategoryValidatedInput,
+          {
+            201: typeof categoryResponseSchema;
+            409: typeof problemDetailsSchema;
+            422: typeof problemDetailsSchema;
           }
-          const category = created.value.category;
-          return c.json(category, 201, {
-            [LOCATION_HEADER]: `${c.req.path}/${category.id}`,
-          });
-        },
-        {
-          201: {
-            description: "The created category, or the original on a replay",
-            headers: {
-              [LOCATION_HEADER]: {
-                description: "Where the created category can be retrieved",
-                schema: { type: "string" },
+        >(
+          async (c) => {
+            const body = c.req.valid("json");
+            const created = await createCategory(db, {
+              ...body,
+              ownerId: c.get("session").user.id,
+              idempotencyKey: c.req.valid("header")["idempotency-key"],
+            });
+            if (!created.ok) {
+              if (created.error.code === "idempotency-conflict") {
+                return createProblemResponse(c, idempotencyConflictProblem);
+              }
+              return createProblemResponse(c, {
+                ...getProblemOptionsForStatus(422),
+                errors: [toCategoryFieldError(created.error)],
+              });
+            }
+            const category = created.value.category;
+            return c.json(category, 201, {
+              [LOCATION_HEADER]: `${c.req.path}/${category.id}`,
+            });
+          },
+          {
+            201: {
+              description: "The created category, or the original on a replay",
+              headers: {
+                [LOCATION_HEADER]: {
+                  description: "Where the created category can be retrieved",
+                  schema: { type: "string" },
+                },
+              },
+              content: {
+                "application/json": { vSchema: categoryResponseSchema },
               },
             },
-            content: {
-              "application/json": { vSchema: categoryResponseSchema },
-            },
+            409: describeProblem(idempotencyConflictProblem),
+            422: describeProblem(getProblemOptionsForStatus(422)),
           },
-          409: describeProblem(idempotencyConflictProblem),
-          422: describeProblem(getProblemOptionsForStatus(422)),
-        },
-      ),
-    )
-    .get(
-      COLLECTION_PATH,
-      describeRoute({
-        operationId: "listCategories",
-        summary: "List categories",
-        description:
-          "Returns the signed-in owner's income and expense category trees " +
-          "in picker order. Parents precede their children, protected " +
-          "Uncategorized entries are included, and reads never initialize " +
-          "or modify a missing tree. The collection is unpaginated; " +
-          "`nextCursor` is always null.",
-        tags: ["Categories"],
-        responses: { 401: describeProblemResponse(401) },
-      }),
-      // The generics are explicit because the library cannot infer the
-      // authenticated environment from an async handler; without them the
-      // session variable types as `never`.
-      describeResponse<
-        AuthenticatedEnv,
-        typeof COLLECTION_PATH,
-        Input,
-        { 200: typeof categoryCollectionResponseSchema }
-      >(
-        async (c) => {
-          const categories = await listCategories(db, c.get("session").user.id);
-          return c.json(
-            {
-              // The response schema types a mutable array; the summaries
-              // themselves are already the wire shape.
-              items: [...categories],
-              page: { nextCursor: null },
-            },
-            200,
-          );
-        },
-        {
-          200: {
-            description: "The owner's income and expense category trees",
-            content: {
-              "application/json": {
-                vSchema: categoryCollectionResponseSchema,
+        ),
+      )
+      .get(
+        COLLECTION_PATH,
+        describeRoute({
+          operationId: "listCategories",
+          summary: "List categories",
+          description:
+            "Returns the signed-in owner's income and expense category trees " +
+            "in picker order. Parents precede their children, protected " +
+            "Uncategorized entries are included, and reads never initialize " +
+            "or modify a missing tree. The collection is unpaginated; " +
+            "`nextCursor` is always null.",
+          tags: ["Categories"],
+          responses: { 401: describeProblemResponse(401) },
+        }),
+        // The generics are explicit because the library cannot infer the
+        // authenticated environment from an async handler; without them the
+        // session variable types as `never`.
+        describeResponse<
+          AuthenticatedEnv,
+          typeof COLLECTION_PATH,
+          Input,
+          { 200: typeof categoryCollectionResponseSchema }
+        >(
+          async (c) => {
+            const categories = await listCategories(
+              db,
+              c.get("session").user.id,
+            );
+            return c.json(
+              {
+                // The response schema types a mutable array; the summaries
+                // themselves are already the wire shape.
+                items: [...categories],
+                page: { nextCursor: null },
+              },
+              200,
+            );
+          },
+          {
+            200: {
+              description: "The owner's income and expense category trees",
+              content: {
+                "application/json": {
+                  vSchema: categoryCollectionResponseSchema,
+                },
               },
             },
           },
-        },
-      ),
-    )
-    .get(
-      USAGE_COLLECTION_PATH,
-      describeRoute({
-        operationId: "listCategoryUsage",
-        summary: "List category usage",
-        description:
-          "How many current transactions each of the signed-in owner's " +
-          "categories holds, for deciding what can be removed without " +
-          "reading every category in turn. Only categories with at least " +
-          "one transaction appear; a category that is absent holds none. " +
-          "Refunds follow their expense's category and are never counted, " +
-          "and deleted transactions stop counting. The collection is " +
-          "unpaginated; `nextCursor` is always null.",
-        tags: ["Categories"],
-        responses: { 401: describeProblemResponse(401) },
-      }),
+        ),
+      )
       // Registered before the resource path so this static read is never
       // captured by the identifier route.
-      describeResponse<
-        AuthenticatedEnv,
-        typeof USAGE_COLLECTION_PATH,
-        Input,
-        { 200: typeof categoryUsageCollectionResponseSchema }
-      >(
-        async (c) => {
-          const usage = await listCategoryUsage(db, c.get("session").user.id);
-          const items = Object.entries(usage)
-            .map(([categoryId, transactions]) => ({
-              categoryId,
-              transactions,
-            }))
-            .toSorted((left, right) =>
-              left.categoryId.localeCompare(right.categoryId),
-            );
-          return c.json({ items, page: { nextCursor: null } }, 200);
-        },
-        {
-          200: {
-            description: "Transaction counts by category",
-            content: {
-              "application/json": {
-                vSchema: categoryUsageCollectionResponseSchema,
+      .get(
+        USAGE_COLLECTION_PATH,
+        describeRoute({
+          operationId: "listCategoryUsage",
+          summary: "List category usage",
+          description:
+            "How many current transactions each of the signed-in owner's " +
+            "categories holds, for deciding what can be removed without " +
+            "reading every category in turn. Only categories with at least " +
+            "one transaction appear; a category that is absent holds none. " +
+            "Refunds follow their expense's category and are never counted, " +
+            "and deleted transactions stop counting. The collection is " +
+            "unpaginated; `nextCursor` is always null.",
+          tags: ["Categories"],
+          responses: { 401: describeProblemResponse(401) },
+        }),
+        describeResponse<
+          AuthenticatedEnv,
+          typeof USAGE_COLLECTION_PATH,
+          Input,
+          { 200: typeof categoryUsageCollectionResponseSchema }
+        >(
+          async (c) => {
+            const usage = await listCategoryUsage(db, c.get("session").user.id);
+            return c.json(presentCategoryUsage(usage), 200);
+          },
+          {
+            200: {
+              description: "Transaction counts by category",
+              content: {
+                "application/json": {
+                  vSchema: categoryUsageCollectionResponseSchema,
+                },
               },
             },
           },
-        },
-      ),
-    )
-    .get(
-      RESOURCE_PATH,
-      describeRoute({
-        operationId: "getCategory",
-        summary: "Get a category",
-        description:
-          "One category the signed-in owner holds, as listed in its tree. " +
-          "A category that does not exist, belongs to another owner, or has " +
-          "a malformed identifier is not found alike.",
-        tags: ["Categories"],
-        responses: { 401: describeProblemResponse(401) },
-      }),
-      categoryParamMiddleware,
-      describeResponse<
-        AuthenticatedEnv,
-        typeof RESOURCE_PATH,
-        Input,
-        { 200: typeof categoryResponseSchema; 404: typeof problemDetailsSchema }
-      >(
-        async (c) => {
-          const category = await findCategory(db, {
-            ownerId: c.get("session").user.id,
-            id: c.req.param("categoryId"),
-          });
-          if (category === null) {
-            return createProblemResponse(c, getProblemOptionsForStatus(404));
+        ),
+      )
+      .get(
+        RESOURCE_PATH,
+        describeRoute({
+          operationId: "getCategory",
+          summary: "Get a category",
+          description:
+            "One category the signed-in owner holds, as listed in its tree. " +
+            "A category that does not exist, belongs to another owner, or has " +
+            "a malformed identifier is not found alike.",
+          tags: ["Categories"],
+          responses: { 401: describeProblemResponse(401) },
+        }),
+        categoryParamMiddleware,
+        describeResponse<
+          AuthenticatedEnv,
+          typeof RESOURCE_PATH,
+          Input,
+          {
+            200: typeof categoryResponseSchema;
+            404: typeof problemDetailsSchema;
           }
-          return c.json(category, 200);
-        },
-        {
-          200: {
-            description: "The category",
-            content: {
-              "application/json": { vSchema: categoryResponseSchema },
-            },
-          },
-          404: describeProblem(getProblemOptionsForStatus(404)),
-        },
-      ),
-    )
-    .patch(
-      RESOURCE_PATH,
-      describeRoute({
-        operationId: "updateCategory",
-        summary: "Update a category",
-        description:
-          "Renames the category and/or changes its icon in one save. The " +
-          "tree position and kind never change, and names stay unique " +
-          "within their scope, case-insensitively. Uncategorized keeps its " +
-          "name; its icon can still change, so repeating its exact current " +
-          "name and icon succeeds without effect. A category that does not " +
-          "exist, belongs to another owner, or has a malformed identifier " +
-          "is not found alike.",
-        tags: ["Categories"],
-        responses: {
-          400: describeProblemResponse(400),
-          401: describeProblemResponse(401),
-        },
-      }),
-      categoryParamMiddleware,
-      createCommandMiddleware(updateCategoryRequestSchema),
-      describeResponse<
-        AuthenticatedEnv,
-        typeof RESOURCE_PATH,
-        CategoryCommandValidatedInput<typeof updateCategoryRequestSchema>,
-        {
-          200: typeof categoryResponseSchema;
-          404: typeof problemDetailsSchema;
-          422: typeof problemDetailsSchema;
-        }
-      >(
-        async (c) => {
-          const body = c.req.valid("json");
-          const updated = await updateCategory(db, {
-            ownerId: c.get("session").user.id,
-            id: c.req.valid("param").categoryId,
-            name: body.name,
-            iconId: body.iconId,
-          });
-          if (!updated.ok) {
-            if (updated.error.code === "category-not-found") {
+        >(
+          async (c) => {
+            const category = await findCategory(db, {
+              ownerId: c.get("session").user.id,
+              id: c.req.param("categoryId"),
+            });
+            if (category === null) {
               return createProblemResponse(c, getProblemOptionsForStatus(404));
             }
-            return createProblemResponse(c, {
-              ...getProblemOptionsForStatus(422),
-              errors: [toCategoryUpdateFieldError(updated.error)],
+            return c.json(category, 200);
+          },
+          {
+            200: {
+              description: "The category",
+              content: {
+                "application/json": { vSchema: categoryResponseSchema },
+              },
+            },
+            404: describeProblem(getProblemOptionsForStatus(404)),
+          },
+        ),
+      )
+      .patch(
+        RESOURCE_PATH,
+        describeRoute({
+          operationId: "updateCategory",
+          summary: "Update a category",
+          description:
+            "Renames the category and/or changes its icon in one save. The " +
+            "tree position and kind never change, and names stay unique " +
+            "within their scope, case-insensitively. Uncategorized keeps its " +
+            "name; its icon can still change, so repeating its exact current " +
+            "name and icon succeeds without effect. A category that does not " +
+            "exist, belongs to another owner, or has a malformed identifier " +
+            "is not found alike.",
+          tags: ["Categories"],
+          responses: {
+            400: describeProblemResponse(400),
+            401: describeProblemResponse(401),
+          },
+        }),
+        categoryParamMiddleware,
+        createCommandMiddleware(updateCategoryRequestSchema),
+        describeResponse<
+          AuthenticatedEnv,
+          typeof RESOURCE_PATH,
+          CategoryCommandValidatedInput<typeof updateCategoryRequestSchema>,
+          {
+            200: typeof categoryResponseSchema;
+            404: typeof problemDetailsSchema;
+            422: typeof problemDetailsSchema;
+          }
+        >(
+          async (c) => {
+            const body = c.req.valid("json");
+            const updated = await updateCategory(db, {
+              ownerId: c.get("session").user.id,
+              id: c.req.valid("param").categoryId,
+              name: body.name,
+              iconId: body.iconId,
             });
-          }
-          return c.json(updated.value, 200);
-        },
-        {
-          200: {
-            description: "The category with its updated presentation",
-            content: {
-              "application/json": { vSchema: categoryResponseSchema },
-            },
+            if (!updated.ok) {
+              if (updated.error.code === "category-not-found") {
+                return createProblemResponse(
+                  c,
+                  getProblemOptionsForStatus(404),
+                );
+              }
+              return createProblemResponse(c, {
+                ...getProblemOptionsForStatus(422),
+                errors: [toCategoryUpdateFieldError(updated.error)],
+              });
+            }
+            return c.json(updated.value, 200);
           },
-          404: describeProblem(getProblemOptionsForStatus(404)),
-          422: describeProblem(getProblemOptionsForStatus(422)),
-        },
-      ),
-    )
-    .delete(
-      RESOURCE_PATH,
-      describeRoute({
-        operationId: "deleteCategory",
-        summary: "Delete a category",
-        description:
-          "Removes a child or a childless parent category. The child's " +
-          "transactions move to its parent, and a childless parent's move " +
-          "to that tree's Uncategorized, so no entry loses its " +
-          "categorization. A parent with children must be emptied first, and " +
-          "Uncategorized itself cannot be removed. A category that does not " +
-          "exist, belongs to another owner, or has a malformed identifier is " +
-          "not found alike.",
-        tags: ["Categories"],
-        responses: {
-          204: { description: "The category was deleted" },
-          401: describeProblemResponse(401),
-          404: describeProblemResponse(404),
-          409: describeProblemResponse(409),
-        },
-      }),
-      categoryParamMiddleware,
-      async (c) => {
-        const removed = await removeCategory(db, {
-          ownerId: c.get("session").user.id,
-          id: c.req.valid("param").categoryId,
-        });
-        if (!removed.ok) {
-          if (!isRemovalBlocked(removed.error)) {
-            return createProblemResponse(c, getProblemOptionsForStatus(404));
-          }
-          return createProblemResponse(c, getProblemOptionsForStatus(409));
-        }
-        return c.body(null, 204);
-      },
-    )
-    .get(
-      USAGE_PATH,
-      describeRoute({
-        operationId: "getCategoryUsage",
-        summary: "Get a category's usage",
-        description:
-          "The current income and expense transactions filed under the " +
-          "category and the child categories it holds: the information " +
-          "needed before removing it. Refunds follow their expense's " +
-          "category and are not counted. A category that does not exist, " +
-          "belongs to another owner, or has a malformed identifier is not " +
-          "found alike.",
-        tags: ["Categories"],
-        responses: { 401: describeProblemResponse(401) },
-      }),
-      categoryParamMiddleware,
-      describeResponse<
-        AuthenticatedEnv,
-        typeof USAGE_PATH,
-        Input,
-        {
-          200: typeof categoryUsageResponseSchema;
-          404: typeof problemDetailsSchema;
-        }
-      >(
+          {
+            200: {
+              description: "The category with its updated presentation",
+              content: {
+                "application/json": { vSchema: categoryResponseSchema },
+              },
+            },
+            404: describeProblem(getProblemOptionsForStatus(404)),
+            422: describeProblem(getProblemOptionsForStatus(422)),
+          },
+        ),
+      )
+      .delete(
+        RESOURCE_PATH,
+        describeRoute({
+          operationId: "deleteCategory",
+          summary: "Delete a category",
+          description:
+            "Removes a child or a childless parent category. The child's " +
+            "transactions move to its parent, and a childless parent's move " +
+            "to that tree's Uncategorized, so no entry loses its " +
+            "categorization. A parent with children must be emptied first, and " +
+            "Uncategorized itself cannot be removed. A category that does not " +
+            "exist, belongs to another owner, or has a malformed identifier is " +
+            "not found alike.",
+          tags: ["Categories"],
+          responses: {
+            204: { description: "The category was deleted" },
+            401: describeProblemResponse(401),
+            404: describeProblemResponse(404),
+            409: describeProblemResponse(409),
+          },
+        }),
+        categoryParamMiddleware,
         async (c) => {
-          const usage = await findCategoryUsage(db, {
+          const removed = await removeCategory(db, {
             ownerId: c.get("session").user.id,
-            id: c.req.param("categoryId"),
+            id: c.req.valid("param").categoryId,
           });
-          if (usage === null) {
-            return createProblemResponse(c, getProblemOptionsForStatus(404));
+          if (!removed.ok) {
+            if (!isRemovalBlocked(removed.error)) {
+              return createProblemResponse(c, getProblemOptionsForStatus(404));
+            }
+            return createProblemResponse(c, getProblemOptionsForStatus(409));
           }
-          return c.json(usage, 200);
+          return c.body(null, 204);
         },
-        {
-          200: {
-            description: "The category's transactions and children",
-            content: {
-              "application/json": {
-                vSchema: categoryUsageResponseSchema,
+      )
+      .get(
+        USAGE_PATH,
+        describeRoute({
+          operationId: "getCategoryUsage",
+          summary: "Get a category's usage",
+          description:
+            "The current income and expense transactions filed under the " +
+            "category and the child categories it holds: the information " +
+            "needed before removing it. Refunds follow their expense's " +
+            "category and are not counted. A category that does not exist, " +
+            "belongs to another owner, or has a malformed identifier is not " +
+            "found alike.",
+          tags: ["Categories"],
+          responses: { 401: describeProblemResponse(401) },
+        }),
+        categoryParamMiddleware,
+        describeResponse<
+          AuthenticatedEnv,
+          typeof USAGE_PATH,
+          Input,
+          {
+            200: typeof categoryUsageResponseSchema;
+            404: typeof problemDetailsSchema;
+          }
+        >(
+          async (c) => {
+            const usage = await findCategoryUsage(db, {
+              ownerId: c.get("session").user.id,
+              id: c.req.param("categoryId"),
+            });
+            if (usage === null) {
+              return createProblemResponse(c, getProblemOptionsForStatus(404));
+            }
+            return c.json(usage, 200);
+          },
+          {
+            200: {
+              description: "The category's transactions and children",
+              content: {
+                "application/json": {
+                  vSchema: categoryUsageResponseSchema,
+                },
+              },
+            },
+            404: describeProblem(getProblemOptionsForStatus(404)),
+          },
+        ),
+      )
+      .post(
+        DEFAULTS_PATH,
+        describeRoute({
+          operationId: "initializeDefaultCategories",
+          summary: "Initialize default categories",
+          description:
+            "Creates any default category tree the signed-in owner is missing. " +
+            "Sign-up provisions the set automatically; call this after sign-up " +
+            "or sign-in to complete an interrupted provisioning. Idempotent: " +
+            "existing trees, including customized ones, are left untouched.",
+          tags: ["Categories"],
+          responses: { 401: describeProblemResponse(401) },
+        }),
+        // The generics are explicit because the library cannot infer the
+        // authenticated environment from an async handler; without them the
+        // session variable types as `never`.
+        describeResponse<
+          AuthenticatedEnv,
+          typeof DEFAULTS_PATH,
+          Input,
+          { 200: typeof provisioningOutcomeResponseSchema }
+        >(
+          async (c) => {
+            const outcome = await initializeDefaultCategories(
+              db,
+              c.get("session").user.id,
+            );
+            return c.json({ seededKinds: [...outcome.seededKinds] }, 200);
+          },
+          {
+            200: {
+              description:
+                "The trees this call seeded; empty when already complete",
+              content: {
+                "application/json": {
+                  vSchema: provisioningOutcomeResponseSchema,
+                },
               },
             },
           },
-          404: describeProblem(getProblemOptionsForStatus(404)),
-        },
-      ),
-    )
-    .post(
-      DEFAULTS_PATH,
-      describeRoute({
-        operationId: "initializeDefaultCategories",
-        summary: "Initialize default categories",
-        description:
-          "Creates any default category tree the signed-in owner is missing. " +
-          "Sign-up provisions the set automatically; call this after sign-up " +
-          "or sign-in to complete an interrupted provisioning. Idempotent: " +
-          "existing trees, including customized ones, are left untouched.",
-        tags: ["Categories"],
-        responses: { 401: describeProblemResponse(401) },
-      }),
-      // The generics are explicit because the library cannot infer the
-      // authenticated environment from an async handler; without them the
-      // session variable types as `never`.
-      describeResponse<
-        AuthenticatedEnv,
-        typeof DEFAULTS_PATH,
-        Input,
-        { 200: typeof provisioningOutcomeResponseSchema }
-      >(
-        async (c) => {
-          const outcome = await initializeDefaultCategories(
-            db,
-            c.get("session").user.id,
-          );
-          return c.json({ seededKinds: [...outcome.seededKinds] }, 200);
-        },
-        {
-          200: {
-            description:
-              "The trees this call seeded; empty when already complete",
-            content: {
-              "application/json": {
-                vSchema: provisioningOutcomeResponseSchema,
-              },
-            },
-          },
-        },
-      ),
-    );
+        ),
+      )
+  );
 }

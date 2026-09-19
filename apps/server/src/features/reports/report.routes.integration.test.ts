@@ -10,11 +10,10 @@ import { wallets } from "@bookkeeping/database/wallets";
 import { eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { describe, expect, test } from "vitest";
-import * as z from "zod";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
   createIntegrationTestApp,
-  signUpThroughAuthRoutes,
+  signUpWithSession,
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
@@ -24,18 +23,6 @@ import { monthlyReportResponseSchema } from "./report.routes.js";
 const { withRollback } = setupTestDatabase();
 
 const REPORTS_URL = `${TEST_API_ORIGIN}/v1/reports/monthly`;
-
-const sessionResponseSchema = z.object({ user: z.object({ id: z.string() }) });
-
-/** Signs up through the auth routes and returns the cookie plus the owner's id. */
-async function signUp(app: Hono<AppEnv>, label: string) {
-  const { cookie } = await signUpThroughAuthRoutes(app, label);
-  const session = await app.request(`${TEST_API_ORIGIN}/api/auth/get-session`, {
-    headers: { cookie, origin: TEST_CLIENT_ORIGIN },
-  });
-  const { user } = sessionResponseSchema.parse(await session.json());
-  return { cookie, ownerId: user.id };
-}
 
 interface OwnerFixture {
   cookie: string;
@@ -54,7 +41,7 @@ async function createOwner(
   app: Hono<AppEnv>,
   { db, label }: Readonly<OwnerRequest>,
 ): Promise<OwnerFixture> {
-  const { cookie, ownerId } = await signUp(app, label);
+  const { cookie, ownerId } = await signUpWithSession(app, label);
   await initializeDefaultCategories(db, ownerId);
   const [cash, bank] = await db
     .insert(wallets)

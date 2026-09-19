@@ -1,35 +1,20 @@
 import { Validator } from "@seriousme/openapi-schema-validator";
-import type { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import type * as z from "zod";
 import { healthResponseSchema } from "../../features/health/health.routes.js";
 import { createUnitTestApp } from "../../testing/create-unit-test-app.js";
+import type {
+  DocumentedOperation,
+  DocumentedPaths,
+} from "../../testing/openapi-document.js";
+import {
+  documentedOperation,
+  documentedSchema,
+  documentedSchemaRef,
+  fetchDocument,
+} from "../../testing/openapi-document.js";
 import { OPENAPI_DOCUMENT_PATH } from "./openapi.js";
 import { problemDetailsSchema } from "./problem-details.js";
-import type { AppEnv } from "./request-context.js";
-
-interface DocumentedMedia {
-  schema: { $ref?: string };
-}
-
-interface DocumentedOperation {
-  operationId?: string;
-  parameters?: { in: string; name: string; required?: boolean }[];
-  requestBody?: {
-    required?: boolean;
-    content: { [mediaType: string]: DocumentedMedia };
-  };
-  responses: {
-    [status: string]: {
-      headers?: { [name: string]: unknown };
-      content: { [mediaType: string]: DocumentedMedia };
-    };
-  };
-}
-
-interface DocumentedPaths {
-  [path: string]: { [method: string]: DocumentedOperation | undefined };
-}
 
 function toOpenApiPath(honoPath: string): string {
   return honoPath.replaceAll(/:(\w+)/g, "{$1}");
@@ -70,7 +55,7 @@ async function expectResponseToSatisfyDocumentation({
   const documented = operation.responses[String(response.status)];
   expect(documented).toBeDefined();
 
-  const [mediaType, media] = Object.entries(documented.content)[0];
+  const [mediaType, media] = Object.entries(documented.content ?? {})[0];
   expect(response.headers.get("content-type")).toContain(mediaType);
   expect(media.schema.$ref).toBe(`#/components/schemas/${schema.meta()?.id}`);
   expect(schema.safeParse(await response.json()).success).toBe(true);
@@ -82,14 +67,12 @@ function expectProblemResponses(
 ) {
   for (const status of statuses) {
     expect(
-      operation.responses[status].content["application/problem+json"].schema
-        .$ref,
+      documentedSchemaRef(operation, {
+        status,
+        mediaType: "application/problem+json",
+      }),
     ).toBe("#/components/schemas/ProblemDetails");
   }
-}
-
-async function fetchDocument(app: Hono<AppEnv>) {
-  return (await app.request(OPENAPI_DOCUMENT_PATH)).json();
 }
 
 describe("OpenAPI document", () => {
@@ -108,15 +91,23 @@ describe("OpenAPI document", () => {
 
   it("documents the health operation from its response schemas", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation = document.paths["/health"].get;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/health",
+    });
 
     expect(operation.operationId).toBe("getHealth");
     expect(
-      operation.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(operation, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/HealthResponse");
     expect(
-      operation.responses["500"].content["application/problem+json"].schema
-        .$ref,
+      documentedSchemaRef(operation, {
+        status: "500",
+        mediaType: "application/problem+json",
+      }),
     ).toBe("#/components/schemas/ProblemDetails");
     expect(Object.keys(document.components.schemas)).toEqual(
       expect.arrayContaining(["HealthResponse", "ProblemDetails"]),
@@ -125,13 +116,21 @@ describe("OpenAPI document", () => {
 
   it("documents the wallet reads from their response schemas", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const collection: DocumentedOperation = document.paths["/v1/wallets"].get;
-    const resource: DocumentedOperation =
-      document.paths["/v1/wallets/{walletId}"].get;
+    const collection: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/wallets",
+    });
+    const resource: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/wallets/{walletId}",
+    });
 
     expect(collection.operationId).toBe("listWallets");
     expect(
-      collection.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(collection, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/WalletCollection");
     expect(collection.responses["404"]).toBeUndefined();
     expectProblemResponses(collection, ["400", "401"]);
@@ -142,7 +141,10 @@ describe("OpenAPI document", () => {
     expect(collection.parameters?.[0].required).toBeUndefined();
     expect(resource.operationId).toBe("getWallet");
     expect(
-      resource.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(resource, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/Wallet");
     expectProblemResponses(resource, ["401", "404"]);
     expect(resource.parameters).toEqual([
@@ -160,19 +162,30 @@ describe("OpenAPI document", () => {
 
   it("documents category reads from their response schemas", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation = document.paths["/v1/categories"].get;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/categories",
+    });
 
     expect(operation.operationId).toBe("listCategories");
     expect(
-      operation.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(operation, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/CategoryCollection");
     expect(operation.responses["401"]).toBeDefined();
     expect(operation.responses["404"]).toBeUndefined();
-    const resource: DocumentedOperation =
-      document.paths["/v1/categories/{categoryId}"].get;
+    const resource: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/categories/{categoryId}",
+    });
     expect(resource.operationId).toBe("getCategory");
     expect(
-      resource.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(resource, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/Category");
     expectProblemResponses(resource, ["401", "404"]);
     expect(resource.parameters).toEqual([
@@ -182,14 +195,16 @@ describe("OpenAPI document", () => {
         required: true,
       }),
     ]);
-    expect(document.components.schemas.Category).toBeDefined();
-    expect(document.components.schemas.CategoryCollection).toBeDefined();
+    expect(documentedSchema(document, "Category")).toBeDefined();
+    expect(documentedSchema(document, "CategoryCollection")).toBeDefined();
   });
 
   it("documents category creation from its request and response schemas", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation =
-      document.paths["/v1/categories"].post;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "post",
+      path: "/v1/categories",
+    });
 
     expect(operation.operationId).toBe("createCategory");
     expect(operation.parameters).toEqual([
@@ -204,17 +219,22 @@ describe("OpenAPI document", () => {
       "#/components/schemas/CreateCategoryRequest",
     );
     expect(
-      operation.responses["201"].content["application/json"].schema.$ref,
+      documentedSchemaRef(operation, {
+        status: "201",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/Category");
     expect(operation.responses["201"].headers).toHaveProperty("Location");
     expectProblemResponses(operation, ["400", "401", "409", "422", "500"]);
-    expect(document.components.schemas.CreateCategoryRequest).toBeDefined();
+    expect(documentedSchema(document, "CreateCategoryRequest")).toBeDefined();
   });
 
   it("documents the category update as a strict partial update", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation =
-      document.paths["/v1/categories/{categoryId}"].patch;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "patch",
+      path: "/v1/categories/{categoryId}",
+    });
 
     expect(operation.operationId).toBe("updateCategory");
     expect(operation.parameters).toEqual([
@@ -229,31 +249,38 @@ describe("OpenAPI document", () => {
       "#/components/schemas/UpdateCategoryRequest",
     );
     expect(
-      operation.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(operation, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/Category");
     expectProblemResponses(operation, ["400", "401", "404", "422", "500"]);
-    expect(document.components.schemas.UpdateCategoryRequest.required).toEqual([
-      "name",
-      "iconId",
-    ]);
     expect(
-      document.components.schemas.UpdateCategoryRequest.additionalProperties,
+      documentedSchema(document, "UpdateCategoryRequest").required,
+    ).toEqual(["name", "iconId"]);
+    expect(
+      documentedSchema(document, "UpdateCategoryRequest").additionalProperties,
     ).toBe(false);
   });
 
   it("documents the category usage collection as a static read", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation =
-      document.paths["/v1/categories/usage"].get;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/categories/usage",
+    });
 
     expect(operation.operationId).toBe("listCategoryUsage");
     expect(operation.parameters).toBeUndefined();
     expect(
-      operation.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(operation, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/CategoryUsageCollection");
     expectProblemResponses(operation, ["401", "500"]);
     expect(operation.responses["404"]).toBeUndefined();
-    expect(document.components.schemas.CategoryUsageEntry).toEqual(
+    expect(documentedSchema(document, "CategoryUsageEntry")).toEqual(
       expect.objectContaining({
         required: ["categoryId", "transactions"],
       }),
@@ -262,8 +289,10 @@ describe("OpenAPI document", () => {
 
   it("documents the category usage read", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation =
-      document.paths["/v1/categories/{categoryId}/usage"].get;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/categories/{categoryId}/usage",
+    });
 
     expect(operation.operationId).toBe("getCategoryUsage");
     expect(operation.parameters).toEqual([
@@ -274,10 +303,13 @@ describe("OpenAPI document", () => {
       }),
     ]);
     expect(
-      operation.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(operation, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/CategoryUsage");
     expectProblemResponses(operation, ["401", "404", "500"]);
-    expect(document.components.schemas.CategoryUsage).toEqual(
+    expect(documentedSchema(document, "CategoryUsage")).toEqual(
       expect.objectContaining({
         properties: expect.objectContaining({
           transactions: expect.objectContaining({ type: "integer" }),
@@ -289,7 +321,10 @@ describe("OpenAPI document", () => {
 
   it("documents wallet creation from its request and response schemas", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation = document.paths["/v1/wallets"].post;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "post",
+      path: "/v1/wallets",
+    });
 
     expect(operation.operationId).toBe("createWallet");
     expect(operation.parameters).toEqual([
@@ -304,11 +339,14 @@ describe("OpenAPI document", () => {
       "#/components/schemas/CreateWalletRequest",
     );
     expect(
-      operation.responses["201"].content["application/json"].schema.$ref,
+      documentedSchemaRef(operation, {
+        status: "201",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/Wallet");
     expect(operation.responses["201"].headers).toHaveProperty("Location");
     expectProblemResponses(operation, ["400", "401", "409", "422", "500"]);
-    expect(document.components.schemas.MoneyInput).toEqual(
+    expect(documentedSchema(document, "MoneyInput")).toEqual(
       expect.objectContaining({
         properties: expect.objectContaining({
           value: expect.objectContaining({
@@ -319,14 +357,17 @@ describe("OpenAPI document", () => {
       }),
     );
     expect(
-      document.components.schemas.CreateWalletRequest.properties.openingAmount,
+      documentedSchema(document, "CreateWalletRequest")?.properties
+        ?.openingAmount,
     ).toHaveProperty("$ref", "#/components/schemas/MoneyInput");
   });
 
   it("documents the opening balance replacement as a subordinate resource", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation =
-      document.paths["/v1/wallets/{walletId}/opening"].put;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "put",
+      path: "/v1/wallets/{walletId}/opening",
+    });
 
     expect(operation.operationId).toBe("replaceWalletOpening");
     expect(operation.parameters).toEqual([
@@ -337,23 +378,27 @@ describe("OpenAPI document", () => {
       "#/components/schemas/WalletOpeningRequest",
     );
     expect(
-      operation.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(operation, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/Wallet");
     expect(operation.responses["201"]).toBeUndefined();
     expectProblemResponses(operation, ["400", "401", "404", "422", "500"]);
     expect(
-      document.components.schemas.WalletOpeningRequest.properties.amount,
+      documentedSchema(document, "WalletOpeningRequest")?.properties?.amount,
     ).toHaveProperty("$ref", "#/components/schemas/MoneyInput");
-    expect(document.components.schemas.WalletOpeningRequest.required).toEqual([
-      "amount",
-      "date",
-    ]);
+    expect(documentedSchema(document, "WalletOpeningRequest").required).toEqual(
+      ["amount", "date"],
+    );
   });
 
   it("documents the archive-state change as a strict partial update", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation =
-      document.paths["/v1/wallets/{walletId}"].patch;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "patch",
+      path: "/v1/wallets/{walletId}",
+    });
 
     expect(operation.operationId).toBe("changeWalletArchiveState");
     expect(operation.parameters).toEqual([
@@ -364,22 +409,27 @@ describe("OpenAPI document", () => {
       "#/components/schemas/WalletArchiveStateRequest",
     );
     expect(
-      operation.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(operation, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/Wallet");
     expectProblemResponses(operation, ["400", "401", "404", "422", "500"]);
     expect(
-      document.components.schemas.WalletArchiveStateRequest.required,
+      documentedSchema(document, "WalletArchiveStateRequest").required,
     ).toEqual(["archived"]);
     expect(
-      document.components.schemas.WalletArchiveStateRequest
+      documentedSchema(document, "WalletArchiveStateRequest")
         .additionalProperties,
     ).toBe(false);
   });
 
   it("documents wallet deletion as a bodyless operation", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation =
-      document.paths["/v1/wallets/{walletId}"].delete;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "delete",
+      path: "/v1/wallets/{walletId}",
+    });
 
     expect(operation.operationId).toBe("deleteWallet");
     expect(operation.parameters).toEqual([
@@ -395,8 +445,10 @@ describe("OpenAPI document", () => {
 
   it("documents category deletion as a bodyless operation", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const operation: DocumentedOperation =
-      document.paths["/v1/categories/{categoryId}"].delete;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "delete",
+      path: "/v1/categories/{categoryId}",
+    });
 
     expect(operation.operationId).toBe("deleteCategory");
     expect(operation.parameters).toEqual([
@@ -416,19 +468,34 @@ describe("OpenAPI document", () => {
 
   it("documents transaction creation, update, listing, and reads", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const create: DocumentedOperation = document.paths["/v1/transactions"].post;
-    const collection: DocumentedOperation =
-      document.paths["/v1/transactions"].get;
-    const resource: DocumentedOperation =
-      document.paths["/v1/transactions/{transactionId}"].get;
-    const update: DocumentedOperation =
-      document.paths["/v1/transactions/{transactionId}"].put;
-    const remove: DocumentedOperation =
-      document.paths["/v1/transactions/{transactionId}"].delete;
-    const refunds: DocumentedOperation =
-      document.paths["/v1/transactions/{transactionId}/refunds"].get;
-    const defaults: DocumentedOperation =
-      document.paths["/v1/transactions/entry-defaults"].get;
+    const create: DocumentedOperation = documentedOperation(document, {
+      method: "post",
+      path: "/v1/transactions",
+    });
+    const collection: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/transactions",
+    });
+    const resource: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/transactions/{transactionId}",
+    });
+    const update: DocumentedOperation = documentedOperation(document, {
+      method: "put",
+      path: "/v1/transactions/{transactionId}",
+    });
+    const remove: DocumentedOperation = documentedOperation(document, {
+      method: "delete",
+      path: "/v1/transactions/{transactionId}",
+    });
+    const refunds: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/transactions/{transactionId}/refunds",
+    });
+    const defaults: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/transactions/entry-defaults",
+    });
 
     expect(create.operationId).toBe("createTransaction");
     expect(create.requestBody?.required).toBe(true);
@@ -445,18 +512,26 @@ describe("OpenAPI document", () => {
       ]),
     );
     expect(
-      create.responses["201"].content["application/json"].schema.$ref,
+      documentedSchemaRef(create, {
+        status: "201",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/Transaction");
     expect(create.responses["201"].headers).toHaveProperty("Location");
     expectProblemResponses(create, ["400", "401", "409", "422", "500"]);
 
-    const requestSchema = document.components.schemas.CreateTransactionRequest;
+    const requestSchema = documentedSchema(
+      document,
+      "CreateTransactionRequest",
+    );
     expect(requestSchema.oneOf).toHaveLength(3);
     const branchWithType =
       (expected: string) =>
       (branch: Readonly<{ properties?: { type?: { const?: string } } }>) =>
         branch.properties?.type?.const === expected;
-    const transferBranch = requestSchema.oneOf.find(branchWithType("transfer"));
+    const transferBranch = requestSchema.oneOf?.find(
+      branchWithType("transfer"),
+    );
     expect(transferBranch).toEqual(
       expect.objectContaining({
         additionalProperties: false,
@@ -473,12 +548,12 @@ describe("OpenAPI document", () => {
         }),
       }),
     );
-    expect(transferBranch.required).not.toContain("categoryId");
-    expect(transferBranch.properties).not.toHaveProperty("categoryId");
-    expect(transferBranch.properties).not.toHaveProperty(
+    expect(transferBranch?.required).not.toContain("categoryId");
+    expect(transferBranch?.properties).not.toHaveProperty("categoryId");
+    expect(transferBranch?.properties).not.toHaveProperty(
       "refundOfTransactionId",
     );
-    const refundBranch = requestSchema.oneOf.find(branchWithType("refund"));
+    const refundBranch = requestSchema.oneOf?.find(branchWithType("refund"));
     expect(refundBranch).toEqual(
       expect.objectContaining({
         additionalProperties: false,
@@ -495,9 +570,9 @@ describe("OpenAPI document", () => {
         }),
       }),
     );
-    expect(refundBranch.required).not.toContain("categoryId");
-    expect(refundBranch.properties).not.toHaveProperty("categoryId");
-    expect(refundBranch.properties).not.toHaveProperty("destinationWalletId");
+    expect(refundBranch?.required).not.toContain("categoryId");
+    expect(refundBranch?.properties).not.toHaveProperty("categoryId");
+    expect(refundBranch?.properties).not.toHaveProperty("destinationWalletId");
     expect(requestSchema.oneOf).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -511,7 +586,10 @@ describe("OpenAPI document", () => {
 
     expect(collection.operationId).toBe("listTransactions");
     expect(
-      collection.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(collection, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/TransactionCollection");
     expectProblemResponses(collection, ["400", "401"]);
     expect(collection.parameters).toEqual(
@@ -528,7 +606,10 @@ describe("OpenAPI document", () => {
 
     expect(resource.operationId).toBe("getTransaction");
     expect(
-      resource.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(resource, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/Transaction");
     expectProblemResponses(resource, ["401", "404"]);
     expect(resource.parameters).toEqual([
@@ -552,10 +633,13 @@ describe("OpenAPI document", () => {
       }),
     ]);
     expect(
-      update.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(update, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/Transaction");
     expectProblemResponses(update, ["400", "401", "404", "422", "500"]);
-    const updateSchema = document.components.schemas.UpdateTransactionRequest;
+    const updateSchema = documentedSchema(document, "UpdateTransactionRequest");
     expect(updateSchema.additionalProperties).toBe(false);
     expect(updateSchema.required).toEqual([
       "amount",
@@ -569,7 +653,7 @@ describe("OpenAPI document", () => {
         destinationWalletId: expect.anything(),
       }),
     );
-    expect(updateSchema.properties.amount).toHaveProperty(
+    expect(updateSchema.properties?.amount).toHaveProperty(
       "$ref",
       "#/components/schemas/MoneyInput",
     );
@@ -579,7 +663,10 @@ describe("OpenAPI document", () => {
 
     expect(refunds.operationId).toBe("getTransactionRefunds");
     expect(
-      refunds.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(refunds, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/TransactionRefunds");
     expectProblemResponses(refunds, ["401", "404"]);
 
@@ -600,27 +687,35 @@ describe("OpenAPI document", () => {
 
     expect(defaults.operationId).toBe("getTransactionEntryDefaults");
     expect(
-      defaults.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(defaults, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/TransactionEntryDefaults");
     expectProblemResponses(defaults, ["401"]);
-    expect(document.components.schemas.TransactionWallet).toBeDefined();
+    expect(documentedSchema(document, "TransactionWallet")).toBeDefined();
   });
 
   it("documents the monthly report read", async () => {
     const document = await fetchDocument(createUnitTestApp());
-    const report: DocumentedOperation =
-      document.paths["/v1/reports/monthly"].get;
+    const report: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/reports/monthly",
+    });
 
     expect(report.operationId).toBe("getMonthlyReport");
     expect(report.parameters).toEqual([
       expect.objectContaining({ in: "query", name: "month", required: true }),
     ]);
     expect(
-      report.responses["200"].content["application/json"].schema.$ref,
+      documentedSchemaRef(report, {
+        status: "200",
+        mediaType: "application/json",
+      }),
     ).toBe("#/components/schemas/MonthlyReport");
     expectProblemResponses(report, ["400", "401"]);
 
-    const reportSchema = document.components.schemas.MonthlyReport;
+    const reportSchema = documentedSchema(document, "MonthlyReport");
     expect(reportSchema.required).toEqual([
       "month",
       "income",
@@ -630,7 +725,7 @@ describe("OpenAPI document", () => {
       "net",
       "transactionCount",
     ]);
-    expect(reportSchema.properties.income.$ref).toBe(
+    expect(reportSchema.properties?.income.$ref).toBe(
       "#/components/schemas/Money",
     );
   });
@@ -650,7 +745,10 @@ describe("OpenAPI document", () => {
     const document = await fetchDocument(app);
     // Every operation documents the same opaque 500, so the health
     // operation stands in for any faulting route.
-    const operation: DocumentedOperation = document.paths["/health"].get;
+    const operation: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/health",
+    });
 
     await expectResponseToSatisfyDocumentation({
       response: await app.request("/health"),
