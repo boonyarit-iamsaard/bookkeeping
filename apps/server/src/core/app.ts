@@ -2,6 +2,7 @@ import type { Database } from "@bookkeeping/database/connection";
 import { Hono } from "hono";
 import { createCategoryRoutes } from "../features/categories/category.routes.js";
 import { healthRoutes } from "../features/health/health.routes.js";
+import { createReportRoutes } from "../features/reports/report.routes.js";
 import { createTransactionRoutes } from "../features/transactions/transaction.routes.js";
 import { createWalletRoutes } from "../features/wallets/wallet.routes.js";
 import type { AuthGateway } from "./auth/gateway.js";
@@ -50,6 +51,7 @@ export function createApp({
   app.route("/v1", createWalletRoutes(db));
   app.route("/v1", createCategoryRoutes(db));
   app.route("/v1", createTransactionRoutes(db));
+  app.route("/v1", createReportRoutes(db));
   registerOpenApiDocument(app);
 
   return app;

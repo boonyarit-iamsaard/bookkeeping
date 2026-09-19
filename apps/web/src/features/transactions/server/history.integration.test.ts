@@ -9,6 +9,7 @@ import { createCategoryForTest as createCategory } from "@bookkeeping/applicatio
 import {
   deleteTransaction,
   findTransaction,
+  getMonthlySummary,
   listTransactions,
   updateTransaction,
 } from "@bookkeeping/application/transactions";
@@ -23,7 +24,6 @@ import {
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
 import { describe, expect, test, vi } from "vitest";
-import { getMonthlySummary } from "@/features/transactions/server/history";
 import { createTransaction } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
 

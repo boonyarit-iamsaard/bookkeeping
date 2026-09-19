@@ -581,6 +581,35 @@ describe("OpenAPI document", () => {
     expect(document.components.schemas.TransactionWallet).toBeDefined();
   });
 
+  it("documents the monthly report read", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const report: DocumentedOperation =
+      document.paths["/v1/reports/monthly"].get;
+
+    expect(report.operationId).toBe("getMonthlyReport");
+    expect(report.parameters).toEqual([
+      expect.objectContaining({ in: "query", name: "month", required: true }),
+    ]);
+    expect(
+      report.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/MonthlyReport");
+    expectProblemResponses(report, ["400", "401"]);
+
+    const reportSchema = document.components.schemas.MonthlyReport;
+    expect(reportSchema.required).toEqual([
+      "month",
+      "income",
+      "grossExpenses",
+      "refunds",
+      "netExpenses",
+      "net",
+      "transactionCount",
+    ]);
+    expect(reportSchema.properties.income.$ref).toBe(
+      "#/components/schemas/Money",
+    );
+  });
+
   it("documents every registered route", async () => {
     const app = createUnitTestApp();
     const document = await fetchDocument(app);

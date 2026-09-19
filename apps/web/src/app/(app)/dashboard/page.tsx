@@ -1,3 +1,4 @@
+import { getMonthlySummary } from "@bookkeeping/application/transactions";
 import { listWallets } from "@bookkeeping/application/wallets";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type { Metadata } from "next";
@@ -11,7 +12,6 @@ import {
   nonemptySearchParams,
   reportSchema,
 } from "@/features/transactions/history-schema";
-import { getMonthlySummary } from "@/features/transactions/server/history";
 import { DatePicker } from "@/shared/components/date-picker";
 import { MonthPicker } from "@/shared/components/month-picker";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
