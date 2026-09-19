@@ -1,4 +1,5 @@
 import { listCategories } from "@bookkeeping/application/categories";
+import { listTransactions } from "@bookkeeping/application/transactions";
 import { listWallets } from "@bookkeeping/application/wallets";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
@@ -12,7 +13,6 @@ import {
   nonemptySearchParams,
   transactionFiltersSchema,
 } from "@/features/transactions/history-schema";
-import { listTransactions } from "@/features/transactions/server/transaction";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {

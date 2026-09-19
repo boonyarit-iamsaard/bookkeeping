@@ -1,4 +1,8 @@
 import { createHash } from "node:crypto";
+import {
+  findReplayedTransaction,
+  findTransaction,
+} from "@bookkeeping/application/transactions";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import {
@@ -12,29 +16,15 @@ import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import type {
-  ExpenseRefunds,
   LinkedExpense,
   RefundSummary,
   TransactionChange,
   TransactionChangeAction,
   TransactionDetail,
-  TransactionFilters,
   TransactionSnapshot,
   TransactionType,
 } from "@bookkeeping/domain/transactions";
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  gte,
-  inArray,
-  isNull,
-  lte,
-  or,
-  sql,
-} from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import {
   MAX_NOTE_LENGTH,
   MAX_TRANSACTION_AMOUNT,
@@ -173,7 +163,7 @@ export async function createTransaction(
       : err(rejection);
   }
   if (inserted) {
-    const transaction = await getTransaction(db, {
+    const transaction = await findTransaction(db, {
       ownerId: input.ownerId,
       id: inserted,
     });
@@ -204,16 +194,14 @@ async function replay(
   }
   // Read the receipt's record even if it was since deleted: a late retry
   // must confirm the original outcome, never recreate the record.
-  const [row] = await detailQuery(db).where(
-    and(
-      eq(transactions.id, receipt.transactionId),
-      eq(transactions.userId, input.ownerId),
-    ),
-  );
-  if (!row) {
+  const transaction = await findReplayedTransaction(db, {
+    ownerId: input.ownerId,
+    id: receipt.transactionId,
+  });
+  if (!transaction) {
     throw new Error("Receipt points at a missing transaction");
   }
-  return ok({ transaction: toDetail(row), replayed: true });
+  return ok({ transaction, replayed: true });
 }
 
 async function findReceipt(
@@ -540,229 +528,7 @@ function fingerprintPayload(input: Readonly<CreateTransactionInput>): string {
   return createHash("sha256").update(canonical).digest("hex");
 }
 
-const destinationWallets = alias(wallets, "destination_wallets");
-
-const parentCategories = alias(categories, "parent_categories");
-
-const refundedExpenses = alias(transactions, "refunded_expenses");
-
-function detailQuery(db: Database) {
-  return (
-    db
-      .select({
-        id: transactions.id,
-        type: transactions.type,
-        amount: transactions.amount,
-        transactionDate: transactions.transactionDate,
-        note: transactions.note,
-        recordedAt: transactions.recordedAt,
-        walletId: wallets.id,
-        walletName: wallets.name,
-        walletType: wallets.type,
-        walletArchivedAt: wallets.archivedAt,
-        destinationWalletId: destinationWallets.id,
-        destinationWalletName: destinationWallets.name,
-        destinationWalletType: destinationWallets.type,
-        destinationWalletArchivedAt: destinationWallets.archivedAt,
-        categoryId: categories.id,
-        categoryName: categories.name,
-        categoryIconId: categories.iconId,
-        parentName: parentCategories.name,
-        refundOfId: refundedExpenses.id,
-        refundOfAmount: refundedExpenses.amount,
-        refundOfTransactionDate: refundedExpenses.transactionDate,
-      })
-      .from(transactions)
-      .innerJoin(wallets, eq(wallets.id, transactions.walletId))
-      .leftJoin(
-        destinationWallets,
-        eq(destinationWallets.id, transactions.destinationWalletId),
-      )
-      .leftJoin(
-        refundedExpenses,
-        eq(refundedExpenses.id, transactions.refundOfTransactionId),
-      )
-      // A refund carries no category of its own: it reads its expense's
-      // current one, so category changes and removal fallbacks follow at once.
-      .leftJoin(
-        categories,
-        eq(
-          categories.id,
-          sql`coalesce(${transactions.categoryId}, ${refundedExpenses.categoryId})`,
-        ),
-      )
-      .leftJoin(parentCategories, eq(parentCategories.id, categories.parentId))
-  );
-}
-
-type DetailRow = Awaited<ReturnType<typeof detailQuery>>[number];
-
-function toDetail(row: DetailRow): TransactionDetail {
-  return {
-    id: row.id,
-    type: row.type,
-    currency: "THB",
-    amount: row.amount,
-    transactionDate: row.transactionDate,
-    note: row.note,
-    recordedAt: row.recordedAt,
-    wallet: {
-      id: row.walletId,
-      name: row.walletName,
-      type: row.walletType,
-      archived: Boolean(row.walletArchivedAt),
-    },
-    destinationWallet:
-      row.destinationWalletId &&
-      row.destinationWalletName &&
-      row.destinationWalletType
-        ? {
-            id: row.destinationWalletId,
-            name: row.destinationWalletName,
-            type: row.destinationWalletType,
-            archived: Boolean(row.destinationWalletArchivedAt),
-          }
-        : null,
-    category:
-      row.categoryId && row.categoryName && row.categoryIconId
-        ? {
-            id: row.categoryId,
-            name: row.categoryName,
-            iconId: row.categoryIconId,
-            parentName: row.parentName,
-          }
-        : null,
-    refundOf:
-      row.refundOfId && row.refundOfAmount && row.refundOfTransactionDate
-        ? {
-            id: row.refundOfId,
-            amount: row.refundOfAmount,
-            transactionDate: row.refundOfTransactionDate,
-          }
-        : null,
-  };
-}
-
-export interface ListTransactionsOptions extends TransactionFilters {
-  /** Derived from the authenticated session at the edge. */
-  ownerId: string;
-}
-
-/** Current financial history, newest transaction date first. */
-export async function listTransactions(
-  db: Database,
-  filters: Readonly<ListTransactionsOptions>,
-): Promise<readonly TransactionDetail[]> {
-  const rows = await detailQuery(db)
-    .where(
-      and(
-        eq(transactions.userId, filters.ownerId),
-        isNull(transactions.deletedAt),
-        filters.from
-          ? gte(transactions.transactionDate, filters.from)
-          : undefined,
-        filters.to ? lte(transactions.transactionDate, filters.to) : undefined,
-        filters.type ? eq(transactions.type, filters.type) : undefined,
-        filters.walletId
-          ? and(
-              eq(wallets.userId, filters.ownerId),
-              or(
-                eq(transactions.walletId, filters.walletId),
-                eq(transactions.destinationWalletId, filters.walletId),
-              ),
-            )
-          : undefined,
-        filters.categoryId
-          ? and(
-              eq(categories.userId, filters.ownerId),
-              or(
-                eq(categories.id, filters.categoryId),
-                eq(categories.parentId, filters.categoryId),
-              ),
-            )
-          : undefined,
-      ),
-    )
-    .orderBy(
-      desc(transactions.transactionDate),
-      desc(transactions.recordedAt),
-      desc(transactions.id),
-    );
-  return rows.map(toDetail);
-}
-
-interface GetTransactionOptions {
-  ownerId: string;
-  id: string;
-}
-
-export async function getTransaction(
-  db: Database,
-  { ownerId, id }: Readonly<GetTransactionOptions>,
-): Promise<TransactionDetail | undefined> {
-  const [row] = await detailQuery(db).where(
-    and(
-      eq(transactions.id, id),
-      eq(transactions.userId, ownerId),
-      isNull(transactions.deletedAt),
-    ),
-  );
-  return row ? toDetail(row) : undefined;
-}
-
-interface GetExpenseRefundsOptions {
-  ownerId: string;
-  id: string;
-}
-
-/**
- * The current refunds linked to one of the owner's expenses, oldest date
- * first, with what they add up to and what is left to refund.
- */
-export async function getExpenseRefunds(
-  db: Database,
-  { ownerId, id }: Readonly<GetExpenseRefundsOptions>,
-): Promise<ExpenseRefunds | undefined> {
-  const [expense] = await db
-    .select({ amount: transactions.amount, type: transactions.type })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.id, id),
-        eq(transactions.userId, ownerId),
-        isNull(transactions.deletedAt),
-      ),
-    );
-  if (expense?.type !== "expense") {
-    return undefined;
-  }
-  const refunds = await currentRefundsOf(db, id);
-  const refundedTotal = sumOf(refunds);
-  const remaining = expense.amount - refundedTotal;
-  return {
-    refunds,
-    refundedTotal,
-    remaining: remaining > 0n ? remaining : 0n,
-  };
-}
-
-/** The wallet the owner recorded into most recently, if any. */
-export async function lastUsedWalletId(
-  db: Database,
-  ownerId: string,
-): Promise<string | undefined> {
-  const [row] = await db
-    .select({ walletId: transactions.walletId })
-    .from(transactions)
-    .where(
-      and(eq(transactions.userId, ownerId), isNull(transactions.deletedAt)),
-    )
-    .orderBy(desc(transactions.recordedAt), desc(transactions.id))
-    .limit(1);
-  return row?.walletId;
-}
-
-export interface UpdateTransactionInput {
+interface UpdateTransactionInput {
   /** Always the session user; never a client-supplied identifier. */
   ownerId: string;
   id: string;
@@ -937,7 +703,7 @@ export async function updateTransaction(
   if (rejection) {
     return err(rejection);
   }
-  const transaction = await getTransaction(db, input);
+  const transaction = await findTransaction(db, input);
   if (!transaction) {
     throw new Error("Edited transaction could not be read back");
   }

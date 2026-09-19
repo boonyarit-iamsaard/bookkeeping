@@ -7,6 +7,10 @@ import {
 } from "@bookkeeping/application/categories";
 import { createCategoryForTest as createCategory } from "@bookkeeping/application/testing/category-fixture";
 import {
+  findTransaction,
+  listTransactions,
+} from "@bookkeeping/application/transactions";
+import {
   listWallets,
   replaceWalletOpening,
   setWalletArchived,
@@ -21,8 +25,6 @@ import { getMonthlySummary } from "@/features/transactions/server/history";
 import {
   createTransaction,
   deleteTransaction,
-  getTransaction,
-  listTransactions,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
@@ -477,11 +479,11 @@ test("corrections, archiving and category fallbacks replace effects across histo
     ).toEqual([1_000_000n, 0n]);
     const foreign = await fixture(db);
     expect(
-      await getTransaction(db, {
+      await findTransaction(db, {
         ownerId: foreign.ownerId,
         id: refund.value.transaction.id,
       }),
-    ).toBeUndefined();
+    ).toBeNull();
   });
 });
 

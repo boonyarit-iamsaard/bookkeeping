@@ -2,6 +2,7 @@ import {
   initializeDefaultCategories,
   listCategories,
 } from "@bookkeeping/application/categories";
+import { findTransaction } from "@bookkeeping/application/transactions";
 import {
   deleteWallet,
   listWallets,
@@ -19,7 +20,6 @@ import { describe, expect, test } from "vitest";
 import {
   createTransaction,
   deleteTransaction,
-  getTransaction,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
@@ -84,7 +84,7 @@ describe("wallet lifecycle", () => {
       );
       expect(
         (
-          await getTransaction(db, {
+          await findTransaction(db, {
             ownerId: owned.ownerId,
             id: created.value.transaction.id,
           })

@@ -1,4 +1,8 @@
 import { listCategories } from "@bookkeeping/application/categories";
+import {
+  findExpenseRefunds,
+  findTransaction,
+} from "@bookkeeping/application/transactions";
 import { listWallets } from "@bookkeeping/application/wallets";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
@@ -10,10 +14,6 @@ import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
-import {
-  getExpenseRefunds,
-  getTransaction,
-} from "@/features/transactions/server/transaction";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {
@@ -31,8 +31,8 @@ export default async function Page({
   const { id } = await params;
   // Ownership is part of the lookup; only a current expense can be refunded.
   const [expense, refunds] = await Promise.all([
-    getTransaction(db, { ownerId, id }),
-    getExpenseRefunds(db, { ownerId, id }),
+    findTransaction(db, { ownerId, id }),
+    findExpenseRefunds(db, { ownerId, id }),
   ]);
   if (!expense || !refunds || expense.type !== "expense") {
     notFound();

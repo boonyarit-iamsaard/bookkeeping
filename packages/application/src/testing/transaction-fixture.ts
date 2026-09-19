@@ -3,6 +3,7 @@ import {
   transactionChanges,
   transactions,
 } from "@bookkeeping/database/transactions";
+import type { TransactionType } from "@bookkeeping/domain/transactions";
 
 export interface RetainedTransferFixture {
   ownerId: string;
@@ -57,6 +58,50 @@ export async function insertRetainedTransferSnapshot(
       note: "",
     },
   });
+}
+
+export interface TransactionRowFixture {
+  ownerId: string;
+  type: TransactionType;
+  walletId: string;
+  destinationWalletId?: string;
+  categoryId?: string;
+  refundOfTransactionId?: string;
+  amount?: bigint;
+  transactionDate?: string;
+  note?: string;
+  recordedAt?: Date;
+}
+
+/**
+ * Persists any transaction row directly for read tests, bypassing the
+ * creation operations their own tickets own; omitted fields take the
+ * schema defaults the row shape allows.
+ */
+export async function insertTransaction(
+  db: Database,
+  fixture: Readonly<TransactionRowFixture>,
+): Promise<string> {
+  const [row] = await db
+    .insert(transactions)
+    .values({
+      userId: fixture.ownerId,
+      type: fixture.type,
+      walletId: fixture.walletId,
+      destinationWalletId: fixture.destinationWalletId ?? null,
+      categoryId: fixture.categoryId ?? null,
+      refundOfTransactionId: fixture.refundOfTransactionId ?? null,
+      currency: "THB",
+      amount: fixture.amount ?? 5_000n,
+      transactionDate: fixture.transactionDate ?? "2026-09-02",
+      note: fixture.note ?? "",
+      recordedAt: fixture.recordedAt,
+    })
+    .returning({ id: transactions.id });
+  if (!row) {
+    throw new Error("Transaction insert returned no row");
+  }
+  return row.id;
 }
 
 export interface CategorizedTransactionFixture {

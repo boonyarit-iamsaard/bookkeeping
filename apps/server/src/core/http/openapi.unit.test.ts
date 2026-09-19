@@ -389,6 +389,42 @@ describe("OpenAPI document", () => {
     expect(operation.responses["500"]).toBeDefined();
   });
 
+  it("documents the transaction reads from their response schemas", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const resource: DocumentedOperation =
+      document.paths["/v1/transactions/{transactionId}"].get;
+    const refunds: DocumentedOperation =
+      document.paths["/v1/transactions/{transactionId}/refunds"].get;
+    const defaults: DocumentedOperation =
+      document.paths["/v1/transactions/entry-defaults"].get;
+
+    expect(resource.operationId).toBe("getTransaction");
+    expect(
+      resource.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/Transaction");
+    expectProblemResponses(resource, ["401", "404"]);
+    expect(resource.parameters).toEqual([
+      expect.objectContaining({
+        in: "path",
+        name: "transactionId",
+        required: true,
+      }),
+    ]);
+
+    expect(refunds.operationId).toBe("getTransactionRefunds");
+    expect(
+      refunds.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/TransactionRefunds");
+    expectProblemResponses(refunds, ["401", "404"]);
+
+    expect(defaults.operationId).toBe("getTransactionEntryDefaults");
+    expect(
+      defaults.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/TransactionEntryDefaults");
+    expectProblemResponses(defaults, ["401"]);
+    expect(document.components.schemas.TransactionWallet).toBeDefined();
+  });
+
   it("documents every registered route", async () => {
     const app = createUnitTestApp();
     const document = await fetchDocument(app);

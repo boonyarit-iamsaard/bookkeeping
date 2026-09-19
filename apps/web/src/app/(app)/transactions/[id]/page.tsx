@@ -1,3 +1,7 @@
+import {
+  findExpenseRefunds,
+  findTransaction,
+} from "@bookkeeping/application/transactions";
 import { Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -6,10 +10,6 @@ import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { ExpenseRefundsView } from "@/features/transactions/components/expense-refunds";
 import { TransactionDetailView } from "@/features/transactions/components/transaction-detail";
-import {
-  getExpenseRefunds,
-  getTransaction,
-} from "@/features/transactions/server/transaction";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { buttonVariants } from "@/shared/components/ui/button";
 
@@ -28,8 +28,8 @@ export default async function Page({
   // Ownership is part of the lookup: another user's id reads as not found.
   const ownerId = session.user.id;
   const [transaction, refunds] = await Promise.all([
-    getTransaction(db, { ownerId, id }),
-    getExpenseRefunds(db, { ownerId, id }),
+    findTransaction(db, { ownerId, id }),
+    findExpenseRefunds(db, { ownerId, id }),
   ]);
   if (!transaction) {
     notFound();

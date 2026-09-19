@@ -1,4 +1,5 @@
 import { listCategories } from "@bookkeeping/application/categories";
+import { findLastUsedWalletId } from "@bookkeeping/application/transactions";
 import { listWallets } from "@bookkeeping/application/wallets";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
@@ -9,7 +10,6 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
-import { lastUsedWalletId } from "@/features/transactions/server/transaction";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export default async function Page() {
   const [allWallets, categories, lastUsed] = await Promise.all([
     listWallets(db, { ownerId: ownerId }),
     listCategories(db, ownerId),
-    lastUsedWalletId(db, ownerId),
+    findLastUsedWalletId(db, ownerId),
   ]);
   const wallets = allWallets.filter((wallet) => !wallet.archivedAt);
   // Last-used wallet first; otherwise the first wallet in picker order.

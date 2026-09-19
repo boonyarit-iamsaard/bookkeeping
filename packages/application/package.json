@@ -10,6 +10,7 @@
     "./testing/category-fixture": "./src/testing/category-fixture.ts",
     "./testing/transaction-fixture": "./src/testing/transaction-fixture.ts",
     "./testing/wallet-fixture": "./src/testing/wallet-fixture.ts",
+    "./transactions": "./src/transactions/transaction.ts",
     "./wallets": "./src/wallets/wallet.ts"
   },
   "scripts": {

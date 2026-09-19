@@ -1,4 +1,8 @@
 import { listCategories } from "@bookkeeping/application/categories";
+import {
+  findExpenseRefunds,
+  findTransaction,
+} from "@bookkeeping/application/transactions";
 import { listWallets } from "@bookkeeping/application/wallets";
 import {
   APP_TIME_ZONE,
@@ -13,10 +17,6 @@ import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
-import {
-  getExpenseRefunds,
-  getTransaction,
-} from "@/features/transactions/server/transaction";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { buttonVariants } from "@/shared/components/ui/button";
 
@@ -35,7 +35,7 @@ export default async function Page({
   const { id } = await params;
   // Ownership is part of the lookup: another user's id reads as not found,
   // and so does a deleted transaction.
-  const transaction = await getTransaction(db, { ownerId, id });
+  const transaction = await findTransaction(db, { ownerId, id });
   if (!transaction) {
     notFound();
   }
@@ -46,9 +46,9 @@ export default async function Page({
     listWallets(db, { ownerId }),
     listCategories(db, ownerId),
     transaction.refundOf
-      ? getTransaction(db, { ownerId, id: refundedExpenseId })
+      ? findTransaction(db, { ownerId, id: refundedExpenseId })
       : undefined,
-    getExpenseRefunds(db, { ownerId, id: refundedExpenseId }),
+    findExpenseRefunds(db, { ownerId, id: refundedExpenseId }),
   ]);
   const refundOf =
     refundedExpense && refunds

@@ -3,6 +3,11 @@ import {
   listCategories,
 } from "@bookkeeping/application/categories";
 import {
+  findExpenseRefunds,
+  findTransaction,
+  listTransactions,
+} from "@bookkeeping/application/transactions";
+import {
   listWallets,
   setWalletArchived,
 } from "@bookkeeping/application/wallets";
@@ -18,10 +23,7 @@ import type { CreateTransactionInput } from "@/features/transactions/server/tran
 import {
   createTransaction,
   deleteTransaction,
-  getExpenseRefunds,
-  getTransaction,
   listTransactionChanges,
-  listTransactions,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
@@ -317,11 +319,11 @@ describe("recording income and expenses", () => {
         }),
       ).toEqual({ ok: false, error: { code: "category-not-found" } });
       expect(
-        await getTransaction(db, {
+        await findTransaction(db, {
           ownerId: bob.owner.id,
           id: saved.value.transaction.id,
         }),
-      ).toBeUndefined();
+      ).toBeNull();
       expect(await listTransactions(db, { ownerId: bob.owner.id })).toEqual([]);
       const [aliceWallet] = await listWallets(db, { ownerId: alice.owner.id });
       expect(aliceWallet?.balance).toBe(1_199_900n);
@@ -705,7 +707,7 @@ describe("correcting transactions", () => {
         });
       });
 
-      const current = await getTransaction(db, {
+      const current = await findTransaction(db, {
         ownerId: owner.owner.id,
         id: transaction.id,
       });
@@ -781,7 +783,7 @@ describe("correcting transactions", () => {
       ).toEqual([]);
 
       expect(
-        await getTransaction(db, {
+        await findTransaction(db, {
           ownerId: alice.owner.id,
           id: transaction.id,
         }),
@@ -816,11 +818,11 @@ describe("correcting transactions", () => {
 
       expect(deleted).toEqual({ ok: true, value: { id: transaction.id } });
       expect(
-        await getTransaction(db, {
+        await findTransaction(db, {
           ownerId: owner.owner.id,
           id: transaction.id,
         }),
-      ).toBeUndefined();
+      ).toBeNull();
       expect(
         (await listTransactions(db, { ownerId: owner.owner.id })).map(
           (t) => t.id,
@@ -955,7 +957,7 @@ describe("correcting transactions", () => {
     for (let i = 1; i < history.length; i += 1) {
       expect(history[i]?.before).toEqual(history[i - 1]?.after);
     }
-    const final = await getTransaction(db, {
+    const final = await findTransaction(db, {
       ownerId: owner.owner.id,
       id: transaction.id,
     });
@@ -1338,7 +1340,7 @@ test("receipt or history write failures roll back both transfer effects and leav
     await expect(
       deleteTransaction(db, { ownerId: owner.id, id }),
     ).rejects.toThrow();
-    expect(await getTransaction(db, { ownerId: owner.id, id })).toEqual(
+    expect(await findTransaction(db, { ownerId: owner.id, id })).toEqual(
       created.value.transaction,
     );
     expect(await listTransactionChanges(db, { ownerId: owner.id, id })).toEqual(
@@ -1415,7 +1417,7 @@ describe("linked refunds", () => {
       const [summary] = await listWallets(db, { ownerId: owner.id });
       expect(summary?.balance).toBe(1_160_000n);
       expect(
-        await getExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
+        await findExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
       ).toEqual({
         refunds: [
           expect.objectContaining({
@@ -1527,11 +1529,11 @@ describe("linked refunds", () => {
       }
       // Foreign owners cannot see the expense's refunds at all.
       expect(
-        await getExpenseRefunds(db, {
+        await findExpenseRefunds(db, {
           ownerId: foreign.owner.id,
           id: expense.id,
         }),
-      ).toBeUndefined();
+      ).toBeNull();
 
       const differentWallet = await createTransaction(db, {
         ...base,
@@ -1663,7 +1665,7 @@ describe("linked refunds", () => {
         value: { id },
       });
       expect(
-        await getExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
+        await findExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
       ).toEqual(
         expect.objectContaining({ refundedTotal: 10_000n, remaining: 40_000n }),
       );
@@ -1746,7 +1748,7 @@ describe("linked refunds", () => {
         ["expense", "Uncategorized"],
       ]);
       expect(
-        await getExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
+        await findExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
       ).toEqual(
         expect.objectContaining({ refundedTotal: 15_000n, remaining: 0n }),
       );
@@ -1806,7 +1808,7 @@ describe("linked refunds", () => {
       error: { code: "submission-conflict" },
     });
     expect(
-      await getExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
+      await findExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
     ).toEqual(
       expect.objectContaining({ refundedTotal: 50_000n, remaining: 0n }),
     );
@@ -1832,11 +1834,11 @@ describe("linked refunds", () => {
       }),
     ]);
     expect(deleted.ok).toBe(true);
-    const summary = await getExpenseRefunds(db, {
+    const summary = await findExpenseRefunds(db, {
       ownerId: owner.id,
       id: expense.id,
     });
-    const current = await getTransaction(db, {
+    const current = await findTransaction(db, {
       ownerId: owner.id,
       id: expense.id,
     });
@@ -1987,11 +1989,11 @@ describe("linked refunds", () => {
             [refundResult.ok, competingResult.ok].filter(Boolean),
           ).toHaveLength(1);
         }
-        const current = await getTransaction(db, {
+        const current = await findTransaction(db, {
           ownerId: owner.id,
           id: expense.id,
         });
-        const summary = await getExpenseRefunds(db, {
+        const summary = await findExpenseRefunds(db, {
           ownerId: owner.id,
           id: expense.id,
         });
@@ -2036,7 +2038,7 @@ describe("linked refunds", () => {
             }),
           ).toHaveLength(refundResult.ok ? 1 : 0);
           expect(
-            (await getTransaction(db, { ownerId: owner.id, id: refundId }))
+            (await findTransaction(db, { ownerId: owner.id, id: refundId }))
               ?.recordedAt,
           ).toEqual(
             existing?.ok ? existing.value.transaction.recordedAt : undefined,
@@ -2075,11 +2077,11 @@ describe("linked refunds", () => {
       await db.execute(
         sql`alter table transaction_changes drop constraint fail_refund_history`,
       );
-      expect(await getTransaction(db, { ownerId: owner.id, id })).toEqual(
+      expect(await findTransaction(db, { ownerId: owner.id, id })).toEqual(
         refund.value.transaction,
       );
       expect(
-        await getExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
+        await findExpenseRefunds(db, { ownerId: owner.id, id: expense.id }),
       ).toEqual(
         expect.objectContaining({ refundedTotal: 20_000n, remaining: 30_000n }),
       );
