@@ -14,6 +14,7 @@ import {
   removeCategory,
 } from "../categories/category";
 import { insertTransaction } from "../testing/transaction-fixture";
+import { listWallets } from "../wallets/wallet";
 import {
   createTransaction,
   findExpenseRefunds,
@@ -24,7 +25,7 @@ import {
   listTransactions,
 } from "./transaction";
 
-const { withRollback } = setupTestDatabase();
+const { withRollback, committed } = setupTestDatabase();
 
 interface WalletFixture {
   ownerId: string;
@@ -273,6 +274,267 @@ describe("createTransaction", () => {
         ok: false,
         error: { code: "wallet-archived", walletId: owner.cashId },
       });
+    });
+  });
+
+  test("moves money between both wallet balances as one transfer", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const created = await createTransaction(db, {
+        ownerId: owner.ownerId,
+        idempotencyKey: "application-transfer",
+        type: "transfer",
+        walletId: owner.cashId,
+        destinationWalletId: owner.bankId,
+        categoryId: null,
+        currency: "THB",
+        amount: 12_345n,
+        transactionDate: "2026-09-02",
+        note: "Move money",
+      });
+
+      expect(created).toEqual({
+        ok: true,
+        value: {
+          replayed: false,
+          transaction: expect.objectContaining({
+            type: "transfer",
+            amount: 12_345n,
+            wallet: expect.objectContaining({ id: owner.cashId }),
+            destinationWallet: expect.objectContaining({ id: owner.bankId }),
+            category: null,
+            refundOf: null,
+          }),
+        },
+      });
+      expect(
+        (await listWallets(db, { ownerId: owner.ownerId })).map((wallet) => ({
+          id: wallet.id,
+          balance: wallet.balance,
+        })),
+      ).toEqual([
+        { id: owner.cashId, balance: 987_655n },
+        { id: owner.bankId, balance: 12_345n },
+      ]);
+    });
+  });
+
+  test("replays a transfer and conflicts when its payload changes", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const input = {
+        ownerId: owner.ownerId,
+        idempotencyKey: "transfer-retry",
+        type: "transfer" as const,
+        walletId: owner.cashId,
+        destinationWalletId: owner.bankId,
+        categoryId: null,
+        currency: "THB" as const,
+        amount: 12_345n,
+        transactionDate: "2026-09-02" as const,
+        note: "Move money",
+      };
+
+      const first = await createTransaction(db, input);
+      if (!first.ok) {
+        throw new Error("Expected the transfer to save");
+      }
+      const retry = await createTransaction(db, input);
+      expect(retry).toEqual({
+        ok: true,
+        value: { transaction: first.value.transaction, replayed: true },
+      });
+      expect(
+        await createTransaction(db, { ...input, amount: 12_346n }),
+      ).toEqual({ ok: false, error: { code: "idempotency-conflict" } });
+      expect(
+        (await listTransactions(db, { ownerId: owner.ownerId })).filter(
+          (transaction) => transaction.type === "transfer",
+        ),
+      ).toHaveLength(1);
+      expect(
+        (await listWallets(db, { ownerId: owner.ownerId })).map(
+          (wallet) => wallet.balance,
+        ),
+      ).toEqual([987_655n, 12_345n]);
+    });
+  });
+
+  test("concurrent transfer retries commit one movement and replay it", async () => {
+    const db = committed();
+    const owner = await setupOwner(db);
+    const input = {
+      ownerId: owner.ownerId,
+      idempotencyKey: "transfer-concurrent",
+      type: "transfer" as const,
+      walletId: owner.cashId,
+      destinationWalletId: owner.bankId,
+      categoryId: null,
+      currency: "THB" as const,
+      amount: 12_345n,
+      transactionDate: "2026-09-02" as const,
+      note: "Move money",
+    };
+
+    const outcomes = await Promise.all(
+      Array.from({ length: 5 }, () => createTransaction(db, input)),
+    );
+    const successful = outcomes.flatMap((outcome) =>
+      outcome.ok ? [outcome.value] : [],
+    );
+
+    expect(successful).toHaveLength(5);
+    expect(
+      new Set(successful.map((outcome) => outcome.transaction.id)).size,
+    ).toBe(1);
+    expect(successful.filter((outcome) => !outcome.replayed)).toHaveLength(1);
+    expect(
+      (await listTransactions(db, { ownerId: owner.ownerId })).filter(
+        (transaction) => transaction.type === "transfer",
+      ),
+    ).toHaveLength(1);
+    expect(
+      (await listWallets(db, { ownerId: owner.ownerId })).map(
+        (wallet) => wallet.balance,
+      ),
+    ).toEqual([987_655n, 12_345n]);
+  });
+
+  test("rejects invalid transfer shapes and cross-owner or unavailable wallets", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const foreign = await setupOwner(db);
+      const base = {
+        ownerId: owner.ownerId,
+        type: "transfer" as const,
+        walletId: owner.cashId,
+        destinationWalletId: owner.bankId,
+        categoryId: null,
+        currency: "THB" as const,
+        amount: 100n,
+        transactionDate: "2026-09-02" as const,
+        note: "",
+      };
+
+      expect(
+        await createTransaction(db, {
+          ...base,
+          idempotencyKey: "transfer-same-wallet",
+          destinationWalletId: owner.cashId,
+        }),
+      ).toEqual({ ok: false, error: { code: "same-wallet" } });
+      expect(
+        await createTransaction(db, {
+          ...base,
+          idempotencyKey: "transfer-category",
+          categoryId: owner.childId,
+        }),
+      ).toEqual({ ok: false, error: { code: "invalid-transfer" } });
+      expect(
+        await createTransaction(db, {
+          ...base,
+          idempotencyKey: "transfer-missing-destination",
+          destinationWalletId: null,
+        }),
+      ).toEqual({ ok: false, error: { code: "invalid-transfer" } });
+      expect(
+        await createTransaction(db, {
+          ...base,
+          idempotencyKey: "transfer-missing-currency",
+          currency: undefined,
+        }),
+      ).toEqual({ ok: false, error: { code: "invalid-currency" } });
+      expect(
+        await createTransaction(db, {
+          ...base,
+          idempotencyKey: "transfer-foreign-source",
+          walletId: foreign.cashId,
+        }),
+      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      expect(
+        await createTransaction(db, {
+          ...base,
+          idempotencyKey: "transfer-foreign-destination",
+          destinationWalletId: foreign.bankId,
+        }),
+      ).toEqual({
+        ok: false,
+        error: { code: "destination-wallet-not-found" },
+      });
+
+      await db
+        .update(wallets)
+        .set({ archivedAt: new Date() })
+        .where(eq(wallets.id, owner.cashId));
+      expect(
+        await createTransaction(db, {
+          ...base,
+          idempotencyKey: "transfer-archived-source",
+        }),
+      ).toEqual({
+        ok: false,
+        error: { code: "wallet-archived", walletId: owner.cashId },
+      });
+      await db
+        .update(wallets)
+        .set({ archivedAt: null })
+        .where(eq(wallets.id, owner.cashId));
+
+      await db
+        .update(wallets)
+        .set({ archivedAt: new Date() })
+        .where(eq(wallets.id, owner.bankId));
+      expect(
+        await createTransaction(db, {
+          ...base,
+          idempotencyKey: "transfer-archived-destination",
+        }),
+      ).toEqual({
+        ok: false,
+        error: { code: "wallet-archived", walletId: owner.bankId },
+      });
+
+      await db
+        .update(wallets)
+        .set({ archivedAt: null, openingDate: "2026-09-03" })
+        .where(eq(wallets.id, owner.bankId));
+      expect(
+        await createTransaction(db, {
+          ...base,
+          idempotencyKey: "transfer-before-destination-opening",
+        }),
+      ).toEqual({
+        ok: false,
+        error: { code: "before-opening", openingDate: "2026-09-03" },
+      });
+
+      await db
+        .update(wallets)
+        .set({ openingDate: "2026-09-01" })
+        .where(eq(wallets.id, owner.bankId));
+      await db
+        .update(wallets)
+        .set({ openingDate: "2026-09-03" })
+        .where(eq(wallets.id, owner.cashId));
+      expect(
+        await createTransaction(db, {
+          ...base,
+          idempotencyKey: "transfer-before-source-opening",
+        }),
+      ).toEqual({
+        ok: false,
+        error: { code: "before-opening", openingDate: "2026-09-03" },
+      });
+      expect(
+        (await listTransactions(db, { ownerId: owner.ownerId })).filter(
+          (transaction) => transaction.type === "transfer",
+        ),
+      ).toHaveLength(0);
+      expect(
+        (await listWallets(db, { ownerId: owner.ownerId })).map(
+          (wallet) => wallet.balance,
+        ),
+      ).toEqual([1_000_000n, 0n]);
     });
   });
 

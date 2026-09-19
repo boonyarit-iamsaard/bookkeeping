@@ -121,15 +121,29 @@ const calendarDateInputSchema = z
     params: { code: "invalid-date" },
   });
 
+const createIncomeExpenseTransactionRequestSchema = z.strictObject({
+  type: z.enum(["income", "expense"]),
+  amount: moneyInputSchema,
+  walletId: z.uuid(),
+  categoryId: z.uuid(),
+  transactionDate: calendarDateInputSchema,
+  note: z.string(),
+});
+
+const createTransferTransactionRequestSchema = z.strictObject({
+  type: z.literal("transfer"),
+  amount: moneyInputSchema,
+  walletId: z.uuid(),
+  destinationWalletId: z.uuid(),
+  transactionDate: calendarDateInputSchema,
+  note: z.string(),
+});
+
 export const createTransactionRequestSchema = z
-  .strictObject({
-    type: z.enum(["income", "expense"]),
-    amount: moneyInputSchema,
-    walletId: z.uuid(),
-    categoryId: z.uuid(),
-    transactionDate: calendarDateInputSchema,
-    note: z.string(),
-  })
+  .discriminatedUnion("type", [
+    createIncomeExpenseTransactionRequestSchema,
+    createTransferTransactionRequestSchema,
+  ])
   .meta({ id: "CreateTransactionRequest" });
 
 interface CreateTransactionValidatedInput {
@@ -145,14 +159,25 @@ interface CreateTransactionValidatedInput {
 
 function toTransactionFieldErrors(
   error: Exclude<CreateTransactionError, { code: "idempotency-conflict" }>,
+  request: Readonly<z.output<typeof createTransactionRequestSchema>>,
 ): ProblemFieldError[] {
   switch (error.code) {
     case "wallet-not-found":
-    case "wallet-archived":
       return [{ pointer: "#/walletId", code: error.code }];
+    case "wallet-archived":
+      return [
+        {
+          pointer:
+            request.type === "transfer" &&
+            request.destinationWalletId === error.walletId
+              ? "#/destinationWalletId"
+              : "#/walletId",
+          code: error.code,
+        },
+      ];
     case "destination-wallet-not-found":
     case "same-wallet":
-      return [{ pointer: "#/walletId", code: error.code }];
+      return [{ pointer: "#/destinationWalletId", code: error.code }];
     case "invalid-currency":
       return [{ pointer: "#/amount/currency", code: error.code }];
     case "invalid-transfer":
@@ -333,14 +358,16 @@ export function createTransactionRoutes(db: Database) {
       COLLECTION_PATH,
       describeRoute({
         operationId: "createTransaction",
-        summary: "Create an income or expense",
+        summary: "Create an income, expense, or transfer",
         description:
-          "Records an income or expense for the signed-in owner using an " +
-          "exact THB amount, an active owned wallet, a matching category, " +
-          "and a real calendar date. The request must carry a client-generated " +
-          "Idempotency-Key: repeating it with the same normalized payload " +
-          "replays the original detail, while a different payload is a conflict. " +
-          "A rejected request never consumes its key.",
+          "Records income, expense, or a wallet transfer for the signed-in " +
+          "owner using an exact THB amount and a real calendar date. Income " +
+          "and expense requests name a matching category and active owned " +
+          "wallet; transfers name distinct active owned source and destination " +
+          "wallets. The request must carry a client-generated Idempotency-Key: " +
+          "repeating it with the same normalized payload replays the original " +
+          "detail, while a different payload is a conflict. A rejected request " +
+          "never consumes its key.",
         tags: ["Transactions"],
         responses: {
           400: describeProblemResponse(400),
@@ -368,7 +395,9 @@ export function createTransactionRoutes(db: Database) {
             amount: body.amount.amountInMinorUnits,
             currency: body.amount.currency,
             walletId: body.walletId,
-            categoryId: body.categoryId,
+            categoryId: body.type === "transfer" ? null : body.categoryId,
+            destinationWalletId:
+              body.type === "transfer" ? body.destinationWalletId : null,
             transactionDate: body.transactionDate,
             note: body.note,
           });
@@ -378,7 +407,7 @@ export function createTransactionRoutes(db: Database) {
             }
             return createProblemResponse(c, {
               ...getProblemOptionsForStatus(422),
-              errors: toTransactionFieldErrors(created.error),
+              errors: toTransactionFieldErrors(created.error, body),
             });
           }
           const transaction = presentTransaction(created.value.transaction);

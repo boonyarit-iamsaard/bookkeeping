@@ -421,6 +421,44 @@ describe("OpenAPI document", () => {
     expect(create.responses["201"].headers).toHaveProperty("Location");
     expectProblemResponses(create, ["400", "401", "409", "422", "500"]);
 
+    const requestSchema = document.components.schemas.CreateTransactionRequest;
+    expect(requestSchema.oneOf).toHaveLength(2);
+    const transferBranch = requestSchema.oneOf.find(
+      (branch: Readonly<{ properties?: { type?: { const?: string } } }>) =>
+        branch.properties?.type?.const === "transfer",
+    );
+    expect(transferBranch).toEqual(
+      expect.objectContaining({
+        additionalProperties: false,
+        required: expect.arrayContaining([
+          "type",
+          "amount",
+          "walletId",
+          "destinationWalletId",
+          "transactionDate",
+          "note",
+        ]),
+        properties: expect.objectContaining({
+          destinationWalletId: expect.any(Object),
+        }),
+      }),
+    );
+    expect(transferBranch.required).not.toContain("categoryId");
+    expect(transferBranch.properties).not.toHaveProperty("categoryId");
+    expect(transferBranch.properties).not.toHaveProperty(
+      "refundOfTransactionId",
+    );
+    expect(requestSchema.oneOf).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          required: expect.arrayContaining(["categoryId"]),
+          properties: expect.objectContaining({
+            categoryId: expect.any(Object),
+          }),
+        }),
+      ]),
+    );
+
     expect(collection.operationId).toBe("listTransactions");
     expect(
       collection.responses["200"].content["application/json"].schema.$ref,
