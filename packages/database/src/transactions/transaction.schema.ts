@@ -15,7 +15,6 @@ import {
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "../auth/auth.schema";
@@ -102,38 +101,6 @@ export const transactions = pgTable(
       sql`${table.amount} between 1 and 9999999999`,
     ),
     check("transactions_note_length", sql`char_length(${table.note}) <= 200`),
-  ],
-);
-
-/**
- * One receipt per logical create submission, scoped to owner and operation.
- * Committed in the same transaction as the record it points to, so a retry
- * either finds the receipt and its record or neither.
- */
-export const submissionReceipts = pgTable(
-  "submission_receipts",
-  {
-    id: uuid("id").default(sql`uuidv7()`).primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    operation: text("operation").notNull(),
-    key: text("key").notNull(),
-    // SHA-256 of the canonical validated payload; a retry with a different
-    // payload under the same key is a conflict, never an overwrite.
-    payloadFingerprint: text("payload_fingerprint").notNull(),
-    transactionId: uuid("transaction_id")
-      .notNull()
-      .references(() => transactions.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [
-    // The unique index is what makes concurrent duplicates wait, then lose.
-    uniqueIndex("submission_receipts_owner_operation_key").on(
-      table.userId,
-      table.operation,
-      table.key,
-    ),
   ],
 );
 

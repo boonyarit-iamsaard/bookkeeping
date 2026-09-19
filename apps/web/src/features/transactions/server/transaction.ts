@@ -1,12 +1,15 @@
-import { createHash } from "node:crypto";
+import type {
+  CreateTransactionError as ApplicationCreateTransactionError,
+  CreateTransactionInput as ApplicationCreateTransactionInput,
+  CreateTransactionOutcome as ApplicationCreateTransactionOutcome,
+} from "@bookkeeping/application/transactions";
 import {
-  findReplayedTransaction,
+  createTransaction as createApplicationTransaction,
   findTransaction,
 } from "@bookkeeping/application/transactions";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import {
-  submissionReceipts,
   transactionChanges,
   transactions,
 } from "@bookkeeping/database/transactions";
@@ -31,197 +34,40 @@ import {
   MIN_TRANSACTION_AMOUNT,
 } from "@/features/transactions/money-limits";
 
-const CREATE_OPERATION = "transactions.create";
-
-export interface CreateTransactionInput {
-  /** Always the session user; never a client-supplied identifier. */
-  ownerId: string;
-  /** One key per logical submission; a retry replays the same key. */
+export interface CreateTransactionInput
+  extends Omit<ApplicationCreateTransactionInput, "idempotencyKey"> {
+  /** Legacy name retained for existing Next.js form fixtures. */
   submissionKey: string;
-  type: TransactionType;
-  walletId: string;
-  categoryId: string | null;
-  destinationWalletId?: string | null;
-  /** The owner's expense a refund returns money for; refunds only. */
-  refundOfTransactionId?: string | null;
-  currency?: "THB";
-  /** Integer satang, always positive; the type carries the sign. */
-  amount: bigint;
-  transactionDate: CalendarDate;
-  note: string;
 }
 
+export type CreateTransactionOutcome = ApplicationCreateTransactionOutcome;
+
+/** The old adapter name maps the application conflict for existing callers. */
 export type CreateTransactionError =
-  | { code: "wallet-not-found" }
-  | { code: "destination-wallet-not-found" }
-  | { code: "same-wallet" }
-  | { code: "wallet-archived"; walletId: string }
-  | { code: "invalid-currency" }
-  | { code: "invalid-transfer" }
-  | { code: "category-not-found" }
-  | { code: "category-kind-mismatch" }
-  | { code: "amount-out-of-range" }
-  | { code: "note-too-long" }
-  | { code: "future-date"; today: CalendarDate }
-  | { code: "before-opening"; openingDate: CalendarDate }
-  /** A refund without its expense, or a link on any other type. */
-  | { code: "invalid-refund" }
-  /** Also covers another owner's expense, a deleted one, and a non-expense. */
-  | { code: "expense-not-found" }
-  | { code: "before-expense"; expenseDate: CalendarDate }
-  /** Combined nondeleted refunds would exceed the expense. */
-  | { code: "exceeds-refundable"; remaining: bigint }
-  /** The same key was already used with a different payload. */
+  | Exclude<ApplicationCreateTransactionError, { code: "idempotency-conflict" }>
   | { code: "submission-conflict" };
 
-export interface CreateTransactionOutcome {
-  transaction: TransactionDetail;
-  /** True when the key had already committed and no new record was made. */
-  replayed: boolean;
-}
-
-const REPLAY = Symbol("replay");
-
 /**
- * Records one income, expense, transfer, or refund. Validation runs inside
- * the committing transaction against the owner's own wallet, category, and
- * refunded expense, and the receipt is committed with the record, so a
- * retry finds both or neither.
+ * Temporary Next.js compatibility adapter. The creation operation and all
+ * financial validation live in `@bookkeeping/application`; this wrapper only
+ * translates the legacy form key name and conflict code.
  */
 export async function createTransaction(
   db: Database,
   input: Readonly<CreateTransactionInput>,
 ): Promise<Result<CreateTransactionOutcome, CreateTransactionError>> {
-  const fingerprint = fingerprintPayload(input);
-  const existing = await findReceipt(db, input);
-  if (existing) {
-    return replay(db, { input, receipt: existing, fingerprint });
-  }
-
-  const invalid = validateShape(input);
-  if (invalid) {
-    return err(invalid);
-  }
-
-  let inserted: string | undefined;
-  let rejection: CreateTransactionError | undefined;
-  try {
-    await db.transaction(async (tx) => {
-      rejection = await validateAgainstOwner(tx, input);
-      if (rejection) {
-        return;
-      }
-
-      const [row] = await tx
-        .insert(transactions)
-        .values({
-          userId: input.ownerId,
-          type: input.type,
-          walletId: input.walletId,
-          categoryId: input.categoryId,
-          destinationWalletId: input.destinationWalletId,
-          refundOfTransactionId: input.refundOfTransactionId,
-          currency: "THB",
-          amount: input.amount,
-          transactionDate: input.transactionDate,
-          note: input.note,
-        })
-        .returning({ id: transactions.id });
-      if (!row) {
-        throw new Error("Transaction insert returned no row");
-      }
-      // A concurrent duplicate blocks here until this transaction settles,
-      // then loses the unique index and rolls its own insert back.
-      const receipt = await tx
-        .insert(submissionReceipts)
-        .values({
-          userId: input.ownerId,
-          operation: CREATE_OPERATION,
-          key: input.submissionKey,
-          payloadFingerprint: fingerprint,
-          transactionId: row.id,
-        })
-        .onConflictDoNothing()
-        .returning({ id: submissionReceipts.id });
-      if (receipt.length === 0) {
-        throw REPLAY;
-      }
-      inserted = row.id;
-    });
-  } catch (error) {
-    if (error !== REPLAY) {
-      throw error;
-    }
-  }
-
-  if (rejection) {
-    // A duplicate that waited on a lock can be rejected by the effects of
-    // the original it waited for (a refund cap, say); its key still stands.
-    const late = await findReceipt(db, input);
-    return late
-      ? replay(db, { input, receipt: late, fingerprint })
-      : err(rejection);
-  }
-  if (inserted) {
-    const transaction = await findTransaction(db, {
-      ownerId: input.ownerId,
-      id: inserted,
-    });
-    if (!transaction) {
-      throw new Error("Committed transaction could not be read back");
-    }
-    return ok({ transaction, replayed: false });
-  }
-  const winner = await findReceipt(db, input);
-  if (!winner) {
-    throw new Error("Receipt vanished after a concurrent duplicate");
-  }
-  return replay(db, { input, receipt: winner, fingerprint });
-}
-
-interface ReplayOptions {
-  input: Readonly<CreateTransactionInput>;
-  receipt: { payloadFingerprint: string; transactionId: string };
-  fingerprint: string;
-}
-
-async function replay(
-  db: Database,
-  { input, receipt, fingerprint }: Readonly<ReplayOptions>,
-): Promise<Result<CreateTransactionOutcome, CreateTransactionError>> {
-  if (receipt.payloadFingerprint !== fingerprint) {
-    return err({ code: "submission-conflict" });
-  }
-  // Read the receipt's record even if it was since deleted: a late retry
-  // must confirm the original outcome, never recreate the record.
-  const transaction = await findReplayedTransaction(db, {
-    ownerId: input.ownerId,
-    id: receipt.transactionId,
+  const { submissionKey, ...command } = input;
+  const outcome = await createApplicationTransaction(db, {
+    ...command,
+    idempotencyKey: submissionKey,
   });
-  if (!transaction) {
-    throw new Error("Receipt points at a missing transaction");
+  if (!outcome.ok) {
+    if (outcome.error.code === "idempotency-conflict") {
+      return err({ code: "submission-conflict" });
+    }
+    return err(outcome.error);
   }
-  return ok({ transaction, replayed: true });
-}
-
-async function findReceipt(
-  db: Database,
-  input: Readonly<Pick<CreateTransactionInput, "ownerId" | "submissionKey">>,
-) {
-  const [receipt] = await db
-    .select({
-      payloadFingerprint: submissionReceipts.payloadFingerprint,
-      transactionId: submissionReceipts.transactionId,
-    })
-    .from(submissionReceipts)
-    .where(
-      and(
-        eq(submissionReceipts.userId, input.ownerId),
-        eq(submissionReceipts.operation, CREATE_OPERATION),
-        eq(submissionReceipts.key, input.submissionKey),
-      ),
-    );
-  return receipt;
+  return outcome;
 }
 
 /** The fields every transaction carries, whether created or edited. */
@@ -504,28 +350,6 @@ function validateShape(
     return { code: "note-too-long" };
   }
   return undefined;
-}
-
-/** The canonical validated payload; key order is fixed so equal inputs hash alike. */
-function fingerprintPayload(input: Readonly<CreateTransactionInput>): string {
-  const canonical = JSON.stringify({
-    amount: input.amount.toString(),
-    categoryId: input.categoryId,
-    note: input.note,
-    transactionDate: input.transactionDate,
-    type: input.type,
-    walletId: input.walletId,
-    ...(input.type === "transfer"
-      ? {
-          destinationWalletId: input.destinationWalletId,
-          currency: input.currency,
-        }
-      : {}),
-    ...(input.type === "refund"
-      ? { refundOfTransactionId: input.refundOfTransactionId }
-      : {}),
-  });
-  return createHash("sha256").update(canonical).digest("hex");
 }
 
 interface UpdateTransactionInput {

@@ -11,6 +11,11 @@ export const TRANSACTION_TYPES = [
 ] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
+/** Transaction amounts are ฿0.01–฿99,999,999.99 inclusive, in satang. */
+export const MIN_TRANSACTION_AMOUNT = 1n;
+export const MAX_TRANSACTION_AMOUNT = 9_999_999_999n;
+export const MAX_NOTE_LENGTH = 200;
+
 /** The types the general creation picker offers; a refund starts from its expense. */
 export const CREATABLE_TRANSACTION_TYPES = [
   "income",

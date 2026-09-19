@@ -1,4 +1,6 @@
+import type { CreateTransactionError } from "@bookkeeping/application/transactions";
 import {
+  createTransaction,
   findExpenseRefunds,
   findLastUsedWalletId,
   findTransaction,
@@ -17,17 +19,31 @@ import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
-import { moneySchema, presentMoney } from "../../core/http/money.js";
+import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
+import {
+  idempotencyConflictProblem,
+  idempotencyKeyMiddleware,
+} from "../../core/http/idempotency.js";
+import {
+  moneyInputSchema,
+  moneySchema,
+  presentMoney,
+} from "../../core/http/money.js";
 import {
   describeProblem,
   describeProblemResponse,
 } from "../../core/http/openapi.js";
-import type { problemDetailsSchema } from "../../core/http/problem-details.js";
+import type {
+  ProblemFieldError,
+  problemDetailsSchema,
+} from "../../core/http/problem-details.js";
 import {
   createProblemResponse,
   getProblemOptionsForStatus,
 } from "../../core/http/problem-details.js";
+
 import {
+  createCommandMiddleware,
   createQueryMiddleware,
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
@@ -97,6 +113,67 @@ export const transactionRefundsResponseSchema = z
 export const transactionEntryDefaultsResponseSchema = z
   .object({ lastUsedWalletId: z.uuid().nullable() })
   .meta({ id: "TransactionEntryDefaults" });
+
+const calendarDateInputSchema = z
+  .string()
+  .refine((value) => /^\d{4}-\d{2}-\d{2}$/.test(value), {
+    error: "Use a calendar date in YYYY-MM-DD form",
+    params: { code: "invalid-date" },
+  });
+
+export const createTransactionRequestSchema = z
+  .strictObject({
+    type: z.enum(["income", "expense"]),
+    amount: moneyInputSchema,
+    walletId: z.uuid(),
+    categoryId: z.uuid(),
+    transactionDate: calendarDateInputSchema,
+    note: z.string(),
+  })
+  .meta({ id: "CreateTransactionRequest" });
+
+interface CreateTransactionValidatedInput {
+  in: {
+    json: z.input<typeof createTransactionRequestSchema>;
+    header: z.input<typeof idempotencyKeyHeaderSchema>;
+  };
+  out: {
+    json: z.output<typeof createTransactionRequestSchema>;
+    header: z.output<typeof idempotencyKeyHeaderSchema>;
+  };
+}
+
+function toTransactionFieldErrors(
+  error: Exclude<CreateTransactionError, { code: "idempotency-conflict" }>,
+): ProblemFieldError[] {
+  switch (error.code) {
+    case "wallet-not-found":
+    case "wallet-archived":
+      return [{ pointer: "#/walletId", code: error.code }];
+    case "destination-wallet-not-found":
+    case "same-wallet":
+      return [{ pointer: "#/walletId", code: error.code }];
+    case "invalid-currency":
+      return [{ pointer: "#/amount/currency", code: error.code }];
+    case "invalid-transfer":
+    case "invalid-refund":
+    case "expense-not-found":
+      return [{ pointer: "#/type", code: error.code }];
+    case "category-not-found":
+    case "category-kind-mismatch":
+      return [{ pointer: "#/categoryId", code: error.code }];
+    case "amount-out-of-range":
+    case "exceeds-refundable":
+      return [{ pointer: "#/amount/value", code: error.code }];
+    case "note-too-long":
+      return [{ pointer: "#/note", code: error.code }];
+    case "invalid-date":
+    case "future-date":
+    case "before-opening":
+    case "before-expense":
+      return [{ pointer: "#/transactionDate", code: error.code }];
+  }
+}
 
 export type TransactionWalletResponse = z.infer<typeof transactionWalletSchema>;
 
@@ -177,6 +254,7 @@ export function presentTransactionRefunds(
 // never captured by the identifier route.
 const DEFAULT_TRANSACTION_PAGE_LIMIT = 50;
 const MAX_TRANSACTION_PAGE_LIMIT = 100;
+const LOCATION_HEADER = "Location";
 const COLLECTION_PATH = "/transactions";
 const ENTRY_DEFAULTS_PATH = "/transactions/entry-defaults";
 const RESOURCE_PATH = "/transactions/:transactionId";
@@ -245,9 +323,87 @@ const transactionParamsSchema = z.object({ transactionId: z.uuid() });
 const transactionParamMiddleware = createResourceParamMiddleware(
   transactionParamsSchema,
 );
+const transactionCreationCommandMiddleware = createCommandMiddleware(
+  createTransactionRequestSchema,
+);
 
 export function createTransactionRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>()
+    .post(
+      COLLECTION_PATH,
+      describeRoute({
+        operationId: "createTransaction",
+        summary: "Create an income or expense",
+        description:
+          "Records an income or expense for the signed-in owner using an " +
+          "exact THB amount, an active owned wallet, a matching category, " +
+          "and a real calendar date. The request must carry a client-generated " +
+          "Idempotency-Key: repeating it with the same normalized payload " +
+          "replays the original detail, while a different payload is a conflict. " +
+          "A rejected request never consumes its key.",
+        tags: ["Transactions"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      idempotencyKeyMiddleware,
+      transactionCreationCommandMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof COLLECTION_PATH,
+        CreateTransactionValidatedInput,
+        {
+          201: typeof transactionResponseSchema;
+          409: typeof problemDetailsSchema;
+          422: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const body = c.req.valid("json");
+          const created = await createTransaction(db, {
+            ownerId: c.get("session").user.id,
+            idempotencyKey: c.req.valid("header")["idempotency-key"],
+            type: body.type,
+            amount: body.amount.amountInMinorUnits,
+            currency: body.amount.currency,
+            walletId: body.walletId,
+            categoryId: body.categoryId,
+            transactionDate: body.transactionDate,
+            note: body.note,
+          });
+          if (!created.ok) {
+            if (created.error.code === "idempotency-conflict") {
+              return createProblemResponse(c, idempotencyConflictProblem);
+            }
+            return createProblemResponse(c, {
+              ...getProblemOptionsForStatus(422),
+              errors: toTransactionFieldErrors(created.error),
+            });
+          }
+          const transaction = presentTransaction(created.value.transaction);
+          return c.json(transaction, 201, {
+            [LOCATION_HEADER]: `${c.req.path}/${transaction.id}`,
+          });
+        },
+        {
+          201: {
+            description: "The created transaction, or the original on a replay",
+            headers: {
+              [LOCATION_HEADER]: {
+                description: "Where the created transaction can be retrieved",
+                schema: { type: "string" },
+              },
+            },
+            content: {
+              "application/json": { vSchema: transactionResponseSchema },
+            },
+          },
+          409: describeProblem(idempotencyConflictProblem),
+          422: describeProblem(getProblemOptionsForStatus(422)),
+        },
+      ),
+    )
     .get(
       COLLECTION_PATH,
       describeRoute({

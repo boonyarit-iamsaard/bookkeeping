@@ -884,7 +884,7 @@ describe("correcting transactions", () => {
     });
   });
 
-  test("a late create retry after an edit or deletion confirms the current outcome", async () => {
+  test("a late create retry after an edit or deletion returns the original creation snapshot", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
       const { input, transaction } = await recordExpense({ db, owner });
@@ -900,7 +900,7 @@ describe("correcting transactions", () => {
 
       const afterEdit = await createTransaction(db, input);
       expect(afterEdit.ok && afterEdit.value.replayed).toBe(true);
-      expect(afterEdit.ok && afterEdit.value.transaction.amount).toBe(60_000n);
+      expect(afterEdit.ok && afterEdit.value.transaction.amount).toBe(50_000n);
       expect(
         await listTransactions(db, { ownerId: owner.owner.id }),
       ).toHaveLength(1);
@@ -911,8 +911,8 @@ describe("correcting transactions", () => {
       });
       const afterDelete = await createTransaction(db, input);
       expect(afterDelete.ok && afterDelete.value.replayed).toBe(true);
-      expect(afterDelete.ok && afterDelete.value.transaction.id).toBe(
-        transaction.id,
+      expect(afterDelete.ok && afterDelete.value.transaction).toEqual(
+        afterEdit.ok ? afterEdit.value.transaction : undefined,
       );
       expect(await listTransactions(db, { ownerId: owner.owner.id })).toEqual(
         [],
@@ -1308,7 +1308,7 @@ test("receipt or history write failures roll back both transfer effects and leav
     // Inject a storage fault at the receipt boundary, after the financial insert.
     // DDL lives in this rolled-back test transaction and never touches app databases.
     await db.execute(
-      sql`alter table submission_receipts add constraint fail_transfer_receipt check (key <> 'fail-transfer-receipt')`,
+      sql`alter table creation_receipts add constraint fail_transfer_receipt check (key <> 'fail-transfer-receipt')`,
     );
     await expect(createTransaction(db, input)).rejects.toThrow();
     expect(await listTransactions(db, { ownerId: owner.id })).toEqual([]);
@@ -1316,7 +1316,7 @@ test("receipt or history write failures roll back both transfer effects and leav
       (await listWallets(db, { ownerId: owner.id })).map((w) => w.balance),
     ).toEqual([1_200_000n, 0n]);
     await db.execute(
-      sql`alter table submission_receipts drop constraint fail_transfer_receipt`,
+      sql`alter table creation_receipts drop constraint fail_transfer_receipt`,
     );
     const created = await createTransaction(db, input);
     if (!created.ok) {

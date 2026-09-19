@@ -1,5 +1,7 @@
 "use server";
 
+import type { CreateTransactionError } from "@bookkeeping/application/transactions";
+import { createTransaction } from "@bookkeeping/application/transactions";
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
 import type { Result } from "@bookkeeping/domain/result";
@@ -11,12 +13,10 @@ import * as z from "zod";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
 import type {
-  CreateTransactionError,
   DeleteTransactionError,
   UpdateTransactionError,
 } from "@/features/transactions/server/transaction";
 import {
-  createTransaction,
   deleteTransaction,
   updateTransaction,
 } from "@/features/transactions/server/transaction";
@@ -73,11 +73,13 @@ export async function createTransactionAction(
   }
 
   // Ownership comes last so nothing in the parsed input can override it.
+  const { submissionKey, ...command } = parsed.data;
   const outcome = await createTransaction(db, {
-    ...parsed.data,
-    categoryId: parsed.data.categoryId || null,
-    destinationWalletId: parsed.data.destinationWalletId || null,
-    refundOfTransactionId: parsed.data.refundOfTransactionId || null,
+    ...command,
+    categoryId: command.categoryId || null,
+    destinationWalletId: command.destinationWalletId || null,
+    refundOfTransactionId: command.refundOfTransactionId || null,
+    idempotencyKey: submissionKey,
     ownerId: session.user.id,
   });
   if (!outcome.ok) {
@@ -266,6 +268,12 @@ function describeRejection(
         field: "note",
         message: "Notes can be at most 200 characters",
       };
+    case "invalid-date":
+      return {
+        code: "invalid",
+        field: "transactionDate",
+        message: "Enter a real calendar date",
+      };
     case "future-date":
       return {
         code: "invalid",
@@ -317,7 +325,7 @@ function describeRejection(
         field: "transactionDate",
         message: `A linked refund is dated ${formatCalendarDate(error.refundDate)}; the expense cannot come after it`,
       };
-    case "submission-conflict":
+    case "idempotency-conflict":
       return {
         code: "conflict",
         message:

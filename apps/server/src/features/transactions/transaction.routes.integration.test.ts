@@ -18,6 +18,7 @@ import {
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { expectProblem } from "../../testing/expect-problem.js";
+import type { createTransactionRequestSchema } from "./transaction.routes.js";
 import {
   transactionCollectionResponseSchema,
   transactionEntryDefaultsResponseSchema,
@@ -25,7 +26,7 @@ import {
   transactionResponseSchema,
 } from "./transaction.routes.js";
 
-const { withRollback } = setupTestDatabase();
+const { withRollback, committed } = setupTestDatabase();
 
 const TRANSACTIONS_URL = `${TEST_API_ORIGIN}/v1/transactions`;
 const UNKNOWN_TRANSACTION_ID = "01999999-0000-7000-8000-000000000000";
@@ -173,6 +174,358 @@ function listTransactions(
     headers: { origin: TEST_CLIENT_ORIGIN, ...(cookie ? { cookie } : {}) },
   });
 }
+
+interface CreateTransactionRequest {
+  cookie?: string;
+  idempotencyKey?: string;
+  body?: unknown;
+  rawBody?: string;
+}
+
+function postTransaction(
+  app: Hono<AppEnv>,
+  {
+    cookie,
+    idempotencyKey,
+    body = {},
+    rawBody,
+  }: Readonly<CreateTransactionRequest>,
+) {
+  return app.request(TRANSACTIONS_URL, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      origin: TEST_CLIENT_ORIGIN,
+      ...(cookie ? { cookie } : {}),
+      ...(idempotencyKey === undefined
+        ? {}
+        : { "idempotency-key": idempotencyKey }),
+    },
+    body: rawBody ?? JSON.stringify(body),
+  });
+}
+
+type TransactionCreationBody = z.input<typeof createTransactionRequestSchema>;
+
+function expenseBody(owner: Readonly<OwnerFixture>): TransactionCreationBody {
+  return {
+    type: "expense",
+    amount: { value: "123.45", currency: "THB" },
+    walletId: owner.cashId,
+    categoryId: owner.childId,
+    transactionDate: "2026-09-02",
+    note: "Lunch",
+  };
+}
+
+describe("POST /v1/transactions", () => {
+  test("creates income and expense details with semantic money and locations", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "create-details" });
+      const expenseResponse = await postTransaction(app, {
+        cookie: owner.cookie,
+        idempotencyKey: "expense-create",
+        body: expenseBody(owner),
+      });
+      const expense = transactionResponseSchema.parse(
+        await expenseResponse.json(),
+      );
+      expect(expenseResponse.status).toBe(201);
+      expect(expenseResponse.headers.get("location")).toBe(
+        `/v1/transactions/${expense.id}`,
+      );
+      expect(expense).toEqual({
+        id: expense.id,
+        type: "expense",
+        amount: { value: "123.45", currency: "THB" },
+        transactionDate: "2026-09-02",
+        note: "Lunch",
+        recordedAt: expect.any(String),
+        wallet: {
+          id: owner.cashId,
+          name: "Cash",
+          type: "cash",
+          archived: false,
+        },
+        destinationWallet: null,
+        category: {
+          id: owner.childId,
+          name: "Groceries",
+          iconId: expect.any(String),
+          parentName: "Food & Drink",
+        },
+        refundOf: null,
+      });
+
+      const income = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "income-create",
+            body: {
+              ...expenseBody(owner),
+              type: "income",
+              amount: { value: "1000.10", currency: "THB" },
+              walletId: owner.bankId,
+              categoryId: owner.incomeId,
+              note: "Salary",
+            },
+          })
+        ).json(),
+      );
+      expect(income.type).toBe("income");
+      expect(income.amount).toEqual({ value: "1000.10", currency: "THB" });
+      expect(income.category?.id).toBe(owner.incomeId);
+    });
+  });
+
+  test("replays normalized money and the original snapshot, and conflicts on a changed payload", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "create-retry" });
+      const originalBody = {
+        ...expenseBody(owner),
+        amount: { value: "123.4", currency: "THB" },
+      };
+      const firstResponse = await postTransaction(app, {
+        cookie: owner.cookie,
+        idempotencyKey: "retry",
+        body: originalBody,
+      });
+      const first = transactionResponseSchema.parse(await firstResponse.json());
+      const malformedReplay = await postTransaction(app, {
+        cookie: owner.cookie,
+        idempotencyKey: "retry",
+        body: { ...originalBody, amount: { value: "123.450" } },
+      });
+      expect(malformedReplay.status).toBe(422);
+
+      const normalizedReplayResponse = await postTransaction(app, {
+        cookie: owner.cookie,
+        idempotencyKey: "retry",
+        body: { ...originalBody, amount: { value: "123.40", currency: "THB" } },
+      });
+      const normalizedReplay = transactionResponseSchema.parse(
+        await normalizedReplayResponse.json(),
+      );
+      expect(normalizedReplayResponse.status).toBe(201);
+      expect(normalizedReplay).toEqual(first);
+
+      await db
+        .update(transactions)
+        .set({ amount: 60_000n, note: "Edited" })
+        .where(eq(transactions.id, first.id));
+      await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "retry",
+          body: { ...originalBody, note: "Changed" },
+        }),
+        { status: 409, code: "idempotency-conflict" },
+      );
+
+      await softDelete(db, first.id);
+      const lateResponse = await postTransaction(app, {
+        cookie: owner.cookie,
+        idempotencyKey: "retry",
+        body: originalBody,
+      });
+      const late = transactionResponseSchema.parse(await lateResponse.json());
+      expect(lateResponse.status).toBe(201);
+      expect(late).toEqual(first);
+    });
+  });
+
+  test("does not consume a key after application validation and maps field failures", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "create-validation" });
+      const base = expenseBody(owner);
+      const invalidDate = await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "correct-date",
+          body: { ...base, transactionDate: "2026-02-30" },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(invalidDate.errors).toEqual([
+        { pointer: "#/transactionDate", code: "invalid-date" },
+      ]);
+      expect(
+        (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "correct-date",
+            body: base,
+          })
+        ).status,
+      ).toBe(201);
+
+      const amount = await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "bad-amount",
+          body: { ...base, amount: { value: "0.00", currency: "THB" } },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(amount.errors).toEqual([
+        { pointer: "#/amount/value", code: "amount-out-of-range" },
+      ]);
+      const note = await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "bad-note",
+          body: { ...base, note: "x".repeat(201) },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(note.errors).toEqual([
+        { pointer: "#/note", code: "note-too-long" },
+      ]);
+      const future = await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "future",
+          body: { ...base, transactionDate: "2999-01-01" },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(future.errors).toEqual([
+        { pointer: "#/transactionDate", code: "future-date" },
+      ]);
+      const beforeOpening = await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "before-opening",
+          body: { ...base, transactionDate: "2026-08-31" },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(beforeOpening.errors).toEqual([
+        { pointer: "#/transactionDate", code: "before-opening" },
+      ]);
+    });
+  });
+
+  test("rejects foreign, archived, and wrong-tree resources", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "create-resources" });
+      const foreign = await createOwner(app, {
+        db,
+        label: "create-resources-foreign",
+      });
+      const wallet = await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "foreign-wallet",
+          body: { ...expenseBody(owner), walletId: foreign.cashId },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(wallet.errors).toEqual([
+        { pointer: "#/walletId", code: "wallet-not-found" },
+      ]);
+      const category = await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "foreign-category",
+          body: { ...expenseBody(owner), categoryId: foreign.childId },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(category.errors).toEqual([
+        { pointer: "#/categoryId", code: "category-not-found" },
+      ]);
+      const mismatch = await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "wrong-tree",
+          body: { ...expenseBody(owner), categoryId: owner.incomeId },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(mismatch.errors).toEqual([
+        { pointer: "#/categoryId", code: "category-kind-mismatch" },
+      ]);
+
+      await db
+        .update(wallets)
+        .set({ archivedAt: new Date() })
+        .where(eq(wallets.id, owner.cashId));
+      const archived = await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "archived-wallet",
+          body: expenseBody(owner),
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(archived.errors).toEqual([
+        { pointer: "#/walletId", code: "wallet-archived" },
+      ]);
+    });
+  });
+
+  test("requires authentication, a usable idempotency key, and valid JSON", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "create-boundary" });
+      for (const idempotencyKey of [undefined, "   ", "x".repeat(256)]) {
+        await expectProblem(
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey,
+            body: expenseBody(owner),
+          }),
+          { status: 400, code: "idempotency-key-required" },
+        );
+      }
+      await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "malformed-json",
+          rawBody: "{",
+        }),
+        { status: 400, code: "bad-request" },
+      );
+      await expectProblem(
+        await postTransaction(createIntegrationTestApp(db), {
+          idempotencyKey: "anonymous",
+          body: expenseBody(owner),
+        }),
+        { status: 401, code: "unauthenticated" },
+      );
+    });
+  });
+
+  test("concurrent requests with one key create one transaction and replay it", async () => {
+    const db = committed();
+    const app = createIntegrationTestApp(db);
+    const owner = await createOwner(app, { db, label: "create-concurrent" });
+    const responses = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "concurrent",
+          body: expenseBody(owner),
+        }),
+      ),
+    );
+    const bodies = await Promise.all(
+      responses.map(async (response) =>
+        transactionResponseSchema.parse(await response.json()),
+      ),
+    );
+    expect(responses.map((response) => response.status)).toEqual([
+      201, 201, 201, 201, 201,
+    ]);
+    expect(new Set(bodies.map((body) => body.id)).size).toBe(1);
+  });
+});
 
 describe("GET /v1/transactions", () => {
   test("pages ties in deterministic order and ignores inserts before the cursor", async () => {

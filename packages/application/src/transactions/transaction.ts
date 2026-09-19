@@ -2,14 +2,51 @@ import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { transactions } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
+import type { CalendarDate } from "@bookkeeping/domain/dates";
+import {
+  APP_TIME_ZONE,
+  parseCalendarDate,
+  todayIn,
+} from "@bookkeeping/domain/dates";
+import type { Result } from "@bookkeeping/domain/result";
+import { err, ok } from "@bookkeeping/domain/result";
 import type {
   ExpenseRefunds,
+  LinkedExpense,
   RefundSummary,
   TransactionDetail,
   TransactionFilters,
+  TransactionType,
 } from "@bookkeeping/domain/transactions";
-import { and, asc, desc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
+import {
+  MAX_NOTE_LENGTH,
+  MAX_TRANSACTION_AMOUNT,
+  MIN_TRANSACTION_AMOUNT,
+  TRANSACTION_TYPES,
+} from "@bookkeeping/domain/transactions";
+import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import * as z from "zod";
+import type {
+  CreationResultCodec,
+  IdempotencyConflict,
+  StoredCreationResult,
+  ValidatedPayload,
+} from "../idempotency/idempotency";
+import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 
 export interface TransactionRef {
@@ -164,6 +201,531 @@ export async function findReplayedTransaction(
     and(eq(transactions.id, id), eq(transactions.userId, ownerId)),
   );
   return row ? toDetail(row) : null;
+}
+
+export interface CreateTransactionInput {
+  /** Always the session user; never a client-supplied identifier. */
+  ownerId: string;
+  /** Client-generated; one key names one logical creation for this owner. */
+  idempotencyKey: string;
+  type: TransactionType;
+  walletId: string;
+  categoryId: string | null;
+  destinationWalletId?: string | null;
+  /** The owner's expense a refund returns money for; refunds only. */
+  refundOfTransactionId?: string | null;
+  /** Transfers must explicitly carry THB; other types may omit it. */
+  currency?: "THB";
+  /** Integer satang, always positive; the type carries the sign. */
+  amount: bigint;
+  transactionDate: CalendarDate;
+  note: string;
+}
+
+export interface CreateTransactionOutcome {
+  transaction: TransactionDetail;
+  /** True when an earlier request with the same key already created it. */
+  replayed: boolean;
+}
+
+export type CreateTransactionError =
+  | { code: "wallet-not-found" }
+  | { code: "destination-wallet-not-found" }
+  | { code: "same-wallet" }
+  | { code: "wallet-archived"; walletId: string }
+  | { code: "invalid-currency" }
+  | { code: "invalid-transfer" }
+  | { code: "category-not-found" }
+  | { code: "category-kind-mismatch" }
+  | { code: "amount-out-of-range" }
+  | { code: "note-too-long" }
+  | { code: "invalid-date" }
+  | { code: "future-date"; today: CalendarDate }
+  | { code: "before-opening"; openingDate: CalendarDate }
+  | { code: "invalid-refund" }
+  | { code: "expense-not-found" }
+  | { code: "before-expense"; expenseDate: CalendarDate }
+  | { code: "exceeds-refundable"; remaining: bigint }
+  | IdempotencyConflict;
+
+type TransactionValidationError = Exclude<
+  CreateTransactionError,
+  IdempotencyConflict
+>;
+
+interface TransactionCreationFields {
+  ownerId: string;
+  type: TransactionType;
+  walletId: string;
+  categoryId: string | null;
+  destinationWalletId: string | null;
+  refundOfTransactionId: string | null;
+  currency?: "THB";
+  amount: bigint;
+  transactionDate: CalendarDate;
+  note: string;
+}
+
+interface OwnedWalletForTransaction {
+  id: string;
+  openingDate: CalendarDate;
+  archivedAt: Date | null;
+}
+
+const TRANSACTION_CREATION_OPERATION = "transactions.create";
+
+const storedTransactionWalletSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  type: z.enum(WALLET_TYPES),
+  archived: z.boolean(),
+});
+
+const storedTransactionDetailSchema = z.object({
+  id: z.uuid(),
+  type: z.enum(TRANSACTION_TYPES),
+  currency: z.literal("THB"),
+  amount: z.string().regex(/^\d+$/),
+  transactionDate: z.iso.date(),
+  note: z.string(),
+  recordedAt: z.iso.datetime(),
+  wallet: storedTransactionWalletSchema,
+  destinationWallet: storedTransactionWalletSchema.nullable(),
+  category: z
+    .object({
+      id: z.uuid(),
+      name: z.string(),
+      iconId: z.string(),
+      parentName: z.string().nullable(),
+    })
+    .nullable(),
+  refundOf: z
+    .object({
+      id: z.uuid(),
+      amount: z.string().regex(/^\d+$/),
+      transactionDate: z.iso.date(),
+    })
+    .nullable(),
+});
+
+const transactionResultCodec: CreationResultCodec<TransactionDetail> = {
+  encode(value): StoredCreationResult {
+    return encodeTransactionDetail(value);
+  },
+  decode(value): TransactionDetail {
+    const stored = storedTransactionDetailSchema.parse(value);
+    return {
+      id: stored.id,
+      type: stored.type,
+      currency: stored.currency,
+      amount: BigInt(stored.amount),
+      transactionDate: stored.transactionDate,
+      note: stored.note,
+      recordedAt: new Date(stored.recordedAt),
+      wallet: stored.wallet,
+      destinationWallet: stored.destinationWallet,
+      category: stored.category,
+      refundOf: stored.refundOf
+        ? {
+            id: stored.refundOf.id,
+            amount: BigInt(stored.refundOf.amount),
+            transactionDate: stored.refundOf.transactionDate,
+          }
+        : null,
+    };
+  },
+};
+
+function encodeTransactionDetail(
+  value: Readonly<TransactionDetail>,
+): StoredCreationResult {
+  return {
+    id: value.id,
+    type: value.type,
+    currency: value.currency,
+    amount: value.amount.toString(),
+    transactionDate: value.transactionDate,
+    note: value.note,
+    recordedAt: value.recordedAt.toISOString(),
+    wallet: {
+      id: value.wallet.id,
+      name: value.wallet.name,
+      type: value.wallet.type,
+      archived: value.wallet.archived,
+    },
+    destinationWallet: value.destinationWallet
+      ? {
+          id: value.destinationWallet.id,
+          name: value.destinationWallet.name,
+          type: value.destinationWallet.type,
+          archived: value.destinationWallet.archived,
+        }
+      : null,
+    category: value.category
+      ? {
+          id: value.category.id,
+          name: value.category.name,
+          iconId: value.category.iconId,
+          parentName: value.category.parentName,
+        }
+      : null,
+    refundOf: value.refundOf
+      ? {
+          id: value.refundOf.id,
+          amount: value.refundOf.amount.toString(),
+          transactionDate: value.refundOf.transactionDate,
+        }
+      : null,
+  };
+}
+
+/**
+ * Creates one transaction and its durable result snapshot per idempotency key.
+ * Validation failures happen before the key is touched, while ownership and
+ * locking checks run in the same transaction as the financial insert.
+ */
+export async function createTransaction(
+  db: Database,
+  input: Readonly<CreateTransactionInput>,
+): Promise<Result<CreateTransactionOutcome, CreateTransactionError>> {
+  const command = normalizeTransactionInput(input);
+  const invalid = validateTransactionValues(command);
+  if (invalid) {
+    return err(invalid);
+  }
+
+  const outcome = await executeIdempotentCreation<
+    TransactionDetail,
+    CreateTransactionError
+  >(db, {
+    ownerId: input.ownerId,
+    operation: TRANSACTION_CREATION_OPERATION,
+    key: input.idempotencyKey,
+    payload: transactionCreationPayload(command),
+    resultCodec: transactionResultCodec,
+    create: (tx) => insertTransaction(tx, command),
+  });
+  if (!outcome.ok) {
+    return err(outcome.error);
+  }
+  return ok({
+    transaction: outcome.value.result,
+    replayed: outcome.value.replayed,
+  });
+}
+
+function normalizeTransactionInput(
+  input: Readonly<CreateTransactionInput>,
+): TransactionCreationFields {
+  const currency =
+    input.type === "transfer"
+      ? input.currency
+      : input.type === "refund"
+        ? undefined
+        : "THB";
+  return {
+    ownerId: input.ownerId,
+    type: input.type,
+    walletId: input.walletId,
+    categoryId: input.categoryId ?? null,
+    destinationWalletId: input.destinationWalletId ?? null,
+    refundOfTransactionId: input.refundOfTransactionId ?? null,
+    currency,
+    amount: input.amount,
+    transactionDate: input.transactionDate,
+    note: input.note,
+  };
+}
+
+function transactionCreationPayload(
+  input: Readonly<TransactionCreationFields>,
+): ValidatedPayload {
+  return {
+    type: input.type,
+    walletId: input.walletId,
+    categoryId: input.categoryId,
+    destinationWalletId: input.destinationWalletId,
+    refundOfTransactionId: input.refundOfTransactionId,
+    currency: input.currency ?? null,
+    amount: input.amount,
+    transactionDate: input.transactionDate,
+    note: input.note,
+  };
+}
+
+function validateTransactionValues(
+  input: Readonly<TransactionCreationFields>,
+): TransactionValidationError | undefined {
+  if (
+    input.amount < MIN_TRANSACTION_AMOUNT ||
+    input.amount > MAX_TRANSACTION_AMOUNT
+  ) {
+    return { code: "amount-out-of-range" };
+  }
+  if (input.note.length > MAX_NOTE_LENGTH) {
+    return { code: "note-too-long" };
+  }
+  if (!parseCalendarDate(input.transactionDate).ok) {
+    return { code: "invalid-date" };
+  }
+  return undefined;
+}
+
+async function insertTransaction(
+  tx: Database,
+  input: Readonly<TransactionCreationFields>,
+): Promise<Result<TransactionDetail, TransactionValidationError>> {
+  const rejection = await validateTransactionOwner(tx, input);
+  if (rejection) {
+    return err(rejection);
+  }
+  const [row] = await tx
+    .insert(transactions)
+    .values({
+      userId: input.ownerId,
+      type: input.type,
+      walletId: input.walletId,
+      categoryId: input.categoryId,
+      destinationWalletId: input.destinationWalletId,
+      refundOfTransactionId: input.refundOfTransactionId,
+      currency: "THB",
+      amount: input.amount,
+      transactionDate: input.transactionDate,
+      note: input.note,
+    })
+    .returning({ id: transactions.id });
+  if (!row) {
+    throw new Error("Transaction insert returned no row");
+  }
+  const [detailRow] = await detailQuery(tx).where(
+    and(eq(transactions.id, row.id), eq(transactions.userId, input.ownerId)),
+  );
+  if (!detailRow) {
+    throw new Error("Created transaction could not be read back");
+  }
+  return ok(toDetail(detailRow));
+}
+
+async function validateTransactionOwner(
+  tx: Database,
+  input: Readonly<TransactionCreationFields>,
+): Promise<TransactionValidationError | undefined> {
+  const shapeRejection =
+    validateTransferShape(input) ?? validateRefundShape(input);
+  if (shapeRejection) {
+    return shapeRejection;
+  }
+  // The expense lock comes before wallet locks everywhere, so refunds,
+  // corrections, and wallet archiving cannot wait on each other in a cycle.
+  const expense = await lockRefundedExpense(tx, input);
+  if (!expense.ok) {
+    return expense.error;
+  }
+  const owned = await lockOwnedWallets(tx, input);
+  if (!owned.ok) {
+    return owned.error;
+  }
+  const categoryRejection = await validateTransactionCategory(tx, input);
+  if (categoryRejection) {
+    return categoryRejection;
+  }
+  const dateRejection = validateTransactionDate(
+    input.transactionDate,
+    owned.value,
+  );
+  if (dateRejection) {
+    return dateRejection;
+  }
+  if (!expense.value) {
+    return undefined;
+  }
+  return validateRefundAgainstExpense(tx, {
+    input,
+    expense: expense.value,
+  });
+}
+
+/** A refund names its expense and no category; nothing else names an expense. */
+function validateRefundShape(
+  input: Readonly<TransactionCreationFields>,
+): TransactionValidationError | undefined {
+  if (input.type !== "refund") {
+    return input.refundOfTransactionId ? { code: "invalid-refund" } : undefined;
+  }
+  if (!input.refundOfTransactionId || input.categoryId !== null) {
+    return { code: "invalid-refund" };
+  }
+  return undefined;
+}
+
+/** A transfer names two distinct wallets in THB and no category. */
+function validateTransferShape(
+  input: Readonly<TransactionCreationFields>,
+): TransactionValidationError | undefined {
+  if (input.type !== "transfer") {
+    return input.destinationWalletId ? { code: "invalid-transfer" } : undefined;
+  }
+  if (input.currency !== "THB") {
+    return { code: "invalid-currency" };
+  }
+  if (!input.destinationWalletId || input.categoryId !== null) {
+    return { code: "invalid-transfer" };
+  }
+  if (input.walletId === input.destinationWalletId) {
+    return { code: "same-wallet" };
+  }
+  return undefined;
+}
+
+async function lockRefundedExpense(
+  tx: Database,
+  input: Readonly<TransactionCreationFields>,
+): Promise<Result<LinkedExpense | undefined, TransactionValidationError>> {
+  if (input.type !== "refund" || !input.refundOfTransactionId) {
+    return ok(undefined);
+  }
+  if (!isUuid(input.refundOfTransactionId)) {
+    return err({ code: "expense-not-found" });
+  }
+  const [expense] = await tx
+    .select({
+      id: transactions.id,
+      type: transactions.type,
+      amount: transactions.amount,
+      transactionDate: transactions.transactionDate,
+      deletedAt: transactions.deletedAt,
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.id, input.refundOfTransactionId),
+        eq(transactions.userId, input.ownerId),
+      ),
+    )
+    .for("update");
+  if (!expense || expense.deletedAt || expense.type !== "expense") {
+    return err({ code: "expense-not-found" });
+  }
+  return ok({
+    id: expense.id,
+    amount: expense.amount,
+    transactionDate: expense.transactionDate,
+  });
+}
+
+interface RefundValidationInput {
+  input: Readonly<TransactionCreationFields>;
+  expense: Readonly<LinkedExpense>;
+}
+
+async function validateRefundAgainstExpense(
+  tx: Database,
+  { input, expense }: Readonly<RefundValidationInput>,
+): Promise<TransactionValidationError | undefined> {
+  if (input.transactionDate < expense.transactionDate) {
+    return { code: "before-expense", expenseDate: expense.transactionDate };
+  }
+  const refunds = await currentRefundsOf(tx, expense.id);
+  const remaining = expense.amount - sumOf(refunds);
+  if (input.amount > remaining) {
+    return { code: "exceeds-refundable", remaining };
+  }
+  return undefined;
+}
+
+function walletIdsOf(
+  input: Readonly<
+    Pick<TransactionCreationFields, "walletId" | "destinationWalletId">
+  >,
+): string[] {
+  return input.destinationWalletId
+    ? [input.walletId, input.destinationWalletId]
+    : [input.walletId];
+}
+
+async function lockOwnedWallets(
+  tx: Database,
+  input: Readonly<TransactionCreationFields>,
+): Promise<Result<OwnedWalletForTransaction[], TransactionValidationError>> {
+  if (!isUuid(input.walletId)) {
+    return err({ code: "wallet-not-found" });
+  }
+  if (input.destinationWalletId && !isUuid(input.destinationWalletId)) {
+    return err({ code: "destination-wallet-not-found" });
+  }
+  const ownedWallets = await tx
+    .select({
+      id: wallets.id,
+      openingDate: wallets.openingDate,
+      archivedAt: wallets.archivedAt,
+    })
+    .from(wallets)
+    .where(
+      and(
+        inArray(wallets.id, walletIdsOf(input)),
+        eq(wallets.userId, input.ownerId),
+      ),
+    )
+    .orderBy(asc(wallets.id))
+    .for("share");
+  const ownedIds = new Set(ownedWallets.map((wallet) => wallet.id));
+  if (!ownedIds.has(input.walletId)) {
+    return err({ code: "wallet-not-found" });
+  }
+  if (input.destinationWalletId && !ownedIds.has(input.destinationWalletId)) {
+    return err({ code: "destination-wallet-not-found" });
+  }
+  const archived = ownedWallets.find((wallet) => wallet.archivedAt !== null);
+  if (archived) {
+    return err({ code: "wallet-archived", walletId: archived.id });
+  }
+  return ok(ownedWallets);
+}
+
+async function validateTransactionCategory(
+  tx: Database,
+  input: Readonly<TransactionCreationFields>,
+): Promise<TransactionValidationError | undefined> {
+  if (input.type === "transfer" || input.type === "refund") {
+    return undefined;
+  }
+  if (!input.categoryId || !isUuid(input.categoryId)) {
+    return { code: "category-not-found" };
+  }
+  const [category] = await tx
+    .select({ kind: categories.kind })
+    .from(categories)
+    .where(
+      and(
+        eq(categories.id, input.categoryId),
+        eq(categories.userId, input.ownerId),
+      ),
+    )
+    .for("share");
+  if (!category) {
+    return { code: "category-not-found" };
+  }
+  if (category.kind !== input.type) {
+    return { code: "category-kind-mismatch" };
+  }
+  return undefined;
+}
+
+function validateTransactionDate(
+  transactionDate: CalendarDate,
+  ownedWallets: readonly OwnedWalletForTransaction[],
+): TransactionValidationError | undefined {
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  if (transactionDate > today) {
+    return { code: "future-date", today };
+  }
+  const unopened = ownedWallets.find(
+    (wallet) => transactionDate < wallet.openingDate,
+  );
+  if (unopened) {
+    return { code: "before-opening", openingDate: unopened.openingDate };
+  }
+  return undefined;
 }
 
 /** The nondeleted refunds linked to an expense, oldest date first. */

@@ -391,6 +391,7 @@ describe("OpenAPI document", () => {
 
   it("documents transaction listing and reads from their response schemas", async () => {
     const document = await fetchDocument(createUnitTestApp());
+    const create: DocumentedOperation = document.paths["/v1/transactions"].post;
     const collection: DocumentedOperation =
       document.paths["/v1/transactions"].get;
     const resource: DocumentedOperation =
@@ -399,6 +400,26 @@ describe("OpenAPI document", () => {
       document.paths["/v1/transactions/{transactionId}/refunds"].get;
     const defaults: DocumentedOperation =
       document.paths["/v1/transactions/entry-defaults"].get;
+
+    expect(create.operationId).toBe("createTransaction");
+    expect(create.requestBody?.required).toBe(true);
+    expect(create.requestBody?.content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/CreateTransactionRequest",
+    );
+    expect(create.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          in: "header",
+          name: "idempotency-key",
+          required: true,
+        }),
+      ]),
+    );
+    expect(
+      create.responses["201"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/Transaction");
+    expect(create.responses["201"].headers).toHaveProperty("Location");
+    expectProblemResponses(create, ["400", "401", "409", "422", "500"]);
 
     expect(collection.operationId).toBe("listTransactions");
     expect(

@@ -14,7 +14,6 @@ import {
 import { categories, categoriesRelations } from "./categories/category.schema";
 import { creationReceipts } from "./idempotency/creation-receipt.schema";
 import {
-  submissionReceipts,
   transactionChanges,
   transactions,
   transactionsRelations,
@@ -41,7 +40,6 @@ const schema = {
   creationReceipts,
   transactions,
   transactionsRelations,
-  submissionReceipts,
   transactionChanges,
 };
 
