@@ -1,6 +1,7 @@
 import type {
   CategoryErrorField,
   CreateCategoryError,
+  RemoveCategoryError,
   UpdateCategoryError,
 } from "@bookkeeping/application/categories";
 import {
@@ -9,6 +10,7 @@ import {
   findCategoryUsage,
   initializeDefaultCategories,
   listCategories,
+  removeCategory,
   updateCategory,
 } from "@bookkeeping/application/categories";
 import type { Database } from "@bookkeeping/database/connection";
@@ -96,6 +98,16 @@ const LOCATION_HEADER = "Location";
 const categoryParamsSchema = z.object({ categoryId: z.uuid() });
 const categoryParamMiddleware =
   createResourceParamMiddleware(categoryParamsSchema);
+
+/**
+ * Every blocker is the resource's current state refusing the removal, so one
+ * stable conflict problem covers protected, has-children, and in-use alike.
+ */
+function isRemovalBlocked(
+  error: RemoveCategoryError,
+): error is Exclude<RemoveCategoryError, { code: "category-not-found" }> {
+  return error.code !== "category-not-found";
+}
 
 interface CreateCategoryValidatedInput {
   in: {
@@ -376,6 +388,42 @@ export function createCategoryRoutes(db: Database) {
           422: describeProblem(getProblemOptionsForStatus(422)),
         },
       ),
+    )
+    .delete(
+      RESOURCE_PATH,
+      describeRoute({
+        operationId: "deleteCategory",
+        summary: "Delete a category",
+        description:
+          "Removes a child or a childless parent category. The child's " +
+          "transactions move to its parent, and a childless parent's move " +
+          "to that tree's Uncategorized, so no entry loses its " +
+          "categorization. A parent with children must be emptied first, and " +
+          "Uncategorized itself cannot be removed. A category that does not " +
+          "exist, belongs to another owner, or has a malformed identifier is " +
+          "not found alike.",
+        tags: ["Categories"],
+        responses: {
+          204: { description: "The category was deleted" },
+          401: describeProblemResponse(401),
+          404: describeProblemResponse(404),
+          409: describeProblemResponse(409),
+        },
+      }),
+      categoryParamMiddleware,
+      async (c) => {
+        const removed = await removeCategory(db, {
+          ownerId: c.get("session").user.id,
+          id: c.req.valid("param").categoryId,
+        });
+        if (!removed.ok) {
+          if (!isRemovalBlocked(removed.error)) {
+            return createProblemResponse(c, getProblemOptionsForStatus(404));
+          }
+          return createProblemResponse(c, getProblemOptionsForStatus(409));
+        }
+        return c.body(null, 204);
+      },
     )
     .get(
       USAGE_PATH,

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   initializeDefaultCategories,
   listCategories,
+  removeCategory,
   updateCategory,
 } from "@bookkeeping/application/categories";
 import { createCategoryForTest as createCategory } from "@bookkeeping/application/testing/category-fixture";
@@ -16,7 +17,6 @@ import {
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
 import { describe, expect, test, vi } from "vitest";
-import { removeCategory } from "@/features/categories/server/category-management";
 import { getMonthlySummary } from "@/features/transactions/server/history";
 import {
   createTransaction,

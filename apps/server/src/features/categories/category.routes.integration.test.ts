@@ -1,3 +1,4 @@
+import { createCategoryForTest } from "@bookkeeping/application/testing/category-fixture";
 import {
   insertCategorizedTransaction,
   insertLinkedRefund,
@@ -5,6 +6,7 @@ import {
 import { createWalletForTest } from "@bookkeeping/application/testing/wallet-fixture";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
+import { databaseError } from "@bookkeeping/database/errors";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { transactions } from "@bookkeeping/database/transactions";
 import { and, eq } from "drizzle-orm";
@@ -182,6 +184,24 @@ function getCategoryUsage(
   { categoryId, cookie }: Readonly<GetCategoryUsageRequest>,
 ) {
   return app.request(`${CATEGORIES_URL}/${categoryId}/usage`, {
+    headers: {
+      origin: TEST_CLIENT_ORIGIN,
+      ...(cookie ? { cookie } : {}),
+    },
+  });
+}
+
+interface DeleteCategoryRequest {
+  categoryId: string;
+  cookie?: string;
+}
+
+function deleteCategory(
+  app: Readonly<Hono<AppEnv>>,
+  { categoryId, cookie }: Readonly<DeleteCategoryRequest>,
+) {
+  return app.request(`${CATEGORIES_URL}/${categoryId}`, {
+    method: "DELETE",
     headers: {
       origin: TEST_CLIENT_ORIGIN,
       ...(cookie ? { cookie } : {}),
@@ -1085,6 +1105,197 @@ describe("POST /v1/categories/defaults", () => {
       });
       expect(await countCategories(db, alice.ownerId)).toBe(aliceBefore);
       expect(await countCategories(db, bob.ownerId)).toBe(aliceBefore);
+    });
+  });
+});
+
+describe("DELETE /v1/categories/{categoryId}", () => {
+  test("removes an unused child with no response body and makes a repeat not found", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const groceries = await findListedCategory(app, {
+        name: "Groceries",
+        cookie,
+      });
+
+      const response = await deleteCategory(app, {
+        categoryId: groceries.id,
+        cookie,
+      });
+
+      expect(response.status).toBe(204);
+      expect(response.headers.get("content-type")).toBeNull();
+      expect(await response.text()).toBe("");
+      await expectProblem(
+        await deleteCategory(app, { categoryId: groceries.id, cookie }),
+        { status: 404, code: "not-found" },
+      );
+    });
+  });
+
+  test("reassigns a removed child's transactions to its parent", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie, ownerId } = await signUp(app);
+      const wallet = await createWalletForTest(db, { ownerId });
+      const groceries = await findListedCategory(app, {
+        name: "Groceries",
+        cookie,
+      });
+      const foodAndDrink = await findListedCategory(app, {
+        name: "Food & Drink",
+        cookie,
+      });
+      await insertCategorizedTransaction(db, {
+        ownerId,
+        walletId: wallet.id,
+        categoryId: groceries.id,
+      });
+      const usageBefore = categoryUsageResponseSchema.parse(
+        await (
+          await getCategoryUsage(app, { categoryId: foodAndDrink.id, cookie })
+        ).json(),
+      );
+
+      const response = await deleteCategory(app, {
+        categoryId: groceries.id,
+        cookie,
+      });
+
+      expect(response.status).toBe(204);
+      await expectProblem(
+        await getCategory(app, { categoryId: groceries.id, cookie }),
+        { status: 404, code: "not-found" },
+      );
+      const usageAfter = categoryUsageResponseSchema.parse(
+        await (
+          await getCategoryUsage(app, { categoryId: foodAndDrink.id, cookie })
+        ).json(),
+      );
+      expect(usageAfter.children).toBe(usageBefore.children - 1);
+      expect(usageAfter.transactions).toBe(usageBefore.transactions + 1);
+    });
+  });
+
+  test("returns one stable conflict problem for protected and for a parent with children", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const { cookie } = await signUp(app);
+      const uncategorized = await findListedCategory(app, {
+        name: "Uncategorized",
+        cookie,
+      });
+      const foodAndDrink = await findListedCategory(app, {
+        name: "Food & Drink",
+        cookie,
+      });
+
+      for (const categoryId of [uncategorized.id, foodAndDrink.id]) {
+        await expectProblem(await deleteCategory(app, { categoryId, cookie }), {
+          status: 409,
+          code: "conflict",
+        });
+        // Every blocker is definitive: the category is still listed.
+        expect((await getCategory(app, { categoryId, cookie })).status).toBe(
+          200,
+        );
+      }
+    });
+  });
+
+  test("a transaction landing during the removal makes it a conflict or moves up, never orphaned", async () => {
+    // The race needs separate transactions, so this test commits; the owner
+    // is fresh, so nothing else observes the rows.
+    const db = committed();
+    const app = createIntegrationTestApp(db);
+    const { cookie, ownerId } = await signUp(app);
+    const wallet = await createWalletForTest(db, { ownerId });
+    const foodAndDrink = await findListedCategory(app, {
+      name: "Food & Drink",
+      cookie,
+    });
+    const created = await createCategoryForTest(db, {
+      ownerId,
+      kind: "expense",
+      name: "Takeaway",
+      iconId: "generic",
+      parent: { existingId: foodAndDrink.id },
+    });
+    if (!created.ok) {
+      throw new Error(created.error.code);
+    }
+    const takeaway = created.value.category;
+
+    const [removed, inserted] = await Promise.all([
+      deleteCategory(app, { categoryId: takeaway.id, cookie }),
+      insertCategorizedTransaction(db, {
+        ownerId,
+        walletId: wallet.id,
+        categoryId: takeaway.id,
+      }).then(
+        (filed) => ({ filed }),
+        (error: unknown) => ({ rejected: error }),
+      ),
+    ]);
+    if ("filed" in inserted) {
+      if (removed.status === 204) {
+        // The removal's reassignment claimed the entry as it moved up.
+        const [row] = await db
+          .select({ categoryId: transactions.categoryId })
+          .from(transactions)
+          .where(eq(transactions.id, inserted.filed));
+        expect(row?.categoryId).toBe(foodAndDrink.id);
+      } else {
+        await expectProblem(removed, { status: 409, code: "conflict" });
+        const [row] = await db
+          .select({ categoryId: transactions.categoryId })
+          .from(transactions)
+          .where(eq(transactions.id, inserted.filed));
+        expect(row?.categoryId).toBe(takeaway.id);
+      }
+    } else {
+      // The category vanished under the insert; its restrict FK refused it.
+      expect(removed.status).toBe(204);
+      expect(databaseError(inserted.rejected)?.code).toBe("23503");
+    }
+  });
+
+  test("does not disclose missing or another owner's categories", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const alice = await signUp(app);
+      const bob = await signUp(app);
+      const groceries = await findListedCategory(app, {
+        name: "Groceries",
+        cookie: alice.cookie,
+      });
+
+      await expectNotFoundAlike(
+        (categoryId) => deleteCategory(app, { categoryId, cookie: bob.cookie }),
+        groceries.id,
+      );
+      expect(
+        (
+          await getCategory(app, {
+            categoryId: groceries.id,
+            cookie: alice.cookie,
+          })
+        ).status,
+      ).toBe(200);
+    });
+  });
+
+  test("rejects an anonymous request with the standard problem", async () => {
+    await withRollback(async (db) => {
+      const response = await deleteCategory(createIntegrationTestApp(db), {
+        categoryId: "00000000-0000-0000-0000-000000000000",
+      });
+
+      await expectProblem(response, {
+        status: 401,
+        code: "unauthenticated",
+      });
     });
   });
 });

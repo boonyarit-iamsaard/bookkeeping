@@ -368,6 +368,27 @@ describe("OpenAPI document", () => {
     expect(operation.responses["500"]).toBeDefined();
   });
 
+  it("documents category deletion as a bodyless operation", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const operation: DocumentedOperation =
+      document.paths["/v1/categories/{categoryId}"].delete;
+
+    expect(operation.operationId).toBe("deleteCategory");
+    expect(operation.parameters).toEqual([
+      expect.objectContaining({
+        in: "path",
+        name: "categoryId",
+        required: true,
+      }),
+    ]);
+    expect(operation.responses["204"]).toEqual(
+      expect.objectContaining({ description: "The category was deleted" }),
+    );
+    expect(operation.responses["204"]).not.toHaveProperty("content");
+    expectProblemResponses(operation, ["401", "404", "409"]);
+    expect(operation.responses["500"]).toBeDefined();
+  });
+
   it("documents every registered route", async () => {
     const app = createUnitTestApp();
     const document = await fetchDocument(app);
