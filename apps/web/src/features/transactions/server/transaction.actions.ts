@@ -1,7 +1,13 @@
 "use server";
 
-import type { CreateTransactionError } from "@bookkeeping/application/transactions";
-import { createTransaction } from "@bookkeeping/application/transactions";
+import type {
+  CreateTransactionError,
+  UpdateTransactionError,
+} from "@bookkeeping/application/transactions";
+import {
+  createTransaction,
+  updateTransaction,
+} from "@bookkeeping/application/transactions";
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
 import type { Result } from "@bookkeeping/domain/result";
@@ -12,14 +18,8 @@ import { redirect } from "next/navigation";
 import * as z from "zod";
 import { getSession } from "@/core/auth/session";
 import { db } from "@/core/database/client";
-import type {
-  DeleteTransactionError,
-  UpdateTransactionError,
-} from "@/features/transactions/server/transaction";
-import {
-  deleteTransaction,
-  updateTransaction,
-} from "@/features/transactions/server/transaction";
+import type { DeleteTransactionError } from "@/features/transactions/server/transaction";
+import { deleteTransaction } from "@/features/transactions/server/transaction";
 import {
   createTransactionSubmissionSchema,
   updateTransactionSubmissionSchema,

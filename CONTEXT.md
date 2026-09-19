@@ -35,6 +35,9 @@ The wallet a transfer takes money from; shown as "From".
 **Destination wallet**:
 The wallet a transfer adds money to; shown as "To".
 
+**Retained wallet**:
+An archived wallet that a transaction already points at, which correcting that transaction may keep even though new entries and moves cannot use archived wallets.
+
 **Parent category**:
 A category at the first level of an income or expense category tree, selectable directly on a transaction or used to group child categories.
 

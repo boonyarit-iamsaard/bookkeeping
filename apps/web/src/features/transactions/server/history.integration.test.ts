@@ -9,6 +9,7 @@ import { createCategoryForTest as createCategory } from "@bookkeeping/applicatio
 import {
   findTransaction,
   listTransactions,
+  updateTransaction,
 } from "@bookkeeping/application/transactions";
 import {
   listWallets,
@@ -25,7 +26,6 @@ import { getMonthlySummary } from "@/features/transactions/server/history";
 import {
   createTransaction,
   deleteTransaction,
-  updateTransaction,
 } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
 

@@ -1,10 +1,14 @@
-import type { CreateTransactionError } from "@bookkeeping/application/transactions";
+import type {
+  CreateTransactionError,
+  UpdateTransactionError,
+} from "@bookkeeping/application/transactions";
 import {
   createTransaction,
   findExpenseRefunds,
   findLastUsedWalletId,
   findTransaction,
   listTransactionPage,
+  updateTransaction,
 } from "@bookkeeping/application/transactions";
 import type { Database } from "@bookkeeping/database/connection";
 import type {
@@ -42,6 +46,7 @@ import {
   getProblemOptionsForStatus,
 } from "../../core/http/problem-details.js";
 
+import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
 import {
   createCommandMiddleware,
   createQueryMiddleware,
@@ -156,6 +161,20 @@ export const createTransactionRequestSchema = z
   ])
   .meta({ id: "CreateTransactionRequest" });
 
+export const updateTransactionRequestSchema = z
+  .strictObject({
+    amount: moneyInputSchema,
+    walletId: z.uuid(),
+    categoryId: z.uuid().optional(),
+    destinationWalletId: z.uuid().optional(),
+    transactionDate: calendarDateInputSchema,
+    note: z.string(),
+  })
+  .meta({ id: "UpdateTransactionRequest" });
+
+/** The validated update command the field-error mapper reads. */
+type TransactionUpdateCommand = z.output<typeof updateTransactionRequestSchema>;
+
 interface CreateTransactionValidatedInput {
   in: {
     json: z.input<typeof createTransactionRequestSchema>;
@@ -167,9 +186,52 @@ interface CreateTransactionValidatedInput {
   };
 }
 
-function toTransactionFieldErrors(
+function toCreateTransactionFieldErrors(
   error: Exclude<CreateTransactionError, { code: "idempotency-conflict" }>,
   request: Readonly<z.output<typeof createTransactionRequestSchema>>,
+): ProblemFieldError[] {
+  switch (error.code) {
+    case "invalid-transfer":
+    case "invalid-refund":
+      return [{ pointer: "#/type", code: error.code }];
+    case "expense-not-found":
+      return [{ pointer: "#/refundOfTransactionId", code: error.code }];
+    default:
+      return toSharedTransactionFieldErrors(error, {
+        destinationWalletId:
+          request.type === "transfer" ? request.destinationWalletId : null,
+      });
+  }
+}
+
+function toUpdateTransactionFieldErrors(
+  error: Exclude<UpdateTransactionError, { code: "transaction-not-found" }>,
+  request: Readonly<TransactionUpdateCommand>,
+): ProblemFieldError[] {
+  switch (error.code) {
+    case "invalid-transfer":
+    case "invalid-refund":
+    case "expense-not-found":
+      // The update request names no type or refund link: a contradiction
+      // with the fixed type addresses the whole document.
+      return [{ pointer: "#/", code: error.code }];
+    default:
+      return toSharedTransactionFieldErrors(error, {
+        destinationWalletId: request.destinationWalletId ?? null,
+      });
+  }
+}
+
+/** The rejections a create and an update address with the same pointers. */
+function toSharedTransactionFieldErrors(
+  error: Exclude<
+    UpdateTransactionError,
+    | { code: "transaction-not-found" }
+    | { code: "invalid-transfer" }
+    | { code: "invalid-refund" }
+    | { code: "expense-not-found" }
+  >,
+  request: Readonly<{ destinationWalletId: string | null }>,
 ): ProblemFieldError[] {
   switch (error.code) {
     case "wallet-not-found":
@@ -178,7 +240,6 @@ function toTransactionFieldErrors(
       return [
         {
           pointer:
-            request.type === "transfer" &&
             request.destinationWalletId === error.walletId
               ? "#/destinationWalletId"
               : "#/walletId",
@@ -190,16 +251,12 @@ function toTransactionFieldErrors(
       return [{ pointer: "#/destinationWalletId", code: error.code }];
     case "invalid-currency":
       return [{ pointer: "#/amount/currency", code: error.code }];
-    case "invalid-transfer":
-    case "invalid-refund":
-      return [{ pointer: "#/type", code: error.code }];
-    case "expense-not-found":
-      return [{ pointer: "#/refundOfTransactionId", code: error.code }];
     case "category-not-found":
     case "category-kind-mismatch":
       return [{ pointer: "#/categoryId", code: error.code }];
     case "amount-out-of-range":
     case "exceeds-refundable":
+    case "below-refunded":
       return [{ pointer: "#/amount/value", code: error.code }];
     case "note-too-long":
       return [{ pointer: "#/note", code: error.code }];
@@ -207,6 +264,7 @@ function toTransactionFieldErrors(
     case "future-date":
     case "before-opening":
     case "before-expense":
+    case "after-refund":
       return [{ pointer: "#/transactionDate", code: error.code }];
   }
 }
@@ -362,6 +420,9 @@ const transactionParamMiddleware = createResourceParamMiddleware(
 const transactionCreationCommandMiddleware = createCommandMiddleware(
   createTransactionRequestSchema,
 );
+const transactionUpdateCommandMiddleware = createCommandMiddleware(
+  updateTransactionRequestSchema,
+);
 
 export function createTransactionRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>()
@@ -425,7 +486,7 @@ export function createTransactionRoutes(db: Database) {
             }
             return createProblemResponse(c, {
               ...getProblemOptionsForStatus(422),
-              errors: toTransactionFieldErrors(created.error, body),
+              errors: toCreateTransactionFieldErrors(created.error, body),
             });
           }
           const transaction = presentTransaction(created.value.transaction);
@@ -612,6 +673,79 @@ export function createTransactionRoutes(db: Database) {
             },
           },
           404: describeProblem(getProblemOptionsForStatus(404)),
+        },
+      ),
+    )
+    .put(
+      RESOURCE_PATH,
+      describeRoute({
+        operationId: "updateTransaction",
+        summary: "Update a transaction",
+        description:
+          "Corrects one of the signed-in owner's transactions with an exact " +
+          "THB amount and a real calendar date. The transaction's type and " +
+          "its expense link are fixed; the wallet, category, amount, date, " +
+          "and note are re-validated against the owner's records, and the " +
+          "transaction may keep the archived wallets it already has. An " +
+          "expense still covers every linked refund, and a refund stays " +
+          "within what remains of its expense. An update that changes " +
+          "nothing succeeds without effect, so a client may safely retry. " +
+          "A transaction that does not exist, has been deleted, belongs to " +
+          "another owner, or has a malformed identifier is not found alike.",
+        tags: ["Transactions"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      transactionParamMiddleware,
+      transactionUpdateCommandMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof RESOURCE_PATH,
+        ResourceCommandValidatedInput<
+          typeof transactionParamsSchema,
+          typeof updateTransactionRequestSchema
+        >,
+        {
+          200: typeof transactionResponseSchema;
+          404: typeof problemDetailsSchema;
+          422: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const body = c.req.valid("json");
+          const updated = await updateTransaction(db, {
+            ownerId: c.get("session").user.id,
+            id: c.req.valid("param").transactionId,
+            walletId: body.walletId,
+            categoryId: body.categoryId ?? null,
+            destinationWalletId: body.destinationWalletId ?? null,
+            currency: "THB",
+            amount: body.amount.amountInMinorUnits,
+            transactionDate: body.transactionDate,
+            note: body.note,
+          });
+          if (!updated.ok) {
+            if (updated.error.code === "transaction-not-found") {
+              return createProblemResponse(c, getProblemOptionsForStatus(404));
+            }
+            return createProblemResponse(c, {
+              ...getProblemOptionsForStatus(422),
+              errors: toUpdateTransactionFieldErrors(updated.error, body),
+            });
+          }
+          return c.json(presentTransaction(updated.value), 200);
+        },
+        {
+          200: {
+            description: "The updated transaction",
+            content: {
+              "application/json": { vSchema: transactionResponseSchema },
+            },
+          },
+          404: describeProblem(getProblemOptionsForStatus(404)),
+          422: describeProblem(getProblemOptionsForStatus(422)),
         },
       ),
     )

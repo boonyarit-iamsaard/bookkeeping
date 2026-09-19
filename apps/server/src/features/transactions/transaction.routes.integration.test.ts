@@ -1,12 +1,13 @@
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import { insertTransaction } from "@bookkeeping/application/testing/transaction-fixture";
+import { listTransactionChanges } from "@bookkeeping/application/transactions";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { transactions } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import type { WalletType } from "@bookkeeping/domain/wallets";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { Hono } from "hono";
 import { describe, expect, test } from "vitest";
 import * as z from "zod";
@@ -19,7 +20,10 @@ import {
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { expectProblem } from "../../testing/expect-problem.js";
 import { walletCollectionResponseSchema } from "../wallets/wallet.routes.js";
-import type { createTransactionRequestSchema } from "./transaction.routes.js";
+import type {
+  createTransactionRequestSchema,
+  updateTransactionRequestSchema,
+} from "./transaction.routes.js";
 import {
   transactionCollectionResponseSchema,
   transactionEntryDefaultsResponseSchema,
@@ -249,6 +253,42 @@ function refundBody(
     transactionDate: "2026-09-03",
     note: "Returned",
   };
+}
+
+type TransactionUpdateBody = z.input<typeof updateTransactionRequestSchema>;
+
+function updateExpenseBody(
+  owner: Readonly<OwnerFixture>,
+): TransactionUpdateBody {
+  return {
+    amount: { value: "123.45", currency: "THB" },
+    walletId: owner.cashId,
+    categoryId: owner.childId,
+    transactionDate: "2026-09-02",
+    note: "Lunch",
+  };
+}
+
+interface UpdateTransactionRequest {
+  id: string;
+  cookie?: string;
+  body?: unknown;
+  rawBody?: string;
+}
+
+function putTransaction(
+  app: Hono<AppEnv>,
+  { id, cookie, body = {}, rawBody }: Readonly<UpdateTransactionRequest>,
+) {
+  return app.request(`${TRANSACTIONS_URL}/${id}`, {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json",
+      origin: TEST_CLIENT_ORIGIN,
+      ...(cookie ? { cookie } : {}),
+    },
+    body: rawBody ?? JSON.stringify(body),
+  });
 }
 
 describe("POST /v1/transactions", () => {
@@ -1369,6 +1409,794 @@ describe("POST /v1/transactions", () => {
         }),
       ]),
     );
+  });
+});
+
+describe("PUT /v1/transactions/{transactionId}", () => {
+  test("corrects an expense with exact money, wallet, category, and date", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "update-expense" });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-expense",
+            body: expenseBody(owner),
+          })
+        ).json(),
+      );
+      const response = await putTransaction(app, {
+        id: expense.id,
+        cookie: owner.cookie,
+        body: {
+          amount: { value: "50.00", currency: "THB" },
+          walletId: owner.bankId,
+          categoryId: owner.childId,
+          transactionDate: "2026-09-03",
+          note: "Corrected",
+        },
+      });
+      const updated = transactionResponseSchema.parse(await response.json());
+
+      expect(response.status).toBe(200);
+      expect(updated).toEqual({
+        id: expense.id,
+        type: "expense",
+        amount: { value: "50.00", currency: "THB" },
+        transactionDate: "2026-09-03",
+        note: "Corrected",
+        recordedAt: expense.recordedAt,
+        wallet: {
+          id: owner.bankId,
+          name: "Bank",
+          type: "bank_account",
+          archived: false,
+        },
+        destinationWallet: null,
+        category: {
+          id: owner.childId,
+          name: "Groceries",
+          iconId: expect.any(String),
+          parentName: "Food & Drink",
+        },
+        refundOf: null,
+      });
+
+      const walletResponse = await listWallets(app, owner.cookie);
+      const walletCollection = walletCollectionResponseSchema.parse(
+        await walletResponse.json(),
+      );
+      expect(walletCollection.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: owner.cashId,
+            balance: { value: "10000.00", currency: "THB" },
+          }),
+          expect.objectContaining({
+            id: owner.bankId,
+            balance: { value: "-50.00", currency: "THB" },
+          }),
+        ]),
+      );
+    });
+  });
+
+  test("succeeds without effect when the update changes nothing", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "update-noop" });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-noop",
+            body: expenseBody(owner),
+          })
+        ).json(),
+      );
+      const body = updateExpenseBody(owner);
+
+      const first = await putTransaction(app, {
+        id: expense.id,
+        cookie: owner.cookie,
+        body,
+      });
+      const replay = await putTransaction(app, {
+        id: expense.id,
+        cookie: owner.cookie,
+        body,
+      });
+      const replayed = transactionResponseSchema.parse(await replay.json());
+
+      expect(first.status).toBe(200);
+      expect(replay.status).toBe(200);
+      expect(replayed).toEqual(
+        transactionResponseSchema.parse(await first.json()),
+      );
+      expect(
+        await listTransactionChanges(db, {
+          ownerId: owner.ownerId,
+          id: expense.id,
+        }),
+      ).toEqual([]);
+    });
+  });
+
+  test("corrects a transfer's wallets and amount", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "update-transfer" });
+      const transfer = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-transfer",
+            body: transferBody(owner),
+          })
+        ).json(),
+      );
+      const response = await putTransaction(app, {
+        id: transfer.id,
+        cookie: owner.cookie,
+        body: {
+          amount: { value: "45.00", currency: "THB" },
+          walletId: owner.bankId,
+          destinationWalletId: owner.cashId,
+          transactionDate: "2026-09-03",
+          note: "Move money",
+        },
+      });
+      const updated = transactionResponseSchema.parse(await response.json());
+
+      expect(response.status).toBe(200);
+      expect(updated).toEqual({
+        id: transfer.id,
+        type: "transfer",
+        amount: { value: "45.00", currency: "THB" },
+        transactionDate: "2026-09-03",
+        note: "Move money",
+        recordedAt: transfer.recordedAt,
+        wallet: {
+          id: owner.bankId,
+          name: "Bank",
+          type: "bank_account",
+          archived: false,
+        },
+        destinationWallet: {
+          id: owner.cashId,
+          name: "Cash",
+          type: "cash",
+          archived: false,
+        },
+        category: null,
+        refundOf: null,
+      });
+
+      const walletResponse = await listWallets(app, owner.cookie);
+      const walletCollection = walletCollectionResponseSchema.parse(
+        await walletResponse.json(),
+      );
+      expect(walletCollection.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: owner.cashId,
+            balance: { value: "10045.00", currency: "THB" },
+          }),
+          expect.objectContaining({
+            id: owner.bankId,
+            balance: { value: "-45.00", currency: "THB" },
+          }),
+        ]),
+      );
+    });
+  });
+
+  test("corrects a refund inside its expense, keeping the link and inherited category", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "update-refund" });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-refund-expense",
+            body: {
+              ...expenseBody(owner),
+              amount: { value: "500.00", currency: "THB" },
+            },
+          })
+        ).json(),
+      );
+      const first = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-refund-first",
+            body: {
+              ...refundBody(owner, expense.id),
+              amount: { value: "300.00", currency: "THB" },
+            },
+          })
+        ).json(),
+      );
+      const second = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-refund-second",
+            body: {
+              ...refundBody(owner, expense.id),
+              amount: { value: "100.00", currency: "THB" },
+              transactionDate: "2026-09-05",
+            },
+          })
+        ).json(),
+      );
+
+      // The other refund holds ฿100.00, so the edited one may take ฿400.00.
+      const overLimit = await expectProblem(
+        await putTransaction(app, {
+          id: first.id,
+          cookie: owner.cookie,
+          body: {
+            amount: { value: "400.01", currency: "THB" },
+            walletId: owner.bankId,
+            transactionDate: "2026-09-03",
+            note: "Returned",
+          },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(overLimit.errors).toEqual([
+        { pointer: "#/amount/value", code: "exceeds-refundable" },
+      ]);
+      const beforeExpense = await expectProblem(
+        await putTransaction(app, {
+          id: first.id,
+          cookie: owner.cookie,
+          body: {
+            amount: { value: "300.00", currency: "THB" },
+            walletId: owner.bankId,
+            transactionDate: "2026-09-01",
+            note: "Returned",
+          },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(beforeExpense.errors).toEqual([
+        { pointer: "#/transactionDate", code: "before-expense" },
+      ]);
+      const withCategory = await expectProblem(
+        await putTransaction(app, {
+          id: first.id,
+          cookie: owner.cookie,
+          body: {
+            amount: { value: "300.00", currency: "THB" },
+            walletId: owner.bankId,
+            categoryId: owner.childId,
+            transactionDate: "2026-09-03",
+            note: "Returned",
+          },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(withCategory.errors).toEqual([
+        { pointer: "#/", code: "invalid-refund" },
+      ]);
+
+      const response = await putTransaction(app, {
+        id: first.id,
+        cookie: owner.cookie,
+        body: {
+          amount: { value: "400.00", currency: "THB" },
+          walletId: owner.cashId,
+          transactionDate: "2026-09-04",
+          note: "Returned",
+        },
+      });
+      const updated = transactionResponseSchema.parse(await response.json());
+
+      expect(response.status).toBe(200);
+      expect(updated).toEqual({
+        id: first.id,
+        type: "refund",
+        amount: { value: "400.00", currency: "THB" },
+        transactionDate: "2026-09-04",
+        note: "Returned",
+        recordedAt: first.recordedAt,
+        wallet: {
+          id: owner.cashId,
+          name: "Cash",
+          type: "cash",
+          archived: false,
+        },
+        destinationWallet: null,
+        category: {
+          id: owner.childId,
+          name: "Groceries",
+          iconId: expect.any(String),
+          parentName: "Food & Drink",
+        },
+        refundOf: {
+          id: expense.id,
+          amount: { value: "500.00", currency: "THB" },
+          transactionDate: "2026-09-02",
+        },
+      });
+
+      const walletResponse = await listWallets(app, owner.cookie);
+      const walletCollection = walletCollectionResponseSchema.parse(
+        await walletResponse.json(),
+      );
+      expect(walletCollection.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: owner.cashId,
+            balance: { value: "9900.00", currency: "THB" },
+          }),
+          expect.objectContaining({
+            id: owner.bankId,
+            balance: { value: "100.00", currency: "THB" },
+          }),
+        ]),
+      );
+      const refunds = transactionRefundsResponseSchema.parse(
+        await (
+          await getTransactionRefunds(app, {
+            id: expense.id,
+            cookie: owner.cookie,
+          })
+        ).json(),
+      );
+      expect(refunds.refunds).toEqual([
+        expect.objectContaining({
+          id: first.id,
+          amount: { value: "400.00", currency: "THB" },
+          wallet: expect.objectContaining({ id: owner.cashId }),
+        }),
+        expect.objectContaining({
+          id: second.id,
+          amount: { value: "100.00", currency: "THB" },
+        }),
+      ]);
+      expect(refunds.refundedTotal).toEqual({
+        value: "500.00",
+        currency: "THB",
+      });
+      expect(refunds.remaining).toEqual({ value: "0.00", currency: "THB" });
+    });
+  });
+
+  test("an expense keeps covering its refunds in amount and date", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "update-refunded" });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-refunded-expense",
+            body: {
+              ...expenseBody(owner),
+              amount: { value: "500.00", currency: "THB" },
+            },
+          })
+        ).json(),
+      );
+      await postTransaction(app, {
+        cookie: owner.cookie,
+        idempotencyKey: "update-refunded-early",
+        body: {
+          ...refundBody(owner, expense.id),
+          amount: { value: "100.00", currency: "THB" },
+        },
+      });
+      await postTransaction(app, {
+        cookie: owner.cookie,
+        idempotencyKey: "update-refunded-late",
+        body: {
+          ...refundBody(owner, expense.id),
+          amount: { value: "50.00", currency: "THB" },
+          transactionDate: "2026-09-05",
+        },
+      });
+
+      const belowRefunded = await expectProblem(
+        await putTransaction(app, {
+          id: expense.id,
+          cookie: owner.cookie,
+          body: {
+            ...updateExpenseBody(owner),
+            amount: { value: "149.99", currency: "THB" },
+          },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(belowRefunded.errors).toEqual([
+        { pointer: "#/amount/value", code: "below-refunded" },
+      ]);
+      const afterRefund = await expectProblem(
+        await putTransaction(app, {
+          id: expense.id,
+          cookie: owner.cookie,
+          body: {
+            ...updateExpenseBody(owner),
+            amount: { value: "500.00", currency: "THB" },
+            transactionDate: "2026-09-04",
+          },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(afterRefund.errors).toEqual([
+        { pointer: "#/transactionDate", code: "after-refund" },
+      ]);
+
+      const response = await putTransaction(app, {
+        id: expense.id,
+        cookie: owner.cookie,
+        body: {
+          ...updateExpenseBody(owner),
+          amount: { value: "150.00", currency: "THB" },
+        },
+      });
+      const updated = transactionResponseSchema.parse(await response.json());
+
+      expect(response.status).toBe(200);
+      expect(updated.amount).toEqual({ value: "150.00", currency: "THB" });
+      const walletResponse = await listWallets(app, owner.cookie);
+      const walletCollection = walletCollectionResponseSchema.parse(
+        await walletResponse.json(),
+      );
+      expect(walletCollection.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: owner.cashId,
+            balance: { value: "9850.00", currency: "THB" },
+          }),
+          expect.objectContaining({
+            id: owner.bankId,
+            balance: { value: "150.00", currency: "THB" },
+          }),
+        ]),
+      );
+      const refunds = transactionRefundsResponseSchema.parse(
+        await (
+          await getTransactionRefunds(app, {
+            id: expense.id,
+            cookie: owner.cookie,
+          })
+        ).json(),
+      );
+      expect(refunds.refundedTotal).toEqual({
+        value: "150.00",
+        currency: "THB",
+      });
+      expect(refunds.remaining).toEqual({ value: "0.00", currency: "THB" });
+    });
+  });
+
+  test("an edit keeps its archived wallet but cannot move to a different archived one", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "update-retain" });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-retain",
+            body: expenseBody(owner),
+          })
+        ).json(),
+      );
+      const otherId = await insertWallet(db, {
+        ownerId: owner.ownerId,
+        name: "Other",
+        type: "cash",
+      });
+      await db
+        .update(wallets)
+        .set({ archivedAt: new Date() })
+        .where(inArray(wallets.id, [owner.cashId, otherId]));
+
+      const retained = await putTransaction(app, {
+        id: expense.id,
+        cookie: owner.cookie,
+        body: {
+          amount: { value: "50.00", currency: "THB" },
+          walletId: owner.cashId,
+          categoryId: owner.childId,
+          transactionDate: "2026-09-02",
+          note: "Lunch",
+        },
+      });
+      const retainedBody = transactionResponseSchema.parse(
+        await retained.json(),
+      );
+      expect(retained.status).toBe(200);
+      expect(retainedBody.wallet).toEqual({
+        id: owner.cashId,
+        name: "Cash",
+        type: "cash",
+        archived: true,
+      });
+
+      const moved = await expectProblem(
+        await putTransaction(app, {
+          id: expense.id,
+          cookie: owner.cookie,
+          body: {
+            amount: { value: "50.00", currency: "THB" },
+            walletId: otherId,
+            categoryId: owner.childId,
+            transactionDate: "2026-09-02",
+            note: "Lunch",
+          },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(moved.errors).toEqual([
+        { pointer: "#/walletId", code: "wallet-archived" },
+      ]);
+    });
+  });
+
+  test("a transfer edit keeps or swaps its archived wallets but rejects a different archived destination", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, {
+        db,
+        label: "update-retain-transfer",
+      });
+      const transfer = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-retain-transfer",
+            body: transferBody(owner),
+          })
+        ).json(),
+      );
+      const otherId = await insertWallet(db, {
+        ownerId: owner.ownerId,
+        name: "Other",
+        type: "cash",
+      });
+      await db
+        .update(wallets)
+        .set({ archivedAt: new Date() })
+        .where(inArray(wallets.id, [owner.cashId, owner.bankId, otherId]));
+
+      const kept = await putTransaction(app, {
+        id: transfer.id,
+        cookie: owner.cookie,
+        body: {
+          amount: { value: "200.00", currency: "THB" },
+          walletId: owner.cashId,
+          destinationWalletId: owner.bankId,
+          transactionDate: "2026-09-02",
+          note: "Move money",
+        },
+      });
+      expect(kept.status).toBe(200);
+
+      const swapped = await putTransaction(app, {
+        id: transfer.id,
+        cookie: owner.cookie,
+        body: {
+          amount: { value: "300.00", currency: "THB" },
+          walletId: owner.bankId,
+          destinationWalletId: owner.cashId,
+          transactionDate: "2026-09-02",
+          note: "Move money",
+        },
+      });
+      const swappedBody = transactionResponseSchema.parse(await swapped.json());
+      expect(swapped.status).toBe(200);
+      expect(swappedBody.wallet).toEqual(
+        expect.objectContaining({ id: owner.bankId }),
+      );
+      expect(swappedBody.destinationWallet).toEqual(
+        expect.objectContaining({ id: owner.cashId }),
+      );
+
+      const moved = await expectProblem(
+        await putTransaction(app, {
+          id: transfer.id,
+          cookie: owner.cookie,
+          body: {
+            amount: { value: "300.00", currency: "THB" },
+            walletId: owner.bankId,
+            destinationWalletId: otherId,
+            transactionDate: "2026-09-02",
+            note: "Move money",
+          },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(moved.errors).toEqual([
+        { pointer: "#/destinationWalletId", code: "wallet-archived" },
+      ]);
+      const walletResponse = await listWallets(app, owner.cookie);
+      const walletCollection = walletCollectionResponseSchema.parse(
+        await walletResponse.json(),
+      );
+      expect(walletCollection.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: owner.cashId,
+            balance: { value: "10300.00", currency: "THB" },
+          }),
+          expect.objectContaining({
+            id: owner.bankId,
+            balance: { value: "-300.00", currency: "THB" },
+          }),
+        ]),
+      );
+    });
+  });
+
+  test("maps invalid update input to field errors", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "update-validation" });
+      const foreign = await createOwner(app, {
+        db,
+        label: "update-validation-foreign",
+      });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-validation",
+            body: expenseBody(owner),
+          })
+        ).json(),
+      );
+      const base = updateExpenseBody(owner);
+      const attempt = async (
+        body: Readonly<Partial<TransactionUpdateBody>>,
+        expected: Readonly<{ pointer: string; code: string }>,
+      ) => {
+        const problem = await expectProblem(
+          await putTransaction(app, {
+            id: expense.id,
+            cookie: owner.cookie,
+            body: { ...base, ...body },
+          }),
+          { status: 422, code: "invalid-command" },
+        );
+        expect(problem.errors).toEqual([expected]);
+      };
+
+      await attempt(
+        { amount: { value: "0.00", currency: "THB" } },
+        { pointer: "#/amount/value", code: "amount-out-of-range" },
+      );
+      await attempt(
+        { amount: { value: "100000000.00", currency: "THB" } },
+        { pointer: "#/amount/value", code: "amount-out-of-range" },
+      );
+      await attempt(
+        { note: "x".repeat(201) },
+        { pointer: "#/note", code: "note-too-long" },
+      );
+      await attempt(
+        { transactionDate: "2026-02-30" },
+        { pointer: "#/transactionDate", code: "invalid-date" },
+      );
+      await attempt(
+        { transactionDate: "2026-08-31" },
+        { pointer: "#/transactionDate", code: "before-opening" },
+      );
+      await attempt(
+        { transactionDate: "2999-01-01" },
+        { pointer: "#/transactionDate", code: "future-date" },
+      );
+      await attempt(
+        { walletId: foreign.cashId },
+        { pointer: "#/walletId", code: "wallet-not-found" },
+      );
+      await attempt(
+        { categoryId: foreign.childId },
+        { pointer: "#/categoryId", code: "category-not-found" },
+      );
+      await attempt(
+        { categoryId: owner.incomeId },
+        { pointer: "#/categoryId", code: "category-kind-mismatch" },
+      );
+      await attempt(
+        { destinationWalletId: owner.bankId },
+        { pointer: "#/", code: "invalid-transfer" },
+      );
+      const unrecognized = await expectProblem(
+        await putTransaction(app, {
+          id: expense.id,
+          cookie: owner.cookie,
+          body: { ...base, note: "Edited", extra: true },
+        }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(unrecognized.errors).toEqual([
+        { pointer: "#/", code: "unrecognized-keys" },
+      ]);
+    });
+  });
+
+  test("unknown, cross-owner, malformed, and deleted identifiers are not found alike", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "update-hidden" });
+      const foreign = await createOwner(app, {
+        db,
+        label: "update-hidden-foreign",
+      });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-hidden",
+            body: expenseBody(owner),
+          })
+        ).json(),
+      );
+
+      for (const requestedId of [
+        UNKNOWN_TRANSACTION_ID,
+        // Another owner's transaction reads as missing, not forbidden.
+        expense.id,
+        "not-a-uuid",
+      ]) {
+        await expectProblem(
+          await putTransaction(app, {
+            id: requestedId,
+            cookie: foreign.cookie,
+            body: updateExpenseBody(foreign),
+          }),
+          { status: 404, code: "not-found" },
+        );
+      }
+      await softDelete(db, expense.id);
+      await expectProblem(
+        await putTransaction(app, {
+          id: expense.id,
+          cookie: owner.cookie,
+          body: updateExpenseBody(owner),
+        }),
+        { status: 404, code: "not-found" },
+      );
+    });
+  });
+
+  test("requires authentication and valid JSON", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "update-boundary" });
+      const expense = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "update-boundary",
+            body: expenseBody(owner),
+          })
+        ).json(),
+      );
+      await expectProblem(
+        await putTransaction(createIntegrationTestApp(db), {
+          id: expense.id,
+          body: updateExpenseBody(owner),
+        }),
+        { status: 401, code: "unauthenticated" },
+      );
+      await expectProblem(
+        await putTransaction(app, {
+          id: expense.id,
+          cookie: owner.cookie,
+          rawBody: "{",
+        }),
+        { status: 400, code: "bad-request" },
+      );
+    });
   });
 });
 

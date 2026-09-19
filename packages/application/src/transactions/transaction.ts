@@ -1,6 +1,9 @@
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
-import { transactions } from "@bookkeeping/database/transactions";
+import {
+  transactionChanges,
+  transactions,
+} from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import {
@@ -14,8 +17,11 @@ import type {
   ExpenseRefunds,
   LinkedExpense,
   RefundSummary,
+  TransactionChange,
+  TransactionChangeAction,
   TransactionDetail,
   TransactionFilters,
+  TransactionSnapshot,
   TransactionType,
 } from "@bookkeeping/domain/transactions";
 import {
@@ -253,7 +259,8 @@ type TransactionValidationError = Exclude<
   IdempotencyConflict
 >;
 
-interface TransactionCreationFields {
+/** Every financial field a create or edit validates against the owner's records. */
+interface TransactionFields {
   ownerId: string;
   type: TransactionType;
   walletId: string;
@@ -264,6 +271,10 @@ interface TransactionCreationFields {
   amount: bigint;
   transactionDate: CalendarDate;
   note: string;
+  /** Wallets an edit may keep even though they are archived: its own. */
+  retainedWalletIds?: readonly string[];
+  /** The refund being edited, whose own old amount does not count against it. */
+  editingRefundId?: string;
 }
 
 interface OwnedWalletForTransaction {
@@ -416,7 +427,7 @@ export async function createTransaction(
 
 function normalizeTransactionInput(
   input: Readonly<CreateTransactionInput>,
-): TransactionCreationFields {
+): TransactionFields {
   const currency =
     input.type === "transfer"
       ? input.currency
@@ -438,7 +449,7 @@ function normalizeTransactionInput(
 }
 
 function transactionCreationPayload(
-  input: Readonly<TransactionCreationFields>,
+  input: Readonly<TransactionFields>,
 ): ValidatedPayload {
   return {
     type: input.type,
@@ -454,7 +465,9 @@ function transactionCreationPayload(
 }
 
 function validateTransactionValues(
-  input: Readonly<TransactionCreationFields>,
+  input: Readonly<
+    Pick<TransactionFields, "amount" | "note" | "transactionDate">
+  >,
 ): TransactionValidationError | undefined {
   if (
     input.amount < MIN_TRANSACTION_AMOUNT ||
@@ -473,7 +486,7 @@ function validateTransactionValues(
 
 async function insertTransaction(
   tx: Database,
-  input: Readonly<TransactionCreationFields>,
+  input: Readonly<TransactionFields>,
 ): Promise<Result<TransactionDetail, TransactionValidationError>> {
   const rejection = await validateTransactionOwner(tx, input);
   if (rejection) {
@@ -508,7 +521,7 @@ async function insertTransaction(
 
 async function validateTransactionOwner(
   tx: Database,
-  input: Readonly<TransactionCreationFields>,
+  input: Readonly<TransactionFields>,
 ): Promise<TransactionValidationError | undefined> {
   const shapeRejection =
     validateTransferShape(input) ?? validateRefundShape(input);
@@ -547,7 +560,7 @@ async function validateTransactionOwner(
 
 /** A refund names its expense and no category; nothing else names an expense. */
 function validateRefundShape(
-  input: Readonly<TransactionCreationFields>,
+  input: Readonly<TransactionFields>,
 ): TransactionValidationError | undefined {
   if (input.type !== "refund") {
     return input.refundOfTransactionId ? { code: "invalid-refund" } : undefined;
@@ -560,7 +573,7 @@ function validateRefundShape(
 
 /** A transfer names two distinct wallets in THB and no category. */
 function validateTransferShape(
-  input: Readonly<TransactionCreationFields>,
+  input: Readonly<TransactionFields>,
 ): TransactionValidationError | undefined {
   if (input.type !== "transfer") {
     return input.destinationWalletId ? { code: "invalid-transfer" } : undefined;
@@ -579,7 +592,7 @@ function validateTransferShape(
 
 async function lockRefundedExpense(
   tx: Database,
-  input: Readonly<TransactionCreationFields>,
+  input: Readonly<TransactionFields>,
 ): Promise<Result<LinkedExpense | undefined, TransactionValidationError>> {
   if (input.type !== "refund" || !input.refundOfTransactionId) {
     return ok(undefined);
@@ -614,7 +627,7 @@ async function lockRefundedExpense(
 }
 
 interface RefundValidationInput {
-  input: Readonly<TransactionCreationFields>;
+  input: Readonly<TransactionFields>;
   expense: Readonly<LinkedExpense>;
 }
 
@@ -625,8 +638,10 @@ async function validateRefundAgainstExpense(
   if (input.transactionDate < expense.transactionDate) {
     return { code: "before-expense", expenseDate: expense.transactionDate };
   }
-  const refunds = await currentRefundsOf(tx, expense.id);
-  const remaining = expense.amount - sumOf(refunds);
+  const others = (await currentRefundsOf(tx, expense.id)).filter(
+    (refund) => refund.id !== input.editingRefundId,
+  );
+  const remaining = expense.amount - sumOf(others);
   if (input.amount > remaining) {
     return { code: "exceeds-refundable", remaining };
   }
@@ -634,9 +649,7 @@ async function validateRefundAgainstExpense(
 }
 
 function walletIdsOf(
-  input: Readonly<
-    Pick<TransactionCreationFields, "walletId" | "destinationWalletId">
-  >,
+  input: Readonly<Pick<TransactionFields, "walletId" | "destinationWalletId">>,
 ): string[] {
   return input.destinationWalletId
     ? [input.walletId, input.destinationWalletId]
@@ -645,7 +658,7 @@ function walletIdsOf(
 
 async function lockOwnedWallets(
   tx: Database,
-  input: Readonly<TransactionCreationFields>,
+  input: Readonly<TransactionFields>,
 ): Promise<Result<OwnedWalletForTransaction[], TransactionValidationError>> {
   if (!isUuid(input.walletId)) {
     return err({ code: "wallet-not-found" });
@@ -675,7 +688,10 @@ async function lockOwnedWallets(
   if (input.destinationWalletId && !ownedIds.has(input.destinationWalletId)) {
     return err({ code: "destination-wallet-not-found" });
   }
-  const archived = ownedWallets.find((wallet) => wallet.archivedAt !== null);
+  const archived = ownedWallets.find(
+    (wallet) =>
+      wallet.archivedAt && !input.retainedWalletIds?.includes(wallet.id),
+  );
   if (archived) {
     return err({ code: "wallet-archived", walletId: archived.id });
   }
@@ -684,7 +700,7 @@ async function lockOwnedWallets(
 
 async function validateTransactionCategory(
   tx: Database,
-  input: Readonly<TransactionCreationFields>,
+  input: Readonly<TransactionFields>,
 ): Promise<TransactionValidationError | undefined> {
   if (input.type === "transfer" || input.type === "refund") {
     return undefined;
@@ -823,6 +839,280 @@ export async function findLastUsedWalletId(
     .orderBy(desc(transactions.recordedAt), desc(transactions.id))
     .limit(1);
   return row?.walletId ?? null;
+}
+
+export interface UpdateTransactionInput {
+  /** Always the session user; never a client-supplied identifier. */
+  ownerId: string;
+  id: string;
+  walletId: string;
+  categoryId: string | null;
+  destinationWalletId?: string | null;
+  currency?: "THB";
+  /** Integer satang, always positive; the stored type carries the sign. */
+  amount: bigint;
+  transactionDate: CalendarDate;
+  note: string;
+}
+
+export type UpdateTransactionError =
+  /** Also covers another owner's record and a deleted one. */
+  | { code: "transaction-not-found" }
+  | TransactionValidationError
+  | ExpenseGuardRejection;
+
+/** An expense cannot contradict the refunds already linked to it. */
+export type ExpenseGuardRejection =
+  | { code: "below-refunded"; refundedTotal: bigint }
+  /** The earliest linked refund's date; the expense cannot move past it. */
+  | { code: "after-refund"; refundDate: CalendarDate };
+
+interface SnapshotInput {
+  type: TransactionType;
+  walletId: string;
+  categoryId: string | null;
+  destinationWalletId?: string | null;
+  refundOfTransactionId?: string | null;
+  currency?: "THB";
+  amount: bigint;
+  transactionDate: CalendarDate;
+  note: string;
+}
+
+function snapshotOf(row: Readonly<SnapshotInput>): TransactionSnapshot {
+  return {
+    type: row.type,
+    walletId: row.walletId,
+    categoryId: row.categoryId,
+    ...(row.type === "transfer"
+      ? { destinationWalletId: row.destinationWalletId }
+      : {}),
+    ...(row.type === "refund"
+      ? { refundOfTransactionId: row.refundOfTransactionId }
+      : {}),
+    amount: row.amount.toString(),
+    transactionDate: row.transactionDate,
+    note: row.note,
+  };
+}
+
+function sameSnapshot(
+  a: Readonly<TransactionSnapshot>,
+  b: Readonly<TransactionSnapshot>,
+) {
+  return (
+    a.type === b.type &&
+    a.walletId === b.walletId &&
+    a.categoryId === b.categoryId &&
+    a.destinationWalletId === b.destinationWalletId &&
+    a.amount === b.amount &&
+    a.transactionDate === b.transactionDate &&
+    a.note === b.note
+  );
+}
+
+/**
+ * Locks the owner's current (undeleted) transaction for the rest of the
+ * transaction, so concurrent edits and deletions apply one after another.
+ */
+async function lockCurrentTransaction(
+  tx: Database,
+  { ownerId, id }: Readonly<TransactionRef>,
+) {
+  const [row] = await tx
+    .select({
+      id: transactions.id,
+      type: transactions.type,
+      walletId: transactions.walletId,
+      categoryId: transactions.categoryId,
+      destinationWalletId: transactions.destinationWalletId,
+      refundOfTransactionId: transactions.refundOfTransactionId,
+      amount: transactions.amount,
+      transactionDate: transactions.transactionDate,
+      note: transactions.note,
+      deletedAt: transactions.deletedAt,
+    })
+    .from(transactions)
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
+    .for("update");
+  return row;
+}
+
+/**
+ * Corrects a transaction in place. The type and its refund link are fixed;
+ * the wallet, category, amount, date, and note are re-validated against the
+ * owner's records inside the committing transaction, and an edit may keep
+ * the archived wallets it already has. The recording time is kept and the
+ * before/after snapshots are written with the change, so history and
+ * balances can never disagree. An edit that changes nothing succeeds and
+ * leaves no history.
+ */
+export async function updateTransaction(
+  db: Database,
+  input: Readonly<UpdateTransactionInput>,
+): Promise<Result<TransactionDetail, UpdateTransactionError>> {
+  const invalid = validateTransactionValues(input);
+  if (invalid) {
+    return err(invalid);
+  }
+
+  let rejection: UpdateTransactionError | undefined;
+  let updated: TransactionDetail | undefined;
+  await db.transaction(async (tx) => {
+    const current = await lockCurrentTransaction(tx, input);
+    if (!current || current.deletedAt) {
+      rejection = { code: "transaction-not-found" };
+      return;
+    }
+    const before = snapshotOf(current);
+    const after = {
+      type: current.type,
+      walletId: input.walletId,
+      categoryId: input.categoryId,
+      ...(current.type === "transfer"
+        ? { destinationWalletId: input.destinationWalletId }
+        : {}),
+      ...(current.type === "refund"
+        ? { refundOfTransactionId: current.refundOfTransactionId }
+        : {}),
+      amount: input.amount.toString(),
+      transactionDate: input.transactionDate,
+      note: input.note,
+    } satisfies TransactionSnapshot;
+    rejection = await validateTransactionOwner(tx, {
+      ownerId: input.ownerId,
+      type: current.type,
+      walletId: input.walletId,
+      categoryId: input.categoryId,
+      destinationWalletId: input.destinationWalletId ?? null,
+      // The link is fixed with the type; the input cannot repoint a refund.
+      refundOfTransactionId: current.refundOfTransactionId,
+      currency: input.currency,
+      amount: input.amount,
+      transactionDate: input.transactionDate,
+      note: input.note,
+      retainedWalletIds: walletIdsOf(current),
+      editingRefundId: current.type === "refund" ? current.id : undefined,
+    });
+    if (rejection) {
+      return;
+    }
+    rejection = await guardRefundedExpense(tx, { current, input });
+    if (rejection) {
+      return;
+    }
+    if (!sameSnapshot(before, after)) {
+      await tx
+        .update(transactions)
+        .set({
+          walletId: input.walletId,
+          categoryId: input.categoryId,
+          destinationWalletId: input.destinationWalletId ?? null,
+          amount: input.amount,
+          transactionDate: input.transactionDate,
+          note: input.note,
+        })
+        .where(eq(transactions.id, current.id));
+      await recordChange(tx, {
+        ownerId: input.ownerId,
+        transactionId: current.id,
+        action: "edit",
+        before,
+        after,
+      });
+    }
+    const [detailRow] = await detailQuery(tx).where(
+      and(
+        eq(transactions.id, current.id),
+        eq(transactions.userId, input.ownerId),
+      ),
+    );
+    if (!detailRow) {
+      throw new Error("Edited transaction could not be read back");
+    }
+    updated = toDetail(detailRow);
+  });
+
+  if (rejection) {
+    return err(rejection);
+  }
+  if (!updated) {
+    throw new Error("Edited transaction could not be read back");
+  }
+  return ok(updated);
+}
+
+interface ExpenseGuardCheck {
+  current: Readonly<{ id: string; type: TransactionType }>;
+  input: Readonly<Pick<UpdateTransactionInput, "amount" | "transactionDate">>;
+}
+
+/**
+ * With the expense locked, checks that its new amount still covers every
+ * linked refund and that no refund would come to predate it.
+ */
+async function guardRefundedExpense(
+  tx: Database,
+  { current, input }: Readonly<ExpenseGuardCheck>,
+): Promise<ExpenseGuardRejection | undefined> {
+  if (current.type !== "expense") {
+    return undefined;
+  }
+  const refunds = await currentRefundsOf(tx, current.id);
+  if (refunds.length === 0) {
+    return undefined;
+  }
+  const refundedTotal = sumOf(refunds);
+  if (input.amount < refundedTotal) {
+    return { code: "below-refunded", refundedTotal };
+  }
+  const earliest = refunds.reduce((first, refund) =>
+    refund.transactionDate < first.transactionDate ? refund : first,
+  );
+  if (input.transactionDate > earliest.transactionDate) {
+    return { code: "after-refund", refundDate: earliest.transactionDate };
+  }
+  return undefined;
+}
+
+interface RecordChangeInput {
+  ownerId: string;
+  transactionId: string;
+  action: TransactionChangeAction;
+  before: TransactionSnapshot;
+  after: TransactionSnapshot | null;
+}
+
+async function recordChange(tx: Database, input: Readonly<RecordChangeInput>) {
+  await tx.insert(transactionChanges).values({
+    userId: input.ownerId,
+    transactionId: input.transactionId,
+    action: input.action,
+    before: input.before,
+    after: input.after,
+  });
+}
+
+/** The internal change history of one transaction, oldest first. Not for normal views. */
+export async function listTransactionChanges(
+  db: Database,
+  { ownerId, id }: Readonly<TransactionRef>,
+): Promise<readonly TransactionChange[]> {
+  return db
+    .select({
+      action: transactionChanges.action,
+      before: transactionChanges.before,
+      after: transactionChanges.after,
+      changedAt: transactionChanges.changedAt,
+    })
+    .from(transactionChanges)
+    .where(
+      and(
+        eq(transactionChanges.transactionId, id),
+        eq(transactionChanges.userId, ownerId),
+      ),
+    )
+    .orderBy(asc(transactionChanges.changedAt), asc(transactionChanges.id));
 }
 
 export interface ListTransactionsOptions extends TransactionFilters {

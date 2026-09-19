@@ -2,7 +2,10 @@ import {
   initializeDefaultCategories,
   listCategories,
 } from "@bookkeeping/application/categories";
-import { findTransaction } from "@bookkeeping/application/transactions";
+import {
+  findTransaction,
+  updateTransaction,
+} from "@bookkeeping/application/transactions";
 import {
   deleteWallet,
   listWallets,
@@ -20,7 +23,6 @@ import { describe, expect, test } from "vitest";
 import {
   createTransaction,
   deleteTransaction,
-  updateTransaction,
 } from "@/features/transactions/server/transaction";
 import { openWallet } from "@/testing/wallet-fixture";
 
@@ -125,9 +127,9 @@ describe("wallet lifecycle", () => {
       }
     });
   });
-  test("archive through the application retains current/historical totals, permits retained edits, rejects new archived wallets, and restores eligibility", async () => {
+  test("archive through the application retains current/historical totals, rejects new archived wallets, and restores eligibility", async () => {
     await withRollback(async (db) => {
-      const { owned, movement, other } = await fixture(db);
+      const { owned, movement } = await fixture(db);
       const created = await createTransaction(db, movement);
       if (!created.ok) {
         throw new Error("Create failed");
@@ -148,26 +150,6 @@ describe("wallet lifecycle", () => {
       ).toEqual({
         ok: false,
         error: { code: "wallet-archived", walletId: owned.id },
-      });
-      expect(
-        (
-          await updateTransaction(db, {
-            ...movement,
-            id: created.value.transaction.id,
-            amount: 200n,
-          })
-        ).ok,
-      ).toBe(true);
-      await setWalletArchived(db, { ...owned, id: other.id, archived: true });
-      expect(
-        await updateTransaction(db, {
-          ...movement,
-          id: created.value.transaction.id,
-          walletId: other.id,
-        }),
-      ).toEqual({
-        ok: false,
-        error: { code: "wallet-archived", walletId: other.id },
       });
       await setWalletArchived(db, { ...owned, archived: false });
       expect(

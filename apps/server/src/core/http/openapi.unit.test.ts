@@ -389,13 +389,15 @@ describe("OpenAPI document", () => {
     expect(operation.responses["500"]).toBeDefined();
   });
 
-  it("documents transaction listing and reads from their response schemas", async () => {
+  it("documents transaction creation, update, listing, and reads", async () => {
     const document = await fetchDocument(createUnitTestApp());
     const create: DocumentedOperation = document.paths["/v1/transactions"].post;
     const collection: DocumentedOperation =
       document.paths["/v1/transactions"].get;
     const resource: DocumentedOperation =
       document.paths["/v1/transactions/{transactionId}"].get;
+    const update: DocumentedOperation =
+      document.paths["/v1/transactions/{transactionId}"].put;
     const refunds: DocumentedOperation =
       document.paths["/v1/transactions/{transactionId}/refunds"].get;
     const defaults: DocumentedOperation =
@@ -509,6 +511,44 @@ describe("OpenAPI document", () => {
         required: true,
       }),
     ]);
+
+    expect(update.operationId).toBe("updateTransaction");
+    expect(update.requestBody?.required).toBe(true);
+    expect(update.requestBody?.content["application/json"].schema.$ref).toBe(
+      "#/components/schemas/UpdateTransactionRequest",
+    );
+    expect(update.parameters).toEqual([
+      expect.objectContaining({
+        in: "path",
+        name: "transactionId",
+        required: true,
+      }),
+    ]);
+    expect(
+      update.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/Transaction");
+    expectProblemResponses(update, ["400", "401", "404", "422", "500"]);
+    const updateSchema = document.components.schemas.UpdateTransactionRequest;
+    expect(updateSchema.additionalProperties).toBe(false);
+    expect(updateSchema.required).toEqual([
+      "amount",
+      "walletId",
+      "transactionDate",
+      "note",
+    ]);
+    expect(updateSchema.properties).toEqual(
+      expect.objectContaining({
+        categoryId: expect.anything(),
+        destinationWalletId: expect.anything(),
+      }),
+    );
+    expect(updateSchema.properties.amount).toHaveProperty(
+      "$ref",
+      "#/components/schemas/MoneyInput",
+    );
+    // The update request names no type or refund link: both stay fixed.
+    expect(updateSchema.properties).not.toHaveProperty("type");
+    expect(updateSchema.properties).not.toHaveProperty("refundOfTransactionId");
 
     expect(refunds.operationId).toBe("getTransactionRefunds");
     expect(
