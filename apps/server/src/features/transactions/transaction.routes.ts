@@ -2,6 +2,7 @@ import {
   findExpenseRefunds,
   findLastUsedWalletId,
   findTransaction,
+  listTransactionPage,
 } from "@bookkeeping/application/transactions";
 import type { Database } from "@bookkeeping/database/connection";
 import type {
@@ -15,6 +16,7 @@ import { Hono } from "hono";
 import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
+import { createCollectionResponseSchema } from "../../core/http/collection.js";
 import { moneySchema, presentMoney } from "../../core/http/money.js";
 import {
   describeProblem,
@@ -25,7 +27,15 @@ import {
   createProblemResponse,
   getProblemOptionsForStatus,
 } from "../../core/http/problem-details.js";
-import { createResourceParamMiddleware } from "../../core/http/request-validation.js";
+import {
+  createQueryMiddleware,
+  createResourceParamMiddleware,
+} from "../../core/http/request-validation.js";
+
+import {
+  decodeTransactionCursor,
+  encodeTransactionCursor,
+} from "./transaction-cursor.js";
 
 export const transactionWalletSchema = z
   .object({
@@ -63,6 +73,11 @@ export const transactionResponseSchema = z
       .nullable(),
   })
   .meta({ id: "Transaction" });
+
+export const transactionCollectionResponseSchema =
+  createCollectionResponseSchema(transactionResponseSchema).meta({
+    id: "TransactionCollection",
+  });
 
 export const transactionRefundsResponseSchema = z
   .object({
@@ -160,9 +175,71 @@ export function presentTransactionRefunds(
 
 // Registered before the resource path so the static entry-defaults read is
 // never captured by the identifier route.
+const DEFAULT_TRANSACTION_PAGE_LIMIT = 50;
+const MAX_TRANSACTION_PAGE_LIMIT = 100;
+const COLLECTION_PATH = "/transactions";
 const ENTRY_DEFAULTS_PATH = "/transactions/entry-defaults";
 const RESOURCE_PATH = "/transactions/:transactionId";
 const REFUNDS_PATH = "/transactions/:transactionId/refunds";
+
+const transactionLimitSchema = z
+  .string()
+  .regex(/^[1-9]\d*$/)
+  .transform((value) => {
+    const parsed = Number(value);
+    return Number.isSafeInteger(parsed)
+      ? Math.min(parsed, MAX_TRANSACTION_PAGE_LIMIT)
+      : MAX_TRANSACTION_PAGE_LIMIT;
+  });
+
+const transactionListQuerySchema = z
+  .strictObject({
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
+    walletId: z.uuid().optional(),
+    categoryId: z.uuid().optional(),
+    type: z.enum(TRANSACTION_TYPES).optional(),
+    limit: transactionLimitSchema.optional(),
+    cursor: z.string().min(1).optional(),
+  })
+  .superRefine((query, context) => {
+    if (
+      query.from !== undefined &&
+      query.to !== undefined &&
+      query.from > query.to
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["from"],
+        message: "The start date must not be after the end date",
+      });
+    }
+  });
+
+const transactionListQueryMiddleware = createQueryMiddleware(
+  transactionListQuerySchema,
+);
+
+interface TransactionListValidatedInput {
+  in: {
+    query: z.input<typeof transactionListQuerySchema>;
+  };
+  out: {
+    query: z.output<typeof transactionListQuerySchema>;
+  };
+}
+
+function toTransactionCursorFilters(
+  query: Readonly<z.output<typeof transactionListQuerySchema>>,
+) {
+  return {
+    from: query.from ?? null,
+    to: query.to ?? null,
+    walletId: query.walletId ?? null,
+    categoryId: query.categoryId ?? null,
+    type: query.type ?? null,
+  };
+}
 
 const transactionParamsSchema = z.object({ transactionId: z.uuid() });
 const transactionParamMiddleware = createResourceParamMiddleware(
@@ -171,6 +248,85 @@ const transactionParamMiddleware = createResourceParamMiddleware(
 
 export function createTransactionRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>()
+    .get(
+      COLLECTION_PATH,
+      describeRoute({
+        operationId: "listTransactions",
+        summary: "List transactions",
+        description:
+          "Returns the signed-in owner's current financial history, newest " +
+          "transaction date first, then newest recording time and identifier. " +
+          "Date, wallet, category, and type filters preserve transfer, parent " +
+          "category, refund, and ownership semantics. Pages use an opaque " +
+          "cursor bound to this ordering and the active filters; the server " +
+          "caps the requested limit.",
+        tags: ["Transactions"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      transactionListQueryMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof COLLECTION_PATH,
+        TransactionListValidatedInput,
+        {
+          200: typeof transactionCollectionResponseSchema;
+          400: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const query = c.req.valid("query");
+          const ownerId = c.get("session").user.id;
+          const filters = toTransactionCursorFilters(query);
+          const after =
+            query.cursor === undefined
+              ? undefined
+              : decodeTransactionCursor(query.cursor, { ownerId, filters });
+          if (query.cursor !== undefined && after === null) {
+            return createProblemResponse(c, getProblemOptionsForStatus(400));
+          }
+
+          const page = await listTransactionPage(db, {
+            ownerId,
+            from: query.from,
+            to: query.to,
+            walletId: query.walletId,
+            categoryId: query.categoryId,
+            type: query.type,
+            limit: query.limit ?? DEFAULT_TRANSACTION_PAGE_LIMIT,
+            after: after ?? undefined,
+          });
+          return c.json(
+            {
+              items: page.items.map(presentTransaction),
+              page: {
+                nextCursor: page.nextPosition
+                  ? encodeTransactionCursor({
+                      ownerId,
+                      filters,
+                      position: page.nextPosition,
+                    })
+                  : null,
+              },
+            },
+            200,
+          );
+        },
+        {
+          200: {
+            description: "A page of the owner's current transactions",
+            content: {
+              "application/json": {
+                vSchema: transactionCollectionResponseSchema,
+              },
+            },
+          },
+          400: describeProblem(getProblemOptionsForStatus(400)),
+        },
+      ),
+    )
     .get(
       ENTRY_DEFAULTS_PATH,
       describeRoute({

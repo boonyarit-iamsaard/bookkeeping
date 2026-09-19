@@ -79,6 +79,17 @@ export function createResourceParamMiddleware<Schema extends z.ZodType>(
   });
 }
 
+/** A malformed collection query is a generic 400 request problem. */
+export function createQueryMiddleware<Schema extends z.ZodType>(
+  schema: Schema,
+) {
+  return validator("query", schema, (result, c) => {
+    if (!result.success) {
+      return createProblemResponse(c, getProblemOptionsForStatus(400));
+    }
+  });
+}
+
 /** A well-formed command the schema rejects is a 422 addressed by field. */
 export function createCommandMiddleware<Schema extends z.ZodType>(
   schema: Schema,

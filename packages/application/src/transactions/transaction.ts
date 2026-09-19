@@ -8,7 +8,7 @@ import type {
   TransactionDetail,
   TransactionFilters,
 } from "@bookkeeping/domain/transactions";
-import { and, asc, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { isUuid } from "../shared/identifier";
 
@@ -24,6 +24,9 @@ const parentCategories = alias(categories, "parent_categories");
 
 const refundedExpenses = alias(transactions, "refunded_expenses");
 
+/** A text key that preserves PostgreSQL's microsecond recording precision. */
+const recordingPosition = sql<string>`to_char(${transactions.recordedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
+
 function detailQuery(db: Database) {
   return (
     db
@@ -34,6 +37,7 @@ function detailQuery(db: Database) {
         transactionDate: transactions.transactionDate,
         note: transactions.note,
         recordedAt: transactions.recordedAt,
+        recordingPosition,
         walletId: wallets.id,
         walletName: wallets.name,
         walletType: wallets.type,
@@ -264,45 +268,118 @@ export interface ListTransactionsOptions extends TransactionFilters {
   ownerId: string;
 }
 
+export interface TransactionListPosition {
+  transactionDate: TransactionDetail["transactionDate"];
+  /** Canonical UTC text with six fractional-second digits. */
+  recordedAt: string;
+  id: string;
+}
+
+export interface ListTransactionPageOptions extends ListTransactionsOptions {
+  limit: number;
+  after?: TransactionListPosition;
+}
+
+export interface TransactionPage {
+  items: readonly TransactionDetail[];
+  nextPosition: TransactionListPosition | null;
+}
+
+interface TransactionWhereOptions {
+  filters: Readonly<ListTransactionsOptions>;
+  after?: TransactionListPosition;
+}
+
+const transactionListOrder = [
+  desc(transactions.transactionDate),
+  desc(transactions.recordedAt),
+  desc(transactions.id),
+] as const;
+
+function transactionWhere({
+  filters,
+  after,
+}: Readonly<TransactionWhereOptions>) {
+  const sameDate = after
+    ? eq(transactions.transactionDate, after.transactionDate)
+    : undefined;
+  const sameRecordingTime = after
+    ? eq(recordingPosition, after.recordedAt)
+    : undefined;
+
+  return and(
+    eq(transactions.userId, filters.ownerId),
+    isNull(transactions.deletedAt),
+    filters.from ? gte(transactions.transactionDate, filters.from) : undefined,
+    filters.to ? lte(transactions.transactionDate, filters.to) : undefined,
+    filters.type ? eq(transactions.type, filters.type) : undefined,
+    filters.walletId
+      ? and(
+          eq(wallets.userId, filters.ownerId),
+          or(
+            eq(transactions.walletId, filters.walletId),
+            eq(transactions.destinationWalletId, filters.walletId),
+          ),
+        )
+      : undefined,
+    filters.categoryId
+      ? and(
+          eq(categories.userId, filters.ownerId),
+          or(
+            eq(categories.id, filters.categoryId),
+            eq(categories.parentId, filters.categoryId),
+          ),
+        )
+      : undefined,
+    after
+      ? or(
+          lt(transactions.transactionDate, after.transactionDate),
+          and(sameDate, lt(recordingPosition, after.recordedAt)),
+          and(sameDate, sameRecordingTime, lt(transactions.id, after.id)),
+        )
+      : undefined,
+  );
+}
+
+function toTransactionListPosition(
+  row: Readonly<
+    Pick<DetailRow, "transactionDate" | "recordingPosition" | "id">
+  >,
+) {
+  return {
+    transactionDate: row.transactionDate,
+    recordedAt: row.recordingPosition,
+    id: row.id,
+  };
+}
+
 /** Current financial history, newest transaction date first. */
 export async function listTransactions(
   db: Database,
   filters: Readonly<ListTransactionsOptions>,
 ): Promise<readonly TransactionDetail[]> {
   const rows = await detailQuery(db)
-    .where(
-      and(
-        eq(transactions.userId, filters.ownerId),
-        isNull(transactions.deletedAt),
-        filters.from
-          ? gte(transactions.transactionDate, filters.from)
-          : undefined,
-        filters.to ? lte(transactions.transactionDate, filters.to) : undefined,
-        filters.type ? eq(transactions.type, filters.type) : undefined,
-        filters.walletId
-          ? and(
-              eq(wallets.userId, filters.ownerId),
-              or(
-                eq(transactions.walletId, filters.walletId),
-                eq(transactions.destinationWalletId, filters.walletId),
-              ),
-            )
-          : undefined,
-        filters.categoryId
-          ? and(
-              eq(categories.userId, filters.ownerId),
-              or(
-                eq(categories.id, filters.categoryId),
-                eq(categories.parentId, filters.categoryId),
-              ),
-            )
-          : undefined,
-      ),
-    )
-    .orderBy(
-      desc(transactions.transactionDate),
-      desc(transactions.recordedAt),
-      desc(transactions.id),
-    );
+    .where(transactionWhere({ filters }))
+    .orderBy(...transactionListOrder);
   return rows.map(toDetail);
+}
+
+/** One keyset page of current financial history, newest first. */
+export async function listTransactionPage(
+  db: Database,
+  options: Readonly<ListTransactionPageOptions>,
+): Promise<TransactionPage> {
+  const rows = await detailQuery(db)
+    .where(transactionWhere({ filters: options, after: options.after }))
+    .orderBy(...transactionListOrder)
+    .limit(options.limit + 1);
+  const items = rows.slice(0, options.limit);
+  const last = items[items.length - 1];
+  return {
+    items: items.map(toDetail),
+    nextPosition:
+      rows.length > options.limit && last
+        ? toTransactionListPosition(last)
+        : null,
+  };
 }

@@ -389,14 +389,33 @@ describe("OpenAPI document", () => {
     expect(operation.responses["500"]).toBeDefined();
   });
 
-  it("documents the transaction reads from their response schemas", async () => {
+  it("documents transaction listing and reads from their response schemas", async () => {
     const document = await fetchDocument(createUnitTestApp());
+    const collection: DocumentedOperation =
+      document.paths["/v1/transactions"].get;
     const resource: DocumentedOperation =
       document.paths["/v1/transactions/{transactionId}"].get;
     const refunds: DocumentedOperation =
       document.paths["/v1/transactions/{transactionId}/refunds"].get;
     const defaults: DocumentedOperation =
       document.paths["/v1/transactions/entry-defaults"].get;
+
+    expect(collection.operationId).toBe("listTransactions");
+    expect(
+      collection.responses["200"].content["application/json"].schema.$ref,
+    ).toBe("#/components/schemas/TransactionCollection");
+    expectProblemResponses(collection, ["400", "401"]);
+    expect(collection.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ in: "query", name: "from" }),
+        expect.objectContaining({ in: "query", name: "to" }),
+        expect.objectContaining({ in: "query", name: "walletId" }),
+        expect.objectContaining({ in: "query", name: "categoryId" }),
+        expect.objectContaining({ in: "query", name: "type" }),
+        expect.objectContaining({ in: "query", name: "limit" }),
+        expect.objectContaining({ in: "query", name: "cursor" }),
+      ]),
+    );
 
     expect(resource.operationId).toBe("getTransaction");
     expect(

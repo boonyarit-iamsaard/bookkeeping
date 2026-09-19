@@ -19,6 +19,7 @@ import {
   findLastUsedWalletId,
   findReplayedTransaction,
   findTransaction,
+  listTransactionPage,
   listTransactions,
 } from "./transaction";
 
@@ -539,6 +540,97 @@ describe("listTransactions", () => {
       expect(await listTransactions(db, { ownerId: foreign.ownerId })).toEqual(
         [],
       );
+    });
+  });
+
+  test("pages ties by date, recording time, and id without offset drift", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const recordedAt = new Date("2026-09-05T03:07:08.123Z");
+      const oldestId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-05",
+        recordedAt,
+      });
+      const middleId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-05",
+        recordedAt,
+      });
+      const newestId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-05",
+        recordedAt,
+      });
+
+      const first = await listTransactionPage(db, {
+        ownerId: owner.ownerId,
+        limit: 2,
+      });
+      expect(first.items.map((transaction) => transaction.id)).toEqual([
+        newestId,
+        middleId,
+      ]);
+      expect(first.nextPosition).not.toBeNull();
+
+      const insertedBeforeCursorId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-06",
+      });
+      expect(insertedBeforeCursorId).not.toBe(first.nextPosition?.id);
+
+      const second = await listTransactionPage(db, {
+        ownerId: owner.ownerId,
+        limit: 2,
+        after: first.nextPosition ?? undefined,
+      });
+      expect(second.items.map((transaction) => transaction.id)).toEqual([
+        oldestId,
+      ]);
+      expect(second.nextPosition).toBeNull();
+    });
+  });
+
+  test("orders equal dates by recording time before using the identifier", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const older = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-05",
+        recordedAt: new Date("2026-09-05T03:07:08.001Z"),
+      });
+      const newer = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-05",
+        recordedAt: new Date("2026-09-05T03:07:08.002Z"),
+      });
+
+      const page = await listTransactionPage(db, {
+        ownerId: owner.ownerId,
+        limit: 10,
+      });
+      expect(page.items.map((transaction) => transaction.id)).toEqual([
+        newer,
+        older,
+      ]);
     });
   });
 });

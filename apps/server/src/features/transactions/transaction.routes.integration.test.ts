@@ -19,6 +19,7 @@ import {
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { expectProblem } from "../../testing/expect-problem.js";
 import {
+  transactionCollectionResponseSchema,
   transactionEntryDefaultsResponseSchema,
   transactionRefundsResponseSchema,
   transactionResponseSchema,
@@ -74,6 +75,7 @@ interface OwnerFixture {
   bankId: string;
   parentId: string;
   childId: string;
+  incomeId: string;
 }
 
 interface OwnerRequest {
@@ -100,13 +102,16 @@ async function createOwner(
     type: "bank_account",
   });
   const tree = await db
-    .select({ id: categories.id, name: categories.name })
+    .select({ id: categories.id, kind: categories.kind, name: categories.name })
     .from(categories)
     .where(eq(categories.userId, ownerId));
   const parent = tree.find((category) => category.name === "Food & Drink");
   const child = tree.find((category) => category.name === "Groceries");
-  if (!parent || !child) {
-    throw new Error("Missing default expense categories");
+  const income = tree.find(
+    (category) => category.kind === "income" && category.name === "Salary",
+  );
+  if (!parent || !child || !income) {
+    throw new Error("Missing default categories");
   }
   return {
     cookie,
@@ -115,6 +120,7 @@ async function createOwner(
     bankId,
     parentId: parent.id,
     childId: child.id,
+    incomeId: income.id,
   };
 }
 
@@ -153,6 +159,234 @@ function getEntryDefaults(app: Hono<AppEnv>, cookie?: string) {
     headers: { origin: TEST_CLIENT_ORIGIN, ...(cookie ? { cookie } : {}) },
   });
 }
+
+interface ListTransactionsRequest {
+  cookie?: string;
+  query?: string;
+}
+
+function listTransactions(
+  app: Hono<AppEnv>,
+  { cookie, query }: Readonly<ListTransactionsRequest> = {},
+) {
+  return app.request(`${TRANSACTIONS_URL}${query ? `?${query}` : ""}`, {
+    headers: { origin: TEST_CLIENT_ORIGIN, ...(cookie ? { cookie } : {}) },
+  });
+}
+
+describe("GET /v1/transactions", () => {
+  test("pages ties in deterministic order and ignores inserts before the cursor", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "list-page" });
+      const recordedAt = new Date("2026-09-05T03:07:08.123Z");
+      const oldestId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-05",
+        recordedAt,
+      });
+      const middleId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-05",
+        recordedAt,
+      });
+      const newestId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-05",
+        recordedAt,
+      });
+
+      const firstResponse = await listTransactions(app, {
+        cookie: owner.cookie,
+        query: "limit=2",
+      });
+      const first = transactionCollectionResponseSchema.parse(
+        await firstResponse.json(),
+      );
+      expect(firstResponse.status).toBe(200);
+      expect(first.items.map((transaction) => transaction.id)).toEqual([
+        newestId,
+        middleId,
+      ]);
+      expect(first.page.nextCursor).toEqual(expect.any(String));
+
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-06",
+      });
+      const secondResponse = await listTransactions(app, {
+        cookie: owner.cookie,
+        query: `limit=2&cursor=${encodeURIComponent(first.page.nextCursor ?? "")}`,
+      });
+      const second = transactionCollectionResponseSchema.parse(
+        await secondResponse.json(),
+      );
+      expect(second.items.map((transaction) => transaction.id)).toEqual([
+        oldestId,
+      ]);
+      expect(second.page.nextCursor).toBeNull();
+    });
+  });
+
+  test("applies date, wallet, category, and type filters without leaking owners", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "list-filters" });
+      const foreign = await createOwner(app, {
+        db,
+        label: "list-filters-foreign",
+      });
+      const expenseId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        transactionDate: "2026-09-02",
+      });
+      const directExpenseId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.parentId,
+        transactionDate: "2026-09-03",
+      });
+      const transferId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "transfer",
+        walletId: owner.cashId,
+        destinationWalletId: owner.bankId,
+        transactionDate: "2026-09-04",
+      });
+      const refundId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "refund",
+        walletId: owner.bankId,
+        refundOfTransactionId: expenseId,
+        transactionDate: "2026-09-05",
+      });
+      const incomeId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "income",
+        walletId: owner.bankId,
+        categoryId: owner.incomeId,
+        transactionDate: "2026-09-06",
+      });
+      await insertTransaction(db, {
+        ownerId: foreign.ownerId,
+        type: "expense",
+        walletId: foreign.cashId,
+        categoryId: foreign.childId,
+      });
+
+      async function ids(query: string) {
+        const response = await listTransactions(app, {
+          cookie: owner.cookie,
+          query,
+        });
+        expect(response.status).toBe(200);
+        return transactionCollectionResponseSchema
+          .parse(await response.json())
+          .items.map((transaction) => transaction.id);
+      }
+
+      expect(await ids("from=2026-09-03&to=2026-09-04")).toEqual([
+        transferId,
+        directExpenseId,
+      ]);
+      expect(await ids(`walletId=${owner.bankId}`)).toEqual([
+        incomeId,
+        refundId,
+        transferId,
+      ]);
+      expect(await ids(`categoryId=${owner.parentId}`)).toEqual([
+        refundId,
+        directExpenseId,
+        expenseId,
+      ]);
+      expect(await ids("type=transfer")).toEqual([transferId]);
+      expect(await ids("type=refund")).toEqual([refundId]);
+      expect(await ids("type=income")).toEqual([incomeId]);
+      expect(await ids("type=expense")).toEqual([directExpenseId, expenseId]);
+      expect(await ids(`walletId=${foreign.cashId}`)).toEqual([]);
+    });
+  });
+
+  test("rejects invalid or mismatched cursors, caps limits, and returns empty pages explicitly", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      const owner = await createOwner(app, { db, label: "list-validation" });
+      for (let index = 0; index < 101; index += 1) {
+        await insertTransaction(db, {
+          ownerId: owner.ownerId,
+          type: "expense",
+          walletId: owner.cashId,
+          categoryId: owner.childId,
+          transactionDate: "2026-09-02",
+          recordedAt: new Date(
+            new Date("2026-09-05T03:07:00.000Z").getTime() + index * 1_000,
+          ),
+        });
+      }
+
+      const cappedResponse = await listTransactions(app, {
+        cookie: owner.cookie,
+        query: "limit=999",
+      });
+      const capped = transactionCollectionResponseSchema.parse(
+        await cappedResponse.json(),
+      );
+      expect(capped.items).toHaveLength(100);
+      expect(capped.page.nextCursor).toEqual(expect.any(String));
+
+      const mismatchResponse = await listTransactions(app, {
+        cookie: owner.cookie,
+        query: `type=income&cursor=${encodeURIComponent(capped.page.nextCursor ?? "")}`,
+      });
+      await expectProblem(mismatchResponse, {
+        status: 400,
+        code: "bad-request",
+      });
+      await expectProblem(
+        await listTransactions(app, {
+          cookie: owner.cookie,
+          query: "cursor=not-a-cursor",
+        }),
+        { status: 400, code: "bad-request" },
+      );
+      const empty = transactionCollectionResponseSchema.parse(
+        await (
+          await listTransactions(app, {
+            cookie: owner.cookie,
+            query: "from=2030-01-01",
+          })
+        ).json(),
+      );
+      expect(empty).toEqual({ items: [], page: { nextCursor: null } });
+    });
+  });
+
+  test("requires authentication", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db);
+      await expectProblem(await listTransactions(app), {
+        status: 401,
+        code: "unauthenticated",
+      });
+    });
+  });
+});
 
 describe("GET /v1/transactions/{transactionId}", () => {
   test("presents an expense with exact money, calendar date, recording instant, wallet, and category tree", async () => {
