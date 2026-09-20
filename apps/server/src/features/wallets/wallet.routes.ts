@@ -34,14 +34,16 @@ import {
 import {
   describeProblem,
   describeProblemResponse,
+  describeProblemVariant,
 } from "../../core/http/openapi.js";
 import type {
   ProblemFieldError,
-  problemDetailsSchema,
+  ProblemOptions,
 } from "../../core/http/problem-details.js";
 import {
   createProblemResponse,
   getProblemOptionsForStatus,
+  problemDetailsSchema,
 } from "../../core/http/problem-details.js";
 import type {
   QueryValidatedInput,
@@ -189,6 +191,17 @@ function toOpeningFieldErrors(
 export const walletArchiveStateRequestSchema = z
   .strictObject({ archived: z.boolean() })
   .meta({ id: "WalletArchiveStateRequest" });
+
+/** The 409 a wallet answers while transactions or history still refer to it. */
+export const historyRemainsProblemSchema = problemDetailsSchema
+  .extend({ code: z.literal("history-remains") })
+  .meta({ id: "HistoryRemainsProblem" });
+
+export const historyRemainsProblem: ProblemOptions<409> = {
+  code: "history-remains",
+  status: 409,
+  title: "Wallet still has transactions or history",
+};
 
 const LOCATION_HEADER = "Location";
 const COLLECTION_PATH = "/wallets";
@@ -496,7 +509,10 @@ export function createWalletRoutes(db: Database) {
           204: { description: "The wallet was deleted" },
           401: describeProblemResponse(401),
           404: describeProblemResponse(404),
-          409: describeProblemResponse(409),
+          409: describeProblemVariant(
+            historyRemainsProblem,
+            historyRemainsProblemSchema,
+          ),
         },
       }),
       walletParamMiddleware,
@@ -509,7 +525,7 @@ export function createWalletRoutes(db: Database) {
           if (deleted.error.code === "wallet-not-found") {
             return createProblemResponse(c, getProblemOptionsForStatus(404));
           }
-          return createProblemResponse(c, getProblemOptionsForStatus(409));
+          return createProblemResponse(c, historyRemainsProblem);
         }
         return c.body(null, 204);
       },

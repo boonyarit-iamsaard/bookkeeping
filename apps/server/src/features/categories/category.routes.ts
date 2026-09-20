@@ -30,14 +30,16 @@ import {
 import {
   describeProblem,
   describeProblemResponse,
+  describeProblemVariant,
 } from "../../core/http/openapi.js";
 import type {
   ProblemFieldError,
-  problemDetailsSchema,
+  ProblemOptions,
 } from "../../core/http/problem-details.js";
 import {
   createProblemResponse,
   getProblemOptionsForStatus,
+  problemDetailsSchema,
 } from "../../core/http/problem-details.js";
 import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
 import {
@@ -128,15 +130,45 @@ const categoryParamsSchema = z.object({ categoryId: z.uuid() });
 const categoryParamMiddleware =
   createResourceParamMiddleware(categoryParamsSchema);
 
-/**
- * Every blocker is the resource's current state refusing the removal, so one
- * stable conflict problem covers protected, has-children, and in-use alike.
- */
-function isRemovalBlocked(
-  error: RemoveCategoryError,
-): error is Exclude<RemoveCategoryError, { code: "category-not-found" }> {
-  return error.code !== "category-not-found";
-}
+/** Every blocker is the category's own state refusing the removal, named by its code. */
+type CategoryRemovalBlocker = Exclude<
+  RemoveCategoryError,
+  { code: "category-not-found" }
+>["code"];
+
+const CATEGORY_REMOVAL_BLOCKERS = [
+  "protected",
+  "has-children",
+  "in-use",
+] as const satisfies readonly CategoryRemovalBlocker[];
+
+export const categoryRemovalProblemSchema = problemDetailsSchema
+  .extend({ code: z.enum(CATEGORY_REMOVAL_BLOCKERS) })
+  .meta({ id: "CategoryRemovalProblem" });
+
+export const categoryRemovalProblems: Record<
+  CategoryRemovalBlocker,
+  ProblemOptions<409>
+> = {
+  protected: {
+    code: "protected",
+    status: 409,
+    title: "Uncategorized cannot be removed",
+  },
+  "has-children": {
+    code: "has-children",
+    status: 409,
+    title: "Category still has children",
+  },
+  "in-use": {
+    code: "in-use",
+    status: 409,
+    title: "Category was claimed by a concurrent write",
+  },
+};
+
+const categoryRemovalProblem: ProblemOptions<409> =
+  categoryRemovalProblems.protected;
 
 interface CreateCategoryValidatedInput {
   in: {
@@ -486,7 +518,10 @@ export function createCategoryRoutes(db: Database) {
             204: { description: "The category was deleted" },
             401: describeProblemResponse(401),
             404: describeProblemResponse(404),
-            409: describeProblemResponse(409),
+            409: describeProblemVariant(
+              categoryRemovalProblem,
+              categoryRemovalProblemSchema,
+            ),
           },
         }),
         categoryParamMiddleware,
@@ -496,10 +531,13 @@ export function createCategoryRoutes(db: Database) {
             id: c.req.valid("param").categoryId,
           });
           if (!removed.ok) {
-            if (!isRemovalBlocked(removed.error)) {
+            if (removed.error.code === "category-not-found") {
               return createProblemResponse(c, getProblemOptionsForStatus(404));
             }
-            return createProblemResponse(c, getProblemOptionsForStatus(409));
+            return createProblemResponse(
+              c,
+              categoryRemovalProblems[removed.error.code],
+            );
           }
           return c.body(null, 204);
         },

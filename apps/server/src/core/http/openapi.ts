@@ -7,6 +7,7 @@ import {
   openAPIRouteHandler,
   resolver,
 } from "hono-openapi";
+import type * as z from "zod";
 import type { ProblemOptions } from "./problem-details.js";
 import {
   getProblemOptionsForStatus,
@@ -27,6 +28,20 @@ export function describeProblemResponse(
     content: {
       [PROBLEM_MEDIA_TYPE]: { schema: resolver(problemDetailsSchema) },
     },
+  };
+}
+
+/**
+ * The `describeRoute` entry for a problem that carries its own extension
+ * members, documented by the schema variant that names them.
+ */
+export function describeProblemVariant(
+  problem: Readonly<ProblemOptions>,
+  schema: z.ZodType,
+): DocumentedResponse {
+  return {
+    description: problem.title,
+    content: { [PROBLEM_MEDIA_TYPE]: { schema: resolver(schema) } },
   };
 }
 

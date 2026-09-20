@@ -1009,7 +1009,7 @@ describe("DELETE /v1/wallets/{walletId}", () => {
       for (const id of [currentId, changedId, retainedId]) {
         await expectProblem(await deleteWallet(app, { id, cookie }), {
           status: 409,
-          code: "conflict",
+          code: "history-remains",
         });
       }
     });

@@ -14,6 +14,7 @@ import {
 import type { Database } from "@bookkeeping/database/connection";
 import type {
   ExpenseRefunds,
+  RefundSummary,
   TransactionDetail,
 } from "@bookkeeping/domain/transactions";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
@@ -37,14 +38,16 @@ import {
 import {
   describeProblem,
   describeProblemResponse,
+  describeProblemVariant,
 } from "../../core/http/openapi.js";
 import type {
   ProblemFieldError,
-  problemDetailsSchema,
+  ProblemOptions,
 } from "../../core/http/problem-details.js";
 import {
   createProblemResponse,
   getProblemOptionsForStatus,
+  problemDetailsSchema,
 } from "../../core/http/problem-details.js";
 
 import type {
@@ -104,20 +107,37 @@ export const transactionCollectionResponseSchema =
     id: "TransactionCollection",
   });
 
+/** A refund as it counts against its expense's refund allowance. */
+export const transactionRefundSchema = z
+  .object({
+    id: z.uuid(),
+    amount: moneySchema,
+    transactionDate: z.iso.date(),
+    wallet: transactionWalletSchema,
+  })
+  .meta({ id: "TransactionRefund" });
+
 export const transactionRefundsResponseSchema = z
   .object({
-    refunds: z.array(
-      z.object({
-        id: z.uuid(),
-        amount: moneySchema,
-        transactionDate: z.iso.date(),
-        wallet: transactionWalletSchema,
-      }),
-    ),
+    refunds: z.array(transactionRefundSchema),
     refundedTotal: moneySchema,
     remaining: moneySchema,
   })
   .meta({ id: "TransactionRefunds" });
+
+/** The 409 an expense answers while refunds still count against it: they are listed so a client can remove them first. */
+export const refundsExistProblemSchema = problemDetailsSchema
+  .extend({
+    code: z.literal("refunds-exist"),
+    refunds: z.array(transactionRefundSchema),
+  })
+  .meta({ id: "RefundsExistProblem" });
+
+export const refundsExistProblem: ProblemOptions<409> = {
+  code: "refunds-exist",
+  status: 409,
+  title: "Expense still has linked refunds",
+};
 
 export const transactionEntryDefaultsResponseSchema = z
   .object({ lastUsedWalletId: z.uuid().nullable() })
@@ -264,20 +284,28 @@ export function presentTransaction(
   };
 }
 
+export type TransactionRefundResponse = z.infer<typeof transactionRefundSchema>;
+
+// The schema constrains every transaction to THB, so refunds and totals carry it.
+export function presentTransactionRefund(
+  refund: Readonly<RefundSummary>,
+): TransactionRefundResponse {
+  return {
+    id: refund.id,
+    amount: presentMoney({
+      amountInMinorUnits: refund.amount,
+      currency: "THB",
+    }),
+    transactionDate: refund.transactionDate,
+    wallet: presentTransactionWallet(refund.wallet),
+  };
+}
+
 export function presentTransactionRefunds(
   refunds: Readonly<ExpenseRefunds>,
 ): TransactionRefundsResponse {
-  // The schema constrains every transaction to THB, so the totals carry it.
   return {
-    refunds: refunds.refunds.map((refund) => ({
-      id: refund.id,
-      amount: presentMoney({
-        amountInMinorUnits: refund.amount,
-        currency: "THB",
-      }),
-      transactionDate: refund.transactionDate,
-      wallet: presentTransactionWallet(refund.wallet),
-    })),
+    refunds: refunds.refunds.map(presentTransactionRefund),
     refundedTotal: presentMoney({
       amountInMinorUnits: refunds.refundedTotal,
       currency: "THB",
@@ -692,16 +720,20 @@ export function createTransactionRoutes(db: Database) {
           "Removes one of the signed-in owner's transactions from current " +
           "history while retaining the internal record, writing its change " +
           "history atomically with the deletion. An expense that still has " +
-          "linked refunds stays; delete each refund first. Repeating a " +
-          "deletion succeeds without effect, so a client may safely retry. " +
-          "A transaction that does not exist, belongs to another owner, or " +
-          "has a malformed identifier is not found alike.",
+          "linked refunds stays and lists them in its conflict problem; " +
+          "delete each refund first. Repeating a deletion succeeds without " +
+          "effect, so a client may safely retry. A transaction that does not " +
+          "exist, belongs to another owner, or has a malformed identifier is " +
+          "not found alike.",
         tags: ["Transactions"],
         responses: {
           204: { description: "The transaction was deleted" },
           401: describeProblemResponse(401),
           404: describeProblemResponse(404),
-          409: describeProblemResponse(409),
+          409: describeProblemVariant(
+            refundsExistProblem,
+            refundsExistProblemSchema,
+          ),
         },
       }),
       transactionParamMiddleware,
@@ -714,7 +746,12 @@ export function createTransactionRoutes(db: Database) {
           if (deleted.error.code === "transaction-not-found") {
             return createProblemResponse(c, getProblemOptionsForStatus(404));
           }
-          return createProblemResponse(c, getProblemOptionsForStatus(409));
+          return createProblemResponse(c, {
+            ...refundsExistProblem,
+            extensions: {
+              refunds: deleted.error.refunds.map(presentTransactionRefund),
+            },
+          });
         }
         return c.body(null, 204);
       },

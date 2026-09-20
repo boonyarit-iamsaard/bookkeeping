@@ -1,5 +1,8 @@
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { describe, expect, it } from "vitest";
+import { categoryRemovalProblems } from "../../features/categories/category.routes.js";
+import { refundsExistProblem } from "../../features/transactions/transaction.routes.js";
+import { historyRemainsProblem } from "../../features/wallets/wallet.routes.js";
 import {
   idempotencyConflictProblem,
   idempotencyKeyRequiredProblem,
@@ -45,6 +48,14 @@ const problemSources: Record<ProblemCode, ProblemSource> = {
     status: 400,
   },
   "idempotency-conflict": { options: idempotencyConflictProblem, status: 409 },
+  "refunds-exist": { options: refundsExistProblem, status: 409 },
+  "history-remains": { options: historyRemainsProblem, status: 409 },
+  protected: { options: categoryRemovalProblems.protected, status: 409 },
+  "has-children": {
+    options: categoryRemovalProblems["has-children"],
+    status: 409,
+  },
+  "in-use": { options: categoryRemovalProblems["in-use"], status: 409 },
 };
 
 describe("Problem Details variants", () => {
@@ -82,21 +93,23 @@ describe("Problem Details variants", () => {
     ]);
   });
 
-  it("carries occurrence prose, an instance, and typed domain details", () => {
+  it("carries occurrence prose, an instance, and extension members beside the standard ones", () => {
     const problem = createProblemDetails({
-      ...getProblemOptionsForStatus(409),
+      ...refundsExistProblem,
       detail: "Two refunds still point at this expense",
       instance: "/v1/transactions/0199",
-      details: { refunds: 2 },
+      extensions: { refunds: [{ id: "0199" }], code: "not-this-one" },
     });
 
     expect(problem).toEqual(
       expect.objectContaining({
+        code: "refunds-exist",
         detail: "Two refunds still point at this expense",
         instance: "/v1/transactions/0199",
-        details: { refunds: 2 },
+        refunds: [{ id: "0199" }],
       }),
     );
+    expect(problem).not.toHaveProperty("extensions");
     expect(problemDetailsSchema.parse(problem)).toEqual(problem);
   });
 

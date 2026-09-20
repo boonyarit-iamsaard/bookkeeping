@@ -8,13 +8,18 @@ export const problemCodes = [
   "bad-request",
   "conflict",
   "forbidden",
+  "has-children",
+  "history-remains",
   "idempotency-conflict",
   "idempotency-key-required",
+  "in-use",
   "internal-error",
   "invalid-command",
   "method-not-allowed",
   "not-found",
+  "protected",
   "rate-limited",
+  "refunds-exist",
   "service-unavailable",
   "unauthenticated",
 ] as const;
@@ -39,9 +44,10 @@ export const problemDetailsSchema = z
     code: problemCodeSchema,
     detail: z.string().optional(),
     instance: z.string().optional(),
-    details: z.unknown().optional(),
     errors: z.array(problemFieldErrorSchema).optional(),
   })
+  // RFC 9457 extension members: a problem may carry the state that caused
+  // it beside its code, documented by that problem's own schema variant.
   .loose()
   .meta({ id: "ProblemDetails" });
 
@@ -51,10 +57,12 @@ export interface ProblemFieldError {
   detail?: string;
 }
 
-export interface ProblemDetails extends Omit<ProblemOptions, "errors"> {
+export interface ProblemDetails
+  extends Omit<ProblemOptions, "errors" | "extensions"> {
   type: string;
   /** A fresh array: the body is JSON output, never the caller's list. */
   errors?: ProblemFieldError[];
+  [extension: string]: unknown;
 }
 
 /**
@@ -69,8 +77,9 @@ export interface ProblemOptions<
   title: string;
   detail?: string;
   instance?: string;
-  details?: unknown;
   errors?: readonly ProblemFieldError[];
+  /** Extension members presented beside the standard ones; JSON-ready values only. */
+  extensions?: Readonly<Record<string, unknown>>;
 }
 
 interface StandardProblem {
@@ -96,13 +105,13 @@ export function createProblemDetails(
   options: Readonly<ProblemOptions>,
 ): ProblemDetails {
   return {
+    ...options.extensions,
     type: `urn:bookkeeping:problem:${options.code}`,
     title: options.title,
     status: options.status,
     code: options.code,
     ...(options.detail === undefined ? {} : { detail: options.detail }),
     ...(options.instance === undefined ? {} : { instance: options.instance }),
-    ...(options.details === undefined ? {} : { details: options.details }),
     ...(options.errors === undefined ? {} : { errors: [...options.errors] }),
   };
 }

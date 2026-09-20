@@ -1053,7 +1053,7 @@ describe("DELETE /v1/categories/{categoryId}", () => {
     });
   });
 
-  test("returns one stable conflict problem for protected and for a parent with children", async () => {
+  test("names the blocker for protected and for a parent with children", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -1068,12 +1068,14 @@ describe("DELETE /v1/categories/{categoryId}", () => {
         cookie,
       });
 
-      for (const categoryId of [uncategorized.id, foodAndDrink.id]) {
-        await expectProblem(await deleteCategory(app, { categoryId, cookie }), {
-          status: 409,
-          code: "conflict",
-        });
-      }
+      await expectProblem(
+        await deleteCategory(app, { categoryId: uncategorized.id, cookie }),
+        { status: 409, code: "protected" },
+      );
+      await expectProblem(
+        await deleteCategory(app, { categoryId: foodAndDrink.id, cookie }),
+        { status: 409, code: "has-children" },
+      );
     });
   });
 

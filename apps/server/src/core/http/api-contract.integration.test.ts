@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import * as z from "zod";
 import {
   categoryCollectionResponseSchema,
+  categoryRemovalProblemSchema,
   categoryResponseSchema,
   categoryUsageCollectionResponseSchema,
   categoryUsageResponseSchema,
@@ -12,12 +13,14 @@ import {
 import { healthResponseSchema } from "../../features/health/health.routes.js";
 import { monthlyReportResponseSchema } from "../../features/reports/report.routes.js";
 import {
+  refundsExistProblemSchema,
   transactionCollectionResponseSchema,
   transactionEntryDefaultsResponseSchema,
   transactionRefundsResponseSchema,
   transactionResponseSchema,
 } from "../../features/transactions/transaction.routes.js";
 import {
+  historyRemainsProblemSchema,
   walletCollectionResponseSchema,
   walletResponseSchema,
 } from "../../features/wallets/wallet.routes.js";
@@ -50,7 +53,11 @@ const { withRollback } = setupTestDatabase();
  * an HTTP exchange; a code that starts being answered moves out of here.
  */
 const UNANSWERED_PROBLEM_CODES: readonly ProblemCode[] = [
+  // Every 409 an operation answers today names its own blocker.
+  "conflict",
   "forbidden",
+  // A removal loses a race with a concurrent write; not reproducible in one exchange.
+  "in-use",
   "method-not-allowed",
   "rate-limited",
   "service-unavailable",
@@ -473,15 +480,30 @@ describe("published API contract", () => {
       if (expenseCategory === undefined || protectedCategory === undefined) {
         throw new Error("Expected a provisioned expense tree");
       }
+      const expenseId = await readId(
+        await call({
+          method: "POST",
+          path: "/v1/transactions",
+          idempotencyKey: "problem-expense",
+          body: {
+            type: "expense",
+            amount: money("10.00"),
+            walletId: cashId,
+            categoryId: expenseCategory.id,
+            transactionDate: ENTRY_DATE,
+            note: "",
+          },
+        }),
+      );
       await call({
         method: "POST",
         path: "/v1/transactions",
-        idempotencyKey: "problem-expense",
+        idempotencyKey: "problem-refund",
         body: {
-          type: "expense",
-          amount: money("10.00"),
+          type: "refund",
+          amount: money("4.00"),
           walletId: cashId,
-          categoryId: expenseCategory.id,
+          refundOfTransactionId: expenseId,
           transactionDate: ENTRY_DATE,
           note: "",
         },
@@ -564,10 +586,40 @@ describe("published API contract", () => {
         operationId: "deleteWallet",
         method: "delete",
         path: "/v1/wallets/{walletId}",
-        schema: problemDetailsSchema,
+        schema: historyRemainsProblemSchema,
         response: await call({
           method: "DELETE",
           path: `/v1/wallets/${cashId}`,
+        }),
+      });
+      record({
+        operationId: "deleteTransaction",
+        method: "delete",
+        path: "/v1/transactions/{transactionId}",
+        schema: refundsExistProblemSchema,
+        response: await call({
+          method: "DELETE",
+          path: `/v1/transactions/${expenseId}`,
+        }),
+      });
+      record({
+        operationId: "deleteCategory",
+        method: "delete",
+        path: "/v1/categories/{categoryId}",
+        schema: categoryRemovalProblemSchema,
+        response: await call({
+          method: "DELETE",
+          path: `/v1/categories/${protectedCategory.id}`,
+        }),
+      });
+      record({
+        operationId: "deleteCategory",
+        method: "delete",
+        path: "/v1/categories/{categoryId}",
+        schema: categoryRemovalProblemSchema,
+        response: await call({
+          method: "DELETE",
+          path: `/v1/categories/${expenseCategory.parentId}`,
         }),
       });
       record({

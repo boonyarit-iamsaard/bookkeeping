@@ -26,6 +26,7 @@ import type {
   updateTransactionRequestSchema,
 } from "./transaction.routes.js";
 import {
+  refundsExistProblemSchema,
   transactionCollectionResponseSchema,
   transactionEntryDefaultsResponseSchema,
   transactionRefundsResponseSchema,
@@ -1355,7 +1356,7 @@ describe("DELETE /v1/transactions/{transactionId}", () => {
     });
   });
 
-  test("an expense with linked refunds stays and answers one stable conflict problem", async () => {
+  test("an expense with linked refunds stays and lists them in its conflict problem", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -1370,16 +1371,33 @@ describe("DELETE /v1/transactions/{transactionId}", () => {
           })
         ).json(),
       );
-      await postTransaction(app, {
-        cookie: owner.cookie,
-        idempotencyKey: "delete-blocked-refund",
-        body: refundBody(owner, expense.id),
-      });
-
-      await expectProblem(
-        await deleteTransaction(app, { id: expense.id, cookie: owner.cookie }),
-        { status: 409, code: "conflict" },
+      const refund = transactionResponseSchema.parse(
+        await (
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey: "delete-blocked-refund",
+            body: refundBody(owner, expense.id),
+          })
+        ).json(),
       );
+
+      const problem = refundsExistProblemSchema.parse(
+        await expectProblem(
+          await deleteTransaction(app, {
+            id: expense.id,
+            cookie: owner.cookie,
+          }),
+          { status: 409, code: "refunds-exist" },
+        ),
+      );
+      expect(problem.refunds).toEqual([
+        {
+          id: refund.id,
+          amount: refund.amount,
+          transactionDate: refund.transactionDate,
+          wallet: refund.wallet,
+        },
+      ]);
     });
   });
 

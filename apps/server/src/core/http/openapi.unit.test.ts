@@ -66,13 +66,26 @@ function expectProblemResponses(
   statuses: readonly string[],
 ) {
   for (const status of statuses) {
-    expect(
-      documentedSchemaRef(operation, {
-        status,
-        mediaType: "application/problem+json",
-      }),
-    ).toBe("#/components/schemas/ProblemDetails");
+    expectProblemVariant(operation, { status, schemaId: "ProblemDetails" });
   }
+}
+
+interface ProblemVariantExpectation {
+  status: string;
+  schemaId: string;
+}
+
+/** A problem that carries its own extension members documents its own schema. */
+function expectProblemVariant(
+  operation: Readonly<DocumentedOperation>,
+  { status, schemaId }: Readonly<ProblemVariantExpectation>,
+) {
+  expect(
+    documentedSchemaRef(operation, {
+      status,
+      mediaType: "application/problem+json",
+    }),
+  ).toBe(`#/components/schemas/${schemaId}`);
 }
 
 describe("OpenAPI document", () => {
@@ -439,7 +452,11 @@ describe("OpenAPI document", () => {
       expect.objectContaining({ description: "The wallet was deleted" }),
     );
     expect(operation.responses["204"]).not.toHaveProperty("content");
-    expectProblemResponses(operation, ["401", "404", "409"]);
+    expectProblemResponses(operation, ["401", "404"]);
+    expectProblemVariant(operation, {
+      status: "409",
+      schemaId: "HistoryRemainsProblem",
+    });
     expect(operation.responses["500"]).toBeDefined();
   });
 
@@ -462,7 +479,11 @@ describe("OpenAPI document", () => {
       expect.objectContaining({ description: "The category was deleted" }),
     );
     expect(operation.responses["204"]).not.toHaveProperty("content");
-    expectProblemResponses(operation, ["401", "404", "409"]);
+    expectProblemResponses(operation, ["401", "404"]);
+    expectProblemVariant(operation, {
+      status: "409",
+      schemaId: "CategoryRemovalProblem",
+    });
     expect(operation.responses["500"]).toBeDefined();
   });
 
@@ -683,7 +704,11 @@ describe("OpenAPI document", () => {
       expect.objectContaining({ description: "The transaction was deleted" }),
     );
     expect(remove.responses["204"]).not.toHaveProperty("content");
-    expectProblemResponses(remove, ["401", "404", "409"]);
+    expectProblemResponses(remove, ["401", "404"]);
+    expectProblemVariant(remove, {
+      status: "409",
+      schemaId: "RefundsExistProblem",
+    });
 
     expect(defaults.operationId).toBe("getTransactionEntryDefaults");
     expect(
