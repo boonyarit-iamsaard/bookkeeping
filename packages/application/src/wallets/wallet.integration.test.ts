@@ -7,9 +7,17 @@ import { transactions } from "@bookkeeping/database/transactions";
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { WalletType } from "@bookkeeping/domain/wallets";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
+import {
+  initializeDefaultCategories,
+  listCategories,
+} from "../categories/category";
 import { insertRetainedTransferSnapshot } from "../testing/transaction-fixture";
+import {
+  createTransaction,
+  deleteTransaction,
+} from "../transactions/transaction";
 import {
   createWallet,
   deleteWallet,
@@ -881,5 +889,140 @@ describe("deleteWallet", () => {
         cash,
       );
     });
+  });
+});
+
+/** A cash pair whose owner can record an expense against the cash wallet. */
+async function openCashPairWithExpense(db: Database) {
+  const { owner, cash, bank } = await openCashPair(db);
+  await initializeDefaultCategories(db, owner.id);
+  const category = (await listCategories(db, owner.id)).find(
+    (item) => item.kind === "expense",
+  );
+  if (!category) {
+    throw new Error("Missing category");
+  }
+  const movement = {
+    ownerId: owner.id,
+    idempotencyKey: crypto.randomUUID(),
+    type: "expense",
+    walletId: cash.id,
+    categoryId: category.id,
+    amount: 100n,
+    transactionDate: "2026-09-02",
+    note: "",
+  } as const;
+  return {
+    other: bank,
+    movement,
+    owned: { ownerId: owner.id, id: cash.id },
+  };
+}
+
+describe("wallet lifecycle", () => {
+  test("a deleted transfer still guards deletion and opening dates for both wallets", async () => {
+    await withRollback(async (db) => {
+      const { owned, movement, other } = await openCashPairWithExpense(db);
+      const created = await createTransaction(db, {
+        ...movement,
+        type: "transfer",
+        categoryId: null,
+        currency: "THB",
+        destinationWalletId: other.id,
+      });
+      if (!created.ok) {
+        throw new Error("Transfer failed");
+      }
+      await deleteTransaction(db, {
+        ownerId: owned.ownerId,
+        id: created.value.transaction.id,
+      });
+      for (const id of [owned.id, other.id]) {
+        expect(await deleteWallet(db, { ...owned, id })).toEqual({
+          ok: false,
+          error: { code: "history-remains" },
+        });
+        expect(
+          await replaceWalletOpening(db, {
+            ...owned,
+            id,
+            openingAmount: 0n,
+            openingDate: "2026-09-03",
+          }),
+        ).toEqual({ ok: false, error: { code: "movement-before-opening" } });
+      }
+    });
+  });
+
+  test("archive through the application retains current/historical totals, rejects new archived wallets, and restores eligibility", async () => {
+    await withRollback(async (db) => {
+      const { owned, movement } = await openCashPairWithExpense(db);
+      const created = await createTransaction(db, movement);
+      if (!created.ok) {
+        throw new Error("Create failed");
+      }
+      await setWalletArchived(db, { ...owned, archived: true });
+      const current = await listWallets(db, { ownerId: owned.ownerId });
+      expect(current.reduce((sum, w) => sum + w.balance, 0n)).toBe(19900n);
+      expect(
+        (
+          await listWallets(db, { ownerId: owned.ownerId, asOf: "2026-09-01" })
+        ).reduce((sum, w) => sum + w.balance, 0n),
+      ).toBe(20000n);
+      expect(
+        await createTransaction(db, {
+          ...movement,
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      ).toEqual({
+        ok: false,
+        error: { code: "wallet-archived", walletId: owned.id },
+      });
+      await setWalletArchived(db, { ...owned, archived: false });
+      expect(
+        (
+          await createTransaction(db, {
+            ...movement,
+            idempotencyKey: crypto.randomUUID(),
+          })
+        ).ok,
+      ).toBe(true);
+    });
+  });
+
+  test("a create waiting behind archive rechecks eligibility after its lock is released", async () => {
+    const db = committed();
+    const { owned, movement } = await openCashPairWithExpense(db);
+    let release = () => {};
+    let locked = () => {};
+    const ready = new Promise<void>((resolve) => {
+      locked = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const archive = db.transaction(async (tx) => {
+      await tx
+        .select()
+        .from(wallets)
+        .where(and(eq(wallets.id, owned.id), eq(wallets.userId, owned.ownerId)))
+        .for("update");
+      locked();
+      await gate;
+      await setWalletArchived(tx, { ...owned, archived: true });
+    });
+    await ready;
+    const create = createTransaction(db, movement);
+    release();
+    await archive;
+    expect(await create).toEqual({
+      ok: false,
+      error: { code: "wallet-archived", walletId: owned.id },
+    });
+    const [{ count } = { count: "0" }] = await db
+      .select({ count: sql<string>`count(*)` })
+      .from(walletChanges)
+      .where(eq(walletChanges.walletId, owned.id));
+    expect(Number(count)).toBe(1);
   });
 });
