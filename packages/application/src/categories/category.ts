@@ -570,43 +570,48 @@ async function createCategoryRows({
 }: Readonly<CreateCategoryRowsOptions>): Promise<
   Result<CreateCategoryData, CreateCategoryError>
 > {
-  const createsParent = command.parent !== null && "create" in command.parent;
+  const resolved = await resolveParent({ db, ownerId, command });
+  if (!resolved.ok) {
+    return resolved;
+  }
+  let category: CategorySummary;
   try {
-    const resolved = await resolveParent({ db, ownerId, command });
-    if (!resolved.ok) {
-      return resolved;
-    }
-    const { parent, createdParent } = resolved.value;
-    const category = await insertCategory(db, {
+    category = await insertCategory(db, {
       ownerId,
       kind: command.kind,
       name: command.name,
       iconId: command.iconId,
-      parentId: parent?.id ?? null,
+      parentId:
+        resolved.value.kind === "none" ? null : resolved.value.parent.id,
     });
-    return ok(createdParent ? { category, createdParent } : { category });
   } catch (error) {
-    const duplicate = duplicateNameField(error, {
-      createdParent: createsParent,
-    });
-    if (duplicate) {
-      return err({ code: "duplicate-name", field: duplicate });
+    if (isScopedNameViolation(error)) {
+      return err({ code: "duplicate-name", field: "name" });
     }
     throw error;
   }
+  return ok(
+    resolved.value.kind === "created"
+      ? { category, createdParent: resolved.value.parent }
+      : { category },
+  );
 }
 
-type ParentResolutionError = Extract<
-  CreateCategoryError,
-  { code: "parent-not-found" | "parent-is-child" | "parent-protected" }
->;
+type ParentResolutionError =
+  | Extract<
+      CreateCategoryError,
+      { code: "parent-not-found" | "parent-is-child" | "parent-protected" }
+    >
+  | { code: "duplicate-name"; field: "parentName" };
 
-interface ResolvedParent {
-  /** The row the new child hangs under; absent for a top-level category. */
-  parent?: CategorySummary;
-  /** Present when the command asked for the parent to be created. */
-  createdParent?: CategorySummary;
-}
+/**
+ * Where the new category lands: top level, under a locked existing row, or
+ * under a row this same save created.
+ */
+type ResolvedParent =
+  | { kind: "none" }
+  | { kind: "existing"; parent: CategorySummary }
+  | { kind: "created"; parent: CategorySummary };
 
 /** Locks an existing parent or inserts the requested one, per the command. */
 async function resolveParent({
@@ -617,7 +622,7 @@ async function resolveParent({
   Result<ResolvedParent, ParentResolutionError>
 > {
   if (command.parent === null) {
-    return ok({});
+    return ok({ kind: "none" });
   }
   if ("existingId" in command.parent) {
     const locked = await lockParent({
@@ -626,16 +631,23 @@ async function resolveParent({
       kind: command.kind,
       existingId: command.parent.existingId,
     });
-    return locked.ok ? ok({ parent: locked.value }) : locked;
+    return locked.ok ? ok({ kind: "existing", parent: locked.value }) : locked;
   }
-  const createdParent = await insertCategory(db, {
-    ownerId,
-    kind: command.kind,
-    name: command.parent.create.name,
-    iconId: command.parent.create.iconId,
-    parentId: null,
-  });
-  return ok({ parent: createdParent, createdParent });
+  try {
+    const parent = await insertCategory(db, {
+      ownerId,
+      kind: command.kind,
+      name: command.parent.create.name,
+      iconId: command.parent.create.iconId,
+      parentId: null,
+    });
+    return ok({ kind: "created", parent });
+  } catch (error) {
+    if (isScopedNameViolation(error)) {
+      return err({ code: "duplicate-name", field: "parentName" });
+    }
+    throw error;
+  }
 }
 
 interface LockParentOptions {
@@ -729,23 +741,6 @@ async function insertCategory(
 const UNIQUE_VIOLATION = "23505";
 const PARENT_NAME_INDEX = "categories_parent_name_unique";
 const CHILD_NAME_INDEX = "categories_child_name_unique";
-
-function duplicateNameField(
-  error: unknown,
-  { createdParent }: Readonly<{ createdParent: boolean }>,
-): "name" | "parentName" | undefined {
-  const cause = databaseError(error);
-  if (cause?.code !== UNIQUE_VIOLATION) {
-    return undefined;
-  }
-  if (cause.constraint === CHILD_NAME_INDEX) {
-    return "name";
-  }
-  if (cause.constraint === PARENT_NAME_INDEX) {
-    return createdParent ? "parentName" : "name";
-  }
-  return undefined;
-}
 
 /** Whether a write tripped either scoped name index: tree-level or per-parent. */
 function isScopedNameViolation(error: unknown): boolean {
