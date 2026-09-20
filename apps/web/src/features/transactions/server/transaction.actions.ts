@@ -3,6 +3,8 @@
 import type {
   CreateTransactionError,
   DeleteTransactionError,
+  TransactionField,
+  TransactionRejection,
   UpdateTransactionError,
 } from "@bookkeeping/application/transactions";
 import {
@@ -219,117 +221,79 @@ function describeInvalidInput(error: z.ZodError): TransactionActionError {
   };
 }
 
+/** The form input each rejected field corrects; type and link are not editable there. */
+const REJECTION_FORM_FIELDS: Record<
+  TransactionField,
+  TransactionFormField | undefined
+> = {
+  type: undefined,
+  refundOfTransactionId: undefined,
+  walletId: "walletId",
+  destinationWalletId: "destinationWalletId",
+  categoryId: "categoryId",
+  amount: "amount",
+  transactionDate: "transactionDate",
+  note: "note",
+};
+
 function describeRejection(
   error: CreateTransactionError | UpdateTransactionError,
 ): TransactionActionError {
+  if (error.code === "transaction-not-found") {
+    return NOT_FOUND;
+  }
+  if (error.code === "idempotency-conflict") {
+    return {
+      code: "conflict",
+      message:
+        "This submission was already saved with different details. Start a new entry to record another transaction.",
+    };
+  }
+  return {
+    code: "invalid",
+    field: REJECTION_FORM_FIELDS[error.field],
+    message: describeRejectionMessage(error),
+  };
+}
+
+function describeRejectionMessage(error: TransactionRejection): string {
   switch (error.code) {
-    case "transaction-not-found":
-      return NOT_FOUND;
     case "wallet-not-found":
-      return {
-        code: "invalid",
-        field: "walletId",
-        message: "That wallet is not available. Choose another wallet.",
-      };
+      return "That wallet is not available. Choose another wallet.";
     case "destination-wallet-not-found":
     case "same-wallet":
     case "invalid-transfer":
-      return {
-        code: "invalid",
-        field: "destinationWalletId",
-        message:
-          "Choose two different available wallets. Transfers have no category.",
-      };
+      return "Choose two different available wallets. Transfers have no category.";
     case "wallet-archived":
-      return {
-        code: "invalid",
-        message:
-          "That wallet is archived. Choose an active wallet or retain this transaction’s existing wallets.",
-      };
+      return "That wallet is archived. Choose an active wallet or retain this transaction’s existing wallets.";
     case "invalid-currency":
-      return { code: "invalid", message: "Currency must be THB." };
+      return "Currency must be THB.";
     case "category-not-found":
     case "category-kind-mismatch":
-      return {
-        code: "invalid",
-        field: "categoryId",
-        message:
-          "That category is not available for this type. Choose another.",
-      };
+      return "That category is not available for this type. Choose another.";
     case "amount-out-of-range":
-      return {
-        code: "invalid",
-        field: "amount",
-        message: "The amount must be between ฿0.01 and ฿99,999,999.99",
-      };
+      return "The amount must be between ฿0.01 and ฿99,999,999.99";
     case "note-too-long":
-      return {
-        code: "invalid",
-        field: "note",
-        message: "Notes can be at most 200 characters",
-      };
+      return "Notes can be at most 200 characters";
     case "invalid-date":
-      return {
-        code: "invalid",
-        field: "transactionDate",
-        message: "Enter a real calendar date",
-      };
+      return "Enter a real calendar date";
     case "future-date":
-      return {
-        code: "invalid",
-        field: "transactionDate",
-        message: `The date cannot be after today, ${formatCalendarDate(error.today)}`,
-      };
+      return `The date cannot be after today, ${formatCalendarDate(error.today)}`;
     case "before-opening":
-      return {
-        code: "invalid",
-        field: "transactionDate",
-        message: `This wallet opened on ${formatCalendarDate(error.openingDate)}; earlier dates are not tracked`,
-      };
+      return `This wallet opened on ${formatCalendarDate(error.openingDate)}; earlier dates are not tracked`;
     case "invalid-refund":
-      return {
-        code: "invalid",
-        message:
-          "A refund is recorded from its expense and always follows the expense’s category.",
-      };
+      return "A refund is recorded from its expense and always follows the expense’s category.";
     case "expense-not-found":
-      return {
-        code: "invalid",
-        message:
-          "The refunded expense is no longer available. It may have been deleted.",
-      };
+      return "The refunded expense is no longer available. It may have been deleted.";
     case "before-expense":
-      return {
-        code: "invalid",
-        field: "transactionDate",
-        message: `The expense is dated ${formatCalendarDate(error.expenseDate)}; a refund cannot come before it`,
-      };
+      return `The expense is dated ${formatCalendarDate(error.expenseDate)}; a refund cannot come before it`;
     case "exceeds-refundable":
-      return {
-        code: "invalid",
-        field: "amount",
-        message:
-          error.remaining > 0n
-            ? `Only ${formatMoney({ amountInMinorUnits: error.remaining, currency: "THB" })} of this expense is left to refund`
-            : "This expense is already fully refunded",
-      };
+      return error.remaining > 0n
+        ? `Only ${formatMoney({ amountInMinorUnits: error.remaining, currency: "THB" })} of this expense is left to refund`
+        : "This expense is already fully refunded";
     case "below-refunded":
-      return {
-        code: "invalid",
-        field: "amount",
-        message: `${formatMoney({ amountInMinorUnits: error.refundedTotal, currency: "THB" })} of this expense has been refunded; the amount cannot go below that`,
-      };
+      return `${formatMoney({ amountInMinorUnits: error.refundedTotal, currency: "THB" })} of this expense has been refunded; the amount cannot go below that`;
     case "after-refund":
-      return {
-        code: "invalid",
-        field: "transactionDate",
-        message: `A linked refund is dated ${formatCalendarDate(error.refundDate)}; the expense cannot come after it`,
-      };
-    case "idempotency-conflict":
-      return {
-        code: "conflict",
-        message:
-          "This submission was already saved with different details. Start a new entry to record another transaction.",
-      };
+      return `A linked refund is dated ${formatCalendarDate(error.refundDate)}; the expense cannot come after it`;
   }
 }

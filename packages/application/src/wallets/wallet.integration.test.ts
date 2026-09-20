@@ -976,7 +976,11 @@ describe("wallet lifecycle", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "wallet-archived", walletId: owned.id },
+        error: {
+          field: "walletId",
+          code: "wallet-archived",
+          walletId: owned.id,
+        },
       });
       await setWalletArchived(db, { ...owned, archived: false });
       expect(
@@ -1017,7 +1021,7 @@ describe("wallet lifecycle", () => {
     await archive;
     expect(await create).toEqual({
       ok: false,
-      error: { code: "wallet-archived", walletId: owned.id },
+      error: { field: "walletId", code: "wallet-archived", walletId: owned.id },
     });
     const [{ count } = { count: "0" }] = await db
       .select({ count: sql<string>`count(*)` })

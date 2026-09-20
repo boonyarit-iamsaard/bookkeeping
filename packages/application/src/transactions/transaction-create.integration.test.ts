@@ -91,7 +91,10 @@ describe("createTransaction", () => {
           idempotencyKey: "invalid-calendar-date",
           transactionDate: "2026-02-30",
         }),
-      ).toEqual({ ok: false, error: { code: "invalid-date" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "transactionDate", code: "invalid-date" },
+      });
       const corrected = await createTransaction(db, {
         ...base,
         idempotencyKey: "invalid-calendar-date",
@@ -104,14 +107,17 @@ describe("createTransaction", () => {
           idempotencyKey: "zero-amount",
           amount: 0n,
         }),
-      ).toEqual({ ok: false, error: { code: "amount-out-of-range" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "amount", code: "amount-out-of-range" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
           idempotencyKey: "long-note",
           note: "x".repeat(201),
         }),
-      ).toEqual({ ok: false, error: { code: "note-too-long" } });
+      ).toEqual({ ok: false, error: { field: "note", code: "note-too-long" } });
       expect(
         await createTransaction(db, {
           ...base,
@@ -120,7 +126,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "future-date", today: expect.any(String) },
+        error: {
+          field: "transactionDate",
+          code: "future-date",
+          today: expect.any(String),
+        },
       });
       expect(
         await createTransaction(db, {
@@ -130,7 +140,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "before-opening", openingDate: "2026-09-01" },
+        error: {
+          field: "transactionDate",
+          code: "before-opening",
+          openingDate: "2026-09-01",
+        },
       });
     });
   });
@@ -154,21 +168,30 @@ describe("createTransaction", () => {
           idempotencyKey: "foreign-wallet",
           walletId: foreign.cashId,
         }),
-      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "walletId", code: "wallet-not-found" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
           idempotencyKey: "foreign-category",
           categoryId: foreign.childId,
         }),
-      ).toEqual({ ok: false, error: { code: "category-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "categoryId", code: "category-not-found" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
           idempotencyKey: "wrong-category-tree",
           categoryId: owner.incomeId,
         }),
-      ).toEqual({ ok: false, error: { code: "category-kind-mismatch" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "categoryId", code: "category-kind-mismatch" },
+      });
 
       await db
         .update(wallets)
@@ -181,7 +204,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "wallet-archived", walletId: owner.cashId },
+        error: {
+          field: "walletId",
+          code: "wallet-archived",
+          walletId: owner.cashId,
+        },
       });
     });
   });
@@ -331,35 +358,50 @@ describe("createTransaction", () => {
           idempotencyKey: "transfer-same-wallet",
           destinationWalletId: owner.cashId,
         }),
-      ).toEqual({ ok: false, error: { code: "same-wallet" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "destinationWalletId", code: "same-wallet" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
           idempotencyKey: "transfer-category",
           categoryId: owner.childId,
         }),
-      ).toEqual({ ok: false, error: { code: "invalid-transfer" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "type", code: "invalid-transfer" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
           idempotencyKey: "transfer-missing-destination",
           destinationWalletId: null,
         }),
-      ).toEqual({ ok: false, error: { code: "invalid-transfer" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "type", code: "invalid-transfer" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
           idempotencyKey: "transfer-missing-currency",
           currency: undefined,
         }),
-      ).toEqual({ ok: false, error: { code: "invalid-currency" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "amount", code: "invalid-currency" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
           idempotencyKey: "transfer-foreign-source",
           walletId: foreign.cashId,
         }),
-      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "walletId", code: "wallet-not-found" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
@@ -368,7 +410,10 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "destination-wallet-not-found" },
+        error: {
+          field: "destinationWalletId",
+          code: "destination-wallet-not-found",
+        },
       });
 
       await db
@@ -382,7 +427,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "wallet-archived", walletId: owner.cashId },
+        error: {
+          field: "walletId",
+          code: "wallet-archived",
+          walletId: owner.cashId,
+        },
       });
       await db
         .update(wallets)
@@ -400,7 +449,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "wallet-archived", walletId: owner.bankId },
+        error: {
+          field: "destinationWalletId",
+          code: "wallet-archived",
+          walletId: owner.bankId,
+        },
       });
 
       await db
@@ -414,7 +467,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "before-opening", openingDate: "2026-09-03" },
+        error: {
+          field: "transactionDate",
+          code: "before-opening",
+          openingDate: "2026-09-03",
+        },
       });
 
       await db
@@ -432,7 +489,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "before-opening", openingDate: "2026-09-03" },
+        error: {
+          field: "transactionDate",
+          code: "before-opening",
+          openingDate: "2026-09-03",
+        },
       });
       expect(
         (await listTransactions(db, { ownerId: owner.ownerId })).filter(
@@ -612,7 +673,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "exceeds-refundable", remaining: 2_000n },
+        error: {
+          field: "amount",
+          code: "exceeds-refundable",
+          remaining: 2_000n,
+        },
       });
       expect(
         await createTransaction(db, {
@@ -622,7 +687,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "before-expense", expenseDate: "2026-09-02" },
+        error: {
+          field: "transactionDate",
+          code: "before-expense",
+          expenseDate: "2026-09-02",
+        },
       });
       await db
         .update(wallets)
@@ -636,7 +705,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "before-opening", openingDate: "2026-09-04" },
+        error: {
+          field: "transactionDate",
+          code: "before-opening",
+          openingDate: "2026-09-04",
+        },
       });
       expect(
         (await listTransactions(db, { ownerId: owner.ownerId })).filter(
@@ -721,28 +794,40 @@ describe("createTransaction", () => {
           idempotencyKey: "refund-deleted-expense",
           refundOfTransactionId: deletedExpense.value.transaction.id,
         }),
-      ).toEqual({ ok: false, error: { code: "expense-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "refundOfTransactionId", code: "expense-not-found" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
           idempotencyKey: "refund-foreign-expense",
           refundOfTransactionId: foreignExpense.value.transaction.id,
         }),
-      ).toEqual({ ok: false, error: { code: "expense-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "refundOfTransactionId", code: "expense-not-found" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
           idempotencyKey: "refund-income-link",
           refundOfTransactionId: income.value.transaction.id,
         }),
-      ).toEqual({ ok: false, error: { code: "expense-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "refundOfTransactionId", code: "expense-not-found" },
+      });
       expect(
         await createTransaction(db, {
           ...base,
           idempotencyKey: "refund-foreign-wallet",
           walletId: foreign.bankId,
         }),
-      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "walletId", code: "wallet-not-found" },
+      });
 
       await db
         .update(wallets)
@@ -755,7 +840,11 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "wallet-archived", walletId: owner.bankId },
+        error: {
+          field: "walletId",
+          code: "wallet-archived",
+          walletId: owner.bankId,
+        },
       });
       expect(
         (await listTransactions(db, { ownerId: owner.ownerId })).filter(
@@ -907,8 +996,8 @@ describe("createTransaction", () => {
     expect(
       outcomes.filter((outcome) => !outcome.ok).map((outcome) => outcome.error),
     ).toEqual([
-      { code: "exceeds-refundable", remaining: 0n },
-      { code: "exceeds-refundable", remaining: 0n },
+      { field: "amount", code: "exceeds-refundable", remaining: 0n },
+      { field: "amount", code: "exceeds-refundable", remaining: 0n },
     ]);
     expect(
       (await listTransactions(db, { ownerId: owner.ownerId })).filter(
@@ -1067,7 +1156,7 @@ describe("createTransaction", () => {
         const rejected = await attempt(amount);
         expect(rejected).toEqual({
           ok: false,
-          error: { code: "amount-out-of-range" },
+          error: { field: "amount", code: "amount-out-of-range" },
         });
       }
       const [summary] = await listWallets(db, { ownerId: owner.ownerId });
@@ -1088,7 +1177,10 @@ describe("createTransaction", () => {
         transactionDate: "2026-09-02",
         note: "x".repeat(201),
       });
-      expect(rejected).toEqual({ ok: false, error: { code: "note-too-long" } });
+      expect(rejected).toEqual({
+        ok: false,
+        error: { field: "note", code: "note-too-long" },
+      });
       expect(await listTransactions(db, { ownerId: owner.ownerId })).toEqual(
         [],
       );
@@ -1114,7 +1206,11 @@ describe("createTransaction", () => {
       await withClock("2026-09-13T17:30:00Z", async () => {
         expect(await attemptOn("2026-09-15")).toEqual({
           ok: false,
-          error: { code: "future-date", today: "2026-09-14" },
+          error: {
+            field: "transactionDate",
+            code: "future-date",
+            today: "2026-09-14",
+          },
         });
         expect((await attemptOn("2026-09-14")).ok).toBe(true);
       });
@@ -1122,7 +1218,11 @@ describe("createTransaction", () => {
       await withClock("2026-09-13T16:30:00Z", async () => {
         expect(await attemptOn("2026-09-14")).toEqual({
           ok: false,
-          error: { code: "future-date", today: "2026-09-13" },
+          error: {
+            field: "transactionDate",
+            code: "future-date",
+            today: "2026-09-13",
+          },
         });
       });
     });
@@ -1146,7 +1246,11 @@ describe("createTransaction", () => {
       expect((await attemptOn("2026-09-01")).ok).toBe(true);
       expect(await attemptOn("2026-08-31")).toEqual({
         ok: false,
-        error: { code: "before-opening", openingDate: "2026-09-01" },
+        error: {
+          field: "transactionDate",
+          code: "before-opening",
+          openingDate: "2026-09-01",
+        },
       });
     });
   });
@@ -1180,7 +1284,10 @@ describe("createTransaction", () => {
           transactionDate: "2026-09-02",
           note: "",
         }),
-      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "walletId", code: "wallet-not-found" },
+      });
       expect(
         await createTransaction(db, {
           ownerId: bob.ownerId,
@@ -1192,7 +1299,10 @@ describe("createTransaction", () => {
           transactionDate: "2026-09-02",
           note: "",
         }),
-      ).toEqual({ ok: false, error: { code: "category-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "categoryId", code: "category-not-found" },
+      });
       expect(
         await findTransaction(db, {
           ownerId: bob.ownerId,
@@ -1597,32 +1707,52 @@ describe("createTransaction", () => {
       for (const [changes, error] of [
         [
           { transactionDate: "2026-09-01" },
-          { code: "before-expense", expenseDate: "2026-09-02" },
+          {
+            field: "transactionDate",
+            code: "before-expense",
+            expenseDate: "2026-09-02",
+          },
         ],
         [
           { walletId: bank, transactionDate: "2026-09-03" },
-          { code: "before-opening", openingDate: "2026-09-04" },
+          {
+            field: "transactionDate",
+            code: "before-opening",
+            openingDate: "2026-09-04",
+          },
         ],
-        [{ transactionDate: "9999-01-01" }, { code: "future-date" }],
-        [{ walletId: retired }, { code: "wallet-archived" }],
-        [{ walletId: foreignOwner.cashId }, { code: "wallet-not-found" }],
+        [
+          { transactionDate: "9999-01-01" },
+          { field: "transactionDate", code: "future-date" },
+        ],
+        [{ walletId: retired }, { field: "walletId", code: "wallet-archived" }],
+        [
+          { walletId: foreignOwner.cashId },
+          { field: "walletId", code: "wallet-not-found" },
+        ],
         [
           { refundOfTransactionId: foreignExpense.value.transaction.id },
-          { code: "expense-not-found" },
+          { field: "refundOfTransactionId", code: "expense-not-found" },
         ],
         [
           {
             refundOfTransactionId: income.ok ? income.value.transaction.id : "",
           },
-          { code: "expense-not-found" },
+          { field: "refundOfTransactionId", code: "expense-not-found" },
         ],
-        [{ refundOfTransactionId: null }, { code: "invalid-refund" }],
-        [{ categoryId: owner.childId }, { code: "invalid-refund" }],
+        [
+          { refundOfTransactionId: null },
+          { field: "type", code: "invalid-refund" },
+        ],
+        [
+          { categoryId: owner.childId },
+          { field: "type", code: "invalid-refund" },
+        ],
         [
           { type: "expense" as const, categoryId: owner.childId },
-          { code: "invalid-refund" },
+          { field: "type", code: "invalid-refund" },
         ],
-        [{ amount: 0n }, { code: "amount-out-of-range" }],
+        [{ amount: 0n }, { field: "amount", code: "amount-out-of-range" }],
       ] as const) {
         expect(await createTransaction(db, { ...base, ...changes })).toEqual({
           ok: false,

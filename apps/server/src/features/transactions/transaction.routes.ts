@@ -1,6 +1,6 @@
 import type {
-  CreateTransactionError,
-  UpdateTransactionError,
+  TransactionField,
+  TransactionRejection,
 } from "@bookkeeping/application/transactions";
 import {
   createTransaction,
@@ -176,9 +176,6 @@ export const updateTransactionRequestSchema = z
   })
   .meta({ id: "UpdateTransactionRequest" });
 
-/** The validated update command the field-error mapper reads. */
-type TransactionUpdateCommand = z.output<typeof updateTransactionRequestSchema>;
-
 interface CreateTransactionValidatedInput {
   in: {
     json: z.input<typeof createTransactionRequestSchema>;
@@ -190,87 +187,31 @@ interface CreateTransactionValidatedInput {
   };
 }
 
-function toCreateTransactionFieldErrors(
-  error: Exclude<CreateTransactionError, { code: "idempotency-conflict" }>,
-  request: Readonly<z.output<typeof createTransactionRequestSchema>>,
-): ProblemFieldError[] {
-  switch (error.code) {
-    case "invalid-transfer":
-    case "invalid-refund":
-      return [{ pointer: "#/type", code: error.code }];
-    case "expense-not-found":
-      return [{ pointer: "#/refundOfTransactionId", code: error.code }];
-    default:
-      return toSharedTransactionFieldErrors(error, {
-        destinationWalletId:
-          request.type === "transfer" ? request.destinationWalletId : null,
-      });
-  }
-}
+/** Where each rejected input lives in a create request document. */
+const CREATE_FIELD_POINTERS: Record<TransactionField, string> = {
+  type: "#/type",
+  walletId: "#/walletId",
+  destinationWalletId: "#/destinationWalletId",
+  categoryId: "#/categoryId",
+  refundOfTransactionId: "#/refundOfTransactionId",
+  amount: "#/amount/value",
+  transactionDate: "#/transactionDate",
+  note: "#/note",
+};
 
-function toUpdateTransactionFieldErrors(
-  error: Exclude<UpdateTransactionError, { code: "transaction-not-found" }>,
-  request: Readonly<TransactionUpdateCommand>,
-): ProblemFieldError[] {
-  switch (error.code) {
-    case "invalid-transfer":
-    case "invalid-refund":
-    case "expense-not-found":
-      // The update request names no type or refund link: a contradiction
-      // with the fixed type addresses the whole document.
-      return [{ pointer: "#/", code: error.code }];
-    default:
-      return toSharedTransactionFieldErrors(error, {
-        destinationWalletId: request.destinationWalletId ?? null,
-      });
-  }
-}
+// The update request names no type or refund link: a contradiction with the
+// fixed type addresses the whole document.
+const UPDATE_FIELD_POINTERS: Record<TransactionField, string> = {
+  ...CREATE_FIELD_POINTERS,
+  type: "#/",
+  refundOfTransactionId: "#/",
+};
 
-/** The rejections a create and an update address with the same pointers. */
-function toSharedTransactionFieldErrors(
-  error: Exclude<
-    UpdateTransactionError,
-    | { code: "transaction-not-found" }
-    | { code: "invalid-transfer" }
-    | { code: "invalid-refund" }
-    | { code: "expense-not-found" }
-  >,
-  request: Readonly<{ destinationWalletId: string | null }>,
+function toFieldErrors(
+  rejection: Readonly<TransactionRejection>,
+  pointers: Readonly<Record<TransactionField, string>>,
 ): ProblemFieldError[] {
-  switch (error.code) {
-    case "wallet-not-found":
-      return [{ pointer: "#/walletId", code: error.code }];
-    case "wallet-archived":
-      return [
-        {
-          pointer:
-            request.destinationWalletId === error.walletId
-              ? "#/destinationWalletId"
-              : "#/walletId",
-          code: error.code,
-        },
-      ];
-    case "destination-wallet-not-found":
-    case "same-wallet":
-      return [{ pointer: "#/destinationWalletId", code: error.code }];
-    case "invalid-currency":
-      return [{ pointer: "#/amount/currency", code: error.code }];
-    case "category-not-found":
-    case "category-kind-mismatch":
-      return [{ pointer: "#/categoryId", code: error.code }];
-    case "amount-out-of-range":
-    case "exceeds-refundable":
-    case "below-refunded":
-      return [{ pointer: "#/amount/value", code: error.code }];
-    case "note-too-long":
-      return [{ pointer: "#/note", code: error.code }];
-    case "invalid-date":
-    case "future-date":
-    case "before-opening":
-    case "before-expense":
-    case "after-refund":
-      return [{ pointer: "#/transactionDate", code: error.code }];
-  }
+  return [{ pointer: pointers[rejection.field], code: rejection.code }];
 }
 
 export type TransactionWalletResponse = z.infer<typeof transactionWalletSchema>;
@@ -481,7 +422,7 @@ export function createTransactionRoutes(db: Database) {
             }
             return createProblemResponse(c, {
               ...getProblemOptionsForStatus(422),
-              errors: toCreateTransactionFieldErrors(created.error, body),
+              errors: toFieldErrors(created.error, CREATE_FIELD_POINTERS),
             });
           }
           const transaction = presentTransaction(created.value.transaction);
@@ -727,7 +668,7 @@ export function createTransactionRoutes(db: Database) {
             }
             return createProblemResponse(c, {
               ...getProblemOptionsForStatus(422),
-              errors: toUpdateTransactionFieldErrors(updated.error, body),
+              errors: toFieldErrors(updated.error, UPDATE_FIELD_POINTERS),
             });
           }
           return c.json(presentTransaction(updated.value), 200);

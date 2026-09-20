@@ -235,30 +235,65 @@ export interface CreateTransactionOutcome {
   replayed: boolean;
 }
 
-export type CreateTransactionError =
-  | { code: "wallet-not-found" }
-  | { code: "destination-wallet-not-found" }
-  | { code: "same-wallet" }
-  | { code: "wallet-archived"; walletId: string }
-  | { code: "invalid-currency" }
-  | { code: "invalid-transfer" }
-  | { code: "category-not-found" }
-  | { code: "category-kind-mismatch" }
-  | { code: "amount-out-of-range" }
-  | { code: "note-too-long" }
-  | { code: "invalid-date" }
-  | { code: "future-date"; today: CalendarDate }
-  | { code: "before-opening"; openingDate: CalendarDate }
-  | { code: "invalid-refund" }
-  | { code: "expense-not-found" }
-  | { code: "before-expense"; expenseDate: CalendarDate }
-  | { code: "exceeds-refundable"; remaining: bigint }
-  | IdempotencyConflict;
+/** The input a rejection addresses; an adapter maps it to its own pointer or form field. */
+export type TransactionField =
+  | "type"
+  | "walletId"
+  | "destinationWalletId"
+  | "categoryId"
+  | "refundOfTransactionId"
+  | "amount"
+  | "transactionDate"
+  | "note";
 
-type TransactionValidationError = Exclude<
-  CreateTransactionError,
-  IdempotencyConflict
->;
+/**
+ * One expected reason a create or edit is refused, addressed to the input
+ * that would correct it. The rule that refuses chooses the field, so every
+ * adapter agrees on where a rejection belongs.
+ */
+export type TransactionRejection =
+  | { field: "walletId"; code: "wallet-not-found" }
+  | { field: "destinationWalletId"; code: "destination-wallet-not-found" }
+  | { field: "destinationWalletId"; code: "same-wallet" }
+  | {
+      field: "walletId" | "destinationWalletId";
+      code: "wallet-archived";
+      walletId: string;
+    }
+  | { field: "amount"; code: "invalid-currency" }
+  | { field: "type"; code: "invalid-transfer" }
+  | { field: "categoryId"; code: "category-not-found" }
+  | { field: "categoryId"; code: "category-kind-mismatch" }
+  | { field: "amount"; code: "amount-out-of-range" }
+  | { field: "note"; code: "note-too-long" }
+  | { field: "transactionDate"; code: "invalid-date" }
+  | { field: "transactionDate"; code: "future-date"; today: CalendarDate }
+  | {
+      field: "transactionDate";
+      code: "before-opening";
+      openingDate: CalendarDate;
+    }
+  | { field: "type"; code: "invalid-refund" }
+  | { field: "refundOfTransactionId"; code: "expense-not-found" }
+  | {
+      field: "transactionDate";
+      code: "before-expense";
+      expenseDate: CalendarDate;
+    }
+  | { field: "amount"; code: "exceeds-refundable"; remaining: bigint }
+  | ExpenseGuardRejection;
+
+/** An expense cannot contradict the refunds already linked to it. */
+export type ExpenseGuardRejection =
+  | { field: "amount"; code: "below-refunded"; refundedTotal: bigint }
+  /** The earliest linked refund's date; the expense cannot move past it. */
+  | {
+      field: "transactionDate";
+      code: "after-refund";
+      refundDate: CalendarDate;
+    };
+
+export type CreateTransactionError = TransactionRejection | IdempotencyConflict;
 
 /** Every financial field a create or edit validates against the owner's records. */
 interface TransactionFields {
@@ -469,18 +504,18 @@ function validateTransactionValues(
   input: Readonly<
     Pick<TransactionFields, "amount" | "note" | "transactionDate">
   >,
-): TransactionValidationError | undefined {
+): TransactionRejection | undefined {
   if (
     input.amount < MIN_TRANSACTION_AMOUNT ||
     input.amount > MAX_TRANSACTION_AMOUNT
   ) {
-    return { code: "amount-out-of-range" };
+    return { field: "amount", code: "amount-out-of-range" };
   }
   if (input.note.length > MAX_NOTE_LENGTH) {
-    return { code: "note-too-long" };
+    return { field: "note", code: "note-too-long" };
   }
   if (!parseCalendarDate(input.transactionDate).ok) {
-    return { code: "invalid-date" };
+    return { field: "transactionDate", code: "invalid-date" };
   }
   return undefined;
 }
@@ -488,7 +523,7 @@ function validateTransactionValues(
 async function insertTransaction(
   tx: Database,
   input: Readonly<TransactionFields>,
-): Promise<Result<TransactionDetail, TransactionValidationError>> {
+): Promise<Result<TransactionDetail, TransactionRejection>> {
   const rejection = await validateTransactionOwner(tx, input);
   if (rejection) {
     return err(rejection);
@@ -523,7 +558,7 @@ async function insertTransaction(
 async function validateTransactionOwner(
   tx: Database,
   input: Readonly<TransactionFields>,
-): Promise<TransactionValidationError | undefined> {
+): Promise<TransactionRejection | undefined> {
   const shapeRejection =
     validateTransferShape(input) ?? validateRefundShape(input);
   if (shapeRejection) {
@@ -562,12 +597,14 @@ async function validateTransactionOwner(
 /** A refund names its expense and no category; nothing else names an expense. */
 function validateRefundShape(
   input: Readonly<TransactionFields>,
-): TransactionValidationError | undefined {
+): TransactionRejection | undefined {
   if (input.type !== "refund") {
-    return input.refundOfTransactionId ? { code: "invalid-refund" } : undefined;
+    return input.refundOfTransactionId
+      ? { field: "type", code: "invalid-refund" }
+      : undefined;
   }
   if (!input.refundOfTransactionId || input.categoryId !== null) {
-    return { code: "invalid-refund" };
+    return { field: "type", code: "invalid-refund" };
   }
   return undefined;
 }
@@ -575,18 +612,20 @@ function validateRefundShape(
 /** A transfer names two distinct wallets in THB and no category. */
 function validateTransferShape(
   input: Readonly<TransactionFields>,
-): TransactionValidationError | undefined {
+): TransactionRejection | undefined {
   if (input.type !== "transfer") {
-    return input.destinationWalletId ? { code: "invalid-transfer" } : undefined;
+    return input.destinationWalletId
+      ? { field: "type", code: "invalid-transfer" }
+      : undefined;
   }
   if (input.currency !== "THB") {
-    return { code: "invalid-currency" };
+    return { field: "amount", code: "invalid-currency" };
   }
   if (!input.destinationWalletId || input.categoryId !== null) {
-    return { code: "invalid-transfer" };
+    return { field: "type", code: "invalid-transfer" };
   }
   if (input.walletId === input.destinationWalletId) {
-    return { code: "same-wallet" };
+    return { field: "destinationWalletId", code: "same-wallet" };
   }
   return undefined;
 }
@@ -594,12 +633,12 @@ function validateTransferShape(
 async function lockRefundedExpense(
   tx: Database,
   input: Readonly<TransactionFields>,
-): Promise<Result<LinkedExpense | undefined, TransactionValidationError>> {
+): Promise<Result<LinkedExpense | undefined, TransactionRejection>> {
   if (input.type !== "refund" || !input.refundOfTransactionId) {
     return ok(undefined);
   }
   if (!isUuid(input.refundOfTransactionId)) {
-    return err({ code: "expense-not-found" });
+    return err({ field: "refundOfTransactionId", code: "expense-not-found" });
   }
   const [expense] = await tx
     .select({
@@ -618,7 +657,7 @@ async function lockRefundedExpense(
     )
     .for("update");
   if (!expense || expense.deletedAt || expense.type !== "expense") {
-    return err({ code: "expense-not-found" });
+    return err({ field: "refundOfTransactionId", code: "expense-not-found" });
   }
   return ok({
     id: expense.id,
@@ -635,16 +674,20 @@ interface RefundValidationInput {
 async function validateRefundAgainstExpense(
   tx: Database,
   { input, expense }: Readonly<RefundValidationInput>,
-): Promise<TransactionValidationError | undefined> {
+): Promise<TransactionRejection | undefined> {
   if (input.transactionDate < expense.transactionDate) {
-    return { code: "before-expense", expenseDate: expense.transactionDate };
+    return {
+      field: "transactionDate",
+      code: "before-expense",
+      expenseDate: expense.transactionDate,
+    };
   }
   const others = (await currentRefundsOf(tx, expense.id)).filter(
     (refund) => refund.id !== input.editingRefundId,
   );
   const remaining = expense.amount - sumOf(others);
   if (input.amount > remaining) {
-    return { code: "exceeds-refundable", remaining };
+    return { field: "amount", code: "exceeds-refundable", remaining };
   }
   return undefined;
 }
@@ -660,12 +703,15 @@ function walletIdsOf(
 async function lockOwnedWallets(
   tx: Database,
   input: Readonly<TransactionFields>,
-): Promise<Result<OwnedWalletForTransaction[], TransactionValidationError>> {
+): Promise<Result<OwnedWalletForTransaction[], TransactionRejection>> {
   if (!isUuid(input.walletId)) {
-    return err({ code: "wallet-not-found" });
+    return err({ field: "walletId", code: "wallet-not-found" });
   }
   if (input.destinationWalletId && !isUuid(input.destinationWalletId)) {
-    return err({ code: "destination-wallet-not-found" });
+    return err({
+      field: "destinationWalletId",
+      code: "destination-wallet-not-found",
+    });
   }
   const ownedWallets = await tx
     .select({
@@ -684,17 +730,27 @@ async function lockOwnedWallets(
     .for("share");
   const ownedIds = new Set(ownedWallets.map((wallet) => wallet.id));
   if (!ownedIds.has(input.walletId)) {
-    return err({ code: "wallet-not-found" });
+    return err({ field: "walletId", code: "wallet-not-found" });
   }
   if (input.destinationWalletId && !ownedIds.has(input.destinationWalletId)) {
-    return err({ code: "destination-wallet-not-found" });
+    return err({
+      field: "destinationWalletId",
+      code: "destination-wallet-not-found",
+    });
   }
   const archived = ownedWallets.find(
     (wallet) =>
       wallet.archivedAt && !input.retainedWalletIds?.includes(wallet.id),
   );
   if (archived) {
-    return err({ code: "wallet-archived", walletId: archived.id });
+    return err({
+      field:
+        archived.id === input.destinationWalletId
+          ? "destinationWalletId"
+          : "walletId",
+      code: "wallet-archived",
+      walletId: archived.id,
+    });
   }
   return ok(ownedWallets);
 }
@@ -702,12 +758,12 @@ async function lockOwnedWallets(
 async function validateTransactionCategory(
   tx: Database,
   input: Readonly<TransactionFields>,
-): Promise<TransactionValidationError | undefined> {
+): Promise<TransactionRejection | undefined> {
   if (input.type === "transfer" || input.type === "refund") {
     return undefined;
   }
   if (!input.categoryId || !isUuid(input.categoryId)) {
-    return { code: "category-not-found" };
+    return { field: "categoryId", code: "category-not-found" };
   }
   const [category] = await tx
     .select({ kind: categories.kind })
@@ -720,10 +776,10 @@ async function validateTransactionCategory(
     )
     .for("share");
   if (!category) {
-    return { code: "category-not-found" };
+    return { field: "categoryId", code: "category-not-found" };
   }
   if (category.kind !== input.type) {
-    return { code: "category-kind-mismatch" };
+    return { field: "categoryId", code: "category-kind-mismatch" };
   }
   return undefined;
 }
@@ -731,16 +787,20 @@ async function validateTransactionCategory(
 function validateTransactionDate(
   transactionDate: CalendarDate,
   ownedWallets: readonly OwnedWalletForTransaction[],
-): TransactionValidationError | undefined {
+): TransactionRejection | undefined {
   const today = todayIn({ timeZone: APP_TIME_ZONE });
   if (transactionDate > today) {
-    return { code: "future-date", today };
+    return { field: "transactionDate", code: "future-date", today };
   }
   const unopened = ownedWallets.find(
     (wallet) => transactionDate < wallet.openingDate,
   );
   if (unopened) {
-    return { code: "before-opening", openingDate: unopened.openingDate };
+    return {
+      field: "transactionDate",
+      code: "before-opening",
+      openingDate: unopened.openingDate,
+    };
   }
   return undefined;
 }
@@ -858,15 +918,7 @@ export interface UpdateTransactionInput {
 
 export type UpdateTransactionError =
   /** Also covers another owner's record and a deleted one. */
-  | { code: "transaction-not-found" }
-  | TransactionValidationError
-  | ExpenseGuardRejection;
-
-/** An expense cannot contradict the refunds already linked to it. */
-export type ExpenseGuardRejection =
-  | { code: "below-refunded"; refundedTotal: bigint }
-  /** The earliest linked refund's date; the expense cannot move past it. */
-  | { code: "after-refund"; refundDate: CalendarDate };
+  { code: "transaction-not-found" } | TransactionRejection;
 
 interface SnapshotInput {
   type: TransactionType;
@@ -1122,13 +1174,17 @@ async function guardRefundedExpense(
   }
   const refundedTotal = sumOf(refunds);
   if (input.amount < refundedTotal) {
-    return { code: "below-refunded", refundedTotal };
+    return { field: "amount", code: "below-refunded", refundedTotal };
   }
   const earliest = refunds.reduce((first, refund) =>
     refund.transactionDate < first.transactionDate ? refund : first,
   );
   if (input.transactionDate > earliest.transactionDate) {
-    return { code: "after-refund", refundDate: earliest.transactionDate };
+    return {
+      field: "transactionDate",
+      code: "after-refund",
+      refundDate: earliest.transactionDate,
+    };
   }
   return undefined;
 }

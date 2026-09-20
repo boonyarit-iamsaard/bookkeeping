@@ -165,25 +165,42 @@ describe("updateTransaction", () => {
       const valid = expenseUpdateInput({ owner, transaction });
 
       const attempts = [
-        [{ ...valid, amount: 0n }, { code: "amount-out-of-range" }],
+        [
+          { ...valid, amount: 0n },
+          { field: "amount", code: "amount-out-of-range" },
+        ],
         [
           { ...valid, amount: 10_000_000_000n },
-          { code: "amount-out-of-range" },
+          { field: "amount", code: "amount-out-of-range" },
         ],
-        [{ ...valid, note: "x".repeat(201) }, { code: "note-too-long" }],
-        [{ ...valid, transactionDate: "2026-02-30" }, { code: "invalid-date" }],
+        [
+          { ...valid, note: "x".repeat(201) },
+          { field: "note", code: "note-too-long" },
+        ],
+        [
+          { ...valid, transactionDate: "2026-02-30" },
+          { field: "transactionDate", code: "invalid-date" },
+        ],
         [
           { ...valid, transactionDate: "2026-08-31" },
-          { code: "before-opening", openingDate: "2026-09-01" },
+          {
+            field: "transactionDate",
+            code: "before-opening",
+            openingDate: "2026-09-01",
+          },
         ],
         // Moving to a wallet that opened after the transaction's date.
         [
           { ...valid, walletId: lateId },
-          { code: "before-opening", openingDate: "2026-09-05" },
+          {
+            field: "transactionDate",
+            code: "before-opening",
+            openingDate: "2026-09-05",
+          },
         ],
         [
           { ...valid, categoryId: owner.incomeId },
-          { code: "category-kind-mismatch" },
+          { field: "categoryId", code: "category-kind-mismatch" },
         ],
       ] as const;
       for (const [attempt, error] of attempts) {
@@ -200,7 +217,11 @@ describe("updateTransaction", () => {
           }),
         ).toEqual({
           ok: false,
-          error: { code: "future-date", today: "2026-09-13" },
+          error: {
+            field: "transactionDate",
+            code: "future-date",
+            today: "2026-09-13",
+          },
         });
       });
 
@@ -255,7 +276,10 @@ describe("updateTransaction", () => {
           transactionDate: "2026-09-02",
           note: "",
         }),
-      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "walletId", code: "wallet-not-found" },
+      });
       expect(
         await updateTransaction(db, {
           ownerId: alice.ownerId,
@@ -266,7 +290,10 @@ describe("updateTransaction", () => {
           transactionDate: "2026-09-02",
           note: "",
         }),
-      ).toEqual({ ok: false, error: { code: "category-not-found" } });
+      ).toEqual({
+        ok: false,
+        error: { field: "categoryId", code: "category-not-found" },
+      });
 
       expect(
         await findTransaction(db, {
@@ -385,7 +412,11 @@ describe("updateTransaction", () => {
           await updateTransaction(db, { ...base, amount: 40_001n }),
         ).toEqual({
           ok: false,
-          error: { code: "exceeds-refundable", remaining: 40_000n },
+          error: {
+            field: "amount",
+            code: "exceeds-refundable",
+            remaining: 40_000n,
+          },
         });
         expect(
           await updateTransaction(db, {
@@ -394,7 +425,11 @@ describe("updateTransaction", () => {
           }),
         ).toEqual({
           ok: false,
-          error: { code: "before-expense", expenseDate: "2026-09-02" },
+          error: {
+            field: "transactionDate",
+            code: "before-expense",
+            expenseDate: "2026-09-02",
+          },
         });
         // A refund edit cannot take a category of its own.
         expect(
@@ -402,7 +437,10 @@ describe("updateTransaction", () => {
             ...base,
             categoryId: context.childId,
           }),
-        ).toEqual({ ok: false, error: { code: "invalid-refund" } });
+        ).toEqual({
+          ok: false,
+          error: { field: "type", code: "invalid-refund" },
+        });
         const grown = await updateTransaction(db, {
           ...base,
           walletId: context.bankId,
@@ -494,7 +532,11 @@ describe("updateTransaction", () => {
           await updateTransaction(db, { ...base, amount: 14_999n }),
         ).toEqual({
           ok: false,
-          error: { code: "below-refunded", refundedTotal: 15_000n },
+          error: {
+            field: "amount",
+            code: "below-refunded",
+            refundedTotal: 15_000n,
+          },
         });
         expect(
           await updateTransaction(db, {
@@ -503,7 +545,11 @@ describe("updateTransaction", () => {
           }),
         ).toEqual({
           ok: false,
-          error: { code: "after-refund", refundDate: "2026-09-03" },
+          error: {
+            field: "transactionDate",
+            code: "after-refund",
+            refundDate: "2026-09-03",
+          },
         });
 
         const corrected = await updateTransaction(db, {
@@ -581,7 +627,11 @@ describe("updateTransaction", () => {
           await updateTransaction(db, { ...base, amount: 40_001n }),
         ).toEqual({
           ok: false,
-          error: { code: "exceeds-refundable", remaining: 40_000n },
+          error: {
+            field: "amount",
+            code: "exceeds-refundable",
+            remaining: 40_000n,
+          },
         });
         expect(
           await updateTransaction(db, {
@@ -590,7 +640,11 @@ describe("updateTransaction", () => {
           }),
         ).toEqual({
           ok: false,
-          error: { code: "before-expense", expenseDate: "2026-09-02" },
+          error: {
+            field: "transactionDate",
+            code: "before-expense",
+            expenseDate: "2026-09-02",
+          },
         });
         const grown = await updateTransaction(db, {
           ...base,
@@ -737,6 +791,7 @@ describe("updateTransaction", () => {
           expect(competingResult.ok).toBe(true);
           if (!refundResult.ok) {
             expect(refundResult.error).toEqual({
+              field: "walletId",
               code: "wallet-archived",
               walletId: receiver,
             });
@@ -748,7 +803,11 @@ describe("updateTransaction", () => {
             }),
           ).toEqual({
             ok: false,
-            error: { code: "wallet-archived", walletId: receiver },
+            error: {
+              field: "walletId",
+              code: "wallet-archived",
+              walletId: receiver,
+            },
           });
         } else if (
           operation === "edit" &&
@@ -1005,7 +1064,11 @@ describe("updateTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "wallet-archived", walletId: otherId },
+        error: {
+          field: "walletId",
+          code: "wallet-archived",
+          walletId: otherId,
+        },
       });
     });
   });
@@ -1078,7 +1141,11 @@ describe("updateTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { code: "wallet-archived", walletId: otherId },
+        error: {
+          field: "destinationWalletId",
+          code: "wallet-archived",
+          walletId: otherId,
+        },
       });
       expect(
         await balanceOf({
