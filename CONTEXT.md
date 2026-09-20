@@ -26,6 +26,10 @@ Money spent by a user on an external recipient.
 **Refund**:
 Money returned for an expense, reducing expenses and increasing the balance of the receiving wallet.
 
+**Refund allowance**:
+The amount of an expense not yet returned by its current refunds; a refund may not exceed it, and an expense may not be corrected below what its refunds already return.
+_Avoid_: Remaining, refundable balance
+
 **Transfer**:
 Movement of money between two holdings owned by the same user.
 
@@ -46,6 +50,10 @@ A selectable category at the second and final level of an income or expense cate
 
 **Uncategorized**:
 A protected parent category in each income and expense tree, used by default and as a fallback when a parent is removed. It cannot be removed or renamed and has no children.
+
+**Change history**:
+The internal record of what a transaction or wallet looked like before and after each correction or deletion, kept for traceability and never shown as a user-facing feature.
+_Avoid_: Audit log, revision
 
 **Minor unit**:
 The smallest monetary unit used to record an amount; for Thai baht, one satang.
