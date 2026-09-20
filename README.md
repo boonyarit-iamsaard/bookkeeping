@@ -34,9 +34,15 @@ For an existing checkout, keep your existing `apps/legacy-web/.env`. Set `DATABA
 in `apps/legacy-web/.env`, `apps/server/.env`, and `packages/database/.env` to match
 the PostgreSQL credentials in the root `.env.local` Compose file.
 
-`pnpm dev` runs the Next.js UI and the Hono API together through Turborepo and
-stops both when you interrupt it. Run one app alone with `pnpm dev:legacy-web` or
-`pnpm dev:server`.
+`pnpm dev` runs every app's `dev` task together through Turborepo and stops
+them when you interrupt it. While the SPA port is in progress
+([ADR 0006](docs/adr/0006-vite-tanstack-router-spa-client.md)), the Next.js
+app in `apps/legacy-web` and the Vite client in `apps/web` both claim port
+4000, so run one of them at a time beside the API: `pnpm dev:server` with
+`pnpm dev:legacy-web` or `pnpm dev:web`. The Vite client serves only the app
+shell until its routes are ported; its browser suite runs with
+`pnpm --filter @bookkeeping/web test:e2e` and boots a test database and the
+Hono API itself.
 
 Open [localhost:4000](http://localhost:4000). The home page is
 `apps/legacy-web/src/app/page.tsx` and redirects to `/dashboard`. Without a session, the dashboard

@@ -21,7 +21,8 @@
       "!**/next-env.d.ts",
       "!**/public",
       "!**/test-results",
-      "!**/playwright-report"
+      "!**/playwright-report",
+      "!**/routeTree.gen.ts"
     ]
   },
   "formatter": {
@@ -149,7 +150,9 @@
     {
       "includes": [
         "apps/legacy-web/src/**/index.ts",
-        "apps/legacy-web/src/**/index.tsx"
+        "apps/legacy-web/src/**/index.tsx",
+        "apps/web/src/**/index.ts",
+        "apps/web/src/**/index.tsx"
       ],
       "linter": {
         "rules": {
@@ -174,6 +177,9 @@
         "apps/legacy-web/playwright.config.ts",
         "apps/legacy-web/vitest.config.mts",
         "apps/legacy-web/postcss.config.mjs",
+        "apps/web/vite.config.ts",
+        "apps/web/vitest.config.mts",
+        "apps/web/playwright.config.ts",
         "apps/server/vitest.config.mts",
         "packages/application/vitest.config.mts",
         "packages/auth/vitest.config.mts",
@@ -191,7 +197,7 @@
       }
     },
     {
-      "includes": ["apps/legacy-web/src/app/**"],
+      "includes": ["apps/legacy-web/src/app/**", "apps/web/src/routes/**"],
       "linter": {
         "rules": {
           "style": {

@@ -1,0 +1,5 @@
+/* The families next/font/google injected for the legacy app; index.html loads them. */
+:root {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}

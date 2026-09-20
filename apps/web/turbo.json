@@ -1,0 +1,11 @@
+{
+  "$schema": "../../node_modules/turbo/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test:e2e": {},
+    "test:e2e:ci": {
+      "dependsOn": ["build"],
+      "env": ["CI"]
+    }
+  }
+}

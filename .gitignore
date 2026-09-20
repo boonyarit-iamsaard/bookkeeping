@@ -18,6 +18,7 @@ node_modules
 # turbo
 /.turbo/
 /apps/legacy-web/.turbo/
+/apps/web/.turbo/
 /apps/server/.turbo/
 /packages/domain/.turbo/
 /packages/application/.turbo/
@@ -31,6 +32,7 @@ node_modules
 # production
 /apps/legacy-web/build
 /apps/server/dist
+/apps/web/dist
 
 # misc
 .DS_Store
@@ -62,4 +64,6 @@ next-env.d.ts
 /playwright-report/
 /apps/legacy-web/test-results/
 /apps/legacy-web/playwright-report/
+/apps/web/test-results/
+/apps/web/playwright-report/
 /.impeccable/review/
