@@ -223,7 +223,6 @@ describe("createTransaction", () => {
         walletId: owner.cashId,
         destinationWalletId: owner.bankId,
         categoryId: null,
-        currency: "THB",
         amount: 12_345n,
         transactionDate: "2026-09-02",
         note: "Move money",
@@ -265,7 +264,6 @@ describe("createTransaction", () => {
         walletId: owner.cashId,
         destinationWalletId: owner.bankId,
         categoryId: null,
-        currency: "THB" as const,
         amount: 12_345n,
         transactionDate: "2026-09-02" as const,
         note: "Move money",
@@ -306,7 +304,6 @@ describe("createTransaction", () => {
       walletId: owner.cashId,
       destinationWalletId: owner.bankId,
       categoryId: null,
-      currency: "THB" as const,
       amount: 12_345n,
       transactionDate: "2026-09-02" as const,
       note: "Move money",
@@ -346,7 +343,6 @@ describe("createTransaction", () => {
         walletId: owner.cashId,
         destinationWalletId: owner.bankId,
         categoryId: null,
-        currency: "THB" as const,
         amount: 100n,
         transactionDate: "2026-09-02" as const,
         note: "",
@@ -381,16 +377,6 @@ describe("createTransaction", () => {
       ).toEqual({
         ok: false,
         error: { field: "type", code: "invalid-transfer" },
-      });
-      expect(
-        await createTransaction(db, {
-          ...base,
-          idempotencyKey: "transfer-missing-currency",
-          currency: undefined,
-        }),
-      ).toEqual({
-        ok: false,
-        error: { field: "amount", code: "invalid-currency" },
       });
       expect(
         await createTransaction(db, {
@@ -1454,7 +1440,6 @@ describe("createTransaction", () => {
         ownerId: owner.ownerId,
         idempotencyKey: `transfer-dated-${crypto.randomUUID()}`,
         type: "transfer",
-        currency: "THB",
         walletId: owner.cashId,
         destinationWalletId: destination,
         categoryId: null,
@@ -1502,7 +1487,6 @@ describe("createTransaction", () => {
         ownerId: owner.ownerId,
         idempotencyKey: `transfer-check-${crypto.randomUUID()}`,
         type: "transfer",
-        currency: "THB",
         walletId: owner.cashId,
         destinationWalletId: late,
         categoryId: null,
@@ -1517,7 +1501,6 @@ describe("createTransaction", () => {
           "destination-wallet-not-found",
         ],
         [{ walletId: foreign.cashId }, "wallet-not-found"],
-        [{ currency: undefined }, "invalid-currency"],
         [{ transactionDate: "2026-09-04" }, "before-opening"],
         [
           {
@@ -1555,7 +1538,6 @@ describe("createTransaction", () => {
       ownerId: owner.ownerId,
       idempotencyKey: `transfer-race-${crypto.randomUUID()}`,
       type: "transfer",
-      currency: "THB",
       walletId: owner.cashId,
       destinationWalletId: owner.bankId,
       categoryId: null,
@@ -1600,7 +1582,6 @@ describe("createTransaction", () => {
         ownerId: owner.ownerId,
         idempotencyKey: "fail-transfer-receipt",
         type: "transfer",
-        currency: "THB",
         walletId: owner.cashId,
         destinationWalletId: owner.bankId,
         categoryId: null,

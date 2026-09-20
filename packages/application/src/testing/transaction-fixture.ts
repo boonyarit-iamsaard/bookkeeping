@@ -27,7 +27,6 @@ export async function insertRetainedTransferSnapshot(
       type: "transfer",
       walletId: fixture.currentWalletId,
       destinationWalletId: fixture.currentDestinationWalletId,
-      currency: "THB",
       amount: 100n,
       transactionDate: "2026-09-02",
     })
@@ -91,7 +90,6 @@ export async function insertTransaction(
       destinationWalletId: fixture.destinationWalletId ?? null,
       categoryId: fixture.categoryId ?? null,
       refundOfTransactionId: fixture.refundOfTransactionId ?? null,
-      currency: "THB",
       amount: fixture.amount ?? 5_000n,
       transactionDate: fixture.transactionDate ?? "2026-09-02",
       note: fixture.note ?? "",
@@ -127,7 +125,6 @@ export async function insertCategorizedTransaction(
       type: fixture.type ?? "expense",
       walletId: fixture.walletId,
       categoryId: fixture.categoryId,
-      currency: "THB",
       amount: fixture.amount ?? 5_000n,
       transactionDate: "2026-09-02",
     })
@@ -160,7 +157,6 @@ export async function insertLinkedRefund(
       type: "refund",
       walletId: fixture.walletId,
       refundOfTransactionId: fixture.refundOfTransactionId,
-      currency: "THB",
       amount: fixture.amount ?? 2_000n,
       transactionDate: "2026-09-03",
     })

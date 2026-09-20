@@ -45,7 +45,6 @@ async function insertWallet(db: Database, fixture: Readonly<WalletFixture>) {
       userId: fixture.ownerId,
       name: fixture.name,
       type: fixture.type,
-      currency: "THB",
       openingAmount: fixture.openingAmount,
       openingDate: fixture.openingDate,
     })
@@ -69,7 +68,6 @@ describe("listWallets", () => {
         expect.objectContaining({
           name: "Kasikorn savings",
           type: "bank_account",
-          currency: "THB",
           openingAmount: 1_200_000n,
           openingDate: "2026-09-01",
           archivedAt: null,
@@ -319,7 +317,6 @@ describe("createWallet", () => {
           wallet: expect.objectContaining({
             name: "Kasikorn savings",
             type: "bank_account",
-            currency: "THB",
             openingAmount: 1_200_000n,
             openingDate: "2026-09-01",
             archivedAt: null,
@@ -481,7 +478,6 @@ async function insertTransfer(
       type: "transfer",
       walletId: fixture.walletId,
       destinationWalletId: fixture.destinationWalletId,
-      currency: "THB",
       amount: fixture.amount ?? 100n,
       transactionDate: fixture.transactionDate,
       deletedAt: fixture.deletedAt,
@@ -927,7 +923,6 @@ describe("wallet lifecycle", () => {
         ...movement,
         type: "transfer",
         categoryId: null,
-        currency: "THB",
         destinationWalletId: other.id,
       });
       if (!created.ok) {

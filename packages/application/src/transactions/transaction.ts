@@ -6,16 +6,11 @@ import {
 } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import {
-  APP_TIME_ZONE,
-  parseCalendarDate,
-  todayIn,
-} from "@bookkeeping/domain/dates";
+import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import type {
   ExpenseRefunds,
-  LinkedExpense,
   MonthlySummary,
   RefundSummary,
   TransactionChange,
@@ -25,12 +20,7 @@ import type {
   TransactionSnapshot,
   TransactionType,
 } from "@bookkeeping/domain/transactions";
-import {
-  MAX_NOTE_LENGTH,
-  MAX_TRANSACTION_AMOUNT,
-  MIN_TRANSACTION_AMOUNT,
-  TRANSACTION_TYPES,
-} from "@bookkeeping/domain/transactions";
+import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import {
   and,
@@ -55,6 +45,26 @@ import type {
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
+import type {
+  CategoryFact,
+  CurrentTransactionFact,
+  ExpenseFact,
+  TransactionCommand,
+  TransactionRejection,
+  WalletFact,
+} from "./transaction-rules";
+import {
+  acceptTransaction,
+  sameSnapshot,
+  snapshotOf,
+  sumOf,
+  walletIdsOf,
+} from "./transaction-rules";
+
+export type {
+  TransactionField,
+  TransactionRejection,
+} from "./transaction-rules";
 
 export interface TransactionRef {
   /** Always the session user; never a client-supplied identifier. */
@@ -221,8 +231,6 @@ export interface CreateTransactionInput {
   destinationWalletId?: string | null;
   /** The owner's expense a refund returns money for; refunds only. */
   refundOfTransactionId?: string | null;
-  /** Transfers must explicitly carry THB; other types may omit it. */
-  currency?: "THB";
   /** Integer satang, always positive; the type carries the sign. */
   amount: bigint;
   transactionDate: CalendarDate;
@@ -235,89 +243,7 @@ export interface CreateTransactionOutcome {
   replayed: boolean;
 }
 
-/** The input a rejection addresses; an adapter maps it to its own pointer or form field. */
-export type TransactionField =
-  | "type"
-  | "walletId"
-  | "destinationWalletId"
-  | "categoryId"
-  | "refundOfTransactionId"
-  | "amount"
-  | "transactionDate"
-  | "note";
-
-/**
- * One expected reason a create or edit is refused, addressed to the input
- * that would correct it. The rule that refuses chooses the field, so every
- * adapter agrees on where a rejection belongs.
- */
-export type TransactionRejection =
-  | { field: "walletId"; code: "wallet-not-found" }
-  | { field: "destinationWalletId"; code: "destination-wallet-not-found" }
-  | { field: "destinationWalletId"; code: "same-wallet" }
-  | {
-      field: "walletId" | "destinationWalletId";
-      code: "wallet-archived";
-      walletId: string;
-    }
-  | { field: "amount"; code: "invalid-currency" }
-  | { field: "type"; code: "invalid-transfer" }
-  | { field: "categoryId"; code: "category-not-found" }
-  | { field: "categoryId"; code: "category-kind-mismatch" }
-  | { field: "amount"; code: "amount-out-of-range" }
-  | { field: "note"; code: "note-too-long" }
-  | { field: "transactionDate"; code: "invalid-date" }
-  | { field: "transactionDate"; code: "future-date"; today: CalendarDate }
-  | {
-      field: "transactionDate";
-      code: "before-opening";
-      openingDate: CalendarDate;
-    }
-  | { field: "type"; code: "invalid-refund" }
-  | { field: "refundOfTransactionId"; code: "expense-not-found" }
-  | {
-      field: "transactionDate";
-      code: "before-expense";
-      expenseDate: CalendarDate;
-    }
-  | { field: "amount"; code: "exceeds-refundable"; remaining: bigint }
-  | ExpenseGuardRejection;
-
-/** An expense cannot contradict the refunds already linked to it. */
-export type ExpenseGuardRejection =
-  | { field: "amount"; code: "below-refunded"; refundedTotal: bigint }
-  /** The earliest linked refund's date; the expense cannot move past it. */
-  | {
-      field: "transactionDate";
-      code: "after-refund";
-      refundDate: CalendarDate;
-    };
-
 export type CreateTransactionError = TransactionRejection | IdempotencyConflict;
-
-/** Every financial field a create or edit validates against the owner's records. */
-interface TransactionFields {
-  ownerId: string;
-  type: TransactionType;
-  walletId: string;
-  categoryId: string | null;
-  destinationWalletId: string | null;
-  refundOfTransactionId: string | null;
-  currency?: "THB";
-  amount: bigint;
-  transactionDate: CalendarDate;
-  note: string;
-  /** Wallets an edit may keep even though they are archived: its own. */
-  retainedWalletIds?: readonly string[];
-  /** The refund being edited, whose own old amount does not count against it. */
-  editingRefundId?: string;
-}
-
-interface OwnedWalletForTransaction {
-  id: string;
-  openingDate: CalendarDate;
-  archivedAt: Date | null;
-}
 
 const TRANSACTION_CREATION_OPERATION = "transactions.create";
 
@@ -428,29 +354,24 @@ function encodeTransactionDetail(
 
 /**
  * Creates one transaction and its durable result snapshot per idempotency key.
- * Validation failures happen before the key is touched, while ownership and
- * locking checks run in the same transaction as the financial insert.
+ * Every rule is judged inside the same transaction as the financial insert,
+ * with the records it names locked; a refused command never consumes the key.
  */
 export async function createTransaction(
   db: Database,
   input: Readonly<CreateTransactionInput>,
 ): Promise<Result<CreateTransactionOutcome, CreateTransactionError>> {
-  const command = normalizeTransactionInput(input);
-  const invalid = validateTransactionValues(command);
-  if (invalid) {
-    return err(invalid);
-  }
-
+  const command = toTransactionCommand(input);
   const outcome = await executeIdempotentCreation<
     TransactionDetail,
-    CreateTransactionError
+    TransactionRejection
   >(db, {
     ownerId: input.ownerId,
     operation: TRANSACTION_CREATION_OPERATION,
     key: input.idempotencyKey,
     payload: transactionCreationPayload(command),
     resultCodec: transactionResultCodec,
-    create: (tx) => insertTransaction(tx, command),
+    create: (tx) => insertTransaction(tx, { ownerId: input.ownerId, command }),
   });
   if (!outcome.ok) {
     return err(outcome.error);
@@ -461,23 +382,27 @@ export async function createTransaction(
   });
 }
 
-function normalizeTransactionInput(
-  input: Readonly<CreateTransactionInput>,
-): TransactionFields {
-  const currency =
-    input.type === "transfer"
-      ? input.currency
-      : input.type === "refund"
-        ? undefined
-        : "THB";
+function toTransactionCommand(
+  input: Readonly<
+    Pick<
+      CreateTransactionInput,
+      | "type"
+      | "walletId"
+      | "categoryId"
+      | "destinationWalletId"
+      | "refundOfTransactionId"
+      | "amount"
+      | "transactionDate"
+      | "note"
+    >
+  >,
+): TransactionCommand {
   return {
-    ownerId: input.ownerId,
     type: input.type,
     walletId: input.walletId,
-    categoryId: input.categoryId ?? null,
+    categoryId: input.categoryId,
     destinationWalletId: input.destinationWalletId ?? null,
     refundOfTransactionId: input.refundOfTransactionId ?? null,
-    currency,
     amount: input.amount,
     transactionDate: input.transactionDate,
     note: input.note,
@@ -485,69 +410,52 @@ function normalizeTransactionInput(
 }
 
 function transactionCreationPayload(
-  input: Readonly<TransactionFields>,
+  command: Readonly<TransactionCommand>,
 ): ValidatedPayload {
   return {
-    type: input.type,
-    walletId: input.walletId,
-    categoryId: input.categoryId,
-    destinationWalletId: input.destinationWalletId,
-    refundOfTransactionId: input.refundOfTransactionId,
-    currency: input.currency ?? null,
-    amount: input.amount,
-    transactionDate: input.transactionDate,
-    note: input.note,
+    type: command.type,
+    walletId: command.walletId,
+    categoryId: command.categoryId,
+    destinationWalletId: command.destinationWalletId,
+    refundOfTransactionId: command.refundOfTransactionId,
+    amount: command.amount,
+    transactionDate: command.transactionDate,
+    note: command.note,
   };
-}
-
-function validateTransactionValues(
-  input: Readonly<
-    Pick<TransactionFields, "amount" | "note" | "transactionDate">
-  >,
-): TransactionRejection | undefined {
-  if (
-    input.amount < MIN_TRANSACTION_AMOUNT ||
-    input.amount > MAX_TRANSACTION_AMOUNT
-  ) {
-    return { field: "amount", code: "amount-out-of-range" };
-  }
-  if (input.note.length > MAX_NOTE_LENGTH) {
-    return { field: "note", code: "note-too-long" };
-  }
-  if (!parseCalendarDate(input.transactionDate).ok) {
-    return { field: "transactionDate", code: "invalid-date" };
-  }
-  return undefined;
 }
 
 async function insertTransaction(
   tx: Database,
-  input: Readonly<TransactionFields>,
+  { ownerId, command }: Readonly<OwnedCommand>,
 ): Promise<Result<TransactionDetail, TransactionRejection>> {
-  const rejection = await validateTransactionOwner(tx, input);
-  if (rejection) {
-    return err(rejection);
+  const accepted = await judgeTransaction(tx, {
+    ownerId,
+    command,
+    current: null,
+  });
+  if (!accepted.ok) {
+    return err(accepted.error);
   }
   const [row] = await tx
     .insert(transactions)
     .values({
-      userId: input.ownerId,
-      type: input.type,
-      walletId: input.walletId,
-      categoryId: input.categoryId,
-      destinationWalletId: input.destinationWalletId,
-      refundOfTransactionId: input.refundOfTransactionId,
+      userId: ownerId,
+      type: command.type,
+      walletId: command.walletId,
+      categoryId: command.categoryId,
+      destinationWalletId: command.destinationWalletId,
+      refundOfTransactionId: command.refundOfTransactionId,
       currency: "THB",
-      amount: input.amount,
-      transactionDate: input.transactionDate,
-      note: input.note,
+      amount: command.amount,
+      transactionDate: command.transactionDate,
+      note: command.note,
     })
     .returning({ id: transactions.id });
   if (!row) {
     throw new Error("Transaction insert returned no row");
   }
   const [detailRow] = await detailQuery(tx).where(
-    and(eq(transactions.id, row.id), eq(transactions.userId, input.ownerId)),
+    and(eq(transactions.id, row.id), eq(transactions.userId, ownerId)),
   );
   if (!detailRow) {
     throw new Error("Created transaction could not be read back");
@@ -555,90 +463,48 @@ async function insertTransaction(
   return ok(toDetail(detailRow));
 }
 
-async function validateTransactionOwner(
+interface OwnedCommand {
+  ownerId: string;
+  command: Readonly<TransactionCommand>;
+}
+
+interface JudgementInput extends OwnedCommand {
+  /** The record under correction, or null for a new one. */
+  current: CurrentTransactionFact | null;
+}
+
+/**
+ * Loads and locks the owner's records the command names, then judges it.
+ * The expense lock comes before wallet locks everywhere, so refunds,
+ * corrections, and wallet archiving cannot wait on each other in a cycle.
+ */
+async function judgeTransaction(
   tx: Database,
-  input: Readonly<TransactionFields>,
-): Promise<TransactionRejection | undefined> {
-  const shapeRejection =
-    validateTransferShape(input) ?? validateRefundShape(input);
-  if (shapeRejection) {
-    return shapeRejection;
-  }
-  // The expense lock comes before wallet locks everywhere, so refunds,
-  // corrections, and wallet archiving cannot wait on each other in a cycle.
-  const expense = await lockRefundedExpense(tx, input);
-  if (!expense.ok) {
-    return expense.error;
-  }
-  const owned = await lockOwnedWallets(tx, input);
-  if (!owned.ok) {
-    return owned.error;
-  }
-  const categoryRejection = await validateTransactionCategory(tx, input);
-  if (categoryRejection) {
-    return categoryRejection;
-  }
-  const dateRejection = validateTransactionDate(
-    input.transactionDate,
-    owned.value,
-  );
-  if (dateRejection) {
-    return dateRejection;
-  }
-  if (!expense.value) {
-    return undefined;
-  }
-  return validateRefundAgainstExpense(tx, {
-    input,
-    expense: expense.value,
+  { ownerId, command, current }: Readonly<JudgementInput>,
+): Promise<Result<TransactionCommand, TransactionRejection>> {
+  const expense = await lockRefundedExpense(tx, { ownerId, command });
+  const owned = await lockOwnedWallets(tx, { ownerId, command });
+  const category = await readOwnedCategory(tx, { ownerId, command });
+  return acceptTransaction(command, {
+    today: todayIn({ timeZone: APP_TIME_ZONE }),
+    wallets: owned,
+    category,
+    expense,
+    current,
   });
 }
 
-/** A refund names its expense and no category; nothing else names an expense. */
-function validateRefundShape(
-  input: Readonly<TransactionFields>,
-): TransactionRejection | undefined {
-  if (input.type !== "refund") {
-    return input.refundOfTransactionId
-      ? { field: "type", code: "invalid-refund" }
-      : undefined;
-  }
-  if (!input.refundOfTransactionId || input.categoryId !== null) {
-    return { field: "type", code: "invalid-refund" };
-  }
-  return undefined;
-}
-
-/** A transfer names two distinct wallets in THB and no category. */
-function validateTransferShape(
-  input: Readonly<TransactionFields>,
-): TransactionRejection | undefined {
-  if (input.type !== "transfer") {
-    return input.destinationWalletId
-      ? { field: "type", code: "invalid-transfer" }
-      : undefined;
-  }
-  if (input.currency !== "THB") {
-    return { field: "amount", code: "invalid-currency" };
-  }
-  if (!input.destinationWalletId || input.categoryId !== null) {
-    return { field: "type", code: "invalid-transfer" };
-  }
-  if (input.walletId === input.destinationWalletId) {
-    return { field: "destinationWalletId", code: "same-wallet" };
-  }
-  return undefined;
-}
-
+/** A refund's expense with its current refunds; null unless it is one of the owner's current expenses. */
 async function lockRefundedExpense(
   tx: Database,
-  input: Readonly<TransactionFields>,
-): Promise<Result<LinkedExpense | undefined, TransactionRejection>> {
-  if (input.type !== "refund" || !input.refundOfTransactionId) {
-    return ok(undefined);
-  }
-  if (!isUuid(input.refundOfTransactionId)) {
-    return err({ field: "refundOfTransactionId", code: "expense-not-found" });
+  { ownerId, command }: Readonly<OwnedCommand>,
+): Promise<ExpenseFact | null> {
+  if (
+    command.type !== "refund" ||
+    !command.refundOfTransactionId ||
+    !isUuid(command.refundOfTransactionId)
+  ) {
+    return null;
   }
   const [expense] = await tx
     .select({
@@ -651,158 +517,61 @@ async function lockRefundedExpense(
     .from(transactions)
     .where(
       and(
-        eq(transactions.id, input.refundOfTransactionId),
-        eq(transactions.userId, input.ownerId),
+        eq(transactions.id, command.refundOfTransactionId),
+        eq(transactions.userId, ownerId),
       ),
     )
     .for("update");
   if (!expense || expense.deletedAt || expense.type !== "expense") {
-    return err({ field: "refundOfTransactionId", code: "expense-not-found" });
+    return null;
   }
-  return ok({
+  return {
     id: expense.id,
     amount: expense.amount,
     transactionDate: expense.transactionDate,
-  });
+    refunds: await currentRefundsOf(tx, expense.id),
+  };
 }
 
-interface RefundValidationInput {
-  input: Readonly<TransactionFields>;
-  expense: Readonly<LinkedExpense>;
-}
-
-async function validateRefundAgainstExpense(
-  tx: Database,
-  { input, expense }: Readonly<RefundValidationInput>,
-): Promise<TransactionRejection | undefined> {
-  if (input.transactionDate < expense.transactionDate) {
-    return {
-      field: "transactionDate",
-      code: "before-expense",
-      expenseDate: expense.transactionDate,
-    };
-  }
-  const others = (await currentRefundsOf(tx, expense.id)).filter(
-    (refund) => refund.id !== input.editingRefundId,
-  );
-  const remaining = expense.amount - sumOf(others);
-  if (input.amount > remaining) {
-    return { field: "amount", code: "exceeds-refundable", remaining };
-  }
-  return undefined;
-}
-
-function walletIdsOf(
-  input: Readonly<Pick<TransactionFields, "walletId" | "destinationWalletId">>,
-): string[] {
-  return input.destinationWalletId
-    ? [input.walletId, input.destinationWalletId]
-    : [input.walletId];
-}
-
+/** The owner's wallets among those the command names, share-locked for the rest of the transaction. */
 async function lockOwnedWallets(
   tx: Database,
-  input: Readonly<TransactionFields>,
-): Promise<Result<OwnedWalletForTransaction[], TransactionRejection>> {
-  if (!isUuid(input.walletId)) {
-    return err({ field: "walletId", code: "wallet-not-found" });
+  { ownerId, command }: Readonly<OwnedCommand>,
+): Promise<WalletFact[]> {
+  const ids = walletIdsOf(command).filter(isUuid);
+  if (ids.length === 0) {
+    return [];
   }
-  if (input.destinationWalletId && !isUuid(input.destinationWalletId)) {
-    return err({
-      field: "destinationWalletId",
-      code: "destination-wallet-not-found",
-    });
-  }
-  const ownedWallets = await tx
+  return tx
     .select({
       id: wallets.id,
       openingDate: wallets.openingDate,
       archivedAt: wallets.archivedAt,
     })
     .from(wallets)
-    .where(
-      and(
-        inArray(wallets.id, walletIdsOf(input)),
-        eq(wallets.userId, input.ownerId),
-      ),
-    )
+    .where(and(inArray(wallets.id, ids), eq(wallets.userId, ownerId)))
     .orderBy(asc(wallets.id))
     .for("share");
-  const ownedIds = new Set(ownedWallets.map((wallet) => wallet.id));
-  if (!ownedIds.has(input.walletId)) {
-    return err({ field: "walletId", code: "wallet-not-found" });
-  }
-  if (input.destinationWalletId && !ownedIds.has(input.destinationWalletId)) {
-    return err({
-      field: "destinationWalletId",
-      code: "destination-wallet-not-found",
-    });
-  }
-  const archived = ownedWallets.find(
-    (wallet) =>
-      wallet.archivedAt && !input.retainedWalletIds?.includes(wallet.id),
-  );
-  if (archived) {
-    return err({
-      field:
-        archived.id === input.destinationWalletId
-          ? "destinationWalletId"
-          : "walletId",
-      code: "wallet-archived",
-      walletId: archived.id,
-    });
-  }
-  return ok(ownedWallets);
 }
 
-async function validateTransactionCategory(
+async function readOwnedCategory(
   tx: Database,
-  input: Readonly<TransactionFields>,
-): Promise<TransactionRejection | undefined> {
-  if (input.type === "transfer" || input.type === "refund") {
-    return undefined;
-  }
-  if (!input.categoryId || !isUuid(input.categoryId)) {
-    return { field: "categoryId", code: "category-not-found" };
+  { ownerId, command }: Readonly<OwnedCommand>,
+): Promise<CategoryFact | null> {
+  if (!command.categoryId || !isUuid(command.categoryId)) {
+    return null;
   }
   const [category] = await tx
-    .select({ kind: categories.kind })
+    .select({ id: categories.id, kind: categories.kind })
     .from(categories)
     .where(
       and(
-        eq(categories.id, input.categoryId),
-        eq(categories.userId, input.ownerId),
+        eq(categories.id, command.categoryId),
+        eq(categories.userId, ownerId),
       ),
     )
     .for("share");
-  if (!category) {
-    return { field: "categoryId", code: "category-not-found" };
-  }
-  if (category.kind !== input.type) {
-    return { field: "categoryId", code: "category-kind-mismatch" };
-  }
-  return undefined;
-}
-
-function validateTransactionDate(
-  transactionDate: CalendarDate,
-  ownedWallets: readonly OwnedWalletForTransaction[],
-): TransactionRejection | undefined {
-  const today = todayIn({ timeZone: APP_TIME_ZONE });
-  if (transactionDate > today) {
-    return { field: "transactionDate", code: "future-date", today };
-  }
-  const unopened = ownedWallets.find(
-    (wallet) => transactionDate < wallet.openingDate,
-  );
-  if (unopened) {
-    return {
-      field: "transactionDate",
-      code: "before-opening",
-      openingDate: unopened.openingDate,
-    };
-  }
-  return undefined;
+  return category ?? null;
 }
 
 /** The nondeleted refunds linked to an expense, oldest date first. */
@@ -844,10 +613,6 @@ async function currentRefundsOf(
       archived: Boolean(row.walletArchivedAt),
     },
   }));
-}
-
-function sumOf(refunds: readonly RefundSummary[]): bigint {
-  return refunds.reduce((total, refund) => total + refund.amount, 0n);
 }
 
 /**
@@ -909,7 +674,6 @@ export interface UpdateTransactionInput {
   walletId: string;
   categoryId: string | null;
   destinationWalletId?: string | null;
-  currency?: "THB";
   /** Integer satang, always positive; the stored type carries the sign. */
   amount: bigint;
   transactionDate: CalendarDate;
@@ -919,50 +683,6 @@ export interface UpdateTransactionInput {
 export type UpdateTransactionError =
   /** Also covers another owner's record and a deleted one. */
   { code: "transaction-not-found" } | TransactionRejection;
-
-interface SnapshotInput {
-  type: TransactionType;
-  walletId: string;
-  categoryId: string | null;
-  destinationWalletId?: string | null;
-  refundOfTransactionId?: string | null;
-  currency?: "THB";
-  amount: bigint;
-  transactionDate: CalendarDate;
-  note: string;
-}
-
-function snapshotOf(row: Readonly<SnapshotInput>): TransactionSnapshot {
-  return {
-    type: row.type,
-    walletId: row.walletId,
-    categoryId: row.categoryId,
-    ...(row.type === "transfer"
-      ? { destinationWalletId: row.destinationWalletId }
-      : {}),
-    ...(row.type === "refund"
-      ? { refundOfTransactionId: row.refundOfTransactionId }
-      : {}),
-    amount: row.amount.toString(),
-    transactionDate: row.transactionDate,
-    note: row.note,
-  };
-}
-
-function sameSnapshot(
-  a: Readonly<TransactionSnapshot>,
-  b: Readonly<TransactionSnapshot>,
-) {
-  return (
-    a.type === b.type &&
-    a.walletId === b.walletId &&
-    a.categoryId === b.categoryId &&
-    a.destinationWalletId === b.destinationWalletId &&
-    a.amount === b.amount &&
-    a.transactionDate === b.transactionDate &&
-    a.note === b.note
-  );
-}
 
 /**
  * Locks the owner's current (undeleted) transaction for the rest of the
@@ -993,7 +713,7 @@ async function lockCurrentTransaction(
 
 /**
  * Corrects a transaction in place. The type and its refund link are fixed;
- * the wallet, category, amount, date, and note are re-validated against the
+ * the wallet, category, amount, date, and note are judged again against the
  * owner's records inside the committing transaction, and an edit may keep
  * the archived wallets it already has. The recording time is kept and the
  * before/after snapshots are written with the change, so history and
@@ -1004,11 +724,6 @@ export async function updateTransaction(
   db: Database,
   input: Readonly<UpdateTransactionInput>,
 ): Promise<Result<TransactionDetail, UpdateTransactionError>> {
-  const invalid = validateTransactionValues(input);
-  if (invalid) {
-    return err(invalid);
-  }
-
   let rejection: UpdateTransactionError | undefined;
   let updated: TransactionDetail | undefined;
   await db.transaction(async (tx) => {
@@ -1017,53 +732,45 @@ export async function updateTransaction(
       rejection = { code: "transaction-not-found" };
       return;
     }
-    const before = snapshotOf(current);
-    const after = {
+    const command = toTransactionCommand({
       type: current.type,
       walletId: input.walletId,
       categoryId: input.categoryId,
-      ...(current.type === "transfer"
-        ? { destinationWalletId: input.destinationWalletId }
-        : {}),
-      ...(current.type === "refund"
-        ? { refundOfTransactionId: current.refundOfTransactionId }
-        : {}),
-      amount: input.amount.toString(),
-      transactionDate: input.transactionDate,
-      note: input.note,
-    } satisfies TransactionSnapshot;
-    rejection = await validateTransactionOwner(tx, {
-      ownerId: input.ownerId,
-      type: current.type,
-      walletId: input.walletId,
-      categoryId: input.categoryId,
-      destinationWalletId: input.destinationWalletId ?? null,
+      destinationWalletId: input.destinationWalletId,
       // The link is fixed with the type; the input cannot repoint a refund.
       refundOfTransactionId: current.refundOfTransactionId,
-      currency: input.currency,
       amount: input.amount,
       transactionDate: input.transactionDate,
       note: input.note,
-      retainedWalletIds: walletIdsOf(current),
-      editingRefundId: current.type === "refund" ? current.id : undefined,
     });
-    if (rejection) {
+    const accepted = await judgeTransaction(tx, {
+      ownerId: input.ownerId,
+      command,
+      current: {
+        id: current.id,
+        walletIds: walletIdsOf(current),
+        refunds:
+          current.type === "expense"
+            ? await currentRefundsOf(tx, current.id)
+            : [],
+      },
+    });
+    if (!accepted.ok) {
+      rejection = accepted.error;
       return;
     }
-    rejection = await guardRefundedExpense(tx, { current, input });
-    if (rejection) {
-      return;
-    }
+    const before = snapshotOf(current);
+    const after = snapshotOf(command);
     if (!sameSnapshot(before, after)) {
       await tx
         .update(transactions)
         .set({
-          walletId: input.walletId,
-          categoryId: input.categoryId,
-          destinationWalletId: input.destinationWalletId ?? null,
-          amount: input.amount,
-          transactionDate: input.transactionDate,
-          note: input.note,
+          walletId: command.walletId,
+          categoryId: command.categoryId,
+          destinationWalletId: command.destinationWalletId,
+          amount: command.amount,
+          transactionDate: command.transactionDate,
+          note: command.note,
         })
         .where(eq(transactions.id, current.id));
       await recordChange(tx, {
@@ -1093,11 +800,6 @@ export async function updateTransaction(
     throw new Error("Edited transaction could not be read back");
   }
   return ok(updated);
-}
-
-interface ExpenseGuardCheck {
-  current: Readonly<{ id: string; type: TransactionType }>;
-  input: Readonly<Pick<UpdateTransactionInput, "amount" | "transactionDate">>;
 }
 
 /**
@@ -1155,38 +857,6 @@ export async function deleteTransaction(
     return err({ code: "refunds-exist", refunds: blocking });
   }
   return ok({ id });
-}
-
-/**
- * With the expense locked, checks that its new amount still covers every
- * linked refund and that no refund would come to predate it.
- */
-async function guardRefundedExpense(
-  tx: Database,
-  { current, input }: Readonly<ExpenseGuardCheck>,
-): Promise<ExpenseGuardRejection | undefined> {
-  if (current.type !== "expense") {
-    return undefined;
-  }
-  const refunds = await currentRefundsOf(tx, current.id);
-  if (refunds.length === 0) {
-    return undefined;
-  }
-  const refundedTotal = sumOf(refunds);
-  if (input.amount < refundedTotal) {
-    return { field: "amount", code: "below-refunded", refundedTotal };
-  }
-  const earliest = refunds.reduce((first, refund) =>
-    refund.transactionDate < first.transactionDate ? refund : first,
-  );
-  if (input.transactionDate > earliest.transactionDate) {
-    return {
-      field: "transactionDate",
-      code: "after-refund",
-      refundDate: earliest.transactionDate,
-    };
-  }
-  return undefined;
 }
 
 interface RecordChangeInput {

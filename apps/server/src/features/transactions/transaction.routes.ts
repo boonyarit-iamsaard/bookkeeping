@@ -403,7 +403,6 @@ export function createTransactionRoutes(db: Database) {
             idempotencyKey: c.req.valid("header")["idempotency-key"],
             type: body.type,
             amount: body.amount.amountInMinorUnits,
-            currency: body.amount.currency,
             walletId: body.walletId,
             categoryId:
               body.type === "transfer" || body.type === "refund"
@@ -657,7 +656,6 @@ export function createTransactionRoutes(db: Database) {
             walletId: body.walletId,
             categoryId: body.categoryId ?? null,
             destinationWalletId: body.destinationWalletId ?? null,
-            currency: "THB",
             amount: body.amount.amountInMinorUnits,
             transactionDate: body.transactionDate,
             note: body.note,

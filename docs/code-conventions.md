@@ -72,6 +72,18 @@ app factories in `apps/server/src/testing/`. Playwright helpers stay beside the
 specs in `apps/web/tests/e2e/helpers/`. Test helpers are excluded from production
 builds.
 
+## Rule ownership
+
+Every business rule has exactly one author module in `@bookkeeping/application`,
+evaluated as a pure acceptance step over facts the operation has already loaded
+and locked, such as `acceptTransaction` in
+`packages/application/src/transactions/transaction-rules.ts`. A rejection names
+the input field it addresses, so adapters map fields with a table rather than
+re-deciding them. Adapters validate shape at their own interface: request and
+form schemas check types, formats, and required fields. A client may mirror a
+rule as a hint, but the hint never diverges from the rule and nothing outside
+the author asserts it. See ADR 0005.
+
 ## Test ownership
 
 The application package owns business-rule coverage. Other layers may rely on

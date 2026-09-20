@@ -266,8 +266,6 @@ function describeRejectionMessage(error: TransactionRejection): string {
       return "Choose two different available wallets. Transfers have no category.";
     case "wallet-archived":
       return "That wallet is archived. Choose an active wallet or retain this transaction’s existing wallets.";
-    case "invalid-currency":
-      return "Currency must be THB.";
     case "category-not-found":
     case "category-kind-mismatch":
       return "That category is not available for this type. Choose another.";

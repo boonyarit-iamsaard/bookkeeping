@@ -31,7 +31,6 @@ export async function insertWallet(
       userId: fixture.ownerId,
       name: fixture.name,
       type: fixture.type,
-      currency: "THB",
       openingAmount: fixture.openingAmount ?? 0n,
       openingDate: fixture.openingDate ?? "2026-09-01",
     })
