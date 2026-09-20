@@ -11,14 +11,14 @@ before starting the database.
 
 ```bash
 pnpm install
-cp apps/web/.env.example apps/web/.env
+cp apps/legacy-web/.env.example apps/legacy-web/.env
 cp apps/server/.env.example apps/server/.env
 cp packages/database/.env.example packages/database/.env
 cp .env.local.example .env.local
 ```
 
 Set `BETTER_AUTH_SECRET` to the same random secret of at least 32 characters
-(generate one with `openssl rand -base64 32`) in both `apps/web/.env` and
+(generate one with `openssl rand -base64 32`) in both `apps/legacy-web/.env` and
 `apps/server/.env`: both apps mount Better Auth over one user store, and each
 mount issues its own host-only session cookie (`better-auth.session_token`
 for the web app, `bookkeeping-api.session_token` for the API). Then start the
@@ -30,26 +30,26 @@ pnpm db:push
 pnpm dev
 ```
 
-For an existing checkout, keep your existing `apps/web/.env`. Set `DATABASE_URL`
-in `apps/web/.env`, `apps/server/.env`, and `packages/database/.env` to match
+For an existing checkout, keep your existing `apps/legacy-web/.env`. Set `DATABASE_URL`
+in `apps/legacy-web/.env`, `apps/server/.env`, and `packages/database/.env` to match
 the PostgreSQL credentials in the root `.env.local` Compose file.
 
 `pnpm dev` runs the Next.js UI and the Hono API together through Turborepo and
-stops both when you interrupt it. Run one app alone with `pnpm dev:web` or
+stops both when you interrupt it. Run one app alone with `pnpm dev:legacy-web` or
 `pnpm dev:server`.
 
 Open [localhost:4000](http://localhost:4000). The home page is
-`apps/web/src/app/page.tsx` and redirects to `/dashboard`. Without a session, the dashboard
+`apps/legacy-web/src/app/page.tsx` and redirects to `/dashboard`. Without a session, the dashboard
 redirects to `/sign-in`. Create an account at `/sign-up`. The API answers at
 [localhost:5000/health](http://localhost:5000/health); see
 [Local origins](#local-origins) to change either address.
 
-Global styles are in `apps/web/src/styles/globals.css`. Fonts are Inter
-and JetBrains Mono, configured in `apps/web/src/styles/fonts.ts`.
+Global styles are in `apps/legacy-web/src/styles/globals.css`. Fonts are Inter
+and JetBrains Mono, configured in `apps/legacy-web/src/styles/fonts.ts`.
 
 ## Project structure
 
-The repo is a pnpm workspace with Turborepo; `apps/web` is the Next.js app and
+The repo is a pnpm workspace with Turborepo; `apps/legacy-web` is the Next.js app and
 `apps/server` is the standalone Hono backend being introduced under
 [ADR 0003](docs/adr/0003-hono-application-backend.md). Further services will
 live beside them as further `apps/*` (see
@@ -58,7 +58,7 @@ private `packages/*` (see
 [ADR 0004](docs/adr/0004-shared-backend-package-graph.md)).
 
 ```text
-apps/web/
+apps/legacy-web/
   src/
     app/                  # Route entry points, layouts, and route handlers
     core/
@@ -220,7 +220,7 @@ Drizzle CLI reads the schema through `packages/database/drizzle.config.ts`.
 
 ## Environment configuration
 
-Set these values in `apps/web/.env` for local development or inject them into
+Set these values in `apps/legacy-web/.env` for local development or inject them into
 the server environment when deploying:
 
 | Variable             | Purpose                                       |
@@ -229,7 +229,7 @@ the server environment when deploying:
 | `BETTER_AUTH_URL`    | App base URL, locally `http://localhost:4000` |
 | `DATABASE_URL`       | PostgreSQL connection URL                     |
 
-T3 Env validates these values when `apps/web/src/core/env/config.ts` loads,
+T3 Env validates these values when `apps/legacy-web/src/core/env/config.ts` loads,
 including during database and auth initialization. The Drizzle CLI does not
 read this file; it reads `DATABASE_URL` from `packages/database/.env` (copy
 `packages/database/.env.example`) and validates it in `drizzle.config.ts`.
@@ -243,7 +243,7 @@ production build and the server's esbuild bundle. The web build sets
 `SKIP_ENV_VALIDATION=1` only for the build process, allowing the app to build
 without runtime secrets or a running database. Do not set that flag in the
 deployed server environment. `pnpm start` builds if needed and then runs both
-production outputs with runtime validation enabled; `pnpm start:web` and
+production outputs with runtime validation enabled; `pnpm start:legacy-web` and
 `pnpm start:server` run one app alone.
 
 The Hono server owns its own environment. `apps/server/src/core/env/config.ts`
@@ -257,13 +257,13 @@ runs the compiled production output with the environment the caller injects.
 
 Each app owns its local origin:
 
-| App                 | Default origin          | Configured by                                  |
-| ------------------- | ----------------------- | ---------------------------------------------- |
-| Next.js UI (`web`)  | `http://localhost:4000` | `-p 4000` in the web `dev` and `start` scripts |
-| Hono API (`server`) | `http://localhost:5000` | `HOST` and `PORT` in `apps/server/.env`        |
+| App                       | Default origin          | Configured by                                  |
+| ------------------------- | ----------------------- | ---------------------------------------------- |
+| Next.js UI (`legacy-web`) | `http://localhost:4000` | `-p 4000` in the web `dev` and `start` scripts |
+| Hono API (`server`)       | `http://localhost:5000` | `HOST` and `PORT` in `apps/server/.env`        |
 
 Next.js reads its port from the CLI, not from `.env`, so the web scripts pass
-`-p 4000` explicitly; change it with `pnpm dev:web -- -p 4001` and update
+`-p 4000` explicitly; change it with `pnpm dev:legacy-web -- -p 4001` and update
 `BETTER_AUTH_URL` to match. The web `start` script names port 4000 through
 dotenvx, which leaves a `PORT` the environment already sets in place, so a
 deployment platform that injects `PORT` still wins. The server reads `HOST`
@@ -293,7 +293,7 @@ requires `db:push` until the user explicitly authorizes switching to migrations.
 PostgreSQL stores its initialized credentials in the persistent data volume.
 Changing `POSTGRES_PASSWORD` in `.env.local` does not change the password of an
 already initialized database; update the existing database password, `.env.local`,
-and `DATABASE_URL` in `apps/web/.env` and `packages/database/.env` together when
+and `DATABASE_URL` in `apps/legacy-web/.env` and `packages/database/.env` together when
 changing credentials.
 
 ## Tests
@@ -306,14 +306,14 @@ pnpm run ci        # Routine static, type, unit, integration, and contract check
 pnpm run ci:e2e    # Explicit production-build browser compatibility gate
 ```
 
-Tests load `apps/web/.env` in every environment. GitHub Actions copies the
-checked-in `apps/web/.env.ci.example` to `apps/web/.env` before running checks.
+Tests load `apps/legacy-web/.env` in every environment. GitHub Actions copies the
+checked-in `apps/legacy-web/.env.ci.example` to `apps/legacy-web/.env` before running checks.
 Runtime environment validation
 stays enabled. Testcontainers supplies the database URL, and the browser runner
 overrides the app URL with its actual port.
 
 Unit tests (`*.unit.test.ts`) are colocated with their source modules. Run them
-without Docker using `pnpm --filter @bookkeeping/web exec vitest run --project unit`.
+without Docker using `pnpm --filter @bookkeeping/legacy-web exec vitest run --project unit`.
 
 Integration tests (`*.integration.test.ts`) use Testcontainers to start a disposable
 PostgreSQL 18 database on an available port. Docker must be running. The harness,
@@ -322,12 +322,12 @@ database package's `db:push`, provides its connection URL to test workers, and
 stops the container after the suite. Every test runs inside a
 transaction that is rolled back, except concurrency checks that use committed
 writes isolated by owner. No local development database is used. Run this suite
-alone using `pnpm --filter @bookkeeping/web exec vitest run --project integration`.
+alone using `pnpm --filter @bookkeeping/legacy-web exec vitest run --project integration`.
 
-Browser tests live in `apps/web/tests/e2e/` and need Chromium once:
+Browser tests live in `apps/legacy-web/tests/e2e/` and need Chromium once:
 
 ```bash
-pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium
+pnpm --filter @bookkeeping/legacy-web exec playwright install --with-deps chromium
 ```
 
 The browser runner creates its own disposable PostgreSQL database, pushes the
@@ -373,9 +373,9 @@ Open [localhost:9000](http://localhost:9000) and use the admin credentials from
 before running setup. Do not commit or share `.env.sonar`.
 
 The scanner analyzes
-`apps/web/src/`, `apps/server/src/`, `packages/domain/src/`,
+`apps/legacy-web/src/`, `apps/server/src/`, `packages/domain/src/`,
 `packages/database/src/`, `packages/application/src/`, and `packages/auth/src/`
-and classifies colocated Vitest tests and `apps/web/tests/` as test code. It does
+and classifies colocated Vitest tests and `apps/legacy-web/tests/` as test code. It does
 not run tests or generate coverage; coverage reporting is not configured.
 
 `pnpm sonar:stop` stops this stack and retains its database and analysis data.
@@ -414,7 +414,7 @@ The explicit `pnpm run ci:e2e` compatibility gate builds the application and
 runs the browser suite against the production server using `next start`; run it
 on its own, never beside another heavy task.
 `pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
-caches and parallelizes per-workspace tasks across `apps/web`, `apps/server`,
+caches and parallelizes per-workspace tasks across `apps/legacy-web`, `apps/server`,
 and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
 `pnpm test:e2e` always uses `next dev`; `pnpm run ci:e2e` selects the
 production-build `next start` mode.
@@ -433,13 +433,13 @@ and browser tests.
 To run the workflow locally, install `act`, start Docker, and run:
 
 ```bash
-cp apps/web/.env.ci.example apps/web/.env.ci
+cp apps/legacy-web/.env.ci.example apps/legacy-web/.env.ci
 act push -j ci
 ```
 
 `.actrc` selects the `catthehacker/ubuntu:act-latest` runner image and
-`linux/amd64` architecture and loads `apps/web/.env.ci` instead of the local
-development `apps/web/.env`. Both are ignored by Git; only the templates are
-committed. The workflow copies `apps/web/.env.ci.example` to `apps/web/.env`
+`linux/amd64` architecture and loads `apps/legacy-web/.env.ci` instead of the local
+development `apps/legacy-web/.env`. Both are ignored by Git; only the templates are
+committed. The workflow copies `apps/legacy-web/.env.ci.example` to `apps/legacy-web/.env`
 inside the runner.
 Testcontainers manages PostgreSQL, so local CI needs Docker access.

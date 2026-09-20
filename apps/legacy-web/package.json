@@ -1,5 +1,5 @@
 {
-  "name": "@bookkeeping/web",
+  "name": "@bookkeeping/legacy-web",
   "version": "0.1.0",
   "private": true,
   "scripts": {

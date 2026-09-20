@@ -147,7 +147,10 @@
   },
   "overrides": [
     {
-      "includes": ["apps/web/src/**/index.ts", "apps/web/src/**/index.tsx"],
+      "includes": [
+        "apps/legacy-web/src/**/index.ts",
+        "apps/legacy-web/src/**/index.tsx"
+      ],
       "linter": {
         "rules": {
           "performance": {
@@ -158,19 +161,19 @@
     },
     {
       "includes": [
-        "apps/web/src/app/**/page.tsx",
-        "apps/web/src/app/**/layout.tsx",
-        "apps/web/src/app/**/loading.tsx",
-        "apps/web/src/app/**/error.tsx",
-        "apps/web/src/app/**/global-error.tsx",
-        "apps/web/src/app/**/not-found.tsx",
-        "apps/web/src/app/**/global-not-found.tsx",
-        "apps/web/src/app/**/template.tsx",
-        "apps/web/src/app/**/default.tsx",
-        "apps/web/next.config.ts",
-        "apps/web/playwright.config.ts",
-        "apps/web/vitest.config.mts",
-        "apps/web/postcss.config.mjs",
+        "apps/legacy-web/src/app/**/page.tsx",
+        "apps/legacy-web/src/app/**/layout.tsx",
+        "apps/legacy-web/src/app/**/loading.tsx",
+        "apps/legacy-web/src/app/**/error.tsx",
+        "apps/legacy-web/src/app/**/global-error.tsx",
+        "apps/legacy-web/src/app/**/not-found.tsx",
+        "apps/legacy-web/src/app/**/global-not-found.tsx",
+        "apps/legacy-web/src/app/**/template.tsx",
+        "apps/legacy-web/src/app/**/default.tsx",
+        "apps/legacy-web/next.config.ts",
+        "apps/legacy-web/playwright.config.ts",
+        "apps/legacy-web/vitest.config.mts",
+        "apps/legacy-web/postcss.config.mjs",
         "apps/server/vitest.config.mts",
         "packages/application/vitest.config.mts",
         "packages/auth/vitest.config.mts",
@@ -188,7 +191,7 @@
       }
     },
     {
-      "includes": ["apps/web/src/app/**"],
+      "includes": ["apps/legacy-web/src/app/**"],
       "linter": {
         "rules": {
           "style": {

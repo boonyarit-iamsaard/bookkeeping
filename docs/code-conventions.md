@@ -69,7 +69,7 @@ directory, following the Bulletproof React reference; neither Hono nor Vitest
 prescribes a location. The database package exposes its fixtures as
 `@bookkeeping/database/testing`, and the server keeps its unit and integration
 app factories in `apps/server/src/testing/`. Playwright helpers stay beside the
-specs in `apps/web/tests/e2e/helpers/`. Test helpers are excluded from production
+specs in `apps/legacy-web/tests/e2e/helpers/`. Test helpers are excluded from production
 builds.
 
 ## Rule ownership

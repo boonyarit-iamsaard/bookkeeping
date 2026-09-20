@@ -25,7 +25,7 @@ jobs:
       # the db:push child process. apps/server needs none either: its suites
       # construct their own configuration and its build reads no environment.
       - name: Configure CI environment
-        run: cp apps/web/.env.ci.example apps/web/.env
+        run: cp apps/legacy-web/.env.ci.example apps/legacy-web/.env
 
       - name: Enable corepack
         run: corepack enable
@@ -43,7 +43,7 @@ jobs:
         run: pnpm run ci
 
       - name: Install Playwright browsers
-        run: pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium
+        run: pnpm --filter @bookkeeping/legacy-web exec playwright install --with-deps chromium
 
       - name: Run browser compatibility suite
         run: pnpm run ci:e2e
