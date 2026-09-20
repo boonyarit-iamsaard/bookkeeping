@@ -23,12 +23,8 @@ import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
 import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
+import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
 import {
-  idempotencyConflictProblem,
-  idempotencyKeyMiddleware,
-} from "../../core/http/idempotency.js";
-import {
-  describeProblem,
   describeProblemResponse,
   describeProblemVariant,
 } from "../../core/http/openapi.js";
@@ -36,16 +32,22 @@ import type {
   ProblemFieldError,
   ProblemOptions,
 } from "../../core/http/problem-details.js";
-import {
-  createProblemResponse,
-  getProblemOptionsForStatus,
-  problemDetailsSchema,
-} from "../../core/http/problem-details.js";
+import { problemDetailsSchema } from "../../core/http/problem-details.js";
 import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
 import {
   createCommandMiddleware,
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
+import {
+  answerCorrection,
+  answerCreation,
+  answerRead,
+  answerRemoval,
+  describeCorrection,
+  describeCreation,
+  describeRead,
+  NOT_FOUND,
+} from "../../core/http/resource-answers.js";
 
 export const categoryResponseSchema = z
   .object({
@@ -124,8 +126,6 @@ const COLLECTION_PATH = "/categories";
 const USAGE_COLLECTION_PATH = "/categories/usage";
 const RESOURCE_PATH = "/categories/:categoryId";
 const USAGE_PATH = "/categories/:categoryId/usage";
-const LOCATION_HEADER = "Location";
-
 const categoryParamsSchema = z.object({ categoryId: z.uuid() });
 const categoryParamMiddleware =
   createResourceParamMiddleware(categoryParamsSchema);
@@ -270,36 +270,13 @@ export function createCategoryRoutes(db: Database) {
               ownerId: c.get("session").user.id,
               idempotencyKey: c.req.valid("header")["idempotency-key"],
             });
-            if (!created.ok) {
-              if (created.error.code === "idempotency-conflict") {
-                return createProblemResponse(c, idempotencyConflictProblem);
-              }
-              return createProblemResponse(c, {
-                ...getProblemOptionsForStatus(422),
-                errors: [toCategoryFieldError(created.error)],
-              });
-            }
-            const category = created.value.category;
-            return c.json(category, 201, {
-              [LOCATION_HEADER]: `${c.req.path}/${category.id}`,
+            return answerCreation(c, {
+              result: created,
+              present: (outcome) => outcome.category,
+              toFieldErrors: (rejection) => [toCategoryFieldError(rejection)],
             });
           },
-          {
-            201: {
-              description: "The created category, or the original on a replay",
-              headers: {
-                [LOCATION_HEADER]: {
-                  description: "Where the created category can be retrieved",
-                  schema: { type: "string" },
-                },
-              },
-              content: {
-                "application/json": { vSchema: categoryResponseSchema },
-              },
-            },
-            409: describeProblem(idempotencyConflictProblem),
-            422: describeProblem(getProblemOptionsForStatus(422)),
-          },
+          describeCreation("category", categoryResponseSchema),
         ),
       )
       .get(
@@ -419,20 +396,12 @@ export function createCategoryRoutes(db: Database) {
               ownerId: c.get("session").user.id,
               id: c.req.param("categoryId"),
             });
-            if (category === null) {
-              return createProblemResponse(c, getProblemOptionsForStatus(404));
-            }
-            return c.json(category, 200);
+            return answerRead(c, {
+              value: category,
+              present: (found) => found,
+            });
           },
-          {
-            200: {
-              description: "The category",
-              content: {
-                "application/json": { vSchema: categoryResponseSchema },
-              },
-            },
-            404: describeProblem(getProblemOptionsForStatus(404)),
-          },
+          describeRead("The category", categoryResponseSchema),
         ),
       )
       .patch(
@@ -474,30 +443,19 @@ export function createCategoryRoutes(db: Database) {
               name: body.name,
               iconId: body.iconId,
             });
-            if (!updated.ok) {
-              if (updated.error.code === "category-not-found") {
-                return createProblemResponse(
-                  c,
-                  getProblemOptionsForStatus(404),
-                );
-              }
-              return createProblemResponse(c, {
-                ...getProblemOptionsForStatus(422),
-                errors: [toCategoryUpdateFieldError(updated.error)],
-              });
-            }
-            return c.json(updated.value, 200);
+            return answerCorrection(c, {
+              result: updated,
+              present: (category) => category,
+              toFieldErrors: (error) =>
+                error.code === "category-not-found"
+                  ? NOT_FOUND
+                  : [toCategoryUpdateFieldError(error)],
+            });
           },
-          {
-            200: {
-              description: "The category with its updated presentation",
-              content: {
-                "application/json": { vSchema: categoryResponseSchema },
-              },
-            },
-            404: describeProblem(getProblemOptionsForStatus(404)),
-            422: describeProblem(getProblemOptionsForStatus(422)),
-          },
+          describeCorrection(
+            "The category with its updated presentation",
+            categoryResponseSchema,
+          ),
         ),
       )
       .delete(
@@ -530,16 +488,13 @@ export function createCategoryRoutes(db: Database) {
             ownerId: c.get("session").user.id,
             id: c.req.valid("param").categoryId,
           });
-          if (!removed.ok) {
-            if (removed.error.code === "category-not-found") {
-              return createProblemResponse(c, getProblemOptionsForStatus(404));
-            }
-            return createProblemResponse(
-              c,
-              categoryRemovalProblems[removed.error.code],
-            );
-          }
-          return c.body(null, 204);
+          return answerRemoval(c, {
+            result: removed,
+            toBlockerProblem: (error) =>
+              error.code === "category-not-found"
+                ? NOT_FOUND
+                : categoryRemovalProblems[error.code],
+          });
         },
       )
       .get(
@@ -572,22 +527,15 @@ export function createCategoryRoutes(db: Database) {
               ownerId: c.get("session").user.id,
               id: c.req.param("categoryId"),
             });
-            if (usage === null) {
-              return createProblemResponse(c, getProblemOptionsForStatus(404));
-            }
-            return c.json(usage, 200);
+            return answerRead(c, {
+              value: usage,
+              present: (found) => found,
+            });
           },
-          {
-            200: {
-              description: "The category's transactions and children",
-              content: {
-                "application/json": {
-                  vSchema: categoryUsageResponseSchema,
-                },
-              },
-            },
-            404: describeProblem(getProblemOptionsForStatus(404)),
-          },
+          describeRead(
+            "The category's transactions and children",
+            categoryUsageResponseSchema,
+          ),
         ),
       )
       .post(

@@ -20,10 +20,7 @@ import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
 import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
-import {
-  idempotencyConflictProblem,
-  idempotencyKeyMiddleware,
-} from "../../core/http/idempotency.js";
+import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
 import type { Money } from "../../core/http/money.js";
 import {
   currencySchema,
@@ -41,7 +38,6 @@ import type {
   ProblemOptions,
 } from "../../core/http/problem-details.js";
 import {
-  createProblemResponse,
   getProblemOptionsForStatus,
   problemDetailsSchema,
 } from "../../core/http/problem-details.js";
@@ -54,6 +50,16 @@ import {
   createQueryMiddleware,
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
+import {
+  answerCorrection,
+  answerCreation,
+  answerRead,
+  answerRemoval,
+  describeCorrection,
+  describeCreation,
+  describeRead,
+  NOT_FOUND,
+} from "../../core/http/resource-answers.js";
 
 export const walletResponseSchema = z
   .object({
@@ -203,7 +209,6 @@ export const historyRemainsProblem: ProblemOptions<409> = {
   title: "Wallet still has transactions or history",
 };
 
-const LOCATION_HEADER = "Location";
 const COLLECTION_PATH = "/wallets";
 const RESOURCE_PATH = "/wallets/:walletId";
 const OPENING_PATH = "/wallets/:walletId/opening";
@@ -250,38 +255,14 @@ export function createWalletRoutes(db: Database) {
             openingAmount: body.openingAmount.amountInMinorUnits,
             openingDate: body.openingDate,
           });
-          if (!created.ok) {
-            if (created.error.code === "idempotency-conflict") {
-              return createProblemResponse(c, idempotencyConflictProblem);
-            }
-            return createProblemResponse(c, {
-              ...getProblemOptionsForStatus(422),
-              errors: created.error.issues.map(toWalletFieldError),
-            });
-          }
-          const wallet = presentWallet(created.value.wallet);
-          // The mount prefix is only known from the request, so the location
-          // is built from the collection path actually served.
-          return c.json(wallet, 201, {
-            [LOCATION_HEADER]: `${c.req.path}/${wallet.id}`,
+          return answerCreation(c, {
+            result: created,
+            present: (outcome) => presentWallet(outcome.wallet),
+            toFieldErrors: (rejection) =>
+              rejection.issues.map(toWalletFieldError),
           });
         },
-        {
-          201: {
-            description: "The created wallet, or the original on a replay",
-            headers: {
-              [LOCATION_HEADER]: {
-                description: "Where the created wallet can be retrieved",
-                schema: { type: "string" },
-              },
-            },
-            content: {
-              "application/json": { vSchema: walletResponseSchema },
-            },
-          },
-          409: describeProblem(idempotencyConflictProblem),
-          422: describeProblem(getProblemOptionsForStatus(422)),
-        },
+        describeCreation("wallet", walletResponseSchema),
       ),
     )
     .get(
@@ -363,20 +344,9 @@ export function createWalletRoutes(db: Database) {
             ownerId: c.get("session").user.id,
             id: c.req.param("walletId"),
           });
-          if (wallet === null) {
-            return createProblemResponse(c, getProblemOptionsForStatus(404));
-          }
-          return c.json(presentWallet(wallet), 200);
+          return answerRead(c, { value: wallet, present: presentWallet });
         },
-        {
-          200: {
-            description: "The wallet",
-            content: {
-              "application/json": { vSchema: walletResponseSchema },
-            },
-          },
-          404: describeProblem(getProblemOptionsForStatus(404)),
-        },
+        describeRead("The wallet", walletResponseSchema),
       ),
     )
     .put(
@@ -418,27 +388,19 @@ export function createWalletRoutes(db: Database) {
             openingAmount: body.amount.amountInMinorUnits,
             openingDate: body.date,
           });
-          if (!replaced.ok) {
-            if (replaced.error.code === "wallet-not-found") {
-              return createProblemResponse(c, getProblemOptionsForStatus(404));
-            }
-            return createProblemResponse(c, {
-              ...getProblemOptionsForStatus(422),
-              errors: toOpeningFieldErrors(replaced.error),
-            });
-          }
-          return c.json(presentWallet(replaced.value), 200);
+          return answerCorrection(c, {
+            result: replaced,
+            present: presentWallet,
+            toFieldErrors: (error) =>
+              error.code === "wallet-not-found"
+                ? NOT_FOUND
+                : toOpeningFieldErrors(error),
+          });
         },
-        {
-          200: {
-            description: "The wallet with its replaced opening balance",
-            content: {
-              "application/json": { vSchema: walletResponseSchema },
-            },
-          },
-          404: describeProblem(getProblemOptionsForStatus(404)),
-          422: describeProblem(getProblemOptionsForStatus(422)),
-        },
+        describeCorrection(
+          "The wallet with its replaced opening balance",
+          walletResponseSchema,
+        ),
       ),
     )
     .patch(
@@ -477,21 +439,16 @@ export function createWalletRoutes(db: Database) {
             id: c.req.valid("param").walletId,
             archived: body.archived,
           });
-          if (!changed.ok) {
-            return createProblemResponse(c, getProblemOptionsForStatus(404));
-          }
-          return c.json(presentWallet(changed.value), 200);
+          // Only "not found" can refuse this; the command middleware owns the 422.
+          return answerRead(c, {
+            value: changed.ok ? changed.value : null,
+            present: presentWallet,
+          });
         },
-        {
-          200: {
-            description: "The wallet with its changed archived state",
-            content: {
-              "application/json": { vSchema: walletResponseSchema },
-            },
-          },
-          404: describeProblem(getProblemOptionsForStatus(404)),
-          422: describeProblem(getProblemOptionsForStatus(422)),
-        },
+        describeCorrection(
+          "The wallet with its changed archived state",
+          walletResponseSchema,
+        ),
       ),
     )
     .delete(
@@ -521,13 +478,13 @@ export function createWalletRoutes(db: Database) {
           ownerId: c.get("session").user.id,
           id: c.req.valid("param").walletId,
         });
-        if (!deleted.ok) {
-          if (deleted.error.code === "wallet-not-found") {
-            return createProblemResponse(c, getProblemOptionsForStatus(404));
-          }
-          return createProblemResponse(c, historyRemainsProblem);
-        }
-        return c.body(null, 204);
+        return answerRemoval(c, {
+          result: deleted,
+          toBlockerProblem: (error) =>
+            error.code === "wallet-not-found"
+              ? NOT_FOUND
+              : historyRemainsProblem,
+        });
       },
     );
 }

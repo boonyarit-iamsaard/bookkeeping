@@ -27,10 +27,7 @@ import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
 import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
-import {
-  idempotencyConflictProblem,
-  idempotencyKeyMiddleware,
-} from "../../core/http/idempotency.js";
+import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
 import {
   moneyInputSchema,
   moneySchema,
@@ -61,6 +58,16 @@ import {
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
 
+import {
+  answerCorrection,
+  answerCreation,
+  answerRead,
+  answerRemoval,
+  describeCorrection,
+  describeCreation,
+  describeRead,
+  NOT_FOUND,
+} from "../../core/http/resource-answers.js";
 import {
   decodeTransactionCursor,
   encodeTransactionCursor,
@@ -322,7 +329,6 @@ export function presentTransactionRefunds(
 // never captured by the identifier route.
 const DEFAULT_TRANSACTION_PAGE_LIMIT = 50;
 const MAX_TRANSACTION_PAGE_LIMIT = 100;
-const LOCATION_HEADER = "Location";
 const COLLECTION_PATH = "/transactions";
 const ENTRY_DEFAULTS_PATH = "/transactions/entry-defaults";
 const RESOURCE_PATH = "/transactions/:transactionId";
@@ -432,36 +438,14 @@ export function createTransactionRoutes(db: Database) {
             transactionDate: body.transactionDate,
             note: body.note,
           });
-          if (!created.ok) {
-            if (created.error.code === "idempotency-conflict") {
-              return createProblemResponse(c, idempotencyConflictProblem);
-            }
-            return createProblemResponse(c, {
-              ...getProblemOptionsForStatus(422),
-              errors: toFieldErrors(created.error, CREATE_FIELD_POINTERS),
-            });
-          }
-          const transaction = presentTransaction(created.value.transaction);
-          return c.json(transaction, 201, {
-            [LOCATION_HEADER]: `${c.req.path}/${transaction.id}`,
+          return answerCreation(c, {
+            result: created,
+            present: (outcome) => presentTransaction(outcome.transaction),
+            toFieldErrors: (rejection) =>
+              toFieldErrors(rejection, CREATE_FIELD_POINTERS),
           });
         },
-        {
-          201: {
-            description: "The created transaction, or the original on a replay",
-            headers: {
-              [LOCATION_HEADER]: {
-                description: "Where the created transaction can be retrieved",
-                schema: { type: "string" },
-              },
-            },
-            content: {
-              "application/json": { vSchema: transactionResponseSchema },
-            },
-          },
-          409: describeProblem(idempotencyConflictProblem),
-          422: describeProblem(getProblemOptionsForStatus(422)),
-        },
+        describeCreation("transaction", transactionResponseSchema),
       ),
     )
     .get(
@@ -612,20 +596,12 @@ export function createTransactionRoutes(db: Database) {
             ownerId: c.get("session").user.id,
             id: c.req.param("transactionId"),
           });
-          if (transaction === null) {
-            return createProblemResponse(c, getProblemOptionsForStatus(404));
-          }
-          return c.json(presentTransaction(transaction), 200);
+          return answerRead(c, {
+            value: transaction,
+            present: presentTransaction,
+          });
         },
-        {
-          200: {
-            description: "The transaction",
-            content: {
-              "application/json": { vSchema: transactionResponseSchema },
-            },
-          },
-          404: describeProblem(getProblemOptionsForStatus(404)),
-        },
+        describeRead("The transaction", transactionResponseSchema),
       ),
     )
     .put(
@@ -677,27 +653,19 @@ export function createTransactionRoutes(db: Database) {
             transactionDate: body.transactionDate,
             note: body.note,
           });
-          if (!updated.ok) {
-            if (updated.error.code === "transaction-not-found") {
-              return createProblemResponse(c, getProblemOptionsForStatus(404));
-            }
-            return createProblemResponse(c, {
-              ...getProblemOptionsForStatus(422),
-              errors: toFieldErrors(updated.error, UPDATE_FIELD_POINTERS),
-            });
-          }
-          return c.json(presentTransaction(updated.value), 200);
+          return answerCorrection(c, {
+            result: updated,
+            present: presentTransaction,
+            toFieldErrors: (error) =>
+              error.code === "transaction-not-found"
+                ? NOT_FOUND
+                : toFieldErrors(error, UPDATE_FIELD_POINTERS),
+          });
         },
-        {
-          200: {
-            description: "The updated transaction",
-            content: {
-              "application/json": { vSchema: transactionResponseSchema },
-            },
-          },
-          404: describeProblem(getProblemOptionsForStatus(404)),
-          422: describeProblem(getProblemOptionsForStatus(422)),
-        },
+        describeCorrection(
+          "The updated transaction",
+          transactionResponseSchema,
+        ),
       ),
     )
     .delete(
@@ -731,18 +699,18 @@ export function createTransactionRoutes(db: Database) {
           ownerId: c.get("session").user.id,
           id: c.req.valid("param").transactionId,
         });
-        if (!deleted.ok) {
-          if (deleted.error.code === "transaction-not-found") {
-            return createProblemResponse(c, getProblemOptionsForStatus(404));
-          }
-          return createProblemResponse(c, {
-            ...refundsExistProblem,
-            extensions: {
-              refunds: deleted.error.refunds.map(presentTransactionRefund),
-            },
-          });
-        }
-        return c.body(null, 204);
+        return answerRemoval(c, {
+          result: deleted,
+          toBlockerProblem: (error) =>
+            error.code === "transaction-not-found"
+              ? NOT_FOUND
+              : {
+                  ...refundsExistProblem,
+                  extensions: {
+                    refunds: error.refunds.map(presentTransactionRefund),
+                  },
+                },
+        });
       },
     )
     .get(
@@ -774,22 +742,15 @@ export function createTransactionRoutes(db: Database) {
             ownerId: c.get("session").user.id,
             id: c.req.param("transactionId"),
           });
-          if (refunds === null) {
-            return createProblemResponse(c, getProblemOptionsForStatus(404));
-          }
-          return c.json(presentTransactionRefunds(refunds), 200);
+          return answerRead(c, {
+            value: refunds,
+            present: presentTransactionRefunds,
+          });
         },
-        {
-          200: {
-            description: "The expense's refunds and refundable remainder",
-            content: {
-              "application/json": {
-                vSchema: transactionRefundsResponseSchema,
-              },
-            },
-          },
-          404: describeProblem(getProblemOptionsForStatus(404)),
-        },
+        describeRead(
+          "The expense's refunds and refundable remainder",
+          transactionRefundsResponseSchema,
+        ),
       ),
     );
 }
