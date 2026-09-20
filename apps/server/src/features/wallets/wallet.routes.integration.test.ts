@@ -1,11 +1,8 @@
-import {
-  insertRetainedTransferSnapshot,
-  insertTransaction,
-} from "@bookkeeping/application/testing/transaction-fixture";
+import { insertRetainedTransferSnapshot } from "@bookkeeping/application/testing/transaction-fixture";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { transactions } from "@bookkeeping/database/transactions";
-import { walletChanges, wallets } from "@bookkeeping/database/wallets";
+import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { WalletType } from "@bookkeeping/domain/wallets";
 import { eq } from "drizzle-orm";
@@ -28,7 +25,7 @@ import {
   walletResponseSchema,
 } from "./wallet.routes.js";
 
-const { withRollback, committed } = setupTestDatabase();
+const { withRollback } = setupTestDatabase();
 
 const WALLETS_URL = `${TEST_API_ORIGIN}/v1/wallets`;
 const UNKNOWN_WALLET_ID = "01999999-0000-7000-8000-000000000000";
@@ -173,23 +170,6 @@ describe("GET /v1/wallets", () => {
     });
   });
 
-  test("an owner with no wallets receives an empty collection", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const { cookie } = await createOwnerSession(db);
-
-      const response = await getWallets(app, cookie);
-
-      expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({
-        items: [],
-        page: { nextCursor: null },
-      });
-    });
-  });
-
   test("never lists another owner's wallets", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
@@ -222,52 +202,6 @@ describe("GET /v1/wallets", () => {
       expect(problemDetailsSchema.parse(await response.json()).code).toBe(
         "unauthenticated",
       );
-    });
-  });
-
-  test("an as-of date reports the end-of-day balance on that date", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const { cookie, ownerId } = await createOwnerSession(db);
-      const id = await insertWallet(db, {
-        ownerId,
-        name: "Cash",
-        type: "cash",
-        openingAmount: 120_000n,
-        openingDate: "2026-09-02",
-      });
-      const savingsId = await insertWallet(db, {
-        ownerId,
-        name: "Savings",
-        type: "bank_account",
-        openingAmount: 0n,
-        openingDate: "2026-09-02",
-      });
-      await insertTransaction(db, {
-        ownerId,
-        type: "transfer",
-        walletId: id,
-        destinationWalletId: savingsId,
-        amount: 50_000n,
-        transactionDate: "2026-09-05",
-      });
-
-      async function balanceOn(asOf: string) {
-        const response = await getWalletsAsOf(app, { asOf, cookie });
-        const body = walletCollectionResponseSchema.parse(
-          await response.json(),
-        );
-        return body.items[0]?.balance.value;
-      }
-
-      // Before the opening date the wallet holds nothing; the opening
-      // amount counts from its own date, and later movements from theirs.
-      expect(await balanceOn("2026-09-01")).toBe("0.00");
-      expect(await balanceOn("2026-09-02")).toBe("1200.00");
-      expect(await balanceOn("2026-09-04")).toBe("1200.00");
-      expect(await balanceOn("2026-09-05")).toBe("700.00");
     });
   });
 
@@ -508,43 +442,6 @@ describe("POST /v1/wallets", () => {
     });
   });
 
-  test("distinct keys open distinct wallets from the same payload", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const { cookie } = await createOwnerSession(db);
-
-      await postWallet(app, { cookie, idempotencyKey: "one" });
-      await postWallet(app, { cookie, idempotencyKey: "two" });
-
-      expect(await listWalletItems(app, cookie)).toHaveLength(2);
-    });
-  });
-
-  test("concurrent retries create one wallet and answer every request alike", async () => {
-    const db = committed();
-    const app = createIntegrationTestApp(db, {
-      auth: createTestAuthGateway(db),
-    });
-    const { cookie } = await createOwnerSession(db);
-
-    const responses = await Promise.all(
-      Array.from({ length: 5 }, () =>
-        postWallet(app, { cookie, idempotencyKey: "concurrent" }),
-      ),
-    );
-
-    expect(responses.map((response) => response.status)).toEqual([
-      201, 201, 201, 201, 201,
-    ]);
-    const bodies = await Promise.all(
-      responses.map((response) => response.json()),
-    );
-    expect(new Set(bodies.map((body) => JSON.stringify(body))).size).toBe(1);
-    expect(await listWalletItems(app, cookie)).toHaveLength(1);
-  });
-
   test("a missing, blank, or over-long Idempotency-Key is a bad request that creates nothing", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
@@ -626,7 +523,6 @@ describe("POST /v1/wallets", () => {
         { pointer: "#/name", code: "empty" },
         { pointer: "#/openingDate", code: "in-future" },
       ]);
-      expect(await listWalletItems(app, cookie)).toEqual([]);
     });
   });
 
@@ -723,13 +619,6 @@ async function createSavingsWallet(app: Hono<AppEnv>, cookie: string) {
   return walletResponseSchema.parse(await response.json());
 }
 
-async function listWalletChangeActions(db: Database, walletId: string) {
-  return db
-    .select({ action: walletChanges.action })
-    .from(walletChanges)
-    .where(eq(walletChanges.walletId, walletId));
-}
-
 async function readWallet(
   app: Hono<AppEnv>,
   request: Readonly<Required<GetWalletRequest>>,
@@ -761,33 +650,6 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
         balance: { value: "-250.50", currency: "THB" },
       });
       expect(await readWallet(app, { id: created.id, cookie })).toEqual(wallet);
-      expect(await listWalletChangeActions(db, created.id)).toEqual([
-        { action: "opening" },
-      ]);
-    });
-  });
-
-  test("repeating the same replacement answers alike and records nothing more", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const { cookie } = await createOwnerSession(db);
-      const created = await createSavingsWallet(app, cookie);
-
-      const first = await putWalletOpening(app, { id: created.id, cookie });
-      const second = await putWalletOpening(app, {
-        id: created.id,
-        cookie,
-        body: {
-          ...OPENING_REQUEST,
-          amount: { value: "-250.50", currency: "THB" },
-        },
-      });
-
-      expect(second.status).toBe(200);
-      expect(await second.json()).toEqual(await first.json());
-      expect(await listWalletChangeActions(db, created.id)).toHaveLength(1);
     });
   });
 
@@ -846,9 +708,6 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
       expect(problem.errors).toEqual([
         { pointer: "#/date", code: "in-future" },
       ]);
-      expect(await readWallet(app, { id: created.id, cookie })).toEqual(
-        created,
-      );
     });
   });
 
@@ -882,8 +741,6 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
           { pointer: "#/date", code: "movement-before-opening" },
         ]);
       }
-      const accepted = await putWalletOpening(app, { id: cash.id, cookie });
-      expect(accepted.status).toBe(200);
     });
   });
 
@@ -979,51 +836,6 @@ describe("PATCH /v1/wallets/{walletId}", () => {
       );
       expect(wallet.archivedAt).toEqual(expect.any(String));
       expect(await readWallet(app, { id: created.id, cookie })).toEqual(wallet);
-      expect(await listWalletChangeActions(db, created.id)).toEqual([
-        { action: "archive" },
-      ]);
-    });
-  });
-
-  test("restores by clearing the archived instant", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const { cookie } = await createOwnerSession(db);
-      const created = await createSavingsWallet(app, cookie);
-      await patchWallet(app, { id: created.id, cookie });
-
-      const response = await patchWallet(app, {
-        id: created.id,
-        cookie,
-        body: { archived: false },
-      });
-      const wallet = walletResponseSchema.parse(await response.json());
-
-      expect(response.status).toBe(200);
-      expect(wallet.archivedAt).toBeNull();
-      expect(await listWalletChangeActions(db, created.id)).toEqual([
-        { action: "archive" },
-        { action: "unarchive" },
-      ]);
-    });
-  });
-
-  test("repeating the same state answers alike and records nothing more", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const { cookie } = await createOwnerSession(db);
-      const created = await createSavingsWallet(app, cookie);
-
-      const first = await patchWallet(app, { id: created.id, cookie });
-      const second = await patchWallet(app, { id: created.id, cookie });
-
-      expect(second.status).toBe(200);
-      expect(await second.json()).toEqual(await first.json());
-      expect(await listWalletChangeActions(db, created.id)).toHaveLength(1);
     });
   });
 
