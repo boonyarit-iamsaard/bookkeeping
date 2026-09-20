@@ -151,3 +151,43 @@ written in this ticket; it should be revisited once the decision is made.
 ### Step 4
 
 `pnpm format:check` and `pnpm lint:md` pass.
+
+**2026-09-20 — decisions resolved with the user.**
+
+### Mutation probe: accepted as-is
+
+The two red route tests (POST and PUT) each use the long note only to
+obtain the `invalid-command` representative for their endpoint; neither
+asserts the 200-character rule. This matches the convention as written
+("one representative per problem code per endpoint"); the step 2 pass
+condition ("at most one route test") was stricter than the convention it
+was checking. No test changed. The probe otherwise passes: business-rule
+failures are confined to the application suite plus the web form-schema
+unit test.
+
+### Budget probe: budget raised to ≤ 180 s
+
+Before deciding, tested whether Turborepo parallelism was the cost. Three
+`pnpm turbo run test --force --concurrency=N` runs each, nothing else
+running:
+
+| concurrency | run 1   | run 2   | run 3   | median  |
+| ----------- | ------- | ------- | ------- | ------- |
+| unlimited   | 146.9 s | 159.6 s | 138.0 s | 146.9 s |
+| 2           | 135.9 s | 193.1 s | 150.2 s | 150.2 s |
+| 1           | 164.2 s | 160.5 s | 169.9 s | 164.2 s |
+
+Capping does not help and fully sequential is slower, so contention between
+packages is not the cost; parallel wall ≈ sum of per-package standalone
+times, which is import/transform time. Neither `--concurrency` nor
+container sharing (D7) would close a ~90 s gap. Decision: keep the runner
+as-is and set the budget at ≤ 180 s (median 146.9 s passes). Updated the
+`## Test ownership` paragraph in `docs/code-conventions.md` and amended D5
+in `../decisions.md`; D7 unchanged.
+
+Two of the three concurrency-2 runs exited non-zero; output was not
+captured and a fourth captured run passed. An intermittent failure under
+that scheduling exists but was not identified. The six unlimited and
+sequential runs across both sessions all passed.
+
+`pnpm format:check` and `pnpm lint:md` pass.

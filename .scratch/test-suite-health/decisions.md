@@ -33,9 +33,14 @@ for `/to-spec`.
 ## Cost
 
 - **D5.** Budget: `pnpm test` (turbo-parallel, as `turbo.json` runs it) wall time
-  ≤ 60 s on the development machine. Baseline ≈ 81 s, bottlenecked by
-  `apps/server`. Documented in `docs/code-conventions.md`; checked by hand.
-  No CI timing gate.
+  ≤ 180 s on the development machine (2 CPUs, 5 GB). Documented in
+  `docs/code-conventions.md`; checked by hand. No CI timing gate.
+  _Amended 2026-09-20 (ticket 12):_ was ≤ 60 s, derived from the server
+  package's standalone 81 s in `facts.md` on the assumption that parallel
+  wall ≈ slowest package. Measured parallel wall is ≈ the sequential sum
+  (median 147 s); capping turbo `--concurrency` to 2 or 1 does not help
+  (medians 150 s and 164 s), so the cost is per-package import time, not
+  contention. Container sharing (D7) would not close the gap; D7 stands.
 - **D6.** Route integration tests obtain owners through a test `AuthGateway`
   (`apps/server/src/testing/`) whose `resolveSession` maps a test credential
   to a `createTestUser` row. Real Better Auth over HTTP remains covered only

@@ -87,8 +87,9 @@ Web integration tests exist only for the temporary Next.js adapter's own
 boundary, the session, until the adapter is removed.
 
 Budget: `pnpm test`, as Turborepo runs it with packages in parallel, completes
-in 60 seconds or less on the development machine. Check it by hand; it is not
-gated in CI, which keeps CI free of hardware-dependent flakes.
+in three minutes or less on the development machine (2 CPUs, 5 GB). Check it
+by hand; it is not gated in CI, which keeps CI free of hardware-dependent
+flakes.
 
 Helpers shared by a workspace's Vitest tests live in its `src/testing/`
 directory, following the Bulletproof React reference; neither Hono nor Vitest
