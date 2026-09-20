@@ -8,7 +8,7 @@ reworded; every test body moves verbatim.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Ground rules (every ticket in this effort)
 
@@ -96,3 +96,5 @@ exists; do not merge into it or change it.
 - No "Stop and ask" trigger fired. Housekeeping note: an extra `--reporter=json`
   verification run I made created an untracked `packages/application/.vitest/`
   artifact; deleted. The plain verify command above does not create it.
+
+**2026-09-20 — closed.** Resolved in `2a624f3` (test: split the application transaction suite per operation). Status line was stale after the commit landed.

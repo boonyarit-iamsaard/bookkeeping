@@ -6,7 +6,7 @@ runs several times faster with identical assertions.
 
 **Blocked by:** 01 (Test AuthGateway for route integration tests)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Ground rules (every ticket in this effort)
 
@@ -95,3 +95,5 @@ Agent run, 2026-09-19.
 **Unsure about / notes**
 
 - None. No stop-and-ask trigger fired; the diff touches only this test file.
+
+**2026-09-20 — closed.** Resolved in `a8016f9` (test: provision route suite owners through the test auth gateway). Status line was stale after the commit landed.

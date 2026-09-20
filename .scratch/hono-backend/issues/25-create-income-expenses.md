@@ -5,7 +5,7 @@ transactions with the same exact financial behavior as the current UI.
 
 **Blocked by:** 13: Introduce reusable creation idempotency; 23: Expose transaction detail and supporting reads
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Transaction creation and its core validation move to the application package without changing Next.js behavior.
 - [ ] Income and expense requests use semantic Money, owned active wallets, the correct category tree, valid calendar dates, and bounded notes.
@@ -24,3 +24,5 @@ transactions with the same exact financial behavior as the current UI.
   lock-recheck test). When this ticket moves transaction creation into the
   application package, the restriction and those cases must move with it
   into application and HTTP tests.
+
+**2026-09-20 — closed.** Resolved in `82f5258` (feat: create income and expenses over http). Status line was stale after the commit landed.

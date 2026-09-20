@@ -1,6 +1,6 @@
 # Hono backend and shared package extraction
 
-Status: ready-for-agent
+Status: done
 
 Design confirmed on 2026-09-16. This specification consolidates the grilling,
 architecture decisions, and primary-source research for ticketing.

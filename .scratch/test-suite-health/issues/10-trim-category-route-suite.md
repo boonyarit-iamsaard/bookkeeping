@@ -7,7 +7,7 @@ keeping exactly one representative per problem code per endpoint.
 
 **Blocked by:** 03 (Migrate category route suite)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Ground rules (every ticket in this effort)
 
@@ -201,3 +201,5 @@ Ran (one package at a time):
 - `pnpm --filter @bookkeeping/application exec vitest run` — 172 passed (unchanged count; the port added an assertion, not a test)
 - `pnpm --filter @bookkeeping/server exec vitest run` — 195 passed (before: 202; −7). JSON reporter, `category.routes.integration.test.ts`: 35 tests / 2777 ms before → 28 tests / 1503 ms after when run alone (file `endTime − startTime`); 2113 ms inside the full-suite run, where it shares the container with the other files
 - `pnpm --filter @bookkeeping/server types:check`, `pnpm --filter @bookkeeping/application types:check`, `pnpm lint` — clean
+
+**2026-09-20 — closed.** Resolved in `50ce770` (test: trim the category route suite to http scope). Status line was stale after the commit landed.

@@ -7,7 +7,7 @@ keeping exactly one representative per problem code per endpoint.
 
 **Blocked by:** 04 (Migrate transaction route suite), 06 (Retire web transaction test)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Ground rules (every ticket in this effort)
 
@@ -241,3 +241,5 @@ re-classified rows 5 and 7 to keep-trimmed and the seven titles that now
 overstate their trimmed bodies are written up in the judgment calls for the
 reviewer; no row became meaningless, since each kept body still asserts its
 response/status mapping.
+
+**2026-09-20 — closed.** Resolved in `f3af995` (test: trim the transaction route suite to http scope). Status line was stale after the commit landed.

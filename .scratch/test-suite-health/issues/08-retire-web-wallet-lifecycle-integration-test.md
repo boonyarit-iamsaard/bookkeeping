@@ -7,7 +7,7 @@ and then the file is deleted. No behaviour loses coverage.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Ground rules (every ticket in this effort)
 
@@ -118,3 +118,5 @@ Ran (one package at a time):
 - `pnpm --filter @bookkeeping/application exec vitest run` — 172 passed (before: 169, after tickets 06/07; +3 ports)
 - `pnpm --filter @bookkeeping/web exec vitest run` — 41 passed (before: 46, after tickets 06/07; −5)
 - `pnpm --filter @bookkeeping/application types:check`, `pnpm --filter @bookkeeping/web types:check`, `pnpm lint` — clean
+
+**2026-09-20 — closed.** Resolved in `539a5d8` (test: retire the web wallet lifecycle integration test). Status line was stale after the commit landed.

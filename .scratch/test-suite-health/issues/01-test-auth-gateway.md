@@ -7,7 +7,7 @@ gateway and migrates the smallest route suite (reports) to prove it.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Ground rules (every ticket in this effort)
 
@@ -134,3 +134,5 @@ Agent run, 2026-09-19.
 - Two code-review nudges applied: zod for the cookie value instead of a
   hand-rolled regex, and `TEST_USER_COOKIE` kept module-private (the ticket
   only asked to export the two functions).
+
+**2026-09-20 — closed.** Resolved in `cf630c6` (test: substitute a test auth gateway for real sign-ups in report routes). Status line was stale after the commit landed.

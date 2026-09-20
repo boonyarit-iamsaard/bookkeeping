@@ -1,6 +1,6 @@
 # Spec: Test suite ownership and cost
 
-Status: ready-for-agent
+Status: done
 
 Sources: `facts.md` (measurements, 2026-09-19) and `decisions.md` (interview
 outcome). Respects ADR 0003 (Hono application backend; Next.js is a temporary

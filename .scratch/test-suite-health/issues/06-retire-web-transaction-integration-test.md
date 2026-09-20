@@ -7,7 +7,7 @@ and then the file is deleted. No behaviour loses coverage.
 
 **Blocked by:** 05 (Split the application transaction suite)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Ground rules (every ticket in this effort)
 
@@ -247,3 +247,5 @@ delete file passed with `11` tests.
 `pnpm --filter @bookkeeping/application types:check`,
 `pnpm --filter @bookkeeping/web types:check`, `pnpm lint`,
 `pnpm format:check`, and `pnpm lint:md` passed. No Playwright or Sonar run.
+
+**2026-09-20 — closed.** Resolved in `b4929c3` (test: retire the web transaction and history integration tests). Status line was stale after the commit landed.

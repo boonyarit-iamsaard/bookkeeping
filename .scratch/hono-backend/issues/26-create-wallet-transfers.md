@@ -5,10 +5,14 @@ move money atomically between two owned active wallets.
 
 **Blocked by:** 25: Create income and expenses idempotently
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The transaction request contract accepts transfers without category or refund fields.
 - [ ] Source and destination are distinct, owned, active, and open by the transaction date.
 - [ ] One committed transfer changes both derived balances or neither and remains idempotent under retry and concurrency.
 - [ ] Transfer-specific validation and ownership failures use stable Problem Details.
 - [ ] Application, HTTP, runtime-schema, and OpenAPI tests cover success, replay, conflict, invalid shape, and cross-owner identifiers.
+
+## Comments
+
+**2026-09-20 — closed.** Resolved in `0674d37` (feat: create wallet transfers over http). Status line was stale after the commit landed.

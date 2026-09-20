@@ -8,7 +8,7 @@ finishes within budget.
 **Blocked by:** 07 (Retire web history test), 09 (Trim wallet route suite),
 10 (Trim category route suite), 11 (Trim transaction route suite)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Ground rules (every ticket in this effort)
 
@@ -208,3 +208,5 @@ Remaining review notes not acted on: Step 3 ran `pnpm turbo run test
 --force` rather than the literal `time pnpm test` (cache); the two
 uncaptured non-zero `--concurrency=2` exits are recorded above but not
 tracked as a ticket.
+
+**2026-09-20 — closed.** Resolved in `c1116cd` (docs: apply the ticket 12 review to the test ownership rule). Status line was stale after the commit landed.

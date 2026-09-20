@@ -7,7 +7,7 @@ keeping exactly one representative per problem code per endpoint.
 
 **Blocked by:** 02 (Migrate wallet route suite), 08 (Retire web wallet-lifecycle test)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Ground rules (every ticket in this effort)
 
@@ -200,3 +200,5 @@ Ran (one package at a time):
 - `pnpm --filter @bookkeeping/application exec vitest run` — 172 passed (unchanged; no ports needed)
 - `pnpm --filter @bookkeeping/server exec vitest run` — 202 passed (before: 209; −7). JSON reporter, `wallet.routes.integration.test.ts`: 39 tests / 377 ms before → 32 tests / 268 ms after (file `endTime − startTime`; run-to-run noise is a few tens of ms)
 - `pnpm --filter @bookkeeping/server types:check`, `pnpm --filter @bookkeeping/application types:check`, `pnpm lint` — clean
+
+**2026-09-20 — closed.** Resolved in `d2cf71a` (test: trim the wallet route suite to http scope). Status line was stale after the commit landed.
