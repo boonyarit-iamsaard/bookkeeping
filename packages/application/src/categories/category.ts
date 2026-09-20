@@ -18,11 +18,8 @@ import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import * as z from "zod";
 import type {
-  CreationResultCodec,
   IdempotencyConflict,
-  StoredCreationResult,
   ValidatedPayload,
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
@@ -503,51 +500,6 @@ export function validateCategoryCreation(
   return ok({ ...input, name });
 }
 
-const categorySummarySchema = z.object({
-  id: z.uuid(),
-  kind: z.enum(CATEGORY_KINDS),
-  parentId: z.uuid().nullable(),
-  name: z.string(),
-  iconId: z.string(),
-  isProtected: z.boolean(),
-});
-
-const storedCategoryResultSchema = z.object({
-  category: categorySummarySchema,
-  createdParent: categorySummarySchema.optional(),
-});
-
-const categoryResultCodec: CreationResultCodec<CreateCategoryData> = {
-  encode(result): StoredCreationResult {
-    const encoded: {
-      category: StoredCreationResult;
-      createdParent?: StoredCreationResult;
-    } = {
-      category: encodeCategorySummary(result.category),
-    };
-    if (result.createdParent) {
-      encoded.createdParent = encodeCategorySummary(result.createdParent);
-    }
-    return encoded;
-  },
-  decode(value) {
-    return storedCategoryResultSchema.parse(value);
-  },
-};
-
-function encodeCategorySummary(
-  category: Readonly<CategorySummary>,
-): StoredCreationResult {
-  return {
-    id: category.id,
-    kind: category.kind,
-    parentId: category.parentId,
-    name: category.name,
-    iconId: category.iconId,
-    isProtected: category.isProtected,
-  };
-}
-
 const CATEGORY_CREATION_OPERATION = "categories.create";
 
 /**
@@ -571,7 +523,6 @@ export async function createCategory(
     operation: CATEGORY_CREATION_OPERATION,
     key: input.idempotencyKey,
     payload: categoryCreationPayload(command),
-    resultCodec: categoryResultCodec,
     create: (tx) =>
       createCategoryRows({ db: tx, ownerId: input.ownerId, command }),
   });

@@ -18,14 +18,9 @@ import type {
   WalletSummary,
   WalletType,
 } from "@bookkeeping/domain/wallets";
-import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import type { SQL } from "drizzle-orm";
 import { and, asc, eq, isNull, lt, lte, or, sql } from "drizzle-orm";
-import * as z from "zod";
-import type {
-  CreationResultCodec,
-  IdempotencyConflict,
-} from "../idempotency/idempotency";
+import type { IdempotencyConflict } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 
@@ -255,38 +250,6 @@ export type CreateWalletError = InvalidWalletCreation | IdempotencyConflict;
 
 const WALLET_CREATION_OPERATION = "wallets.create";
 
-// Integer satang travel as decimal strings so the receipt stays exact JSON.
-const storedWalletSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  type: z.enum(WALLET_TYPES),
-  currency: z.literal("THB"),
-  openingAmount: z.string().regex(/^-?\d+$/),
-  openingDate: z.string(),
-  // A wallet is never created archived, so the snapshot only ever holds null.
-  archivedAt: z.null(),
-  balance: z.string().regex(/^-?\d+$/),
-});
-
-const walletResultCodec: CreationResultCodec<WalletSummary> = {
-  encode(wallet) {
-    return {
-      ...wallet,
-      openingAmount: wallet.openingAmount.toString(),
-      archivedAt: null,
-      balance: wallet.balance.toString(),
-    };
-  },
-  decode(value) {
-    const stored = storedWalletSchema.parse(value);
-    return {
-      ...stored,
-      openingAmount: BigInt(stored.openingAmount),
-      balance: BigInt(stored.balance),
-    };
-  },
-};
-
 /**
  * Opens a wallet once per idempotency key. An invalid command is rejected
  * before the key is touched, so a corrected retry may reuse it; a retry with
@@ -315,7 +278,6 @@ export async function createWallet(
       openingAmount: command.openingAmount,
       openingDate: command.openingDate,
     },
-    resultCodec: walletResultCodec,
     create: async (tx) =>
       ok(await insertWallet(tx, { ownerId: input.ownerId, ...command })),
   });

@@ -22,7 +22,7 @@ export interface StoredCreationResultObject {
   readonly [key: string]: StoredCreationResult;
 }
 
-/** JSON-safe application data kept independently of transport DTOs. */
+/** The JSON a receipt holds: application data with bigint and Date values tagged. */
 export type StoredCreationResult =
   | null
   | boolean
@@ -31,9 +31,85 @@ export type StoredCreationResult =
   | readonly StoredCreationResult[]
   | StoredCreationResultObject;
 
-export interface CreationResultCodec<T> {
-  encode: (value: Readonly<T>) => StoredCreationResult;
-  decode: (value: unknown) => T;
+const BIGINT_TAG = "$bigint";
+const DATE_TAG = "$date";
+
+/**
+ * Turns an application result into receipt JSON without knowing its shape:
+ * bigint and Date become tagged objects, undefined members are dropped as
+ * JSON drops them, and anything JSON cannot hold is refused.
+ */
+export function encodeStoredResult(value: unknown): StoredCreationResult {
+  if (
+    value === null ||
+    typeof value === "boolean" ||
+    typeof value === "string"
+  ) {
+    return value;
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new TypeError("Stored result numbers must be finite");
+    }
+    return value;
+  }
+  if (typeof value === "bigint") {
+    return { [BIGINT_TAG]: value.toString() };
+  }
+  if (value instanceof Date) {
+    return { [DATE_TAG]: value.toISOString() };
+  }
+  if (Array.isArray(value)) {
+    return value.map(encodeStoredResult);
+  }
+  if (isPlainObject(value)) {
+    const encoded: Record<string, StoredCreationResult> = {};
+    for (const [key, member] of Object.entries(value)) {
+      if (member !== undefined) {
+        encoded[key] = encodeStoredResult(member);
+      }
+    }
+    return encoded;
+  }
+  throw new TypeError("Stored results hold JSON, bigint, and Date values only");
+}
+
+/** Reverses `encodeStoredResult`; the receipt was written by this module, so its shape is trusted. */
+export function decodeStoredResult<T>(stored: unknown): T {
+  // biome-ignore lint/nursery/noUnsafeTypeAssertion: the receipt holds what encodeStoredResult wrote for T; no runtime schema exists for an arbitrary T.
+  return decodeStored(stored) as T;
+}
+
+function decodeStored(stored: unknown): unknown {
+  if (Array.isArray(stored)) {
+    return stored.map(decodeStored);
+  }
+  if (!isPlainObject(stored)) {
+    return stored;
+  }
+  const tagged = Object.entries(stored);
+  if (tagged.length === 1 && tagged[0]) {
+    const [tag, raw] = tagged[0];
+    if (tag === BIGINT_TAG && typeof raw === "string") {
+      return BigInt(raw);
+    }
+    if (tag === DATE_TAG && typeof raw === "string") {
+      return new Date(raw);
+    }
+  }
+  const decoded: Record<string, unknown> = {};
+  for (const [key, member] of tagged) {
+    decoded[key] = decodeStored(member);
+  }
+  return decoded;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
 }
 
 export interface IdempotentCreationOutcome<T> {
@@ -53,7 +129,7 @@ interface IdempotentCreationOptions<T, E> {
   key: string;
   /** The complete payload after boundary and application normalization. */
   payload: ValidatedPayload;
-  resultCodec: CreationResultCodec<T>;
+  /** Its result is stored as the replayable receipt; bigint and Date survive the round trip. */
   create: (db: Database) => Promise<Result<T, E>>;
 }
 
@@ -87,7 +163,7 @@ export async function executeIdempotentCreation<T, E>(
         return err({ code: "idempotency-conflict" });
       }
       return ok({
-        result: options.resultCodec.decode(receipt.result),
+        result: decodeStoredResult<T>(receipt.result),
         replayed: true,
       });
     }
@@ -99,13 +175,12 @@ export async function executeIdempotentCreation<T, E>(
       await tx.execute(sql.raw("release savepoint idempotent_creation"));
       return created;
     }
-    const storedResult = options.resultCodec.encode(created.value);
     await tx.insert(creationReceipts).values({
       userId: options.ownerId,
       operation: options.operation,
       key: options.key,
       payloadFingerprint,
-      result: storedResult,
+      result: encodeStoredResult(created.value),
     });
     await tx.execute(sql.raw("release savepoint idempotent_creation"));
     return ok({ result: created.value, replayed: false });

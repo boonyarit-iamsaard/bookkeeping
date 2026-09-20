@@ -6,23 +6,15 @@ import {
 } from "@bookkeeping/database/testing";
 import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
-import { z } from "zod";
-import type { StoredCreationResult, ValidatedPayload } from "./idempotency";
+import type { ValidatedPayload } from "./idempotency";
 import { executeIdempotentCreation } from "./idempotency";
 
 const { withRollback, committed } = setupTestDatabase();
 
-const createdCategorySchema = z.object({ id: z.string(), name: z.string() });
-type CreatedCategory = z.infer<typeof createdCategorySchema>;
-
-const createdCategoryCodec = {
-  encode(value: Readonly<CreatedCategory>): StoredCreationResult {
-    return { id: value.id, name: value.name };
-  },
-  decode(value: unknown): CreatedCategory {
-    return createdCategorySchema.parse(value);
-  },
-};
+interface CreatedCategory {
+  id: string;
+  name: string;
+}
 
 interface CreateCategoryOptions {
   db: Database;
@@ -43,12 +35,14 @@ async function createCategoryIdempotently({
   payload = { name },
   rejectWith,
 }: Readonly<CreateCategoryOptions>) {
-  return executeIdempotentCreation(db, {
+  return executeIdempotentCreation<
+    CreatedCategory,
+    { code: "category-rejected" }
+  >(db, {
     ownerId,
     operation,
     key,
     payload,
-    resultCodec: createdCategoryCodec,
     create: async (tx) => {
       const [row] = await tx
         .insert(categories)

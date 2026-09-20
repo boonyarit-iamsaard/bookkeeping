@@ -22,7 +22,6 @@ import {
   deleteTransaction,
   findExpenseRefunds,
   findLastUsedWalletId,
-  findReplayedTransaction,
   findTransaction,
   getMonthlySummary,
   listTransactionChanges,
@@ -197,39 +196,6 @@ describe("findTransaction", () => {
       ).toBeNull();
       expect(
         await findTransaction(db, { ownerId: owner.ownerId, id: "not-a-uuid" }),
-      ).toBeNull();
-    });
-  });
-});
-
-describe("findReplayedTransaction", () => {
-  test("reads back a since-deleted record for a late retry and hides other owners'", async () => {
-    await withRollback(async (db) => {
-      const owner = await setupOwner(db);
-      const foreign = await setupOwner(db);
-      const id = await insertTransaction(db, {
-        ownerId: owner.ownerId,
-        type: "expense",
-        walletId: owner.cashId,
-        categoryId: owner.childId,
-        transactionDate: "2026-09-02",
-      });
-      await softDelete(db, id);
-
-      const replayed = await findReplayedTransaction(db, {
-        ownerId: owner.ownerId,
-        id,
-      });
-      expect(replayed?.id).toBe(id);
-      expect(replayed?.type).toBe("expense");
-      expect(
-        await findReplayedTransaction(db, { ownerId: foreign.ownerId, id }),
-      ).toBeNull();
-      expect(
-        await findReplayedTransaction(db, {
-          ownerId: owner.ownerId,
-          id: "not-a-uuid",
-        }),
       ).toBeNull();
     });
   });

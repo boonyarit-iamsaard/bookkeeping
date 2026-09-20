@@ -20,8 +20,6 @@ import type {
   TransactionSnapshot,
   TransactionType,
 } from "@bookkeeping/domain/transactions";
-import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
-import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import {
   and,
   asc,
@@ -36,11 +34,8 @@ import {
   sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import * as z from "zod";
 import type {
-  CreationResultCodec,
   IdempotencyConflict,
-  StoredCreationResult,
   ValidatedPayload,
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
@@ -201,25 +196,6 @@ export async function findTransaction(
   return row ? toDetail(row) : null;
 }
 
-/**
- * The record an idempotent create retry reads back through its receipt, even
- * if it was since deleted: a late retry must confirm the original outcome,
- * never recreate the record. Not for normal views, which must not see
- * deleted records; absorbed by the create operation with its own ticket.
- */
-export async function findReplayedTransaction(
-  db: Database,
-  { ownerId, id }: Readonly<TransactionRef>,
-): Promise<TransactionDetail | null> {
-  if (!isUuid(id)) {
-    return null;
-  }
-  const [row] = await detailQuery(db).where(
-    and(eq(transactions.id, id), eq(transactions.userId, ownerId)),
-  );
-  return row ? toDetail(row) : null;
-}
-
 export interface CreateTransactionInput {
   /** Always the session user; never a client-supplied identifier. */
   ownerId: string;
@@ -247,111 +223,6 @@ export type CreateTransactionError = TransactionRejection | IdempotencyConflict;
 
 const TRANSACTION_CREATION_OPERATION = "transactions.create";
 
-const storedTransactionWalletSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  type: z.enum(WALLET_TYPES),
-  archived: z.boolean(),
-});
-
-const storedTransactionDetailSchema = z.object({
-  id: z.uuid(),
-  type: z.enum(TRANSACTION_TYPES),
-  currency: z.literal("THB"),
-  amount: z.string().regex(/^\d+$/),
-  transactionDate: z.iso.date(),
-  note: z.string(),
-  recordedAt: z.iso.datetime(),
-  wallet: storedTransactionWalletSchema,
-  destinationWallet: storedTransactionWalletSchema.nullable(),
-  category: z
-    .object({
-      id: z.uuid(),
-      name: z.string(),
-      iconId: z.string(),
-      parentName: z.string().nullable(),
-    })
-    .nullable(),
-  refundOf: z
-    .object({
-      id: z.uuid(),
-      amount: z.string().regex(/^\d+$/),
-      transactionDate: z.iso.date(),
-    })
-    .nullable(),
-});
-
-const transactionResultCodec: CreationResultCodec<TransactionDetail> = {
-  encode(value): StoredCreationResult {
-    return encodeTransactionDetail(value);
-  },
-  decode(value): TransactionDetail {
-    const stored = storedTransactionDetailSchema.parse(value);
-    return {
-      id: stored.id,
-      type: stored.type,
-      currency: stored.currency,
-      amount: BigInt(stored.amount),
-      transactionDate: stored.transactionDate,
-      note: stored.note,
-      recordedAt: new Date(stored.recordedAt),
-      wallet: stored.wallet,
-      destinationWallet: stored.destinationWallet,
-      category: stored.category,
-      refundOf: stored.refundOf
-        ? {
-            id: stored.refundOf.id,
-            amount: BigInt(stored.refundOf.amount),
-            transactionDate: stored.refundOf.transactionDate,
-          }
-        : null,
-    };
-  },
-};
-
-function encodeTransactionDetail(
-  value: Readonly<TransactionDetail>,
-): StoredCreationResult {
-  return {
-    id: value.id,
-    type: value.type,
-    currency: value.currency,
-    amount: value.amount.toString(),
-    transactionDate: value.transactionDate,
-    note: value.note,
-    recordedAt: value.recordedAt.toISOString(),
-    wallet: {
-      id: value.wallet.id,
-      name: value.wallet.name,
-      type: value.wallet.type,
-      archived: value.wallet.archived,
-    },
-    destinationWallet: value.destinationWallet
-      ? {
-          id: value.destinationWallet.id,
-          name: value.destinationWallet.name,
-          type: value.destinationWallet.type,
-          archived: value.destinationWallet.archived,
-        }
-      : null,
-    category: value.category
-      ? {
-          id: value.category.id,
-          name: value.category.name,
-          iconId: value.category.iconId,
-          parentName: value.category.parentName,
-        }
-      : null,
-    refundOf: value.refundOf
-      ? {
-          id: value.refundOf.id,
-          amount: value.refundOf.amount.toString(),
-          transactionDate: value.refundOf.transactionDate,
-        }
-      : null,
-  };
-}
-
 /**
  * Creates one transaction and its durable result snapshot per idempotency key.
  * Every rule is judged inside the same transaction as the financial insert,
@@ -370,7 +241,6 @@ export async function createTransaction(
     operation: TRANSACTION_CREATION_OPERATION,
     key: input.idempotencyKey,
     payload: transactionCreationPayload(command),
-    resultCodec: transactionResultCodec,
     create: (tx) => insertTransaction(tx, { ownerId: input.ownerId, command }),
   });
   if (!outcome.ok) {
