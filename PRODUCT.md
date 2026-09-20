@@ -4,7 +4,7 @@
 
 ## Platform
 
-web
+web (phone-first, installable as a PWA)
 
 ## Users
 
@@ -79,15 +79,18 @@ domain vocabulary lives in `CONTEXT.md`. Summary:
   explicit THB currency.
 - Direct edit and delete of transactions, with an internal change history
   that is not part of the user's normal view.
-- Layouts must work on phone and desktop.
+- Layouts must work on phone and desktop; the phone is the primary device.
 
 Out of scope for milestone one: credit cards, statement import, bank sync,
 recurring transactions, attachments, split categories, reconciliation,
 multi-currency, sharing, Thai translation, export/import.
 
-Stack (existing): Next.js App Router, React, TypeScript, PostgreSQL with
-Drizzle, Better Auth (email/password), Tailwind CSS v4, shadcn with Base UI,
-Lucide icons, Inter and JetBrains Mono.
+Stack: Hono on Node.js as the sole backend (`docs/adr/0003`), a Vite +
+TanStack Router single-page web client installable as a PWA replacing the
+Next.js app (`docs/adr/0006`), React, TypeScript, PostgreSQL with Drizzle,
+Better Auth (email/password), Tailwind CSS v4, shadcn with Base UI, Lucide
+icons, Inter and JetBrains Mono. React Native and native wrappers are not
+planned.
 
 ## Brand Commitments
 
