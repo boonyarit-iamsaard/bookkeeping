@@ -64,6 +64,32 @@ Use test scope in filenames: `*.unit.test.ts`, `*.integration.test.ts`, and
 Integration tests may exercise real PostgreSQL and are distinct from
 browser-driven E2E tests. Database fixture names describe infrastructure.
 
+## Test ownership
+
+The application package owns business-rule coverage. Other layers may rely on
+a rule inside a fixture, but they never assert it, so a changed rule turns red
+in one layer and the failure names its owner.
+
+The server route suite asserts six things: status code and problem-details
+mapping; request validation to field-error mapping for each body-accepting
+endpoint; authentication, session, and ownership enforcement at the boundary;
+response serialization against the exported Zod response schemas; idempotency
+key HTTP semantics; and one happy-path round trip per endpoint. Keep one
+representative test per problem code per endpoint. Domain rules exercised
+through HTTP are out of scope: a route test may trigger a rule to obtain an
+error class, but it asserts the mapping, not the rule.
+
+Route integration tests provision owners through the test authentication
+gateway in `apps/server/src/testing/`. Real Better Auth over HTTP is covered by
+the gateway integration test only.
+
+Web integration tests exist only for the temporary Next.js adapter's own
+boundary, the session, until the adapter is removed.
+
+Budget: `pnpm test`, as Turborepo runs it with packages in parallel, completes
+in 60 seconds or less on the development machine. Check it by hand; it is not
+gated in CI, which keeps CI free of hardware-dependent flakes.
+
 Helpers shared by a workspace's Vitest tests live in its `src/testing/`
 directory, following the Bulletproof React reference; neither Hono nor Vitest
 prescribes a location. The database package exposes its fixtures as

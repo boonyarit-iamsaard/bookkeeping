@@ -73,3 +73,81 @@ finishes within budget.
 - [ ] `## Test ownership` section added; format and markdownlint clean
 - [ ] Mutation probe recorded and passing; mutated constant reverted
 - [ ] Budget probe: three runs + median recorded; median ≤ 60 s
+
+## Comments
+
+**2026-09-20 — agent run.** Step 1 done; steps 2 and 3 both fire a
+"Stop and ask" trigger. Stopping; nothing deleted, nothing guessed.
+
+### Step 1 — `## Test ownership` section
+
+Added to `docs/code-conventions.md` after the test-scope-in-filenames
+paragraph. `pnpm format:check` and `pnpm lint:md` pass.
+
+### Step 2 — Mutation probe (`MAX_NOTE_LENGTH` 200 → 2000)
+
+Ran one package at a time. Failures:
+
+- application (3 failed / 172):
+  - `src/transactions/transaction-create.integration.test.ts :: createTransaction > rejects invalid dates, bounded values, and dates outside wallet history`
+  - `src/transactions/transaction-create.integration.test.ts :: createTransaction > a note over 200 characters is rejected`
+  - `src/transactions/transaction-update.integration.test.ts :: updateTransaction > rejected edits change nothing and record no history`
+- server (2 failed / 183):
+  - `src/features/transactions/transaction.routes.integration.test.ts :: POST /v1/transactions > does not consume a key after application validation and maps field failures`
+  - `src/features/transactions/transaction.routes.integration.test.ts :: PUT /v1/transactions/{transactionId} > maps invalid update input to field errors`
+- web (1 failed / 41):
+  - `src/features/transactions/transaction-form-schema.unit.test.ts :: transaction form schema > rejects a note over 200 characters`
+
+Total 6 failures across 3 packages (baseline 7). Constant reverted with
+`git checkout --`; `git status` shows no change to
+`transaction.types.ts`.
+
+**Stop and ask (mutation):** the pass condition allows at most one route
+test; two went red. Both use `"x".repeat(201)` to obtain the
+`note-too-long` field error as the `invalid-command` representative — once
+for POST (create) and once for PUT (update). Neither asserts the rule's
+value; both assert the `{ pointer: "#/note", code: "note-too-long" }`
+mapping. Options: (a) accept two reds as "one representative per endpoint"
+(the section I wrote says "per problem code per endpoint", which is the
+wording in this ticket's step 1), or (b) change one of them to use a
+different field failure (e.g. amount or date) so only one route test
+depends on the note length. I did not change either test.
+
+### Step 3 — Budget probe
+
+Note: `pnpm test` (`turbo run test`) hits the Turborepo cache after the
+first run (0.4 s), so timings use `pnpm turbo run test --force`.
+Nothing else ran meanwhile. Machine: 2 CPUs, 5 GB RAM (WSL2).
+
+| Run | Wall    | domain | auth   | database | web    | application | server  |
+| --- | ------- | ------ | ------ | -------- | ------ | ----------- | ------- |
+| 1   | 146.9 s | 1.7 s  | 41.4 s | 64.2 s   | 72.8 s | 126.6 s     | 134.0 s |
+| 2   | 159.6 s | 3.0 s  | 30.1 s | 57.6 s   | 80.9 s | 141.9 s     | 146.3 s |
+| 3   | 138.0 s | 1.6 s  | 59.1 s | 34.6 s   | 72.7 s | 116.3 s     | 126.9 s |
+
+**Median: 146.9 s.** Fails the ≤ 60 s pass condition.
+
+Standalone (one package at a time, same session), for comparison with
+`facts.md`:
+
+| Package     | facts.md (before) |    now | tests before → now |
+| ----------- | ----------------: | -----: | ------------------ |
+| server      |            80.8 s | 45.0 s | 209 → 183          |
+| application |            31.2 s | 34.8 s | 137 → 172          |
+| web         |            25.7 s | 18.2 s | 90 → 41            |
+
+**Stop and ask (budget):** the "baseline ≈ 81 s" in the spec is the server
+package's _standalone_ wall time from `facts.md`, which measured packages
+sequentially. The spec assumed turbo-parallel wall ≈ slowest package. On
+this 2-core machine, running six vitest processes and five Postgres
+containers at once roughly triples every package's duration (import phase
+dominates: 57–64 %), so parallel `pnpm test` is slower than the sequential
+sum (~150 s vs ~140 s). The per-package goal was met (server −44 %), but the
+budget as written cannot be met by trimming tests; the lever is
+concurrency (turbo `--concurrency`, or container sharing per D7), which is
+a separate decision. The conventions section states the 60 s budget as
+written in this ticket; it should be revisited once the decision is made.
+
+### Step 4
+
+`pnpm format:check` and `pnpm lint:md` pass.
