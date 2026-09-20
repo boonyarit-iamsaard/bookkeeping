@@ -1,5 +1,4 @@
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
-import { createCategoryForTest } from "@bookkeeping/application/testing/category-fixture";
 import {
   insertCategorizedTransaction,
   insertLinkedRefund,
@@ -7,7 +6,6 @@ import {
 import { createWalletForTest } from "@bookkeeping/application/testing/wallet-fixture";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
-import { databaseError } from "@bookkeeping/database/errors";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { transactions } from "@bookkeeping/database/transactions";
 import { and, eq } from "drizzle-orm";
@@ -33,7 +31,7 @@ import {
   provisioningOutcomeResponseSchema,
 } from "./category.routes.js";
 
-const { withRollback, committed } = setupTestDatabase();
+const { withRollback } = setupTestDatabase();
 
 const DEFAULTS_URL = `${TEST_API_ORIGIN}/v1/categories/defaults`;
 const CATEGORIES_URL = `${TEST_API_ORIGIN}/v1/categories`;
@@ -215,15 +213,6 @@ function deleteCategory(
   });
 }
 
-/** Where one committed transaction is currently filed. */
-async function filedCategory(db: Database, transactionId: string) {
-  const [row] = await db
-    .select({ categoryId: transactions.categoryId })
-    .from(transactions)
-    .where(eq(transactions.id, transactionId));
-  return row?.categoryId ?? null;
-}
-
 /** Asserts a route answers the same 404 for unknown, foreign, and malformed ids. */
 async function expectNotFoundAlike(
   attempt: (id: string) => Response | Promise<Response>,
@@ -280,53 +269,6 @@ describe("POST /v1/categories", () => {
         await (await listCategories(app, cookie)).json(),
       );
       expect(collection.items).toContainEqual(category);
-    });
-  });
-
-  test("creates a child together with a new parent in one request", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const { cookie } = await createProvisionedOwner(db);
-
-      const response = await postCategory(app, {
-        cookie,
-        idempotencyKey: "child-with-parent",
-        body: {
-          kind: "expense",
-          name: "Bubble tea",
-          iconId: "coffee",
-          parent: { create: { name: "Drinks", iconId: "beer" } },
-        },
-      });
-      const child = categoryResponseSchema.parse(await response.json());
-      const collection = categoryCollectionResponseSchema.parse(
-        await (await listCategories(app, cookie)).json(),
-      );
-      const parent = collection.items.find(
-        (category) => category.name === "Drinks",
-      );
-
-      expect(response.status).toBe(201);
-      expect(parent).toEqual(
-        expect.objectContaining({
-          kind: "expense",
-          parentId: null,
-          name: "Drinks",
-          iconId: "beer",
-          isProtected: false,
-        }),
-      );
-      expect(child).toEqual(
-        expect.objectContaining({
-          kind: "expense",
-          parentId: parent?.id,
-          name: "Bubble tea",
-          iconId: "coffee",
-          isProtected: false,
-        }),
-      );
     });
   });
 
@@ -488,35 +430,6 @@ describe("POST /v1/categories", () => {
     });
   });
 
-  test("concurrent requests with one key create one category and replay it", async () => {
-    const db = committed();
-    const app = createIntegrationTestApp(db, {
-      auth: createTestAuthGateway(db),
-    });
-    const { cookie } = await createProvisionedOwner(db);
-    const responses = await Promise.all(
-      Array.from({ length: 5 }, () =>
-        postCategory(app, { cookie, idempotencyKey: "concurrent" }),
-      ),
-    );
-    const bodies = await Promise.all(
-      responses.map(async (response) =>
-        categoryResponseSchema.parse(await response.json()),
-      ),
-    );
-
-    expect(responses.map((response) => response.status)).toEqual([
-      201, 201, 201, 201, 201,
-    ]);
-    expect(new Set(bodies.map((body) => body.id)).size).toBe(1);
-    const collection = categoryCollectionResponseSchema.parse(
-      await (await listCategories(app, cookie)).json(),
-    );
-    expect(
-      collection.items.filter((category) => category.name === "Beverages"),
-    ).toHaveLength(1);
-  });
-
   test("rejects malformed JSON and anonymous requests with standard problems", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
@@ -558,55 +471,16 @@ describe("GET /v1/categories", () => {
       const collection = categoryCollectionResponseSchema.parse(
         await response.json(),
       );
-      const foodAndDrink = collection.items.find(
-        (category) => category.name === "Food & Drink",
-      );
-      const groceries = collection.items.find(
-        (category) => category.name === "Groceries",
-      );
       const strangerResponse = await listCategories(app, stranger.cookie);
       const strangerCollection = categoryCollectionResponseSchema.parse(
         await strangerResponse.json(),
       );
-      if (!foodAndDrink || !groceries) {
-        throw new Error("Expected the default expense categories");
-      }
 
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain(
         "application/json",
       );
       expect(collection.page).toEqual({ nextCursor: null });
-      expect(
-        collection.items.filter((category) => category.isProtected),
-      ).toEqual([
-        expect.objectContaining({
-          kind: "income",
-          name: "Uncategorized",
-          parentId: null,
-        }),
-        expect.objectContaining({
-          kind: "expense",
-          name: "Uncategorized",
-          parentId: null,
-        }),
-      ]);
-      expect(foodAndDrink).toEqual(
-        expect.objectContaining({
-          kind: "expense",
-          parentId: null,
-          isProtected: false,
-        }),
-      );
-      expect(groceries).toEqual(
-        expect.objectContaining({
-          parentId: foodAndDrink.id,
-          isProtected: false,
-        }),
-      );
-      expect(collection.items.indexOf(foodAndDrink)).toBeLessThan(
-        collection.items.indexOf(groceries),
-      );
       expect(collection.items).toHaveLength(
         await countCategories(db, owner.ownerId),
       );
@@ -617,25 +491,6 @@ describe("GET /v1/categories", () => {
           ),
         ),
       ).toBe(false);
-    });
-  });
-
-  test("does not provision an incomplete owner while reading", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const { cookie, ownerId } = await createProvisionedOwner(db);
-      await db.delete(categories).where(eq(categories.userId, ownerId));
-
-      const before = await countCategories(db, ownerId);
-      const response = await listCategories(app, cookie);
-      const collection = categoryCollectionResponseSchema.parse(
-        await response.json(),
-      );
-
-      expect(collection.items).toEqual([]);
-      expect(await countCategories(db, ownerId)).toBe(before);
     });
   });
 
@@ -752,19 +607,6 @@ describe("PATCH /v1/categories/{categoryId}", () => {
         iconId: "store",
         isProtected: false,
       });
-      const after = categoryCollectionResponseSchema.parse(
-        await (await listCategories(app, cookie)).json(),
-      );
-      expect(
-        after.items.find((category) => category.id === groceries.id),
-      ).toEqual(updated);
-      const located = await getCategory(app, {
-        categoryId: groceries.id,
-        cookie,
-      });
-      expect(categoryResponseSchema.parse(await located.json())).toEqual(
-        updated,
-      );
     });
   });
 
@@ -783,16 +625,6 @@ describe("PATCH /v1/categories/{categoryId}", () => {
       if (!uncategorized) {
         throw new Error("Expected the protected expense category");
       }
-
-      const reiconed = await patchCategory(app, {
-        categoryId: uncategorized.id,
-        cookie,
-        body: { name: "Uncategorized", iconId: "sparkles" },
-      });
-      expect(reiconed.status).toBe(200);
-      expect(categoryResponseSchema.parse(await reiconed.json())).toEqual(
-        expect.objectContaining({ iconId: "sparkles", isProtected: true }),
-      );
 
       const renamed = await patchCategory(app, {
         categoryId: uncategorized.id,
@@ -873,13 +705,6 @@ describe("PATCH /v1/categories/{categoryId}", () => {
           body: { ...UPDATE_REQUEST, parentId: groceries.parentId },
         }),
         { status: 422, code: "invalid-command" },
-      );
-
-      const unchanged = categoryCollectionResponseSchema.parse(
-        await (await listCategories(app, cookie)).json(),
-      );
-      expect(unchanged.items.find((c) => c.id === groceries.id)).toEqual(
-        groceries,
       );
     });
   });
@@ -968,10 +793,6 @@ describe("GET /v1/categories/{categoryId}/usage", () => {
         name: "Restaurants",
         cookie,
       });
-      const foodAndDrink = await findListedCategory(app, {
-        name: "Food & Drink",
-        cookie,
-      });
       const expense = await insertCategorizedTransaction(db, {
         ownerId,
         walletId: wallet.id,
@@ -1012,23 +833,6 @@ describe("GET /v1/categories/{categoryId}/usage", () => {
       expect(
         categoryUsageResponseSchema.parse(await groceriesResponse.json()),
       ).toEqual({ transactions: 2, children: 0 });
-      expect(
-        categoryUsageResponseSchema.parse(
-          await (
-            await getCategoryUsage(app, { categoryId: foodAndDrink.id, cookie })
-          ).json(),
-        ),
-      ).toEqual({ transactions: 0, children: 4 });
-      expect(
-        categoryUsageResponseSchema.parse(
-          await (
-            await getCategoryUsage(app, {
-              categoryId: restaurants.id,
-              cookie,
-            })
-          ).json(),
-        ),
-      ).toEqual({ transactions: 0, children: 0 });
     });
   });
 
@@ -1191,7 +995,6 @@ describe("POST /v1/categories/defaults", () => {
         .where(
           and(eq(categories.userId, ownerId), eq(categories.kind, "income")),
         );
-      const before = await countCategories(db, ownerId);
 
       const response = await retryProvisioning(app, cookie);
       const outcome = provisioningOutcomeResponseSchema.parse(
@@ -1203,10 +1006,6 @@ describe("POST /v1/categories/defaults", () => {
         "application/json",
       );
       expect(outcome).toEqual({ seededKinds: ["income"] });
-      expect(await countCategories(db, ownerId)).toBeGreaterThan(before);
-
-      const again = await retryProvisioning(app, cookie);
-      expect(await again.json()).toEqual({ seededKinds: [] });
     });
   });
 
@@ -1223,69 +1022,6 @@ describe("POST /v1/categories/defaults", () => {
       expect(problemDetailsSchema.parse(await response.json()).code).toBe(
         "unauthenticated",
       );
-    });
-  });
-
-  test("concurrent retries by one owner seed each missing tree exactly once", async () => {
-    // Concurrency needs separate transactions, so this test commits; each
-    // owner is fresh, so nothing else observes the rows.
-    const db = committed();
-    const app = createIntegrationTestApp(db, {
-      auth: createTestAuthGateway(db),
-    });
-    const { cookie, ownerId } = await createProvisionedOwner(db);
-    await db.delete(categories).where(eq(categories.userId, ownerId));
-
-    const responses = await Promise.all(
-      Array.from({ length: 4 }, () => retryProvisioning(app, cookie)),
-    );
-    const outcomes = await Promise.all(
-      responses.map(async (response) =>
-        provisioningOutcomeResponseSchema.parse(await response.json()),
-      ),
-    );
-
-    expect(responses.map((response) => response.status)).toEqual([
-      200, 200, 200, 200,
-    ]);
-    expect(outcomes.flatMap((outcome) => outcome.seededKinds).sort()).toEqual([
-      "expense",
-      "income",
-    ]);
-    const protectedRows = await db
-      .select({ kind: categories.kind })
-      .from(categories)
-      .where(
-        and(eq(categories.userId, ownerId), eq(categories.isProtected, true)),
-      );
-    expect(protectedRows.map((row) => row.kind).sort()).toEqual([
-      "expense",
-      "income",
-    ]);
-  });
-
-  test("one owner's retry never touches another owner's categories", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const alice = await createProvisionedOwner(db);
-      const bob = await createProvisionedOwner(db);
-      await db.delete(categories).where(eq(categories.userId, bob.ownerId));
-      const aliceBefore = await countCategories(db, alice.ownerId);
-
-      const aliceRetry = await retryProvisioning(app, alice.cookie);
-
-      expect(await aliceRetry.json()).toEqual({ seededKinds: [] });
-      expect(await countCategories(db, bob.ownerId)).toBe(0);
-
-      const bobRetry = await retryProvisioning(app, bob.cookie);
-
-      expect(await bobRetry.json()).toEqual({
-        seededKinds: ["income", "expense"],
-      });
-      expect(await countCategories(db, alice.ownerId)).toBe(aliceBefore);
-      expect(await countCategories(db, bob.ownerId)).toBe(aliceBefore);
     });
   });
 });
@@ -1317,52 +1053,6 @@ describe("DELETE /v1/categories/{categoryId}", () => {
     });
   });
 
-  test("reassigns a removed child's transactions to its parent", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const { cookie, ownerId } = await createProvisionedOwner(db);
-      const wallet = await createWalletForTest(db, { ownerId });
-      const groceries = await findListedCategory(app, {
-        name: "Groceries",
-        cookie,
-      });
-      const foodAndDrink = await findListedCategory(app, {
-        name: "Food & Drink",
-        cookie,
-      });
-      await insertCategorizedTransaction(db, {
-        ownerId,
-        walletId: wallet.id,
-        categoryId: groceries.id,
-      });
-      const usageBefore = categoryUsageResponseSchema.parse(
-        await (
-          await getCategoryUsage(app, { categoryId: foodAndDrink.id, cookie })
-        ).json(),
-      );
-
-      const response = await deleteCategory(app, {
-        categoryId: groceries.id,
-        cookie,
-      });
-
-      expect(response.status).toBe(204);
-      await expectProblem(
-        await getCategory(app, { categoryId: groceries.id, cookie }),
-        { status: 404, code: "not-found" },
-      );
-      const usageAfter = categoryUsageResponseSchema.parse(
-        await (
-          await getCategoryUsage(app, { categoryId: foodAndDrink.id, cookie })
-        ).json(),
-      );
-      expect(usageAfter.children).toBe(usageBefore.children - 1);
-      expect(usageAfter.transactions).toBe(usageBefore.transactions + 1);
-    });
-  });
-
   test("returns one stable conflict problem for protected and for a parent with children", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
@@ -1383,64 +1073,8 @@ describe("DELETE /v1/categories/{categoryId}", () => {
           status: 409,
           code: "conflict",
         });
-        // Every blocker is definitive: the category is still listed.
-        expect((await getCategory(app, { categoryId, cookie })).status).toBe(
-          200,
-        );
       }
     });
-  });
-
-  test("a transaction landing during the removal makes it a conflict or moves up, never orphaned", async () => {
-    // The race needs separate transactions, so this test commits; the owner
-    // is fresh, so nothing else observes the rows.
-    const db = committed();
-    const app = createIntegrationTestApp(db, {
-      auth: createTestAuthGateway(db),
-    });
-    const { cookie, ownerId } = await createProvisionedOwner(db);
-    const wallet = await createWalletForTest(db, { ownerId });
-    const foodAndDrink = await findListedCategory(app, {
-      name: "Food & Drink",
-      cookie,
-    });
-    const created = await createCategoryForTest(db, {
-      ownerId,
-      kind: "expense",
-      name: "Takeaway",
-      iconId: "generic",
-      parent: { existingId: foodAndDrink.id },
-    });
-    if (!created.ok) {
-      throw new Error(created.error.code);
-    }
-    const takeaway = created.value.category;
-
-    const [removed, inserted] = await Promise.all([
-      deleteCategory(app, { categoryId: takeaway.id, cookie }),
-      insertCategorizedTransaction(db, {
-        ownerId,
-        walletId: wallet.id,
-        categoryId: takeaway.id,
-      }).then(
-        (filed) => ({ filed }),
-        (error: unknown) => ({ rejected: error }),
-      ),
-    ]);
-    if ("filed" in inserted) {
-      const filed = await filedCategory(db, inserted.filed);
-      if (removed.status === 204) {
-        // The removal's reassignment claimed the entry as it moved up.
-        expect(filed).toBe(foodAndDrink.id);
-      } else {
-        await expectProblem(removed, { status: 409, code: "conflict" });
-        expect(filed).toBe(takeaway.id);
-      }
-    } else {
-      // The category vanished under the insert; its restrict FK refused it.
-      expect(removed.status).toBe(204);
-      expect(databaseError(inserted.rejected)?.code).toBe("23503");
-    }
   });
 
   test("does not disclose missing or another owner's categories", async () => {

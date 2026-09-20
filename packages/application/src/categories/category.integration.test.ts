@@ -610,6 +610,10 @@ describe("updateCategory", () => {
         ok: false,
         error: { code: "name-too-long" },
       });
+      // Every rejection left the row as it was.
+      expect(
+        await findCategory(db, { ownerId: owner.id, id: groceries.id }),
+      ).toEqual(groceries);
       // The current name updates cleanly under its own case.
       expect(await attempt({ name: " groceries ", iconId: "cart" })).toEqual({
         ok: true,
