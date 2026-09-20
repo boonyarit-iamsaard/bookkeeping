@@ -37,7 +37,7 @@ export function presentMoney({
 // limit, and up to two fractional digits. No grouping, exponent, symbol, or
 // surrounding space.
 const MONEY_INPUT_PATTERN = new RegExp(
-  `^-?\\d{1,${MAX_WHOLE_DIGITS}}(?:\\.\\d{1,2})?$`,
+  String.raw`^-?\d{1,${MAX_WHOLE_DIGITS}}(?:\.\d{1,2})?$`,
 );
 
 export interface MoneyAmount {

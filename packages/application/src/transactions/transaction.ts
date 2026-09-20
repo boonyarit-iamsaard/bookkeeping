@@ -880,7 +880,7 @@ export async function listTransactionPage(
     .orderBy(...transactionListOrder)
     .limit(options.limit + 1);
   const items = rows.slice(0, options.limit);
-  const last = items[items.length - 1];
+  const last = items.at(-1);
   return {
     items: items.map(toDetail),
     nextPosition:

@@ -572,46 +572,11 @@ async function createCategoryRows({
 > {
   const createsParent = command.parent !== null && "create" in command.parent;
   try {
-    let parent: CategorySummary | undefined;
-    let createdParent: CategorySummary | undefined;
-    if (command.parent && "existingId" in command.parent) {
-      if (!isUuid(command.parent.existingId)) {
-        return err({ code: "parent-not-found" });
-      }
-      // A share lock holds the parent's removal until this child lands, and a
-      // removal already under way makes the parent vanish here.
-      const [row] = await db
-        .select(categorySummaryColumns)
-        .from(categories)
-        .where(
-          and(
-            eq(categories.id, command.parent.existingId),
-            eq(categories.userId, ownerId),
-            eq(categories.kind, command.kind),
-          ),
-        )
-        .for("share");
-      if (!row) {
-        return err({ code: "parent-not-found" });
-      }
-      if (row.parentId !== null) {
-        return err({ code: "parent-is-child" });
-      }
-      if (row.isProtected) {
-        return err({ code: "parent-protected" });
-      }
-      parent = row;
-    } else if (command.parent && "create" in command.parent) {
-      createdParent = await insertCategory(db, {
-        ownerId,
-        kind: command.kind,
-        name: command.parent.create.name,
-        iconId: command.parent.create.iconId,
-        parentId: null,
-      });
-      parent = createdParent;
+    const resolved = await resolveParent({ db, ownerId, command });
+    if (!resolved.ok) {
+      return resolved;
     }
-
+    const { parent, createdParent } = resolved.value;
     const category = await insertCategory(db, {
       ownerId,
       kind: command.kind,
@@ -629,6 +594,93 @@ async function createCategoryRows({
     }
     throw error;
   }
+}
+
+type ParentResolutionError = Extract<
+  CreateCategoryError,
+  { code: "parent-not-found" | "parent-is-child" | "parent-protected" }
+>;
+
+interface ResolvedParent {
+  /** The row the new child hangs under; absent for a top-level category. */
+  parent?: CategorySummary;
+  /** Present when the command asked for the parent to be created. */
+  createdParent?: CategorySummary;
+}
+
+/** Locks an existing parent or inserts the requested one, per the command. */
+async function resolveParent({
+  db,
+  ownerId,
+  command,
+}: Readonly<CreateCategoryRowsOptions>): Promise<
+  Result<ResolvedParent, ParentResolutionError>
+> {
+  if (command.parent === null) {
+    return ok({});
+  }
+  if ("existingId" in command.parent) {
+    const locked = await lockParent({
+      db,
+      ownerId,
+      kind: command.kind,
+      existingId: command.parent.existingId,
+    });
+    return locked.ok ? ok({ parent: locked.value }) : locked;
+  }
+  const createdParent = await insertCategory(db, {
+    ownerId,
+    kind: command.kind,
+    name: command.parent.create.name,
+    iconId: command.parent.create.iconId,
+    parentId: null,
+  });
+  return ok({ parent: createdParent, createdParent });
+}
+
+interface LockParentOptions {
+  db: Database;
+  ownerId: string;
+  kind: CategoryKind;
+  existingId: string;
+}
+
+/**
+ * A share lock holds the parent's removal until this child lands, and a
+ * removal already under way makes the parent vanish here.
+ */
+async function lockParent({
+  db,
+  ownerId,
+  kind,
+  existingId,
+}: Readonly<LockParentOptions>): Promise<
+  Result<CategorySummary, ParentResolutionError>
+> {
+  if (!isUuid(existingId)) {
+    return err({ code: "parent-not-found" });
+  }
+  const [row] = await db
+    .select(categorySummaryColumns)
+    .from(categories)
+    .where(
+      and(
+        eq(categories.id, existingId),
+        eq(categories.userId, ownerId),
+        eq(categories.kind, kind),
+      ),
+    )
+    .for("share");
+  if (!row) {
+    return err({ code: "parent-not-found" });
+  }
+  if (row.parentId !== null) {
+    return err({ code: "parent-is-child" });
+  }
+  if (row.isProtected) {
+    return err({ code: "parent-protected" });
+  }
+  return ok(row);
 }
 
 interface InsertCategoryValues {

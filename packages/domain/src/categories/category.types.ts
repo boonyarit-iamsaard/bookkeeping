@@ -141,6 +141,8 @@ export const CATEGORY_ICON_IDS = [
 
 export type CategoryIconId = (typeof CATEGORY_ICON_IDS)[number];
 
+const CATEGORY_ICON_ID_SET: ReadonlySet<string> = new Set(CATEGORY_ICON_IDS);
+
 export function isCategoryIconId(value: string): value is CategoryIconId {
-  return CATEGORY_ICON_IDS.some((iconId) => iconId === value);
+  return CATEGORY_ICON_ID_SET.has(value);
 }
