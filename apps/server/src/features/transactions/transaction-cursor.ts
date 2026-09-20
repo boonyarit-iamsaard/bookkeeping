@@ -1,6 +1,8 @@
 import { Buffer } from "node:buffer";
-import type { TransactionListPosition } from "@bookkeeping/application/transactions";
-import type { TransactionType } from "@bookkeeping/domain/transactions";
+import type {
+  ListTransactionsOptions,
+  TransactionListPosition,
+} from "@bookkeeping/application/transactions";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import * as z from "zod";
 
@@ -10,36 +12,32 @@ const CURSOR_ORDER = "transaction-date-recorded-at-id-desc";
 const CURSOR_RECORDING_TIME_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
 
-export interface TransactionCursorFilters {
-  from: string | null;
-  to: string | null;
-  walletId: string | null;
-  categoryId: string | null;
-  type: TransactionType | null;
-}
-
 interface TransactionCursorInput {
-  ownerId: string;
-  filters: Readonly<TransactionCursorFilters>;
+  /** The owner and active filters the page was listed with; the cursor is bound to them. */
+  options: Readonly<ListTransactionsOptions>;
   position: Readonly<TransactionListPosition>;
 }
 
-interface TransactionCursorExpectation {
-  ownerId: string;
-  filters: Readonly<TransactionCursorFilters>;
-}
+const FILTER_KEYS = [
+  "from",
+  "to",
+  "walletId",
+  "categoryId",
+  "type",
+] as const satisfies readonly (keyof ListTransactionsOptions)[];
 
 const transactionCursorSchema = z.strictObject({
   version: z.literal(CURSOR_VERSION),
   resource: z.literal(CURSOR_RESOURCE),
   order: z.literal(CURSOR_ORDER),
   ownerId: z.uuid(),
+  // Absent filters stay absent: JSON drops undefined members.
   filters: z.strictObject({
-    from: z.iso.date().nullable(),
-    to: z.iso.date().nullable(),
-    walletId: z.uuid().nullable(),
-    categoryId: z.uuid().nullable(),
-    type: z.enum(TRANSACTION_TYPES).nullable(),
+    from: z.iso.date().optional(),
+    to: z.iso.date().optional(),
+    walletId: z.uuid().optional(),
+    categoryId: z.uuid().optional(),
+    type: z.enum(TRANSACTION_TYPES).optional(),
   }),
   position: z.strictObject({
     transactionDate: z.iso.date(),
@@ -50,17 +48,23 @@ const transactionCursorSchema = z.strictObject({
 
 type TransactionCursorPayload = z.infer<typeof transactionCursorSchema>;
 
+type CursorFilters = TransactionCursorPayload["filters"];
+
+function filtersOf(options: Readonly<ListTransactionsOptions>): CursorFilters {
+  return {
+    from: options.from,
+    to: options.to,
+    walletId: options.walletId,
+    categoryId: options.categoryId,
+    type: options.type,
+  };
+}
+
 function sameFilters(
-  left: Readonly<TransactionCursorFilters>,
-  right: Readonly<TransactionCursorFilters>,
+  left: Readonly<CursorFilters>,
+  right: Readonly<CursorFilters>,
 ) {
-  return (
-    left.from === right.from &&
-    left.to === right.to &&
-    left.walletId === right.walletId &&
-    left.categoryId === right.categoryId &&
-    left.type === right.type
-  );
+  return FILTER_KEYS.every((key) => left[key] === right[key]);
 }
 
 export function encodeTransactionCursor(
@@ -70,16 +74,17 @@ export function encodeTransactionCursor(
     version: CURSOR_VERSION,
     resource: CURSOR_RESOURCE,
     order: CURSOR_ORDER,
-    ownerId: input.ownerId,
-    filters: { ...input.filters },
+    ownerId: input.options.ownerId,
+    filters: filtersOf(input.options),
     position: { ...input.position },
   };
   return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
 }
 
+/** The position a cursor names, or null unless it was issued for this owner's identical query. */
 export function decodeTransactionCursor(
   cursor: string,
-  expected: Readonly<TransactionCursorExpectation>,
+  expected: Readonly<ListTransactionsOptions>,
 ): TransactionListPosition | null {
   try {
     const decoded = Buffer.from(cursor, "base64url");
@@ -93,7 +98,7 @@ export function decodeTransactionCursor(
     }
     if (
       result.data.ownerId !== expected.ownerId ||
-      !sameFilters(result.data.filters, expected.filters)
+      !sameFilters(result.data.filters, filtersOf(expected))
     ) {
       return null;
     }

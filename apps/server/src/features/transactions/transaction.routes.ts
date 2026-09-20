@@ -1,4 +1,5 @@
 import type {
+  ListTransactionsOptions,
   TransactionField,
   TransactionRejection,
 } from "@bookkeeping/application/transactions";
@@ -365,18 +366,6 @@ const transactionListQueryMiddleware = createQueryMiddleware(
   transactionListQuerySchema,
 );
 
-function toTransactionCursorFilters(
-  query: Readonly<z.output<typeof transactionListQuerySchema>>,
-) {
-  return {
-    from: query.from ?? null,
-    to: query.to ?? null,
-    walletId: query.walletId ?? null,
-    categoryId: query.categoryId ?? null,
-    type: query.type ?? null,
-  };
-}
-
 const transactionParamsSchema = z.object({ transactionId: z.uuid() });
 const transactionParamMiddleware = createResourceParamMiddleware(
   transactionParamsSchema,
@@ -505,23 +494,24 @@ export function createTransactionRoutes(db: Database) {
       >(
         async (c) => {
           const query = c.req.valid("query");
-          const ownerId = c.get("session").user.id;
-          const filters = toTransactionCursorFilters(query);
-          const after =
-            query.cursor === undefined
-              ? undefined
-              : decodeTransactionCursor(query.cursor, { ownerId, filters });
-          if (query.cursor !== undefined && after === null) {
-            return createProblemResponse(c, getProblemOptionsForStatus(400));
-          }
-
-          const page = await listTransactionPage(db, {
-            ownerId,
+          const options: ListTransactionsOptions = {
+            ownerId: c.get("session").user.id,
             from: query.from,
             to: query.to,
             walletId: query.walletId,
             categoryId: query.categoryId,
             type: query.type,
+          };
+          const after =
+            query.cursor === undefined
+              ? undefined
+              : decodeTransactionCursor(query.cursor, options);
+          if (query.cursor !== undefined && after === null) {
+            return createProblemResponse(c, getProblemOptionsForStatus(400));
+          }
+
+          const page = await listTransactionPage(db, {
+            ...options,
             limit: query.limit ?? DEFAULT_TRANSACTION_PAGE_LIMIT,
             after: after ?? undefined,
           });
@@ -531,8 +521,7 @@ export function createTransactionRoutes(db: Database) {
               page: {
                 nextCursor: page.nextPosition
                   ? encodeTransactionCursor({
-                      ownerId,
-                      filters,
+                      options,
                       position: page.nextPosition,
                     })
                   : null,
