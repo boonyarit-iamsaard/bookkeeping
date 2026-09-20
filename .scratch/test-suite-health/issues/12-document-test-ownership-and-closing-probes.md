@@ -191,3 +191,20 @@ that scheduling exists but was not identified. The six unlimited and
 sequential runs across both sessions all passed.
 
 `pnpm format:check` and `pnpm lint:md` pass.
+
+**2026-09-20 — two-axis review applied.** Standards found one factual
+error: the conventions and D6 said real Better Auth over HTTP is covered by
+the gateway test _only_; `api-contract.integration.test.ts` also signs up
+through real auth (spec, "Authentication gateway for route tests"). Fixed
+both. Both axes flagged the representative-test granularity stated three
+ways (conventions "per problem code per endpoint", D2/D4 "per error class",
+spec "per problem code the feature can emit"); aligned D2, D4 and the spec
+to per endpoint, the reading under which the mutation result was accepted.
+Also: budget amendments pointed from the spec to D5, D7 amended to say the
+60 s miss was resolved by D5, the D5 concurrency sentence made to say what
+the numbers say, the "Helpers shared by" paragraph moved back under
+filenames, and the hardware note dropped from the conventions (D5 keeps it).
+Remaining review notes not acted on: Step 3 ran `pnpm turbo run test
+--force` rather than the literal `time pnpm test` (cache); the two
+uncaptured non-zero `--concurrency=2` exits are recorded above but not
+tracked as a ticket.

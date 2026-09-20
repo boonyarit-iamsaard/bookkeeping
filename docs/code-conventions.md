@@ -64,6 +64,14 @@ Use test scope in filenames: `*.unit.test.ts`, `*.integration.test.ts`, and
 Integration tests may exercise real PostgreSQL and are distinct from
 browser-driven E2E tests. Database fixture names describe infrastructure.
 
+Helpers shared by a workspace's Vitest tests live in its `src/testing/`
+directory, following the Bulletproof React reference; neither Hono nor Vitest
+prescribes a location. The database package exposes its fixtures as
+`@bookkeeping/database/testing`, and the server keeps its unit and integration
+app factories in `apps/server/src/testing/`. Playwright helpers stay beside the
+specs in `apps/web/tests/e2e/helpers/`. Test helpers are excluded from production
+builds.
+
 ## Test ownership
 
 The application package owns business-rule coverage. Other layers may rely on
@@ -80,24 +88,15 @@ through HTTP are out of scope: a route test may trigger a rule to obtain an
 error class, but it asserts the mapping, not the rule.
 
 Route integration tests provision owners through the test authentication
-gateway in `apps/server/src/testing/`. Real Better Auth over HTTP is covered by
-the gateway integration test only.
+gateway. Real Better Auth over HTTP is covered by the gateway integration test
+and the API contract test.
 
 Web integration tests exist only for the temporary Next.js adapter's own
 boundary, the session, until the adapter is removed.
 
 Budget: `pnpm test`, as Turborepo runs it with packages in parallel, completes
-in three minutes or less on the development machine (2 CPUs, 5 GB). Check it
-by hand; it is not gated in CI, which keeps CI free of hardware-dependent
-flakes.
-
-Helpers shared by a workspace's Vitest tests live in its `src/testing/`
-directory, following the Bulletproof React reference; neither Hono nor Vitest
-prescribes a location. The database package exposes its fixtures as
-`@bookkeeping/database/testing`, and the server keeps its unit and integration
-app factories in `apps/server/src/testing/`. Playwright helpers stay beside the
-specs in `apps/web/tests/e2e/helpers/`. Test helpers are excluded from production
-builds.
+in three minutes or less on the development machine. Check it by hand; it is
+not gated in CI, which keeps CI free of hardware-dependent flakes.
 
 ## TypeScript house style
 

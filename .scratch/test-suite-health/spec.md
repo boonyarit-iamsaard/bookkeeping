@@ -101,10 +101,11 @@ layer, with the rule written into the house style so it holds.
   history/recording-time behaviour, balance arithmetic. Other layers may rely
   on a rule inside a fixture but never assert it.
 - The server route suite asserts exactly six things: (1) status code and
-  problem-details mapping, one representative test per problem code the
-  feature can emit (`bad-request`, `conflict`, `forbidden`,
-  `idempotency-conflict`, `idempotency-key-required`, `invalid-command`,
-  `not-found`, `unauthenticated` as applicable); (2) request validation →
+  problem-details mapping, one representative test per problem code per
+  endpoint (_amended 2026-09-20, ticket 12; was "the feature can emit"_)
+  (`bad-request`, `conflict`, `forbidden`, `idempotency-conflict`,
+  `idempotency-key-required`, `invalid-command`, `not-found`,
+  `unauthenticated` as applicable); (2) request validation →
   field-error mapping per body-accepting endpoint; (3) authentication, session
   and ownership enforcement at the boundary; (4) response serialization
   against the exported Zod response schemas; (5) idempotency-key HTTP
@@ -151,7 +152,9 @@ layer, with the rule written into the house style so it holds.
 ### Budget and documentation
 
 - Budget: `pnpm test` wall time ≤ 60 s on the development machine, as
-  Turborepo runs it (packages in parallel). Baseline ≈ 81 s.
+  Turborepo runs it (packages in parallel). Baseline ≈ 81 s. _Amended
+  2026-09-20 (ticket 12): ≤ 180 s; the 81 s baseline was a single package's
+  standalone time. See `decisions.md` D5._
 - A "Test ownership" section in the code conventions states the ownership
   rule, the six route-suite responsibilities, the gateway-substitution
   convention for route integration tests, and the budget. Checked by hand;
@@ -177,7 +180,7 @@ did no harm:
   (the `invalid-command`/`bad-request` representative), and in the web form
   schema unit test — not in retired web integration tests. Revert.
 - Budget probe at the end of the effort: time `pnpm test` three times; report
-  the median; ≤ 60 s passes.
+  the median; ≤ 60 s passes (_amended 2026-09-20: ≤ 180 s, see D5_).
 - Prior art: application integration tests under the application package
   using `setupTestDatabase().withRollback/committed`; server route tests
   using `createIntegrationTestApp` and `expectProblem`; the server unit app
