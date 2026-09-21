@@ -11,7 +11,7 @@ offline fallback page shown when the shell is launched without a network.
 
 **Blocked by:** 11: Port the dashboard
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Pattern to copy:**
 
@@ -34,10 +34,37 @@ offline fallback page shown when the shell is launched without a network.
 responses; push notifications; Web Vitals; app-store packaging; a custom
 install prompt.
 
-- [ ] The manifest validates in Chromium's application panel: name, short name, icons (192, 512, maskable), theme and background colours, `display: standalone`, `start_url` `/`.
-- [ ] The production build emits the service worker; the precache manifest lists the shell and hashed assets and nothing under `/v1` or `/api/auth`.
-- [ ] A request to `/v1/wallets` or `/api/auth/get-session` is never served from cache (proved by the spec below).
-- [ ] Browser spec `pwa.spec.ts` (Chromium projects only): launches the built app, confirms the service worker is active, reloads with the network set offline and sees the fallback page, then goes online and sees the app again; and confirms an API request with the network offline fails rather than answering from cache.
-- [ ] `pnpm run ci` is green; `test:e2e:ci` (production build) passes the PWA spec on `phone-chromium`.
+- [x] The manifest validates in Chromium's application panel: name, short name, icons (192, 512, maskable), theme and background colours, `display: standalone`, `start_url` `/`.
+- [x] The production build emits the service worker; the precache manifest lists the shell and hashed assets and nothing under `/v1` or `/api/auth`.
+- [x] A request to `/v1/wallets` or `/api/auth/get-session` is never served from cache (proved by the spec below).
+- [x] Browser spec `pwa.spec.ts` (Chromium projects only): launches the built app, confirms the service worker is active, reloads with the network set offline and sees the fallback page, then goes online and sees the app again; and confirms an API request with the network offline fails rather than answering from cache.
+- [x] `pnpm run ci` is green; `test:e2e:ci` (production build) passes the PWA spec on `phone-chromium`.
 
 **Verify:** `pnpm run ci`; `pnpm --filter @bookkeeping/web test:e2e:ci -- --project=phone-chromium pwa`.
+
+## Comments
+
+Landed `vite-plugin-pwa` (generateSW, `autoUpdate`, registered once from
+`main.tsx`), the manifest with cobalt/paper colours and the generated icon set
+from `public/icon.svg` (`generate:icons` via `@vite-pwa/assets-generator`; the
+"B" is Inter 600 outlined to a path so the render does not depend on the font
+being installed), `public/offline.html`, and `tests/e2e/pwa.spec.ts`, which
+passes on `phone-chromium` under `test:e2e:ci` and skips on the dev server.
+
+Deviations: `navigateFallback` is disabled rather than pointed at the shell.
+Workbox registers the precache navigation route ahead of `runtimeCaching`, so a
+shell fallback would answer every offline launch from cache and the static
+offline page could never be shown; navigations are instead `NetworkOnly` with
+`precacheFallback` to `offline.html`. `workbox-window` is added as a dev
+dependency because `virtual:pwa-register` imports it and pnpm does not hoist
+the plugin's peer. `clientsClaim` is set explicitly; the plugin only enables
+`skipWaiting` for `autoUpdate`. `favicon.ico` was the copied Next.js default
+and is now the 48px production icon. Standalone launch is covered by the
+manifest assertions; Playwright cannot launch an installed app. Offline, the
+fallback page renders in the system font because Google Fonts is not cached.
+
+Review fixes: the spec throws without `VITE_API_ORIGIN` like its siblings,
+parses the manifest with Zod, and asserts the worker's caches hold no `/v1` or
+`/api/auth` URL so the no-cache check has a real oracle. The worker wait uses a
+synchronous predicate: an async one resolved on the pending promise and let
+the offline reload race the install.

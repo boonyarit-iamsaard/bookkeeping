@@ -182,6 +182,7 @@
         "apps/web/vite.config.ts",
         "apps/web/vitest.config.mts",
         "apps/web/playwright.config.ts",
+        "apps/web/pwa-assets.config.ts",
         "apps/server/vitest.config.mts",
         "packages/application/vitest.config.mts",
         "packages/auth/vitest.config.mts",
