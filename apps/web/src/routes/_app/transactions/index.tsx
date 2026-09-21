@@ -85,8 +85,8 @@ function TransactionsPage() {
           </span>
         </output>
       )}
-      <a
-        href="/dashboard"
+      <Link
+        to="/dashboard"
         className={buttonVariants({
           variant: "outline",
           size: "lg",
@@ -94,7 +94,7 @@ function TransactionsPage() {
         })}
       >
         Monthly summary &amp; balances
-      </a>
+      </Link>
       <HistoryFilters
         wallets={walletCollection.items}
         categories={categoryCollection.items}

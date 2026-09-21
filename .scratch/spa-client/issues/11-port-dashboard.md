@@ -11,7 +11,7 @@ links to the report.
 
 **Blocked by:** 10: Port transaction corrections
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Pattern to copy:**
 
@@ -24,10 +24,19 @@ links to the report.
 **Out of scope:** charts, trends, budgets, comparisons, or any figure the
 legacy dashboard does not show; caching reports offline.
 
-- [ ] The dashboard shows the five monthly figures and the wallet balances for the selected month and date, with net at stronger weight and archived wallets labelled.
-- [ ] Changing the month or date updates the URL and the figures; an invalid URL value falls back as the legacy page does, controls still editable.
-- [ ] Empty, loading (no sample money), and error states match the legacy page.
-- [ ] Browser spec `dashboard.spec.ts` covers a month with income, expense, refund, and transfer and passes on `phone-chromium`.
-- [ ] `pnpm run ci` is green.
+- [x] The dashboard shows the five monthly figures and the wallet balances for the selected month and date, with net at stronger weight and archived wallets labelled.
+- [x] Changing the month or date updates the URL and the figures; an invalid URL value falls back as the legacy page does, controls still editable.
+- [x] Empty, loading (no sample money), and error states match the legacy page.
+- [x] Browser spec `dashboard.spec.ts` covers a month with income, expense, refund, and transfer and passes on `phone-chromium`.
+- [x] `pnpm run ci` is green.
 
 **Verify:** `pnpm run ci`; `pnpm --filter @bookkeeping/web test:e2e -- --project=phone-chromium dashboard`.
+
+## Comments
+
+Ported the legacy monthly summary and wallet balance report to the SPA with
+URL-backed month and balance-date filters, query loading/error handling, and
+the existing links from Transactions and Wallets. Added filter-schema unit
+coverage and `dashboard.spec.ts`; the focused `phone-chromium` spec passes.
+There was no legacy dashboard browser spec in `apps/legacy-web/tests/e2e/` to
+retire.

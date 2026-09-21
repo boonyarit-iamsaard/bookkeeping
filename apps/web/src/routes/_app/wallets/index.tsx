@@ -37,8 +37,8 @@ function WalletsPage() {
           </Link>
         )}
       </div>
-      <a
-        href="/dashboard"
+      <Link
+        to="/dashboard"
         className={buttonVariants({
           variant: "outline",
           size: "lg",
@@ -46,7 +46,7 @@ function WalletsPage() {
         })}
       >
         Monthly summary &amp; balances
-      </a>
+      </Link>
       <WalletList wallets={data.items} createdId={created} />
     </main>
   );
