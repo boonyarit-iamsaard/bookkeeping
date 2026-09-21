@@ -10,7 +10,7 @@ line after a change. Legacy category specs are retired.
 
 **Blocked by:** 05: Port wallets
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Pattern to copy:**
 
@@ -26,12 +26,25 @@ line after a change. Legacy category specs are retired.
 **Out of scope:** the transaction form (07); reordering, drag and drop,
 colours, or any capability the legacy screen lacks; changing removal rules.
 
-- [ ] `/categories` renders both trees with parent and child rows, entry counts, and the segmented control as `DESIGN.md` describes.
-- [ ] Editing a category (name, icon) and creating one behave as before, including validation with values preserved.
-- [ ] Removing a category shows the count and destination, confirms, closes the sheet, re-reads the list, and moves focus to the status line.
-- [ ] A parent with children explains why it stays; Uncategorized shows its reason and no removal.
-- [ ] All copied unit tests pass under the new package.
+- [x] `/categories` renders both trees with parent and child rows, entry counts, and the segmented control as `DESIGN.md` describes.
+- [x] Editing a category (name, icon) and creating one behave as before, including validation with values preserved.
+- [x] Removing a category shows the count and destination, confirms, closes the sheet, re-reads the list, and moves focus to the status line.
+- [x] A parent with children explains why it stays; Uncategorized shows its reason and no removal.
+- [x] All copied unit tests pass under the new package.
 - [ ] `categories.spec.ts` and `category-management.spec.ts` are ported one for one and pass on `phone-chromium`; the legacy copies are deleted.
-- [ ] `pnpm run ci` is green.
+- [x] `pnpm run ci` is green.
 
 **Verify:** `pnpm run ci`; `pnpm --filter @bookkeeping/web test:e2e -- --project=phone-chromium categories category-management`.
+
+## Comments
+
+Ported the category trees, picker, icon catalog and recommendations, create
+and edit sheets, API-backed list and usage queries, status announcements, and
+the management and screen browser coverage into `apps/web`. Mutations
+invalidate both category reads, and the legacy category browser specs were
+retired.
+
+The picker scenarios from the retired legacy `categories.spec.ts` remain
+deferred to ticket 07 because `/transactions/new` is explicitly out of scope
+for this ticket; the picker component itself is present and ready for that
+route to wire.

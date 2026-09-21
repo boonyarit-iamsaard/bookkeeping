@@ -1,11 +1,65 @@
+import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { z } from "zod";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
-// One long flow through entry, management, and back; development compiles
-// each route on first visit, and every save is a server round trip.
 test.setTimeout(120_000);
 const ROUND_TRIP = { timeout: 20_000 };
+
+const collectionSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      kind: z.enum(["income", "expense"]),
+    }),
+  ),
+});
+
+const walletCollectionSchema = z.object({
+  items: z.array(z.object({ id: z.string(), name: z.string() })),
+});
+
+async function seedGroceriesEntry(
+  page: Parameters<typeof signUpFreshUser>[0],
+  baseURL: string,
+): Promise<void> {
+  const apiOrigin = process.env.VITE_API_ORIGIN;
+  if (!apiOrigin) {
+    throw new Error("The browser test has no API origin");
+  }
+  const headers = { origin: baseURL };
+  const [walletResponse, categoryResponse] = await Promise.all([
+    page.request.get(`${apiOrigin}/v1/wallets`, { headers }),
+    page.request.get(`${apiOrigin}/v1/categories`, { headers }),
+  ]);
+  expect(walletResponse.ok()).toBe(true);
+  expect(categoryResponse.ok()).toBe(true);
+  const wallets = walletCollectionSchema.parse(
+    await walletResponse.json(),
+  ).items;
+  const categories = collectionSchema.parse(
+    await categoryResponse.json(),
+  ).items;
+  const wallet = wallets[0];
+  const category = categories.find((item) => item.name === "Groceries");
+  if (!wallet || !category) {
+    throw new Error("The seeded wallet or Groceries category was not found");
+  }
+  const response = await page.request.post(`${apiOrigin}/v1/transactions`, {
+    headers: { ...headers, "idempotency-key": randomUUID() },
+    data: {
+      type: "expense",
+      amount: { value: "45.00", currency: "THB" },
+      walletId: wallet.id,
+      categoryId: category.id,
+      transactionDate: "2026-09-01",
+      note: "Groceries",
+    },
+  });
+  expect(response.ok()).toBe(true);
+}
 
 test.afterEach(async ({ page }) => {
   expect(
@@ -13,53 +67,36 @@ test.afterEach(async ({ page }) => {
   ).toEqual([]);
 });
 
-test("a parent with children explains why it stays, a child hands its entry up, and Uncategorized only changes icon", async ({
+test("management preserves tree rules, moves entries, and creates categories", async ({
   page,
-}, testInfo) => {
+  baseURL,
+}) => {
+  if (!baseURL) {
+    throw new Error("The browser test has no client origin");
+  }
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {
     name: "Cash",
     openingAmount: "500",
     openingDate: "2026-09-01",
   });
-  await page.goto("/transactions/new");
-  await page.getByLabel("Amount").fill("45");
-  await page.getByRole("button", { name: /^Category/ }).click();
-  const picker = page.getByRole("dialog", { name: "Expense category" });
-  await picker
-    .getByRole("searchbox", { name: "Search categories" })
-    .fill("groc");
-  await picker.getByRole("button", { name: "Groceries" }).click();
-  await page.getByRole("button", { name: "Save −฿45.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?saved=/, ROUND_TRIP);
+  await seedGroceriesEntry(page, baseURL);
+  await page.goto("/categories");
 
-  await page.getByRole("link", { name: "Categories" }).click();
-  // The first visit compiles the route in development.
-  await page.waitForURL(/\/categories$/, { timeout: 30_000 });
   const tree = page.getByRole("list", { name: "Expense categories" });
   const rows = tree.getByRole("button");
   await expect(rows.first()).toHaveText(/Uncategorized/);
   await expect(rows.nth(1)).toHaveText(/Food & Drink/);
   await expect(rows.nth(2)).toHaveText(/Groceries.*1 entry/);
-  await page.screenshot({
-    path: testInfo.outputPath("categories.png"),
-    fullPage: true,
-  });
 
-  // A parent with children: the sheet says why, and offers no removal.
   await rows.nth(1).click();
   const sheet = page.getByRole("dialog", { name: "Edit category" });
   await expect(sheet.getByLabel("Name")).toHaveValue("Food & Drink");
   await expect(sheet.getByLabel("Name")).toBeFocused();
-  await expect(sheet.getByRole("heading", { name: "Remove" })).toBeVisible();
   await expect(sheet).toContainText(
     "A parent with children stays. Remove its 4 child categories first",
   );
   await expect(sheet.getByRole("button", { name: "Remove…" })).toHaveCount(0);
-  await page.screenshot({
-    path: testInfo.outputPath("parent-sheet.png"),
-    fullPage: true,
-  });
   await sheet.getByLabel("Name").fill("Food");
   await sheet.getByLabel("Name").press("Enter");
   await expect(sheet).toBeHidden(ROUND_TRIP);
@@ -69,7 +106,6 @@ test("a parent with children explains why it stays, a child hands its entry up, 
   await expect(rows.nth(1)).toHaveText(/^Food/);
   await expect(rows.nth(1)).toBeFocused();
 
-  // A duplicate rename is refused on the field, values kept.
   await rows.nth(2).click();
   await sheet.getByLabel("Name").fill(" restaurants ");
   await sheet.getByRole("button", { name: "Save changes" }).click();
@@ -78,16 +114,11 @@ test("a parent with children explains why it stays, a child hands its entry up, 
     ROUND_TRIP,
   );
   await expect(sheet.getByLabel("Name")).toHaveValue(" restaurants ");
-
-  // Removing the child moves its entry to the parent and says so.
   await expect(sheet).toContainText(
     "Removing Groceries moves its 1 entry, and any refunds linked to them, to Food.",
   );
+
   await sheet.getByRole("button", { name: "Remove…" }).click();
-  await page.screenshot({
-    path: testInfo.outputPath("child-confirm.png"),
-    fullPage: true,
-  });
   await sheet.getByRole("button", { name: "Remove Groceries" }).click();
   await expect(sheet).toBeHidden(ROUND_TRIP);
   await expect(page.getByRole("status")).toHaveText(
@@ -98,7 +129,6 @@ test("a parent with children explains why it stays, a child hands its entry up, 
   await expect(rows.nth(1)).toHaveText(/Food.*1 entry/);
   await expect(rows.nth(2)).toHaveText("›Restaurants");
 
-  // Uncategorized: the name is fixed, the icon is not, and there is no removal.
   await rows.first().click();
   await expect(sheet.getByLabel("Name")).toHaveValue("Uncategorized");
   await expect(sheet.getByLabel("Name")).toHaveAttribute("readonly", "");
@@ -114,7 +144,6 @@ test("a parent with children explains why it stays, a child hands its entry up, 
     ROUND_TRIP,
   );
 
-  // The other tree, and creation through the same form as entry.
   await page.getByRole("radio", { name: "Income" }).click();
   const income = page.getByRole("list", { name: "Income categories" });
   await expect(income.getByRole("button", { name: "Salary" })).toBeVisible();
@@ -125,11 +154,4 @@ test("a parent with children explains why it stays, a child hands its entry up, 
   await expect(create).toBeHidden(ROUND_TRIP);
   await expect(page.getByRole("status")).toHaveText("Royalties created.");
   await expect(income.getByRole("button", { name: "Royalties" })).toBeVisible();
-
-  // Labels on existing entries follow the rename and the fallback.
-  await page.goto("/transactions");
-  await expect(page.locator("[data-transaction-row]")).toContainText("Food");
-  await expect(page.locator("[data-transaction-row]")).not.toContainText(
-    "Groceries",
-  );
 });

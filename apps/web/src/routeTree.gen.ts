@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
+import { Route as AppCategoriesIndexRouteImport } from './routes/_app/categories/index'
 import { Route as AppWalletsIndexRouteImport } from './routes/_app/wallets/index'
 import { Route as AppWalletsWalletIdRouteImport } from './routes/_app/wallets/$walletId'
 import { Route as AppWalletsNewRouteImport } from './routes/_app/wallets/new'
@@ -41,6 +42,11 @@ const AuthSignUpRoute = AuthSignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => AuthRoute,
 } as any)
+const AppCategoriesIndexRoute = AppCategoriesIndexRouteImport.update({
+  id: '/categories/',
+  path: '/categories/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppWalletsIndexRoute = AppWalletsIndexRouteImport.update({
   id: '/wallets/',
   path: '/wallets/',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof AuthSignUpRoute
   '/wallets/$walletId': typeof AppWalletsWalletIdRoute
   '/wallets/new': typeof AppWalletsNewRoute
+  '/categories/': typeof AppCategoriesIndexRoute
   '/wallets/': typeof AppWalletsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -71,6 +78,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof AuthSignUpRoute
   '/wallets/$walletId': typeof AppWalletsWalletIdRoute
   '/wallets/new': typeof AppWalletsNewRoute
+  '/categories': typeof AppCategoriesIndexRoute
   '/wallets': typeof AppWalletsIndexRoute
 }
 export interface FileRoutesById {
@@ -82,6 +90,7 @@ export interface FileRoutesById {
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_app/wallets/$walletId': typeof AppWalletsWalletIdRoute
   '/_app/wallets/new': typeof AppWalletsNewRoute
+  '/_app/categories/': typeof AppCategoriesIndexRoute
   '/_app/wallets/': typeof AppWalletsIndexRoute
 }
 export interface FileRouteTypes {
@@ -92,6 +101,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/wallets/$walletId'
     | '/wallets/new'
+    | '/categories/'
     | '/wallets/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/wallets/$walletId'
     | '/wallets/new'
+    | '/categories'
     | '/wallets'
   id:
     | '__root__'
@@ -110,6 +121,7 @@ export interface FileRouteTypes {
     | '/_auth/sign-up'
     | '/_app/wallets/$walletId'
     | '/_app/wallets/new'
+    | '/_app/categories/'
     | '/_app/wallets/'
   fileRoutesById: FileRoutesById
 }
@@ -156,6 +168,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSignUpRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_app/categories/': {
+      id: '/_app/categories/'
+      path: '/categories'
+      fullPath: '/categories/'
+      preLoaderRoute: typeof AppCategoriesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/wallets/': {
       id: '/_app/wallets/'
       path: '/wallets'
@@ -183,12 +202,14 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppWalletsWalletIdRoute: typeof AppWalletsWalletIdRoute
   AppWalletsNewRoute: typeof AppWalletsNewRoute
+  AppCategoriesIndexRoute: typeof AppCategoriesIndexRoute
   AppWalletsIndexRoute: typeof AppWalletsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppWalletsWalletIdRoute: AppWalletsWalletIdRoute,
   AppWalletsNewRoute: AppWalletsNewRoute,
+  AppCategoriesIndexRoute: AppCategoriesIndexRoute,
   AppWalletsIndexRoute: AppWalletsIndexRoute,
 }
 
