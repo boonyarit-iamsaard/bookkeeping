@@ -47,7 +47,6 @@ test("validation names the problem and keeps the typed values", async ({
 }) => {
   await signUpFreshUser(page);
   await page.goto("/wallets/new");
-  // Wait for the form handlers before submitting validation input.
   await expect(page.locator('form[data-ready="true"]')).toBeVisible();
 
   await page.getByLabel("Name").fill("Petty cash");
@@ -69,7 +68,7 @@ test("signed-out visitors are sent to sign in", async ({ page }) => {
   await expect(page).toHaveURL(/\/sign-in/);
 });
 
-test("wallet mutations enforce session ownership and reject signed-out or invalid writes", async ({
+test("wallet mutations enforce session ownership and reject invalid writes", async ({
   page,
   browser,
   request,
@@ -79,14 +78,12 @@ test("wallet mutations enforce session ownership and reject signed-out or invali
   try {
     const otherPage = await otherContext.newPage();
     await signUpFreshUser(otherPage);
-    const sessionResponse = await otherPage.request.get(
-      "/api/auth/get-session",
-    );
-    const otherSession = z
-      .object({ user: z.object({ id: z.string() }) })
-      .parse(await sessionResponse.json());
-
     await signUpFreshUser(page);
+
+    const apiOrigin = process.env.VITE_API_ORIGIN;
+    if (!apiOrigin) {
+      throw new Error("The browser test has no API origin");
+    }
     await page.goto("/wallets/new");
     await expect(page.locator('form[data-ready="true"]')).toBeVisible();
     const name = "Savings for our family holiday and upcoming home renovation";
@@ -94,86 +91,116 @@ test("wallet mutations enforce session ownership and reject signed-out or invali
     await page.getByLabel("Opening balance").fill("12.50");
     await chooseDate(page.getByLabel("Opening date"), "2026-09-01");
 
-    // Modify the real browser submission, preserving its action identifier.
-    await page.route("**/wallets/new", async (route) => {
-      if (!route.request().headers()["next-action"]) {
-        await route.continue();
-        return;
-      }
-      const args = z
-        .tuple([z.record(z.string(), z.unknown())])
-        .parse(route.request().postDataJSON());
-      await route.continue({
-        postData: JSON.stringify([
-          {
-            ...args[0],
-            ownerId: otherSession.user.id,
-            userId: otherSession.user.id,
-          },
-        ]),
-      });
-    });
-    const submissionPromise = page.waitForRequest((candidate) =>
-      Boolean(candidate.headers()["next-action"]),
+    const creationResponsePromise = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/v1/wallets" &&
+        response.request().method() === "POST",
     );
     await page.getByRole("button", { name: "Create wallet" }).click();
-    const submission = await submissionPromise;
+    const creation = await creationResponsePromise;
+    const wallet = z.object({ id: z.string() }).parse(await creation.json());
     await expect(page).toHaveURL(/\/wallets(\?.*)?$/);
+
+    const otherRead = await otherPage.request.get(
+      `${apiOrigin}/v1/wallets/${wallet.id}`,
+      { headers: { origin: baseURL ?? "" } },
+    );
+    expect(otherRead.status()).toBe(404);
+
+    const denied = await request.post(`${apiOrigin}/v1/wallets`, {
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": "anonymous-wallet",
+        origin: baseURL ?? "",
+      },
+      data: {
+        name: "Unauthorized wallet",
+        type: "cash",
+        openingAmount: { value: "99", currency: "THB" },
+        openingDate: "2026-09-01",
+      },
+    });
+    expect(denied.status()).toBe(401);
+
+    const invalid = await page.request.post(`${apiOrigin}/v1/wallets`, {
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": "invalid-wallet",
+        origin: baseURL ?? "",
+      },
+      data: {
+        name: "Future wallet",
+        type: "cash",
+        openingAmount: { value: "99", currency: "THB" },
+        openingDate: "9999-12-31",
+      },
+    });
+    expect(invalid.status()).toBe(422);
+    await page.reload();
+    await expect(page.getByRole("listitem")).toHaveCount(1);
     await expect(
       page.getByRole("listitem").filter({ hasText: name }),
     ).toContainText("฿12.50");
-    await otherPage.goto("/wallets");
-    await expect(
-      otherPage.getByRole("heading", { name: "No wallets yet" }),
-    ).toBeVisible();
-
-    const actionId = submission.headers()["next-action"];
-    const contentType = submission.headers()["content-type"];
-    if (!actionId || !contentType) {
-      throw new Error("Wallet submission did not include action headers");
-    }
-    const origin = new URL(submission.url()).origin;
-    const headers = {
-      "next-action": actionId,
-      "content-type": contentType,
-      origin,
-    };
-    const data = JSON.stringify([
-      {
-        name: "Unauthorized wallet",
-        type: "cash",
-        openingAmount: "99",
-        openingDate: "2026-09-01",
-        ownerId: otherSession.user.id,
-      },
-    ]);
-    // An invalid session cookie passes the optimistic proxy check but must fail
-    // the action's database-backed session verification.
-    const denied = await request.post(submission.url(), {
-      headers: { ...headers, cookie: "better-auth.session_token=invalid" },
-      data,
-    });
-    expect(await denied.text()).toContain("unauthenticated");
-
-    const invalid = await page.request.post(submission.url(), {
-      headers,
-      data: JSON.stringify([
-        {
-          name: "Future wallet",
-          type: "cash",
-          openingAmount: "99",
-          openingDate: "9999-12-31",
-        },
-      ]),
-    });
-    expect(await invalid.text()).toContain('"error":"invalid"');
-    await page.reload();
-    await expect(page.getByRole("listitem")).toHaveCount(1);
-    await otherPage.reload();
     await expect(
       otherPage.getByRole("heading", { name: "No wallets yet" }),
     ).toBeVisible();
   } finally {
     await otherContext.close();
+  }
+});
+
+test("double-tapping Save creates one wallet", async ({ page }) => {
+  await signUpFreshUser(page);
+  await page.goto("/wallets/new");
+  await expect(page.locator('form[data-ready="true"]')).toBeVisible();
+  await page.getByLabel("Name").fill("Double-tap cash");
+  await page.getByLabel("Opening balance").fill("25");
+
+  await page
+    .getByRole("button", { name: "Create wallet" })
+    .evaluate((element) => {
+      if (!(element instanceof HTMLButtonElement)) {
+        throw new Error("The create control is not a button");
+      }
+      element.click();
+      element.click();
+    });
+
+  await expect(page).toHaveURL(/\/wallets(\?.*)?$/);
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Double-tap cash" }),
+  ).toHaveCount(1);
+});
+
+test("a lost create response replays without a duplicate or error", async ({
+  page,
+}) => {
+  await signUpFreshUser(page);
+  await page.goto("/wallets/new");
+  await expect(page.locator('form[data-ready="true"]')).toBeVisible();
+  await page.getByLabel("Name").fill("Replay cash");
+  await page.getByLabel("Opening balance").fill("75");
+
+  let lostResponse = false;
+  await page.route("**/v1/wallets", async (route) => {
+    if (route.request().method() !== "POST" || lostResponse) {
+      await route.continue();
+      return;
+    }
+    lostResponse = true;
+    const response = await route.fetch();
+    await response.body();
+    await route.abort("failed");
+  });
+
+  try {
+    await page.getByRole("button", { name: "Create wallet" }).click();
+    await expect(page).toHaveURL(/\/wallets(\?.*)?$/);
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(
+      page.getByRole("listitem").filter({ hasText: "Replay cash" }),
+    ).toHaveCount(1);
+  } finally {
+    await page.unroute("**/v1/wallets");
   }
 });

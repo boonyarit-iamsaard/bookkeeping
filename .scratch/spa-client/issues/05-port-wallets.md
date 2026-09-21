@@ -13,7 +13,7 @@ are retired.
 
 **Blocked by:** 04: Port sign-in and sign-up
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Pattern to copy:**
 
@@ -34,12 +34,25 @@ are retired.
 rule (refund allowance, archive constraints are server-owned); redesigning
 the row or management layout.
 
-- [ ] `/wallets` shows the total, count caption, rows with pictogram, name, type, opened date (from 640px), and right-aligned balance; archived wallets keep their figures.
-- [ ] Create wallet validates as before, preserves values on rejection, shows the server error bar on a non-field problem, and returns to the list with the new row highlighted.
-- [ ] Management performs opening correction, archive, unarchive, and delete with the same confirmation flow and messages.
-- [ ] Double-tap Save and lost-response replay each yield exactly one wallet.
-- [ ] `wallets.spec.ts` and `wallet-lifecycle.spec.ts` exist in the new suite and pass on `phone-chromium`; the legacy copies are deleted.
-- [ ] The CI workflow runs the new suite's `ci:e2e`.
-- [ ] `pnpm run ci` is green.
+- [x] `/wallets` shows the total, count caption, rows with pictogram, name, type, opened date (from 640px), and right-aligned balance; archived wallets keep their figures.
+- [x] Create wallet validates as before, preserves values on rejection, shows the server error bar on a non-field problem, and returns to the list with the new row highlighted.
+- [x] Management performs opening correction, archive, unarchive, and delete with the same confirmation flow and messages.
+- [x] Double-tap Save and lost-response replay each yield exactly one wallet.
+- [x] `wallets.spec.ts` and `wallet-lifecycle.spec.ts` exist in the new suite and pass on `phone-chromium`; the legacy copies are deleted.
+- [x] The CI workflow runs the new suite's `ci:e2e`.
+- [x] `pnpm run ci` is green.
 
 **Verify:** `pnpm run ci`; `pnpm --filter @bookkeeping/web test:e2e -- --project=phone-chromium wallets wallet-lifecycle`.
+
+## Comments
+
+Ported the wallet list, create form, wallet management screen, API-backed
+queries and mutations, exact money display, arrival highlight, and the two
+idempotency reliability workflows into `apps/web`. Added the SPA Playwright
+wallet and lifecycle specs, retired both legacy wallet specs, and ran the new
+browser suite sequentially in CI beside the legacy suite.
+
+The legacy lifecycle assertions that navigate to `/transactions/new` remain
+deferred to the transaction-entry ticket because that route is not part of
+this wallet port; archive/unarchive, retained figures, opening correction,
+and deletion confirmation/error behavior are covered here.
