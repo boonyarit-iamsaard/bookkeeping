@@ -1,0 +1,119 @@
+import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
+import { formatMoney } from "@bookkeeping/domain/money";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Wallet as WalletIcon } from "lucide-react";
+import type { components } from "@/core/api/openapi.gen";
+import {
+  categoryQueries,
+  transactionQueries,
+  walletQueries,
+} from "@/core/api/queries";
+import { TransactionForm } from "@/features/transactions/components/transaction-form";
+import type { WalletOption } from "@/features/transactions/hooks/use-transaction-form";
+import { parseApiMoney } from "@/features/wallets/components/money";
+import { buttonVariants } from "@/shared/components/ui/button";
+
+type ApiWallet = components["schemas"]["Wallet"];
+
+export const Route = createFileRoute("/_app/transactions/new")({
+  head: () => ({ meta: [{ title: "New transaction" }] }),
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(walletQueries.list()),
+      context.queryClient.ensureQueryData(categoryQueries.list()),
+      context.queryClient.ensureQueryData(transactionQueries.entryDefaults()),
+    ]);
+  },
+  component: NewTransactionPage,
+});
+
+function toWalletOptions(wallets: readonly ApiWallet[]): WalletOption[] {
+  return wallets
+    .filter((wallet) => wallet.archivedAt === null)
+    .map((wallet) => ({
+      id: wallet.id,
+      name: wallet.name,
+      type: wallet.type,
+      openingDate: wallet.openingDate,
+      balanceLabel: formatMoney({
+        amountInMinorUnits: parseApiMoney(wallet.balance),
+        currency: wallet.balance.currency,
+      }),
+    }));
+}
+
+function NewTransactionPage() {
+  const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
+  const { data: categoryCollection } = useSuspenseQuery(categoryQueries.list());
+  const { data: entryDefaults } = useSuspenseQuery(
+    transactionQueries.entryDefaults(),
+  );
+  if (!walletCollection || !categoryCollection || !entryDefaults) {
+    throw new Error("The transaction entry queries returned no data");
+  }
+  const wallets = toWalletOptions(walletCollection.items);
+  const defaultWalletId =
+    wallets.find((wallet) => wallet.id === entryDefaults.lastUsedWalletId)
+      ?.id ?? wallets[0]?.id;
+
+  return (
+    <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 pt-8 pb-40 sm:pb-12">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="font-semibold text-2xl tracking-tight">
+          New transaction
+        </h1>
+        <Link
+          to="/transactions"
+          className={buttonVariants({
+            variant: "ghost",
+            className: "max-sm:hidden",
+          })}
+        >
+          Cancel
+        </Link>
+      </div>
+      {defaultWalletId ? (
+        <TransactionForm
+          wallets={wallets}
+          categories={categoryCollection.items}
+          today={todayIn({ timeZone: APP_TIME_ZONE })}
+          mode={{ kind: "create", defaultWalletId }}
+        />
+      ) : (
+        <NoWallet />
+      )}
+    </main>
+  );
+}
+
+function NoWallet() {
+  return (
+    <section
+      aria-labelledby="no-wallet-heading"
+      className="flex flex-col items-start gap-4 rounded-xl border border-dashed p-6 sm:p-8"
+    >
+      <span className="flex size-10 items-center justify-center rounded-full bg-muted">
+        <WalletIcon aria-hidden="true" strokeWidth={1.75} className="size-5" />
+      </span>
+      <div className="flex flex-col gap-1">
+        <h2 id="no-wallet-heading" className="font-semibold text-lg">
+          No active wallets
+        </h2>
+        <p className="max-w-prose text-muted-foreground text-sm leading-normal">
+          Every transaction belongs to a wallet. Add the cash, bank account, or
+          e-wallet the money moved through, then come back to record it.
+        </p>
+      </div>
+      <Link
+        to="/wallets"
+        className={buttonVariants({ variant: "outline", size: "lg" })}
+      >
+        Create or unarchive a wallet
+      </Link>
+      <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
+        Create a wallet
+      </Link>
+    </section>
+  );
+}
