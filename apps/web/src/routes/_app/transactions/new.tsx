@@ -1,20 +1,15 @@
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
-import { formatMoney } from "@bookkeeping/domain/money";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Wallet as WalletIcon } from "lucide-react";
-import type { components } from "@/core/api/openapi.gen";
 import {
   categoryQueries,
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
-import type { WalletOption } from "@/features/transactions/hooks/use-transaction-form";
-import { parseApiMoney } from "@/features/wallets/components/money";
+import { toWalletOptions } from "@/features/transactions/wallet-options";
 import { buttonVariants } from "@/shared/components/ui/button";
-
-type ApiWallet = components["schemas"]["Wallet"];
 
 export const Route = createFileRoute("/_app/transactions/new")({
   head: () => ({ meta: [{ title: "New transaction" }] }),
@@ -27,21 +22,6 @@ export const Route = createFileRoute("/_app/transactions/new")({
   },
   component: NewTransactionPage,
 });
-
-function toWalletOptions(wallets: readonly ApiWallet[]): WalletOption[] {
-  return wallets
-    .filter((wallet) => wallet.archivedAt === null)
-    .map((wallet) => ({
-      id: wallet.id,
-      name: wallet.name,
-      type: wallet.type,
-      openingDate: wallet.openingDate,
-      balanceLabel: formatMoney({
-        amountInMinorUnits: parseApiMoney(wallet.balance),
-        currency: wallet.balance.currency,
-      }),
-    }));
-}
 
 function NewTransactionPage() {
   const { data: walletCollection } = useSuspenseQuery(walletQueries.list());

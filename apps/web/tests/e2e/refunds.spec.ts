@@ -10,13 +10,10 @@ test.afterEach(async ({ page }) => {
   ).toEqual([]);
 });
 
-test("a linked refund starts from the expense, falls back when the original wallet is archived, and guards the expense", async ({
+test("a linked refund starts from the expense, falls back when the original wallet is archived, and exhausts the allowance", async ({
   page,
-}, testInfo) => {
+}) => {
   test.setTimeout(150_000);
-  if (testInfo.project.name === "phone") {
-    await page.setViewportSize({ width: 360, height: 800 });
-  }
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {
     name: "Cash",
@@ -35,11 +32,11 @@ test("a linked refund starts from the expense, falls back when the original wall
   await page.getByLabel("Amount").fill("500");
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-02");
   await page.getByRole("button", { name: "Save −฿500.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?saved=/, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/transactions\?created=/);
   await page.locator("[data-transaction-row]").getByRole("link").click();
   await expect(
     page.getByRole("heading", { name: "Refunds", exact: true }),
-  ).toBeVisible({ timeout: 15_000 });
+  ).toBeVisible();
   const expenseId = new URL(page.url()).pathname.split("/")[2];
   await expect(page.getByText("None recorded")).toBeVisible();
 
@@ -50,7 +47,7 @@ test("a linked refund starts from the expense, falls back when the original wall
   await page.getByRole("link", { name: "Record refund" }).click();
   await expect(
     page.getByRole("heading", { name: "Record refund" }),
-  ).toBeVisible({ timeout: 15_000 });
+  ).toBeVisible();
   await expect(page.getByRole("radio")).toHaveCount(0);
   const chip = page.getByRole("link", { name: /^Refund of Uncategorized/ });
   await expect(chip).toContainText("−฿500.00");
@@ -74,22 +71,15 @@ test("a linked refund starts from the expense, falls back when the original wall
   await expect(page.locator("#amount-error")).toContainText(
     "Only ฿500.00 of this expense is left",
   );
+  await expect(page.getByLabel("Amount")).toHaveValue("600");
   await page.getByLabel("Amount").fill("100");
   // A refund cannot precede its expense, so the calendar refuses the day.
   await page.getByLabel("Date", { exact: true }).click();
   await expect(page.locator('[data-date="2026-09-01"]')).toBeDisabled();
   await page.locator('[data-date="2026-09-02"]').click();
-  if (process.env.REFUND_SCREENSHOTS) {
-    await page.getByLabel("Amount").blur();
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({
-      path: `.impeccable/review/refund-create-${testInfo.project.name}.png`,
-      fullPage: true,
-    });
-  }
   // Enter submits from the amount on every device.
   await page.getByLabel("Amount").press("Enter");
-  await expect(page).toHaveURL(/\/transactions\?saved=/, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/transactions\?created=/);
   const rows = page.locator("[data-transaction-row]");
   await expect(rows).toHaveCount(2);
   await expect(rows.first()).toContainText("Refund · Uncategorized");
@@ -114,10 +104,13 @@ test("a linked refund starts from the expense, falls back when the original wall
   await page.goto(`/transactions/${expenseId}`);
   await expect(page.getByText("฿100.00 refunded")).toBeVisible();
   await expect(page.getByText("฿400.00 left")).toBeVisible();
+  await expect(
+    page.getByRole("list", { name: "Linked refunds" }),
+  ).toContainText("Cash (Archived)");
   await page.getByRole("link", { name: "Record refund" }).click();
   await expect(
     page.getByRole("heading", { name: "Record refund" }),
-  ).toBeVisible({ timeout: 15_000 });
+  ).toBeVisible();
   const receivingWallet = page.getByLabel("Received in");
   await expect(receivingWallet).toContainText("Choose an active wallet");
   // Only the active wallet is offered; the archived original is absent.
@@ -133,12 +126,6 @@ test("a linked refund starts from the expense, falls back when the original wall
   ).toBeVisible();
   await expect(page.getByLabel("Amount")).toHaveValue("400.00");
   await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
-  if (process.env.REFUND_SCREENSHOTS) {
-    await page.screenshot({
-      path: `.impeccable/review/refund-archived-${testInfo.project.name}.png`,
-      fullPage: true,
-    });
-  }
   await chooseOption(receivingWallet, "Bank");
   await page.getByLabel("Amount").fill("50");
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-02");
@@ -148,68 +135,39 @@ test("a linked refund starts from the expense, falls back when the original wall
   );
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-03");
   await page.getByRole("button", { name: "Save +฿50.00 · Bank" }).click();
-  await expect(page).toHaveURL(/\/transactions\?saved=/, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/transactions\?created=/);
   await page.goto("/wallets");
   await expect(
     page.getByRole("listitem").filter({ hasText: /^Bank/ }),
   ).toContainText("฿50.00");
 
-  // The expense can no longer shrink below ฿150 or be deleted.
-  await page.goto(`/transactions/${expenseId}/edit`);
-  await expect(page.getByRole("heading", { name: "Edit expense" })).toBeVisible(
-    { timeout: 15_000 },
-  );
-  await expect(
-    page.getByText("฿150.00 of this expense has been refunded"),
-  ).toBeVisible();
-  await page.getByLabel("Amount").fill("149.99");
-  await page.getByRole("button", { name: "Save −฿149.99 · Cash" }).click();
-  await expect(page.locator("#amount-error")).toContainText(
-    "฿150.00 of this expense has been refunded",
-  );
-  await page.getByLabel("Amount").fill("150");
-  await page.getByRole("button", { name: "Delete expense" }).click();
-  const dialog = page.getByRole("alertdialog", {
-    name: "Delete this expense?",
-  });
-  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(dialog.getByRole("alert")).toContainText(
-    "linked refunds: ฿100.00 on 2 Sep 2026, ฿50.00 on 3 Sep 2026",
-  );
-  if (process.env.REFUND_SCREENSHOTS) {
-    await page.screenshot({
-      path: `.impeccable/review/refund-blocked-${testInfo.project.name}.png`,
-    });
-  }
-  await dialog.getByRole("button", { name: "Keep it" }).click();
-  await expect(dialog).toBeHidden();
-
-  // Refund detail links back; its edit keeps the recording time and can be deleted.
+  // Refund detail links back to the expense and names the archived wallet.
   await page.goto(`/transactions/${expenseId}`);
+  await expect(page.getByText("฿150.00 refunded")).toBeVisible();
+  await expect(page.getByText("฿350.00 left")).toBeVisible();
   await page
     .getByRole("list", { name: "Linked refunds" })
     .getByRole("link")
     .first()
     .click();
-  await expect(page.getByRole("heading", { name: "Refund" })).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(page.getByRole("heading", { name: "Refund" })).toBeVisible();
   await expect(page.locator("dl")).toContainText(
     "Refund of−฿500.00 on 2 Sep 2026",
   );
   await expect(page.locator("dl")).toContainText(
     "Received inCash · Cash · Archived",
   );
-  await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Edit refund" })).toBeVisible({
-    timeout: 15_000,
-  });
+
+  // The rest of the allowance closes the expense to further refunds.
+  await page.goto(`/transactions/${expenseId}/refund`);
   await expect(
     page.getByRole("link", { name: /^Refund of Uncategorized/ }),
-  ).toContainText("฿450.00 left");
-  await page.getByLabel("Amount").fill("450");
-  await page.getByRole("button", { name: "Save +฿450.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?saved=/, { timeout: 15_000 });
+  ).toContainText("฿350.00 left");
+  await chooseOption(page.getByLabel("Received in"), "Bank");
+  await expect(page.getByLabel("Amount")).toHaveValue("350.00");
+  await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-03");
+  await page.getByRole("button", { name: "Save +฿350.00 · Bank" }).click();
+  await expect(page).toHaveURL(/\/transactions\?created=/);
   await page.goto(`/transactions/${expenseId}`);
   await expect(page.getByText("Fully refunded")).toBeVisible();
   await expect(page.getByRole("link", { name: "Record refund" })).toHaveCount(

@@ -2,8 +2,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
+import type { components } from "@/core/api/openapi.gen";
 import { ApiProblemError } from "@/core/api/problem";
 import { transactionQueries } from "@/core/api/queries";
+import { ExpenseRefundsView } from "@/features/transactions/components/expense-refunds";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionDetailView } from "@/features/transactions/components/transaction-detail";
@@ -15,8 +17,9 @@ const NOT_FOUND_STATUS = 404;
 export const Route = createFileRoute("/_app/transactions/$transactionId")({
   head: () => ({ meta: [{ title: "Transaction" }] }),
   loader: async ({ context, params }) => {
+    let transaction: components["schemas"]["Transaction"] | undefined;
     try {
-      await context.queryClient.ensureQueryData(
+      transaction = await context.queryClient.ensureQueryData(
         transactionQueries.detail(params.transactionId),
       );
     } catch (error) {
@@ -28,6 +31,14 @@ export const Route = createFileRoute("/_app/transactions/$transactionId")({
         throw notFound();
       }
       throw error;
+    }
+    if (!transaction) {
+      throw new Error("The transaction query returned no data");
+    }
+    if (transaction.type === "expense") {
+      await context.queryClient.ensureQueryData(
+        transactionQueries.refunds(params.transactionId),
+      );
     }
   },
   pendingComponent: HistoryLoading,
@@ -67,6 +78,23 @@ function TransactionDetailPage() {
         </div>
       </div>
       <TransactionDetailView transaction={transaction} />
+      {transaction.type === "expense" && (
+        <ExpenseRefundsSection transactionId={transaction.id} />
+      )}
     </main>
+  );
+}
+
+function ExpenseRefundsSection({
+  transactionId,
+}: Readonly<{ transactionId: string }>) {
+  const { data: refunds } = useSuspenseQuery(
+    transactionQueries.refunds(transactionId),
+  );
+  if (!refunds) {
+    throw new Error("The expense refunds query returned no data");
+  }
+  return (
+    <ExpenseRefundsView expense={{ id: transactionId }} refunds={refunds} />
   );
 }

@@ -231,8 +231,9 @@ interface LinkedExpenseChipProps {
 /** The refunded expense read back: category, date, amount, and what is left. */
 function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
   return (
-    <a
-      href={`/transactions/${expense.id}`}
+    <Link
+      to="/transactions/$transactionId"
+      params={{ transactionId: expense.id }}
       aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${expense.remainingLabel} left to refund. Open the expense.`}
       className="flex min-h-14 min-w-0 items-center gap-3 rounded-xl border px-3 py-2 outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
@@ -262,7 +263,7 @@ function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
         strokeWidth={1.75}
         className="size-4 shrink-0 text-muted-foreground"
       />
-    </a>
+    </Link>
   );
 }
 
@@ -442,6 +443,11 @@ export function TransactionForm({
                           inputMode="decimal"
                           autoComplete="off"
                           autoFocus={!editing}
+                          onFocus={(event) => {
+                            if (mode.kind === "refund") {
+                              event.currentTarget.select();
+                            }
+                          }}
                           enterKeyHint="done"
                           placeholder="0.00"
                           value={field.state.value}

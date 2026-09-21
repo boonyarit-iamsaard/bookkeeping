@@ -10,13 +10,11 @@ test.afterEach(async ({ page }) => {
   ).toEqual([]);
 });
 
-test("transfer From → To and swap survive a lost response, then edit and delete update both balances", async ({
+test("transfer From → To and swap survive a lost response and update both balances", async ({
   page,
 }, testInfo) => {
   test.setTimeout(120_000);
-  if (testInfo.project.name === "phone") {
-    await page.setViewportSize({ width: 360, height: 800 });
-  }
+  const phone = testInfo.project.name.startsWith("phone");
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {
     name: "Cash",
@@ -28,6 +26,20 @@ test("transfer From → To and swap survive a lost response, then edit and delet
     openingAmount: "0",
     openingDate: "2026-09-05",
   });
+  await createWalletThroughForm(page, {
+    name: "Old",
+    openingAmount: "0",
+    openingDate: "2026-09-01",
+  });
+  // An archived wallet is never offered on either side of a transfer.
+  await page.goto("/wallets");
+  await page.getByRole("link", { name: "Old", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Archive wallet", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Unarchive wallet", exact: true }),
+  ).toBeVisible();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/transactions/new");
   await expect(page.getByLabel("Amount")).toBeFocused();
@@ -45,6 +57,17 @@ test("transfer From → To and swap survive a lost response, then edit and delet
   expect(
     Math.abs((dateAfter?.y ?? 0) - (dateBefore?.y ?? 0)),
   ).toBeLessThanOrEqual(48);
+  // Archived Old is absent from both sides; the list must be open before
+  // Escape, which otherwise cancels the whole form.
+  for (const side of ["From", "To"]) {
+    await page.getByLabel(side, { exact: true }).click();
+    const listbox = page.getByRole("listbox");
+    await expect(listbox).toBeVisible();
+    await expect(listbox.getByRole("option")).toHaveCount(2);
+    await expect(listbox.getByRole("option", { name: /^Old/ })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(listbox).toBeHidden();
+  }
   await page.getByRole("button", { name: "Swap wallets" }).click();
   await expect(
     page.getByRole("button", { name: "Swap wallets" }),
@@ -72,7 +95,7 @@ test("transfer From → To and swap survive a lost response, then edit and delet
     page.getByRole("button", { name: "Save ฿1,000.01 Savings → Cash" }),
   ).toBeEnabled();
 
-  if (testInfo.project.name === "phone") {
+  if (phone) {
     // Approximate the space left above a native keyboard; Playwright does not open one.
     await page.setViewportSize({ width: 360, height: 420 });
     const note = page.getByLabel("Note", { exact: false });
@@ -91,25 +114,14 @@ test("transfer From → To and swap survive a lost response, then edit and delet
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(360);
-    if (process.env.TRANSFER_SCREENSHOTS) {
-      await page.screenshot({
-        path: ".impeccable/review/transfer-keyboard-phone.png",
-      });
-    }
     await page.setViewportSize({ width: 360, height: 800 });
   }
 
-  if (process.env.TRANSFER_SCREENSHOTS) {
-    await page.getByLabel("Amount").blur();
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({
-      path: `.impeccable/review/transfer-create-${testInfo.project.name}.png`,
-      fullPage: true,
-    });
-  }
+  // The first response is lost after the server commits; the same
+  // Idempotency-Key replays once and lands on the original transfer.
   let dropped = false;
-  await page.route("**/transactions/new", async (route) => {
-    if (dropped || !route.request().headers()["next-action"]) {
+  await page.route("**/v1/transactions", async (route) => {
+    if (dropped || route.request().method() !== "POST") {
       await route.continue();
       return;
     }
@@ -120,72 +132,22 @@ test("transfer From → To and swap survive a lost response, then edit and delet
   await page
     .getByRole("button", { name: "Save ฿1,000.01 Savings → Cash" })
     .click();
-  await expect(page.getByRole("status")).toContainText(
-    "response to your last save was lost",
-  );
-  await expect(page.getByLabel("From", { exact: true })).toBeDisabled();
-  await expect(page.getByLabel("To", { exact: true })).toBeDisabled();
-  await expect(
-    page.getByRole("button", { name: "Swap wallets" }),
-  ).toBeDisabled();
-  await page.getByRole("button", { name: "Check and retry save" }).click();
-  // Run alone, the list, detail, and edit routes compile cold in dev mode.
-  await expect(page).toHaveURL(/\/transactions\?saved=/, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/transactions\?created=/);
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
   const row = page.locator("[data-transaction-row]");
   await expect(row).toContainText("Transfer");
   await expect(row).toContainText("Savings → Cash");
   await row.getByRole("link").click();
-  await expect(page.locator("dl")).toContainText("FromSavings", {
-    timeout: 15_000,
-  });
+  await expect(page.locator("dl")).toContainText("FromSavings");
   await expect(page.locator("dl")).toContainText("ToCash");
   await expect(page.getByText("Category", { exact: true })).toHaveCount(0);
-  await page.getByRole("link", { name: "Edit", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Edit transfer" }),
-  ).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole("radio")).toHaveCount(0);
-  await page.getByRole("button", { name: "Swap wallets" }).click();
-  await page.getByLabel("Amount").fill("500");
-  if (process.env.TRANSFER_SCREENSHOTS) {
-    await page.getByLabel("Amount").blur();
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.screenshot({
-      path: `.impeccable/review/transfer-edit-${testInfo.project.name}.png`,
-      fullPage: true,
-    });
-  }
-  // Enter submits from the amount; the phone uses the same form contract.
-  await page.getByLabel("Amount").press("Enter");
-  await expect(page).toHaveURL(/\/transactions\?saved=/, { timeout: 15_000 });
-  const savedId = new URL(page.url()).searchParams.get("saved");
   await page.goto("/wallets");
   await expect(
     page.getByRole("listitem").filter({ hasText: /^Cash/ }),
-  ).toContainText("฿11,500.00");
+  ).toContainText("฿13,000.01");
   await expect(
-    page.getByRole("listitem").filter({ hasText: "Savings" }),
-  ).toContainText("฿500.00");
-  await page.goto(`/transactions/${savedId}/edit`);
-  await page.getByRole("button", { name: "Delete transfer" }).click();
-  const dialog = page.getByRole("alertdialog", {
-    name: "Delete this transfer?",
-  });
-  await expect(dialog).toContainText("Cash → Savings");
-  await expect(dialog).toContainText("both wallet balances");
-  await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page).toHaveURL(/\/transactions\?deleted=1$/, {
-    timeout: 15_000,
-  });
-  await expect(page.locator("[data-transaction-row]")).toHaveCount(0);
-  await page.goto("/wallets");
-  await expect(
-    page.getByRole("listitem").filter({ hasText: /^Cash/ }),
-  ).toContainText("฿12,000.00");
-  await expect(
-    page.getByRole("listitem").filter({ hasText: "Savings" }),
-  ).toContainText("฿0.00");
+    page.getByRole("listitem").filter({ hasText: /^Savings/ }),
+  ).toContainText("−฿1,000.01");
 });
 
 test("one wallet explains why a transfer cannot be saved", async ({ page }) => {

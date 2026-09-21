@@ -1,6 +1,6 @@
 import type { CategorySummary } from "@bookkeeping/domain/categories";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import { formatMoneyInput } from "@bookkeeping/domain/money";
+import { formatMoney, formatMoneyInput } from "@bookkeeping/domain/money";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useQueryClient } from "@tanstack/react-query";
@@ -85,10 +85,15 @@ const FIELD_ERROR_MESSAGES: Record<string, string> = {
     "This wallet opened before the chosen date; earlier dates are not tracked",
 };
 
-function describeTransactionFieldError({
-  code,
-  detail,
-}: Readonly<ApiFieldError>): string {
+function describeTransactionFieldError(
+  { code, detail }: Readonly<ApiFieldError>,
+  linkedExpense: LinkedExpenseLimits | undefined,
+): string {
+  if (code === "exceeds-refundable" && linkedExpense) {
+    return linkedExpense.remaining > 0n
+      ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.remaining, currency: "THB" })} of this expense is left to refund`
+      : "This expense is already fully refunded";
+  }
   return detail ?? FIELD_ERROR_MESSAGES[code] ?? "This value was not accepted.";
 }
 
@@ -193,7 +198,8 @@ export function useTransactionForm({
         params: { header: attempt.header },
         body: input,
       }),
-    describeFieldError: describeTransactionFieldError,
+    describeFieldError: (fieldError) =>
+      describeTransactionFieldError(fieldError, linkedExpense),
   });
 
   const form = useForm({
@@ -240,6 +246,18 @@ export function useTransactionForm({
           queryKey: categoryQueries.usage().queryKey,
         }),
       ]);
+      // A refund changes what its expense shows: the panel and its allowance.
+      const refundedExpense = result.value.refundOf;
+      if (refundedExpense) {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: transactionQueries.detail(refundedExpense.id).queryKey,
+          }),
+          queryClient.invalidateQueries({
+            queryKey: transactionQueries.refunds(refundedExpense.id).queryKey,
+          }),
+        ]);
+      }
       await navigate({
         to: "/transactions",
         search: { created: result.value.id },
