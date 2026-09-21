@@ -12,7 +12,7 @@ to field errors. No screens.
 
 **Blocked by:** 02: Scaffold the Vite client shell and browser harness
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Pattern to copy:**
 
@@ -40,10 +40,68 @@ to field errors. No screens.
 OpenAPI document; caching API responses in a service worker; generic
 retry/backoff beyond the single same-key replay.
 
-- [ ] `pnpm --filter @bookkeeping/web generate:api` writes the OpenAPI JSON and the TypeScript types; both are committed.
-- [ ] `pnpm --filter @bookkeeping/web build` regenerates and fails with a clear message when the committed files differ from the server's document.
-- [ ] A query-options factory exists for every `GET` under `/v1`, and a unit test asserts the set of factories matches the paths in the committed document.
-- [ ] `useApiMutation` unit tests cover: a key is sent; the same key is reused on a network-error replay and a fresh key on the next user submit; a second call while pending is ignored; a `422` maps to field errors by name; a non-422 problem yields a message.
-- [ ] `pnpm run ci` is green.
+- [x] `pnpm --filter @bookkeeping/web generate:api` writes the OpenAPI JSON and the TypeScript types; both are committed.
+- [x] `pnpm --filter @bookkeeping/web build` regenerates and fails with a clear message when the committed files differ from the server's document.
+- [x] A query-options factory exists for every `GET` under `/v1`, and a unit test asserts the set of factories matches the paths in the committed document.
+- [x] `useApiMutation` unit tests cover: a key is sent; the same key is reused on a network-error replay and a fresh key on the next user submit; a second call while pending is ignored; a `422` maps to field errors by name; a non-422 problem yields a message.
+- [x] `pnpm run ci` is green.
 
 **Verify:** `pnpm run ci`. No browser spec for this ticket.
+
+## Comments
+
+Landed in `apps/web`:
+
+- `scripts/generate-api.ts` builds the server's app through
+  `createUnitTestApp` (no database, no running server), requests
+  `/openapi.json`, and writes `src/core/api/openapi.json` plus
+  `src/core/api/openapi.gen.ts` with `openapi-typescript`. `generate:api`
+  runs it; `build` runs it with `--check`, which fails when either file is
+  not committed exactly as regenerated (`git status --porcelain`), so a
+  freshly regenerated but uncommitted client also fails the build until it
+  is committed. `@bookkeeping/server` is a `devDependency` of the client for
+  this script only; Turborepo builds the server first.
+- `core/env/config.ts` parses `VITE_API_ORIGIN` with Zod into
+  `clientConfig.apiOrigin`; `.env.example` documents it. The Vitest config
+  sets the variable so `core/api` modules import in tests. The e2e runner
+  does not set it yet: the shell spec never reaches the API, and the CI
+  preview is built before the API port is known. Ticket 04 has to decide
+  how the built client learns the API origin.
+- `core/api/client.ts` creates the `openapi-fetch` client with
+  `credentials: "include"`; `core/api/queries.ts` exports `walletQueries`,
+  `categoryQueries`, `transactionQueries`, and `reportQueries`, one
+  `queryOptions` factory per `/v1` GET, keyed by OpenAPI path and
+  parameters. Each factory makes its own concrete `apiClient.GET` call
+  because openapi-fetch's generic call cannot be typed across all paths.
+- `core/api/write-submission.ts` owns the write mechanics framework-free
+  (`createWriteSubmission`: key per submit handed to `send` as the
+  documented `params: { header }` shape, in-flight join, one same-key replay
+  when `fetch` rejects with a `TypeError`, `Result` with `ApiRejection`), and
+  `core/api/use-api-mutation.ts` wraps it in `useMutation`, exposing
+  `submit` and `isPending`. The unit tests the ticket lists for
+  `useApiMutation` run against `createWriteSubmission`, since the client
+  has no DOM test environment and the brief forbids component render tests;
+  the hook adds no logic of its own.
+
+Deviations and decisions:
+
+- Field-error messages: the API sends only a `code` per field pointer, no
+  prose, so `ApiRejection.fieldErrors` uses the caller's
+  `describeFieldError` (the legacy per-feature message tables move there
+  in tickets 05 onward) and falls back to the problem's `detail`, then a
+  generic sentence. The raw `errors` with the decoded request field are
+  exposed beside it. A pointer's first segment is the field
+  (`#/openingAmount/value` maps to `openingAmount`).
+- A second `submit` while one is in flight resolves to the in-flight
+  outcome instead of starting a request, so form hooks need no
+  "ignored" branch.
+- `biome.json` excludes the two generated files, as it does
+  `routeTree.gen.ts`.
+- Reviewed with `/code-review`; applied: the shared `readApiResponse` in
+  `problem.ts` for reads and writes, replay limited to network errors, the
+  helper owning the header name, and a count check so a factory added to
+  `queries.ts` must also appear in the coverage test. Left as is: the
+  client-side `ApiProblem` keeps `code: string` because the body is
+  untrusted input parsed at the boundary; the deep import of
+  `@bookkeeping/server/src/...` stands until a server ticket adds a subpath
+  export.

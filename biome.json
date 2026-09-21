@@ -22,7 +22,9 @@
       "!**/public",
       "!**/test-results",
       "!**/playwright-report",
-      "!**/routeTree.gen.ts"
+      "!**/routeTree.gen.ts",
+      "!**/openapi.gen.ts",
+      "!apps/web/src/core/api/openapi.json"
     ]
   },
   "formatter": {
