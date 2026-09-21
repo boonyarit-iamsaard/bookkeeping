@@ -330,15 +330,18 @@ transaction that is rolled back, except concurrency checks that use committed
 writes isolated by owner. No local development database is used. Run this suite
 alone using `pnpm --filter @bookkeeping/legacy-web exec vitest run --project integration`.
 
-Browser tests live in `apps/legacy-web/tests/e2e/` and need Chromium once:
+Browser tests live in `apps/legacy-web/tests/e2e/` and `apps/web/tests/e2e/`.
+Install the browsers used by each suite once:
 
 ```bash
 pnpm --filter @bookkeeping/legacy-web exec playwright install --with-deps chromium
+pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium webkit
 ```
 
 The browser runner creates its own disposable PostgreSQL database, pushes the
-schema, and starts a fresh app server on an available port. It uses `pnpm dev`
-locally and `pnpm start` in CI. It waits for server teardown before stopping
+schema, and starts a fresh app server on an available port. The legacy runner
+uses `pnpm dev` locally and `pnpm start` in CI; the SPA runner uses Vite locally
+and builds a Vite preview in CI. Both wait for server teardown before stopping
 the database, including when interrupted. Server errors remain visible; enable
 server stdout and startup diagnostics with `DEBUG=pw:webserver pnpm test:e2e`.
 
@@ -432,9 +435,9 @@ it works from a clean checkout.
 
 GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
 `main`. It installs dependencies with a frozen lockfile, runs `pnpm run ci`,
-then installs Chromium and runs `pnpm run ci:e2e` as a separate compatibility
-step. Testcontainers supplies disposable PostgreSQL databases for both operation
-and browser tests.
+then installs Chromium for the legacy suite and Chromium plus WebKit for the
+SPA suite before running both browser suites sequentially. Testcontainers
+supplies disposable PostgreSQL databases for both operation and browser tests.
 
 To run the workflow locally, install `act`, start Docker, and run:
 

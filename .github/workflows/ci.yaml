@@ -46,7 +46,7 @@ jobs:
         run: pnpm --filter @bookkeeping/legacy-web exec playwright install --with-deps chromium
 
       - name: Install SPA Playwright browsers
-        run: pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium
+        run: pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium webkit
 
       # The two browser suites must never run concurrently.
       - name: Run browser compatibility suite
