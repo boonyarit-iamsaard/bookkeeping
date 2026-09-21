@@ -1,0 +1,21 @@
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { readSession } from "@/core/auth/session";
+
+export const Route = createFileRoute("/_auth")({
+  beforeLoad: async ({ context }) => {
+    if (await readSession(context.queryClient)) {
+      throw redirect({ to: "/wallets" });
+    }
+  },
+  component: AuthLayout,
+});
+
+function AuthLayout() {
+  return (
+    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm">
+        <Outlet />
+      </div>
+    </div>
+  );
+}

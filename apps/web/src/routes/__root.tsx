@@ -1,19 +1,20 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { createRootRoute, Outlet } from "@tanstack/react-router";
-import { createQueryClient } from "@/core/query/query-client";
-import { AppHeader } from "@/core/shell/app-header";
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Outlet,
+} from "@tanstack/react-router";
+import type { RouterContext } from "@/core/router/router";
 
-const queryClient = createQueryClient();
-
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<RouterContext>()({
+  head: () => ({ meta: [{ title: "Bookkeeping" }] }),
   component: RootLayout,
 });
 
 function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppHeader />
+    <>
+      <HeadContent />
       <Outlet />
-    </QueryClientProvider>
+    </>
   );
 }

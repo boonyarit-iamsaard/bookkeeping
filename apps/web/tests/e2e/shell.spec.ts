@@ -1,11 +1,16 @@
 import { expect, test } from "@playwright/test";
+import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 // The header hides the wordmark below 640px (`max-sm:hidden`) so the nav fits
 // a 360px phone, so the phone projects assert it is present but hidden.
 const WORDMARK_MIN_WIDTH = 640;
 
-test("the shell renders the header at /", async ({ page }) => {
-  await page.goto("/");
+test("the shell renders the header once signed in", async ({ page }) => {
+  await signUpFreshUser(page);
+  await expect(page.getByRole("banner")).toBeVisible();
+  // `/` redirects during the load, which WebKit reports as an interrupted load.
+  await page.goto("/", { waitUntil: "commit" });
+  await expect(page).toHaveURL(/\/wallets$/);
   const header = page.getByRole("banner");
   const wordmark = header.getByRole("link", {
     name: "Bookkeeping",

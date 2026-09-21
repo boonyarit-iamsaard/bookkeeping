@@ -2,8 +2,11 @@ import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { once } from "node:events";
+import { mkdtemp, rm } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { startTestDatabase } from "@bookkeeping/database/testing/start-database";
 
@@ -13,6 +16,8 @@ const API_POLL_INTERVAL_MS = 250;
 const serverDirectory = fileURLToPath(
   new URL("../../../server/", import.meta.url),
 );
+const clientDirectory = fileURLToPath(new URL("../../", import.meta.url));
+const viteBin = join(clientDirectory, "node_modules/vite/bin/vite.js");
 
 async function availablePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -93,13 +98,55 @@ async function stopApiServer(child: ChildProcess): Promise<void> {
   await exited;
 }
 
+interface BuildOptions {
+  apiOrigin: string;
+  distDirectory: string;
+}
+
+/**
+ * The API origin is baked into the bundle at build time, and the port is only
+ * known now, so the CI run builds its own copy for `vite preview` instead of
+ * serving the Turborepo build.
+ */
+async function buildClient({
+  apiOrigin,
+  distDirectory,
+}: Readonly<BuildOptions>): Promise<void> {
+  const child = spawn(
+    process.execPath,
+    [viteBin, "build", "--outDir", distDirectory, "--logLevel", "warn"],
+    {
+      cwd: clientDirectory,
+      env: { ...process.env, VITE_API_ORIGIN: apiOrigin },
+      stdio: ["ignore", "inherit", "inherit"],
+    },
+  );
+  const [code] = await once(child, "exit");
+  if (code !== 0) {
+    throw new Error(`The client build exited with ${code}`);
+  }
+}
+
 interface PlaywrightOptions {
   clientPort: number;
+  apiOrigin: string;
+  distDirectory: string | undefined;
   environment: NodeJS.ProcessEnv;
+}
+
+/** The arguments after the script, without the `--` pnpm forwards before them. */
+function playwrightArguments(): string[] {
+  const [first, ...rest] = process.argv.slice(2);
+  if (first === undefined) {
+    return [];
+  }
+  return first === "--" ? rest : [first, ...rest];
 }
 
 function runPlaywright({
   clientPort,
+  apiOrigin,
+  distDirectory,
   environment,
 }: Readonly<PlaywrightOptions>): Promise<number> {
   return new Promise<number>((resolve, reject) => {
@@ -108,12 +155,16 @@ function runPlaywright({
       [
         requireFromRunner.resolve("@playwright/test/cli"),
         "test",
-        ...process.argv.slice(2),
+        ...playwrightArguments(),
       ],
       {
         env: {
           ...environment,
           TEST_APP_PORT: String(clientPort),
+          VITE_API_ORIGIN: apiOrigin,
+          ...(distDirectory === undefined
+            ? {}
+            : { TEST_APP_DIST: distDirectory }),
         },
         stdio: "inherit",
         detached: process.platform !== "win32",
@@ -152,20 +203,38 @@ async function main() {
     availablePort(),
   ]);
   const clientOrigin = `http://localhost:${clientPort}`;
-  const { container, environment } = await startTestDatabase();
+  const apiOrigin = `http://localhost:${apiPort}`;
+  const distDirectory = process.env.CI
+    ? await mkdtemp(join(tmpdir(), "bookkeeping-web-e2e-"))
+    : undefined;
   try {
-    const apiServer = await startApiServer({
-      port: apiPort,
-      clientOrigin,
-      environment,
-    });
+    if (distDirectory !== undefined) {
+      await buildClient({ apiOrigin, distDirectory });
+    }
+    const { container, environment } = await startTestDatabase();
     try {
-      process.exitCode = await runPlaywright({ clientPort, environment });
+      const apiServer = await startApiServer({
+        port: apiPort,
+        clientOrigin,
+        environment,
+      });
+      try {
+        process.exitCode = await runPlaywright({
+          clientPort,
+          apiOrigin,
+          distDirectory,
+          environment,
+        });
+      } finally {
+        await stopApiServer(apiServer);
+      }
     } finally {
-      await stopApiServer(apiServer);
+      await container.stop();
     }
   } finally {
-    await container.stop();
+    if (distDirectory !== undefined) {
+      await rm(distDirectory, { recursive: true, force: true });
+    }
   }
 }
 main().catch((error: unknown) => {

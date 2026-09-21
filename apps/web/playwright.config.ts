@@ -3,6 +3,12 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = Number(process.env.TEST_APP_PORT ?? 4000);
 const baseURL = `http://localhost:${PORT}`;
 
+// Under CI the runner builds the client with the API origin it allocated and
+// previews that output; locally the dev server reads the origin from its env.
+const serveCommand = process.env.CI
+  ? `preview --outDir ${process.env.TEST_APP_DIST ?? "dist"}`
+  : "";
+
 export default defineConfig({
   testDir: "tests/e2e",
   timeout: 60_000,
@@ -25,7 +31,7 @@ export default defineConfig({
     { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: `node ./node_modules/vite/bin/vite.js ${process.env.CI ? "preview" : ""} --port ${PORT} --strictPort`,
+    command: `node ./node_modules/vite/bin/vite.js ${serveCommand} --port ${PORT} --strictPort`,
     url: baseURL,
     reuseExistingServer: false,
     gracefulShutdown: { signal: "SIGTERM", timeout: 15_000 },
