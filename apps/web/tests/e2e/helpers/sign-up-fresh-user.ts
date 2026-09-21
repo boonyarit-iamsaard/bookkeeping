@@ -26,6 +26,9 @@ export async function signUpFreshUser(page: Page): Promise<{ email: string }> {
     if (response.status() !== 429) {
       expect(response.ok(), "Fresh-user sign-up should succeed").toBe(true);
       await page.waitForURL(/\/(dashboard|wallets)/);
+      await expect(
+        page.getByRole("heading", { name: "Wallets", exact: true }),
+      ).toBeVisible();
       return { email };
     }
     await expect(
