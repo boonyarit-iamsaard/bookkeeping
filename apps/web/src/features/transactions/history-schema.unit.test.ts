@@ -28,13 +28,18 @@ describe("history search", () => {
   });
 
   test("keeps the text of a value the router read as a number", () => {
-    expect(historySearchSchema.parse({ type: 7, deleted: 1 })).toEqual({
-      type: "7",
-      deleted: "1",
-    });
+    expect(historySearchSchema.parse({ type: 7 })).toEqual({ type: "7" });
     expect(transactionFiltersSchema.safeParse({ type: "7" }).success).toBe(
       false,
     );
+  });
+
+  test("reads the deletion flag as the number the address carries", () => {
+    expect(historySearchSchema.parse({ deleted: 1 })).toEqual({ deleted: 1 });
+    expect(historySearchSchema.parse({ deleted: "1" })).toEqual({
+      deleted: 1,
+    });
+    expect(historySearchSchema.parse({ deleted: "yes" })).toEqual({});
   });
 
   test("a repeated parameter is not a filter value", () => {

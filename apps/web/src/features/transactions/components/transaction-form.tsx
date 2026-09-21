@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CreateCategoryOutcome } from "@/features/categories/category-mutations";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
+import { DeleteTransactionButton } from "@/features/transactions/components/delete-transaction-button";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import type {
   CategoryOption,
@@ -25,6 +26,7 @@ import {
 } from "@/features/transactions/hooks/use-transaction-form";
 import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
 import type {
+  ExpenseRefundLimits,
   LinkedExpenseLimits,
   TransactionFormInput,
 } from "@/features/transactions/transaction-form-schema";
@@ -76,6 +78,8 @@ export interface EditableTransaction {
   refundOf?: LinkedExpenseView;
   /** For an expense: what its linked refunds add up to, if any. */
   refundedLabel?: string;
+  /** For an expense with refunds: the limits the API's rejections name. */
+  expenseRefunds?: ExpenseRefundLimits;
 }
 
 export type TransactionFormMode =
@@ -393,6 +397,8 @@ export function TransactionForm({
       today: initialToday,
     }),
     linkedExpense,
+    expenseRefunds: editing?.expenseRefunds,
+    editingId: editing?.id,
   });
   const today = useBangkokToday(initialToday);
   const yesterday = addDays(today, -1);
@@ -921,6 +927,18 @@ export function TransactionForm({
               cannot be deleted until its refunds are.
             </p>
           )}
+          <DeleteTransactionButton
+            transaction={editing}
+            walletName={
+              wallets.find((wallet) => wallet.id === editing.walletId)?.name
+            }
+            destinationWalletName={
+              wallets.find(
+                (wallet) => wallet.id === editing.destinationWalletId,
+              )?.name
+            }
+            disabled={isPending}
+          />
         </footer>
       )}
     </form>

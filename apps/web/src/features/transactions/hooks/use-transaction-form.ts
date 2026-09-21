@@ -1,5 +1,6 @@
 import type { CategorySummary } from "@bookkeeping/domain/categories";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
+import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney, formatMoneyInput } from "@bookkeeping/domain/money";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
@@ -8,19 +9,16 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
-import {
-  categoryQueries,
-  transactionQueries,
-  walletQueries,
-} from "@/core/api/queries";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError } from "@/core/api/write-submission";
 import type {
+  ExpenseRefundLimits,
   LinkedExpenseLimits,
   TransactionFormInput,
   TransactionFormValues,
 } from "@/features/transactions/transaction-form-schema";
 import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
+import { invalidateTransactionReads } from "@/features/transactions/transaction-reads";
 
 export interface WalletOption {
   id: string;
@@ -48,10 +46,16 @@ interface UseTransactionFormOptions {
   initialValues: TransactionFormInput;
   /** Set when the form records or corrects a refund of one expense. */
   linkedExpense?: LinkedExpenseLimits;
+  /** Set when the form corrects an expense that has linked refunds. */
+  expenseRefunds?: ExpenseRefundLimits;
+  /** Set when the form corrects an existing transaction instead of recording one. */
+  editingId?: string;
 }
 
 type CreateTransactionRequest =
   components["schemas"]["CreateTransactionRequest"];
+type UpdateTransactionRequest =
+  components["schemas"]["UpdateTransactionRequest"];
 type Transaction = components["schemas"]["Transaction"];
 
 const TRANSACTION_FORM_FIELDS: readonly TransactionFormField[] = [
@@ -83,16 +87,35 @@ const FIELD_ERROR_MESSAGES: Record<string, string> = {
   "future-date": "The date cannot be in the future",
   "before-opening":
     "This wallet opened before the chosen date; earlier dates are not tracked",
+  "below-refunded":
+    "Part of this expense has been refunded; the amount cannot go below that",
+  "after-refund":
+    "This expense has a linked refund; the expense cannot come after it",
 };
 
+interface TransactionFieldErrorLimits {
+  linkedExpense: LinkedExpenseLimits | undefined;
+  expenseRefunds: ExpenseRefundLimits | undefined;
+}
+
+/**
+ * The 422 carries only a code; the figures its message names come from the
+ * allowance loaded with the page, never recomputed here.
+ */
 function describeTransactionFieldError(
   { code, detail }: Readonly<ApiFieldError>,
-  linkedExpense: LinkedExpenseLimits | undefined,
+  { linkedExpense, expenseRefunds }: Readonly<TransactionFieldErrorLimits>,
 ): string {
   if (code === "exceeds-refundable" && linkedExpense) {
     return linkedExpense.remaining > 0n
       ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.remaining, currency: "THB" })} of this expense is left to refund`
       : "This expense is already fully refunded";
+  }
+  if (code === "below-refunded" && expenseRefunds) {
+    return `${formatMoney({ amountInMinorUnits: expenseRefunds.refundedTotal, currency: "THB" })} of this expense has been refunded; the amount cannot go below that`;
+  }
+  if (code === "after-refund" && expenseRefunds?.earliestRefundDate) {
+    return `A linked refund is dated ${formatCalendarDate(expenseRefunds.earliestRefundDate)}; the expense cannot come after it`;
   }
   return detail ?? FIELD_ERROR_MESSAGES[code] ?? "This value was not accepted.";
 }
@@ -150,6 +173,31 @@ function toCreateTransactionRequest(
   }
 }
 
+/** An edit carries every field but the type and the expense link, which are fixed. */
+function toUpdateTransactionRequest(
+  values: Readonly<TransactionFormValues>,
+): UpdateTransactionRequest {
+  const request: UpdateTransactionRequest = {
+    amount: {
+      value: formatMoneyInput({
+        amountInMinorUnits: values.amount,
+        currency: values.currency,
+      }),
+      currency: values.currency,
+    },
+    walletId: values.walletId,
+    transactionDate: values.transactionDate,
+    note: values.note,
+  };
+  if (values.type === "transfer") {
+    return { ...request, destinationWalletId: values.destinationWalletId };
+  }
+  if (values.type === "refund") {
+    return request;
+  }
+  return { ...request, categoryId: values.categoryId };
+}
+
 export function uncategorizedFor(
   categories: readonly CategoryOption[],
   type: TransactionType,
@@ -172,6 +220,8 @@ export function useTransactionForm({
   categories,
   initialValues,
   linkedExpense,
+  expenseRefunds,
+  editingId,
 }: Readonly<UseTransactionFormOptions>) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -189,6 +239,12 @@ export function useTransactionForm({
       }),
     [wallets, linkedExpense],
   );
+  function describeFieldError(fieldError: Readonly<ApiFieldError>) {
+    return describeTransactionFieldError(fieldError, {
+      linkedExpense,
+      expenseRefunds,
+    });
+  }
   const createTransaction = useApiMutation<
     CreateTransactionRequest,
     Transaction
@@ -198,8 +254,20 @@ export function useTransactionForm({
         params: { header: attempt.header },
         body: input,
       }),
-    describeFieldError: (fieldError) =>
-      describeTransactionFieldError(fieldError, linkedExpense),
+    describeFieldError,
+  });
+  // An update that changes nothing succeeds without effect, so the helper's
+  // same-request replay is safe here without the creation key.
+  const updateTransaction = useApiMutation<
+    UpdateTransactionRequest,
+    Transaction
+  >({
+    send: (input) =>
+      apiClient.PUT("/v1/transactions/{transactionId}", {
+        params: { path: { transactionId: editingId ?? "" } },
+        body: input,
+      }),
+    describeFieldError,
   });
 
   const form = useForm({
@@ -219,9 +287,13 @@ export function useTransactionForm({
 
       let result: Awaited<ReturnType<typeof createTransaction.submit>>;
       try {
-        result = await createTransaction.submit(
-          toCreateTransactionRequest(parsed.data),
-        );
+        result = editingId
+          ? await updateTransaction.submit(
+              toUpdateTransactionRequest(parsed.data),
+            )
+          : await createTransaction.submit(
+              toCreateTransactionRequest(parsed.data),
+            );
       } catch {
         setServerError(
           "The transaction could not be saved. Check your connection and try again.",
@@ -235,29 +307,8 @@ export function useTransactionForm({
         return;
       }
 
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: walletQueries.list().queryKey,
-        }),
-        queryClient.invalidateQueries({
-          queryKey: transactionQueries.list().queryKey,
-        }),
-        queryClient.invalidateQueries({
-          queryKey: categoryQueries.usage().queryKey,
-        }),
-      ]);
-      // A refund changes what its expense shows: the panel and its allowance.
-      const refundedExpense = result.value.refundOf;
-      if (refundedExpense) {
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: transactionQueries.detail(refundedExpense.id).queryKey,
-          }),
-          queryClient.invalidateQueries({
-            queryKey: transactionQueries.refunds(refundedExpense.id).queryKey,
-          }),
-        ]);
-      }
+      // History, detail, balances, summaries, and a refund's expense re-read.
+      await invalidateTransactionReads(queryClient);
       await navigate({
         to: "/transactions",
         search: { created: result.value.id },
@@ -300,6 +351,6 @@ export function useTransactionForm({
     fieldErrors,
     clearFieldError,
     changeType,
-    isPending: createTransaction.isPending,
+    isPending: createTransaction.isPending || updateTransaction.isPending,
   };
 }

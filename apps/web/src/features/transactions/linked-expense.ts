@@ -10,14 +10,19 @@ type ApiTransactionRefunds = components["schemas"]["TransactionRefunds"];
 interface LinkedExpenseViewOptions {
   expense: ApiTransaction;
   refunds: ApiTransactionRefunds;
+  /** The refund being edited, whose own amount is added back to the allowance. */
+  editingRefund?: Pick<ApiTransaction, "amount">;
 }
 
 /** Formats an API expense and its server-provided allowance for the refund form. */
 export function linkedExpenseView({
   expense,
   refunds,
+  editingRefund,
 }: Readonly<LinkedExpenseViewOptions>): LinkedExpenseView {
-  const remaining = parseApiMoney(refunds.remaining);
+  const remaining =
+    parseApiMoney(refunds.remaining) +
+    (editingRefund ? parseApiMoney(editingRefund.amount) : 0n);
   return {
     id: expense.id,
     amountLabel: formatMoney({

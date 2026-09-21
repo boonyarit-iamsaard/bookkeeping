@@ -40,6 +40,15 @@ const searchValue = z.preprocess((value) => {
 }, z.string().optional());
 
 /**
+ * `?deleted=1` after a deletion. The router writes validated search back to
+ * the address, so the output stays the number `1`: a string would be quoted.
+ */
+const deletedFlag = z.preprocess(
+  (value) => (value === 1 || value === "1" ? 1 : undefined),
+  z.literal(1).optional(),
+);
+
+/**
  * The history address as the URL carries it: every control's raw text, so
  * invalid filters keep their editable values, plus the page cursor and the
  * transaction just saved.
@@ -52,7 +61,7 @@ export const historySearchSchema = z.object({
   type: searchValue,
   cursor: searchValue,
   created: searchValue,
-  deleted: searchValue,
+  deleted: deletedFlag,
 });
 
 export type HistorySearch = z.infer<typeof historySearchSchema>;

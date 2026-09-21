@@ -21,6 +21,7 @@ import { Route as AppTransactionsNewRouteImport } from './routes/_app/transactio
 import { Route as AppWalletsIndexRouteImport } from './routes/_app/wallets/index'
 import { Route as AppWalletsWalletIdRouteImport } from './routes/_app/wallets/$walletId'
 import { Route as AppWalletsNewRouteImport } from './routes/_app/wallets/new'
+import { Route as AppTransactionsTransactionIdEditRouteImport } from './routes/_app/transactions/$transactionId_.edit'
 import { Route as AppTransactionsTransactionIdRefundRouteImport } from './routes/_app/transactions/$transactionId_.refund'
 
 const IndexRoute = IndexRouteImport.update({
@@ -82,6 +83,12 @@ const AppWalletsNewRoute = AppWalletsNewRouteImport.update({
   path: '/wallets/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTransactionsTransactionIdEditRoute =
+  AppTransactionsTransactionIdEditRouteImport.update({
+    id: '/transactions/$transactionId_/edit',
+    path: '/transactions/$transactionId/edit',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppTransactionsTransactionIdRefundRoute =
   AppTransactionsTransactionIdRefundRouteImport.update({
     id: '/transactions/$transactionId_/refund',
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/categories/': typeof AppCategoriesIndexRoute
   '/transactions/': typeof AppTransactionsIndexRoute
   '/wallets/': typeof AppWalletsIndexRoute
+  '/transactions/$transactionId/edit': typeof AppTransactionsTransactionIdEditRoute
   '/transactions/$transactionId/refund': typeof AppTransactionsTransactionIdRefundRoute
 }
 export interface FileRoutesByTo {
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/categories': typeof AppCategoriesIndexRoute
   '/transactions': typeof AppTransactionsIndexRoute
   '/wallets': typeof AppWalletsIndexRoute
+  '/transactions/$transactionId/edit': typeof AppTransactionsTransactionIdEditRoute
   '/transactions/$transactionId/refund': typeof AppTransactionsTransactionIdRefundRoute
 }
 export interface FileRoutesById {
@@ -129,6 +138,7 @@ export interface FileRoutesById {
   '/_app/categories/': typeof AppCategoriesIndexRoute
   '/_app/transactions/': typeof AppTransactionsIndexRoute
   '/_app/wallets/': typeof AppWalletsIndexRoute
+  '/_app/transactions/$transactionId_/edit': typeof AppTransactionsTransactionIdEditRoute
   '/_app/transactions/$transactionId_/refund': typeof AppTransactionsTransactionIdRefundRoute
 }
 export interface FileRouteTypes {
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/categories/'
     | '/transactions/'
     | '/wallets/'
+    | '/transactions/$transactionId/edit'
     | '/transactions/$transactionId/refund'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/categories'
     | '/transactions'
     | '/wallets'
+    | '/transactions/$transactionId/edit'
     | '/transactions/$transactionId/refund'
   id:
     | '__root__'
@@ -172,6 +184,7 @@ export interface FileRouteTypes {
     | '/_app/categories/'
     | '/_app/transactions/'
     | '/_app/wallets/'
+    | '/_app/transactions/$transactionId_/edit'
     | '/_app/transactions/$transactionId_/refund'
   fileRoutesById: FileRoutesById
 }
@@ -267,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWalletsNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/transactions/$transactionId_/edit': {
+      id: '/_app/transactions/$transactionId_/edit'
+      path: '/transactions/$transactionId/edit'
+      fullPath: '/transactions/$transactionId/edit'
+      preLoaderRoute: typeof AppTransactionsTransactionIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/transactions/$transactionId_/refund': {
       id: '/_app/transactions/$transactionId_/refund'
       path: '/transactions/$transactionId/refund'
@@ -285,6 +305,7 @@ interface AppRouteChildren {
   AppCategoriesIndexRoute: typeof AppCategoriesIndexRoute
   AppTransactionsIndexRoute: typeof AppTransactionsIndexRoute
   AppWalletsIndexRoute: typeof AppWalletsIndexRoute
+  AppTransactionsTransactionIdEditRoute: typeof AppTransactionsTransactionIdEditRoute
   AppTransactionsTransactionIdRefundRoute: typeof AppTransactionsTransactionIdRefundRoute
 }
 
@@ -296,6 +317,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCategoriesIndexRoute: AppCategoriesIndexRoute,
   AppTransactionsIndexRoute: AppTransactionsIndexRoute,
   AppWalletsIndexRoute: AppWalletsIndexRoute,
+  AppTransactionsTransactionIdEditRoute: AppTransactionsTransactionIdEditRoute,
   AppTransactionsTransactionIdRefundRoute:
     AppTransactionsTransactionIdRefundRoute,
 }

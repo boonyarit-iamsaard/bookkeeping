@@ -68,13 +68,14 @@ function TransactionDetailPage() {
           >
             Back to list
           </Link>
-          <a
-            href={`/transactions/${transaction.id}/edit`}
+          <Link
+            to="/transactions/$transactionId/edit"
+            params={{ transactionId: transaction.id }}
             className={buttonVariants({ variant: "outline" })}
           >
             <Pencil data-icon="inline-start" strokeWidth={1.75} />
             Edit
-          </a>
+          </Link>
         </div>
       </div>
       <TransactionDetailView transaction={transaction} />

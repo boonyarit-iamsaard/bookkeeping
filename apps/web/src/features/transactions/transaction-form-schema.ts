@@ -47,6 +47,13 @@ export interface LinkedExpenseLimits {
   remaining: bigint;
 }
 
+/** What an expense's current refunds hold it to, as the API reports them. */
+export interface ExpenseRefundLimits {
+  refundedTotal: bigint;
+  /** The earliest linked refund's date; the expense cannot come after it. */
+  earliestRefundDate?: CalendarDate;
+}
+
 function transactionFields() {
   return {
     type: z.enum(TRANSACTION_TYPES, {

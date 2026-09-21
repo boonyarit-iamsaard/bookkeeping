@@ -60,7 +60,7 @@ function TransactionsPage() {
   }
   const transactions = listQuery && page ? page.items : [];
   const nextCursor = listQuery && page ? page.page.nextCursor : null;
-  const justDeleted = search.deleted === "1";
+  const justDeleted = search.deleted === 1;
   const filtered = hasHistoryFilters(search);
 
   return (
