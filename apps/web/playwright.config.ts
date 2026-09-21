@@ -20,6 +20,11 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "retain-on-failure",
+    // The production build installs a service worker that proxies API
+    // fetches; `page.route` never sees a request the worker makes, so the
+    // specs that mock the API would hit the real server. `pwa.spec.ts` opts
+    // back in for the worker itself.
+    serviceWorkers: "block",
   },
   projects: [
     {

@@ -7,6 +7,7 @@ import {
 import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
+import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test.setTimeout(120_000);
@@ -52,7 +53,7 @@ test("records an expense and an income with the default wallet and chosen catego
 
   await page.getByLabel("Amount").fill("120");
   await page.getByRole("button", { name: "Save −฿120.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
 
   await page.goto("/transactions/new");
   await page.getByRole("radio", { name: "Income" }).click();
@@ -67,7 +68,7 @@ test("records an expense and an income with the default wallet and chosen catego
     .click();
   await page.getByLabel("Amount").fill("250");
   await page.getByRole("button", { name: "Save +฿250.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
 
   await page.goto("/wallets");
   await expect(
@@ -161,7 +162,7 @@ test("creating a category inline selects it for the entry", async ({
 
   await page.getByLabel("Amount").fill("20");
   await page.getByRole("button", { name: "Save −฿20.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   await page.goto("/wallets");
   await expect(
     page.getByRole("listitem").filter({ hasText: "Cash" }),

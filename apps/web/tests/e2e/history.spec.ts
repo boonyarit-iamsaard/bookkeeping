@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
+import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test.setTimeout(120_000);
@@ -34,7 +35,7 @@ test("filters apply through the address and open the saved record", async ({
   await page.goto("/transactions/new");
   await page.getByLabel("Amount").fill("500");
   await page.getByRole("button", { name: "Save −฿500.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   await expect(page.locator("[data-saved]")).toBeInViewport();
   await page.screenshot({
     path: testInfo.outputPath("saved-history.png"),

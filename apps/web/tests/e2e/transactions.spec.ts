@@ -7,6 +7,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
+import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test.setTimeout(150_000);
@@ -35,7 +36,7 @@ async function recordExpenseThroughForm(
     await chooseDate(page.getByLabel("Date", { exact: true }), transactionDate);
   }
   await page.getByRole("button", { name: /^Save −/ }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   await page
     .locator("[data-transaction-row][data-saved]")
     .getByRole("link")
@@ -93,7 +94,7 @@ test("editing loads the saved values, keeps the type fixed, and replaces the bal
   await page.getByLabel("Note", { exact: false }).fill("Coffee and cake");
   await page.getByRole("button", { name: "Save −฿150.50 · Cash" }).click();
 
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   const row = page.locator("[data-transaction-row][data-saved]");
   await expect(row).toContainText("−฿150.50");
   await expect(row).toContainText("Groceries");
@@ -198,7 +199,7 @@ test("a correction keeps its archived wallet, cannot go below its refunds, and a
   ).toBeVisible();
   await page.getByLabel("Amount").fill("100");
   await page.getByRole("button", { name: "Save +฿100.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
 
   // Archive Cash: new entries lose it, but the expense keeps it on edit.
   await page.goto("/wallets");
@@ -276,7 +277,7 @@ test("a correction keeps its archived wallet, cannot go below its refunds, and a
   await expect(page.getByLabel("Received in")).toContainText("Archived");
   await page.getByLabel("Amount").fill("150");
   await page.getByRole("button", { name: "Save +฿150.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   await page.goto(`/transactions/${expenseId}`);
   await expect(page.getByText("฿150.00 refunded")).toBeVisible();
   await expect(page.getByText("฿350.00 left")).toBeVisible();

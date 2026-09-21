@@ -13,6 +13,8 @@ test.skip(
   ({ browserName }) => browserName !== "chromium",
   "The install and offline checks are Chromium's",
 );
+// The shared config blocks the worker so `page.route` mocks hold elsewhere.
+test.use({ serviceWorkers: "allow" });
 
 const manifestSchema = z.object({
   name: z.string(),

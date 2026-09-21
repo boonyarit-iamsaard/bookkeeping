@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
+import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test.afterEach(async ({ page }) => {
@@ -32,7 +33,7 @@ test("a linked refund starts from the expense, falls back when the original wall
   await page.getByLabel("Amount").fill("500");
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-02");
   await page.getByRole("button", { name: "Save −฿500.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   await page.locator("[data-transaction-row]").getByRole("link").click();
   await expect(
     page.getByRole("heading", { name: "Refunds", exact: true }),
@@ -79,7 +80,7 @@ test("a linked refund starts from the expense, falls back when the original wall
   await page.locator('[data-date="2026-09-02"]').click();
   // Enter submits from the amount on every device.
   await page.getByLabel("Amount").press("Enter");
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   const rows = page.locator("[data-transaction-row]");
   await expect(rows).toHaveCount(2);
   await expect(rows.first()).toContainText("Refund · Uncategorized");
@@ -135,7 +136,7 @@ test("a linked refund starts from the expense, falls back when the original wall
   );
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-03");
   await page.getByRole("button", { name: "Save +฿50.00 · Bank" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   await page.goto("/wallets");
   await expect(
     page.getByRole("listitem").filter({ hasText: /^Bank/ }),
@@ -167,7 +168,7 @@ test("a linked refund starts from the expense, falls back when the original wall
   await expect(page.getByLabel("Amount")).toHaveValue("350.00");
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-03");
   await page.getByRole("button", { name: "Save +฿350.00 · Bank" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   await page.goto(`/transactions/${expenseId}`);
   await expect(page.getByText("Fully refunded")).toBeVisible();
   await expect(page.getByRole("link", { name: "Record refund" })).toHaveCount(

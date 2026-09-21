@@ -1,6 +1,8 @@
+import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
+import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test.setTimeout(150_000);
@@ -30,7 +32,7 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   await page.getByLabel("Amount").fill("500");
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-02");
   await page.getByRole("button", { name: "Save −฿500.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   const expenseHref = await page.locator("[data-saved] a").getAttribute("href");
   if (!expenseHref) {
     throw new Error("Missing saved expense link");
@@ -41,7 +43,7 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   await page.getByLabel("Amount").fill("1000");
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-03");
   await page.getByRole("button", { name: "Save +฿1,000.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
 
   await page.goto("/transactions/new");
   await page.getByRole("radio", { name: "Transfer" }).click();
@@ -50,13 +52,13 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   await page
     .getByRole("button", { name: "Save ฿200.00 Cash → Savings" })
     .click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
 
   await page.goto(`${expenseHref}/refund`);
   await page.getByLabel("Amount").fill("100");
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-05");
   await page.getByRole("button", { name: "Save +฿100.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
 
   await page.goto("/wallets");
   await page.getByRole("link", { name: "Savings", exact: true }).click();
@@ -74,7 +76,9 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   await page.getByLabel("Report month").click();
   await page.getByRole("button", { name: "August 2026", exact: true }).click();
   await page.getByRole("button", { name: "Update report" }).click();
-  await expect(page).toHaveURL(/\/dashboard\?month=2026-08&asOf=2026-09-21$/);
+  // The balance date is left untouched, so it stays at the app's today.
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  await expect(page).toHaveURL(`/dashboard?month=2026-08&asOf=${today}`);
   await expect(page.locator('[data-summary="income"]')).toContainText("฿0.00");
 
   await page.getByLabel("Report month").click();

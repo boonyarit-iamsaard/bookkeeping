@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
+import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test.afterEach(async ({ page }) => {
@@ -132,7 +133,7 @@ test("transfer From → To and swap survive a lost response and update both bala
   await page
     .getByRole("button", { name: "Save ฿1,000.01 Savings → Cash" })
     .click();
-  await expect(page).toHaveURL(/\/transactions\?created=/);
+  await expectSavedRecord(page);
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
   const row = page.locator("[data-transaction-row]");
   await expect(row).toContainText("Transfer");
