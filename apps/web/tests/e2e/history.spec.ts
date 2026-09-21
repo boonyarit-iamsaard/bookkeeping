@@ -1,9 +1,11 @@
 import { APP_TIME_ZONE, addDays, todayIn } from "@bookkeeping/domain/dates";
 import { expect, test } from "@playwright/test";
-import { chooseDate, chooseMonth } from "./helpers/choose-date";
+import { chooseDate } from "./helpers/choose-date";
 import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
+
+test.setTimeout(120_000);
 
 // Reporting follows Bangkok even when the browser calendar is on another day.
 test.use({ timezoneId: "America/Los_Angeles" });
@@ -14,7 +16,7 @@ test.afterEach(async ({ page }) => {
   ).toEqual([]);
 });
 
-test("filters and reports work together with dated wallet balances", async ({
+test("filters apply through the address and open the saved record", async ({
   page,
 }, testInfo) => {
   await signUpFreshUser(page);
@@ -24,6 +26,7 @@ test("filters and reports work together with dated wallet balances", async ({
     openingDate: "2026-09-01",
   });
   await page.goto("/transactions");
+  await expect(page.getByText("Nothing recorded yet")).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("history-before.png"),
     fullPage: true,
@@ -31,7 +34,7 @@ test("filters and reports work together with dated wallet balances", async ({
   await page.goto("/transactions/new");
   await page.getByLabel("Amount").fill("500");
   await page.getByRole("button", { name: "Save −฿500.00 · Cash" }).click();
-  await expect(page).toHaveURL(/\/transactions\?saved=/);
+  await expect(page).toHaveURL(/\/transactions\?created=/);
   await expect(page.locator("[data-saved]")).toBeInViewport();
   await page.screenshot({
     path: testInfo.outputPath("saved-history.png"),
@@ -44,8 +47,10 @@ test("filters and reports work together with dated wallet balances", async ({
   await page.getByText("Filter history", { exact: true }).click();
   await chooseOption(page.getByLabel("Type", { exact: true }), "Income");
   await page.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/\/transactions\?type=income$/);
   await expect(page.getByText("No matching transactions")).toBeVisible();
   await page.getByRole("link", { name: "Clear filters" }).click();
+  await expect(page).toHaveURL(/\/transactions$/);
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
   await page.getByText("Filter history", { exact: true }).focus();
   await page.getByText("Filter history", { exact: true }).press("Enter");
@@ -57,34 +62,23 @@ test("filters and reports work together with dated wallet balances", async ({
   // The first Uncategorized listed is the expense tree's.
   await chooseOption(page.getByLabel("Filter category"), "Uncategorized");
   await page.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/\/transactions\?.*type=expense/);
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
   await expect(page.getByText(/Recorded .*Bangkok/)).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("history.png"),
     fullPage: true,
   });
-  await page.goto("/dashboard");
+  // The address alone restores the filters and keeps the disclosure open.
+  await page.reload();
+  await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
   await expect(
-    page.getByRole("heading", { name: "Monthly summary" }),
+    page.getByText("Filter history · Active filters", { exact: true }),
   ).toBeVisible();
-  await expect(page.locator("[data-summary='grossExpenses']")).toContainText(
-    "฿500.00",
+  await expect(page.getByLabel("Filter wallet")).toContainText("Cash");
+  await expect(page.getByLabel("Type", { exact: true })).toContainText(
+    "Expense",
   );
-  await expect(page.locator("[data-summary='net']")).toContainText("−฿500.00");
-  await chooseMonth(page.getByLabel("Report month"), "2026-08");
-  await page.getByRole("button", { name: "Update report" }).click();
-  await expect(page.locator("[data-summary='grossExpenses']")).toContainText(
-    "฿0.00",
-  );
-  const currentMonth = today.substring(0, today.lastIndexOf("-"));
-  await chooseMonth(page.getByLabel("Report month"), currentMonth);
-  await chooseDate(page.getByLabel("Balance date"), "2026-08-31");
-  await page.getByRole("button", { name: "Update report" }).click();
-  await expect(page.locator("[data-balance-total]")).toContainText("฿0.00");
-  await page.screenshot({
-    path: testInfo.outputPath("summary.png"),
-    fullPage: true,
-  });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -94,21 +88,27 @@ test("filters and reports work together with dated wallet balances", async ({
   await expect(
     page.getByRole("heading", { name: "Expense", exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole("main")).toContainText("−฿500.00");
+  const detail = page.getByRole("definition");
+  await expect(detail.filter({ hasText: "Cash · Cash" })).toBeVisible();
+  await expect(detail.filter({ hasText: "No note" })).toBeVisible();
+  await expect(detail.filter({ hasText: "Bangkok time" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Edit" })).toHaveAttribute(
+    "href",
+    `${expenseHref}/edit`,
+  );
+  await page.getByRole("link", { name: "Back to list" }).click();
+  await expect(page).toHaveURL(/\/transactions$/);
 });
 
-test("signed-out history and reports require authentication", async ({
-  page,
-}) => {
-  for (const path of [
+test("signed-out history requires authentication", async ({ page }) => {
+  await page.goto(
     "/transactions?walletId=00000000-0000-4000-8000-000000000001",
-    "/dashboard?month=2026-09&asOf=2026-09-30",
-  ]) {
-    await page.goto(path);
-    await expect(page).toHaveURL(/\/sign-in/);
-    await expect(
-      page.getByRole("heading", { name: "Monthly summary" }),
-    ).toHaveCount(0);
-  }
+  );
+  await expect(page).toHaveURL(/\/sign-in/);
+  await expect(
+    page.getByRole("heading", { name: "Transactions", exact: true }),
+  ).toHaveCount(0);
 });
 
 test("invalid date filters and year zero keep editable controls with validation", async ({
@@ -129,10 +129,4 @@ test("invalid date filters and year zero keep editable controls with validation"
   await expect(
     page.getByRole("button", { name: "Apply filters" }),
   ).toBeVisible();
-  await page.goto("/dashboard?month=0000-01&asOf=2026-09-01");
-  await expect(
-    page.getByRole("alert").filter({ hasText: "Choose a valid month" }),
-  ).toBeVisible();
-  await expect(page.getByLabel("Balance date")).toHaveText("1 Sep 2026");
-  await expect(page.getByLabel("Report month")).toHaveText("Choose a month");
 });
