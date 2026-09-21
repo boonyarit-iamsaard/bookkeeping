@@ -17,7 +17,6 @@ node_modules
 
 # turbo
 /.turbo/
-/apps/legacy-web/.turbo/
 /apps/web/.turbo/
 /apps/server/.turbo/
 /packages/domain/.turbo/
@@ -25,12 +24,7 @@ node_modules
 /packages/auth/.turbo/
 /packages/database/.turbo/
 
-# next.js
-/apps/legacy-web/.next/
-/apps/legacy-web/out/
-
 # production
-/apps/legacy-web/build
 /apps/server/dist
 /apps/web/dist
 
@@ -54,7 +48,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # IDE
 .idea
@@ -62,8 +55,6 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
-/apps/legacy-web/test-results/
-/apps/legacy-web/playwright-report/
 /apps/web/test-results/
 /apps/web/playwright-report/
 /.impeccable/review/

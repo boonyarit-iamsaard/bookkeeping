@@ -2,4 +2,3 @@
 # The default runner image has no node, git, or docker CLI; this one does.
 -P ubuntu-latest=catthehacker/ubuntu:act-latest
 --container-architecture linux/amd64
---env-file=apps/legacy-web/.env.ci

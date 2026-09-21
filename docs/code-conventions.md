@@ -4,7 +4,7 @@
 
 Use feature-first organization following the
 [Bulletproof React reference](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md),
-with Next.js routing conventions and the TypeScript house style. The goal is
+with TanStack Router conventions and the TypeScript house style. The goal is
 consistency with recognizable conventions, rather than a new architecture
 framework. See [the supporting research](research/codebase-structure-and-naming.md).
 
@@ -15,7 +15,7 @@ feature, infrastructure setup stays in `core`, and reusable code stays in
 Vocabulary and exact value behavior that persistence and both apps need live in
 `@bookkeeping/domain` under feature directories such as `packages/domain/src/wallets/`,
 exposed as subpaths such as `@bookkeeping/domain/wallets`. The package has no
-React, Next.js, Hono, Drizzle, environment, or presentation code; labels and
+React, Hono, Drizzle, environment, or presentation code; labels and
 form schemas stay with the app that renders them.
 
 Pure feature vocabulary has one owner in a descriptive feature-local file such
@@ -30,14 +30,14 @@ Separate descriptive words with hyphens and recognizable qualifiers with dots.
 Dots are compatible with kebab-case; qualifiers are optional, not a taxonomy
 that every module must fit. For example:
 
-| Purpose                  | Filename                    | Symbols                                     |
-| ------------------------ | --------------------------- | ------------------------------------------- |
-| Wallet behavior          | `server/wallet.ts`          | `createWallet`, `listWallets`               |
-| Server Actions           | `server/wallet.actions.ts`  | `createWalletAction`                        |
-| Shared wallet vocabulary | `wallet.types.ts`           | `WalletType`, `WalletSummary`               |
-| Wallet labels            | `wallet-labels.ts`          | `WALLET_TYPE_LABELS`                        |
-| Create form              | `create-wallet-form.tsx`    | `CreateWalletForm`, `CreateWalletFormProps` |
-| Form hook                | `use-create-wallet-form.ts` | `useCreateWalletForm`                       |
+| Purpose                  | Filename                       | Symbols                                     |
+| ------------------------ | ------------------------------ | ------------------------------------------- |
+| Wallet behavior          | `server/wallet.ts`             | `createWallet`, `listWallets`               |
+| API write helper         | `core/api/write-submission.ts` | `createWriteSubmission`                     |
+| Shared wallet vocabulary | `wallet.types.ts`              | `WalletType`, `WalletSummary`               |
+| Wallet labels            | `wallet-labels.ts`             | `WALLET_TYPE_LABELS`                        |
+| Create form              | `create-wallet-form.tsx`       | `CreateWalletForm`, `CreateWalletFormProps` |
+| Form hook                | `use-create-wallet-form.ts`    | `useCreateWalletForm`                       |
 
 Apply the same convention to categories and transactions. A file with several
 related functions uses their common concept; one concept per file does not mean
@@ -69,8 +69,8 @@ directory, following the Bulletproof React reference; neither Hono nor Vitest
 prescribes a location. The database package exposes its fixtures as
 `@bookkeeping/database/testing`, and the server keeps its unit and integration
 app factories in `apps/server/src/testing/`. Playwright helpers stay beside the
-specs in `apps/legacy-web/tests/e2e/helpers/`. Test helpers are excluded from production
-builds.
+specs in `apps/web/tests/e2e/helpers/`. Test helpers are excluded from
+production builds.
 
 ## Rule ownership
 
@@ -103,8 +103,8 @@ Route integration tests provision owners through the test authentication
 gateway. Real Better Auth over HTTP is covered by the gateway integration test
 and the API contract test.
 
-Web integration tests exist only for the temporary Next.js adapter's own
-boundary, the session, until the adapter is removed.
+The SPA browser suite owns client and browser-boundary coverage; server
+integration tests own HTTP and persistence behavior.
 
 Budget: `pnpm test`, as Turborepo runs it with packages in parallel, completes
 in three minutes or less on the development machine. Check it by hand; it is
@@ -131,7 +131,7 @@ Review the rules that require semantic judgment:
 - Use an options object at three parameters or whenever a parameter is boolean.
   Mark nonmutated object and array parameters readonly.
 - Name props `[ComponentName]Props` and accept `Readonly<ComponentNameProps>`.
-  Next.js generated props helpers can be wrapped in `Readonly` directly.
+  Generated props helpers can be wrapped in `Readonly` directly.
 - Infer initialized values and private helpers. Exported domain operations
   declare authored return contracts; inferred React and schema output stays inferred.
 - Parse untrusted input with the existing schema library. Expected domain failures

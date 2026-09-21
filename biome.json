@@ -9,16 +9,12 @@
     "ignoreUnknown": false,
     "includes": [
       "**",
-      "!**/.next",
       "!**/dist",
-      "!**/build",
-      "!**/out",
       "!**/coverage",
       "!**/.sonar-reports",
       "!**/.turbo",
       "!**/.pnpm-store",
       "!.impeccable/hook.cache.json",
-      "!**/next-env.d.ts",
       "!**/public",
       "!**/test-results",
       "!**/playwright-report",
@@ -133,10 +129,7 @@
         }
       }
     },
-    "domains": {
-      "next": "recommended",
-      "react": "recommended"
-    }
+    "domains": { "react": "recommended" }
   },
   "javascript": {
     "formatter": {
@@ -150,12 +143,7 @@
   },
   "overrides": [
     {
-      "includes": [
-        "apps/legacy-web/src/**/index.ts",
-        "apps/legacy-web/src/**/index.tsx",
-        "apps/web/src/**/index.ts",
-        "apps/web/src/**/index.tsx"
-      ],
+      "includes": ["apps/web/src/**/index.ts", "apps/web/src/**/index.tsx"],
       "linter": {
         "rules": {
           "performance": {
@@ -166,19 +154,6 @@
     },
     {
       "includes": [
-        "apps/legacy-web/src/app/**/page.tsx",
-        "apps/legacy-web/src/app/**/layout.tsx",
-        "apps/legacy-web/src/app/**/loading.tsx",
-        "apps/legacy-web/src/app/**/error.tsx",
-        "apps/legacy-web/src/app/**/global-error.tsx",
-        "apps/legacy-web/src/app/**/not-found.tsx",
-        "apps/legacy-web/src/app/**/global-not-found.tsx",
-        "apps/legacy-web/src/app/**/template.tsx",
-        "apps/legacy-web/src/app/**/default.tsx",
-        "apps/legacy-web/next.config.ts",
-        "apps/legacy-web/playwright.config.ts",
-        "apps/legacy-web/vitest.config.mts",
-        "apps/legacy-web/postcss.config.mjs",
         "apps/web/vite.config.ts",
         "apps/web/vitest.config.mts",
         "apps/web/playwright.config.ts",
@@ -200,7 +175,7 @@
       }
     },
     {
-      "includes": ["apps/legacy-web/src/app/**", "apps/web/src/routes/**"],
+      "includes": ["apps/web/src/routes/**"],
       "linter": {
         "rules": {
           "style": {

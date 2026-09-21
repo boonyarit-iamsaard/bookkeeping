@@ -9,7 +9,6 @@ import {
   verifications,
 } from "@bookkeeping/database/auth";
 import type { Database } from "@bookkeeping/database/connection";
-import type { BetterAuthPlugin } from "better-auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
@@ -17,38 +16,29 @@ export interface AuthOptions {
   db: Database;
   /** At least 32 characters; validated by the app that reads its environment. */
   secret: string;
-  /** The origin this mount answers on, so each app keeps its own host-only cookie. */
+  /** The origin this mount answers on, so its session cookie is host-only. */
   baseURL: string;
   /**
-   * Framework plugins the mounting app needs, such as `nextCookies()`.
-   * They are appended last so they observe every core endpoint.
-   */
-  plugins?: readonly BetterAuthPlugin[];
-  /**
    * Browser origins other than `baseURL` that may send credentialed requests,
-   * such as the SPA origin the Hono mount serves. The Next.js mount is
-   * same-origin and leaves this empty.
+   * such as the SPA origin served by the Hono mount.
    */
   trustedOrigins?: readonly string[];
   /**
    * Names this mount's cookies (`<prefix>.session_token`). Host-only cookies
    * ignore the port, so mounts sharing a hostname in local development need
    * distinct prefixes or they overwrite each other. Defaults to Better
-   * Auth's `better-auth`, which the Next.js mount keeps.
+   * Auth's `better-auth`.
    */
   cookiePrefix?: string;
 }
 
 /**
- * Builds one Better Auth instance over the shared user store. Next.js and
- * Hono mount the same configuration against the same database and secret;
- * only the framework mount and browser client differ per app.
+ * Builds the Hono Better Auth instance over the shared user store.
  */
 export function createAuth({
   db,
   secret,
   baseURL,
-  plugins,
   trustedOrigins,
   cookiePrefix,
 }: AuthOptions) {
@@ -97,7 +87,6 @@ export function createAuth({
         },
       },
     },
-    plugins: [...(plugins ?? [])],
   });
 }
 

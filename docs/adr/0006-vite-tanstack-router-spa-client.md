@@ -41,3 +41,8 @@ it makes Hono the sole application backend in practice, not only in intent.
 - New browser specs run on 360px Chromium, iPhone WebKit, and desktop
   Chromium. The phone-first redesign of each screen is a separate effort after
   the port; the port is verified against existing behavior.
+
+## Outcome
+
+Completed on 2026-09-21. The SPA replaced the Next.js adapter, and the legacy
+app, its Better Auth mount, and frozen browser suite were removed.

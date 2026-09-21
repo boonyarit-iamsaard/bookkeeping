@@ -1,6 +1,6 @@
 # API parity inventory
 
-Every user-visible backend behavior the Next.js adapter offers today, and the
+Every user-visible backend behavior the former Next.js adapter offered, and the
 Hono operation that covers it. This is the closing audit for the Hono backend
 and shared-package extraction: a flow is either mapped to a tested HTTP
 operation or recorded below as an explicit difference with its reason.
@@ -114,9 +114,8 @@ These are decided, not overlooked.
 
 ## What this does not close
 
-The Next.js app remains a working temporary adapter over the same application
-operations. It still renders with Server Components and writes with Server
-Actions rather than calling this API, and its Playwright suite remains the
-compatibility oracle for that adapter. Replacing it is the later SPA
-initiative's work, which also removes the Next.js Better Auth mount and the
-frozen browser suite.
+The Next.js adapter has been removed. The SPA client is now the sole web client
+and calls Hono directly; its Better Auth client uses the Hono mount. The former
+Next.js Better Auth mount and frozen browser suite were deleted with the
+adapter. The explicit differences above are deliberate API-shape choices, not
+remaining migration work.

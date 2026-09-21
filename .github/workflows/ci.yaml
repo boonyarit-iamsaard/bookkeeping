@@ -20,13 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      # Only the web app reads a .env file in CI. packages/database needs
-      # none: the test harness injects the Testcontainers DATABASE_URL into
-      # the db:push child process. apps/server needs none either: its suites
-      # construct their own configuration and its build reads no environment.
-      - name: Configure CI environment
-        run: cp apps/legacy-web/.env.ci.example apps/legacy-web/.env
-
       - name: Enable corepack
         run: corepack enable
 
@@ -38,19 +31,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # Static checks, every workspace type check, the package and app test
-      # suites, and then both app builds, in that order.
+      # suites, and then the SPA and server builds, in that order.
       - name: Run CI checks
         run: pnpm run ci
 
-      - name: Install Playwright browsers
-        run: pnpm --filter @bookkeeping/legacy-web exec playwright install --with-deps chromium
-
       - name: Install SPA Playwright browsers
         run: pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium webkit
-
-      # The two browser suites must never run concurrently.
-      - name: Run browser compatibility suite
-        run: pnpm exec turbo run test:e2e:ci --filter=@bookkeeping/legacy-web
 
       - name: Run SPA browser suite
         run: pnpm exec turbo run test:e2e:ci --filter=@bookkeeping/web
