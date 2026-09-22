@@ -88,3 +88,19 @@ dynamic import surfaces WebKit's `Importing a module script failed`. Real
 Safari users navigating away in that ~100 ms window get a reload in place of
 their navigation. The specs now avoid it by waiting for the record; the app
 itself does nothing about it. Worth an upstream check, not a change here.
+
+## Comments
+
+### 2026-09-22 implementation diagnosis
+
+An instrumented 10-run production-build WebKit loop reproduced four page
+errors. A window-level `unhandledrejection` listener did not fire for any of
+them, while Playwright received each as `pageerror`. This rules out an
+uncaught application promise in the router, query, or API layers; WebKit is
+surfacing the cross-origin fetch cancellation during document teardown.
+
+The fix therefore stays in the browser harness: `expectSavedRecord` moves the
+synthetic pointer away immediately after the Save click returns and before it
+waits for the history navigation or saved row. The new link cannot render
+under the stationary pointer and start an intent preload. The strict page-error
+assertion and production preload behavior remain unchanged.
