@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture review for bookkeeping SPA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "neutral",
+        securityLevel: "loose",
+      });
+    </script>
+    <style>
+      .seam {
+        border-style: dashed;
+      }
+      .deep {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+      }
+      .leak {
+        color: #dc2626;
+      }
+      .diagram {
+        min-height: 21rem;
+      }
+      .arrow {
+        color: #64748b;
+        font-size: 1.25rem;
+        line-height: 1;
+      }
+      .module {
+        border: 1px solid #cbd5e1;
+        border-radius: 0.6rem;
+        background: white;
+        padding: 0.65rem 0.75rem;
+      }
+      .module-dark {
+        border: 3px solid #0f172a;
+        border-radius: 0.75rem;
+        background: #f8fafc;
+        padding: 0.8rem;
+      }
+      h1 {
+        font-size: 3rem;
+        line-height: 1;
+      }
+      h2 {
+        font-size: 1.875rem;
+        line-height: 2.25rem;
+      }
+      @media (min-width: 640px) {
+        h1 {
+          font-size: 3.75rem;
+        }
+      }
+      code {
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <main class="mx-auto max-w-6xl space-y-12 px-5 py-12 sm:px-8">
+      <header
+        class="flex flex-col gap-6 border-b border-slate-200 pb-8 sm:flex-row sm:items-end sm:justify-between"
+      >
+        <div>
+          <h1 class="text-5xl font-semibold tracking-tight sm:text-6xl">
+            Bookkeeping SPA architecture review
+          </h1>
+          <p class="mt-2 text-sm text-slate-500">
+            22 September 2026 · scope: <code>.scratch/spa-client</code> →
+            <code>apps/web</code>
+          </p>
+        </div>
+        <div class="grid grid-cols-2 gap-x-5 gap-y-2 text-xs text-slate-600">
+          <span class="flex items-center gap-2"
+            ><i class="h-4 w-6 rounded border border-slate-400 bg-white"></i>
+            module</span
+          >
+          <span class="flex items-center gap-2"
+            ><i
+              class="h-4 w-6 rounded border border-dashed border-slate-500"
+            ></i>
+            seam</span
+          >
+          <span class="flex items-center gap-2"
+            ><i class="h-0 w-6 border-t-2 border-red-600"></i> leakage</span
+          >
+          <span class="flex items-center gap-2"
+            ><i
+              class="h-4 w-6 rounded border-[3px] border-slate-900 bg-slate-100"
+            ></i>
+            deep module</span
+          >
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-12">
+        <article id="cached-reads" class="border-t border-slate-300 pt-10">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <h2 class="text-3xl font-semibold tracking-tight">
+              1. Give each feature its cached-read lifecycle
+            </h2>
+            <div class="flex gap-2">
+              <span
+                class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800"
+                >Strong</span
+              >
+              <span
+                class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800"
+                >ports &amp; adapters</span
+              >
+            </div>
+          </div>
+          <div class="mt-5 text-sm">
+            <span class="font-semibold text-slate-500">Files</span>
+            <p class="mt-1 font-mono text-xs leading-6 text-slate-700">
+              core/api/queries.ts · features/transactions/transaction-reads.ts ·
+              features/dashboard/dashboard-queries.ts ·
+              routes/_app/{transactions,wallets,categories,dashboard}/*.tsx
+            </p>
+          </div>
+          <div class="mt-7 grid gap-5 lg:grid-cols-2">
+            <figure class="diagram p-4">
+              <figcaption
+                class="mb-3 text-xs font-bold uppercase tracking-wider text-red-700"
+              >
+                Before · feature knowledge crosses the seam
+              </figcaption>
+              <pre class="mermaid">
+flowchart TB
+  R[Route modules] --> Q[core/api/queries.ts]
+  R --> T[transaction transforms]
+  R --> D[dashboard query plan]
+  W[Write modules] --> I[transaction-reads.ts]
+  I -. parses path prefixes .-> Q
+  Q --> H[Hono reads]
+  classDef leak stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class R,I,Q leak;
+              </pre>
+            </figure>
+            <figure class="diagram p-4 lg:border-l lg:border-slate-200 lg:pl-8">
+              <figcaption
+                class="mb-3 text-xs font-bold uppercase tracking-wider text-emerald-800"
+              >
+                After · one deep module per feature
+              </figcaption>
+              <div class="flex h-72 flex-col items-center justify-center gap-3">
+                <div
+                  class="module text-center text-xs uppercase tracking-wider"
+                >
+                  route and write modules
+                </div>
+                <div class="arrow">↓</div>
+                <div class="module-dark w-full max-w-sm text-center">
+                  <p class="text-xs font-bold uppercase tracking-wider">
+                    feature cached-read module
+                  </p>
+                  <div
+                    class="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-500"
+                  >
+                    <span>read adapters</span><span>cache effects</span
+                    ><span>view shaping</span>
+                  </div>
+                </div>
+                <div
+                  class="h-5 border-l-2 border-dashed border-slate-500"
+                ></div>
+                <div
+                  class="module text-center text-xs uppercase tracking-wider"
+                >
+                  generic HTTP implementation
+                </div>
+              </div>
+            </figure>
+          </div>
+          <dl class="mt-7 grid gap-5 md:grid-cols-3">
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Problem
+              </dt>
+              <dd class="mt-2 text-sm leading-6">
+                Read adapters are centralized, while cache effects live
+                elsewhere; category writes can leave cached transaction views
+                stale because those responses embed category data.
+              </dd>
+            </div>
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Solution
+              </dt>
+              <dd class="mt-2 text-sm leading-6">
+                Keep generic HTTP mechanics internal, and concentrate each
+                feature’s reads, cache effects, and projections in one deep
+                module.
+              </dd>
+            </div>
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Benefits
+              </dt>
+              <dd class="mt-2">
+                <ul class="space-y-1 text-sm">
+                  <li>locality: cache rules concentrate</li>
+                  <li>leverage: one feature interface</li>
+                  <li>tests cross the same seam</li>
+                  <li>path knowledge stops leaking</li>
+                </ul>
+              </dd>
+            </div>
+          </dl>
+        </article>
+
+        <article id="money" class="border-t border-slate-300 pt-10">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <h2 class="text-3xl font-semibold tracking-tight">
+              2. Deepen money interpretation and display
+            </h2>
+            <div class="flex gap-2">
+              <span
+                class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900"
+                >Worth exploring</span
+              >
+              <span
+                class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+                >in-process</span
+              >
+            </div>
+          </div>
+          <div class="mt-5 text-sm">
+            <span class="font-semibold text-slate-500">Files</span>
+            <p class="mt-1 font-mono text-xs leading-6 text-slate-700">
+              features/wallets/components/money.tsx ·
+              features/transactions/components/signed-money.tsx ·
+              features/transactions/{editable-transaction,linked-expense,wallet-options}.ts
+              · features/dashboard/components/financial-report.tsx
+            </p>
+          </div>
+          <div class="mt-7 grid gap-5 lg:grid-cols-2">
+            <figure class="diagram p-5">
+              <figcaption
+                class="text-xs font-bold uppercase tracking-wider text-red-700"
+              >
+                Before · a wallet module is the shared seam
+              </figcaption>
+              <div
+                class="mt-7 grid grid-cols-[1fr_auto_1fr] items-center gap-3"
+              >
+                <div
+                  class="space-y-3 text-center text-xs uppercase tracking-wider"
+                >
+                  <div class="module">Dashboard</div>
+                  <div class="module">Transactions</div>
+                  <div class="module">Wallets</div>
+                </div>
+                <div class="leak text-3xl">⇢</div>
+                <div
+                  class="rounded-xl border border-red-400 bg-white p-3 text-center"
+                >
+                  <p class="text-xs font-bold uppercase tracking-wider">
+                    wallet money module
+                  </p>
+                  <div class="mt-4 space-y-2 text-xs text-slate-600">
+                    <div class="module">parse wire money</div>
+                    <div class="module">format form money</div>
+                    <div class="module">render money</div>
+                  </div>
+                </div>
+              </div>
+            </figure>
+            <figure class="diagram p-5 lg:border-l lg:border-slate-200 lg:pl-9">
+              <figcaption
+                class="text-xs font-bold uppercase tracking-wider text-emerald-800"
+              >
+                After · small interface, deep implementation
+              </figcaption>
+              <div class="mt-7 mx-auto max-w-sm">
+                <div
+                  class="rounded-t-xl bg-emerald-700 px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-white"
+                >
+                  money presentation interface
+                </div>
+                <div
+                  class="min-h-48 rounded-b-xl border-[3px] border-t-0 border-slate-900 bg-slate-50 p-5"
+                >
+                  <div
+                    class="grid grid-cols-2 gap-3 text-center text-xs text-slate-500"
+                  >
+                    <div class="module">wire parsing</div>
+                    <div class="module">exact minor units</div>
+                    <div class="module">signed display</div>
+                    <div class="module">editable text</div>
+                    <div class="module col-span-2">accessible money parts</div>
+                  </div>
+                </div>
+              </div>
+            </figure>
+          </div>
+          <dl class="mt-7 grid gap-5 md:grid-cols-3">
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Problem
+              </dt>
+              <dd class="mt-2 text-sm leading-6">
+                Dashboard and transaction modules import money interpretation
+                from the wallet feature; the ownership seam leaks across ten
+                call sites.
+              </dd>
+            </div>
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Solution
+              </dt>
+              <dd class="mt-2 text-sm leading-6">
+                Concentrate wire parsing, exact-value conversion, editable
+                formatting, signs, and accessible display in one shared deep
+                module.
+              </dd>
+            </div>
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Benefits
+              </dt>
+              <dd class="mt-2">
+                <ul class="space-y-1 text-sm">
+                  <li>locality: money rules concentrate</li>
+                  <li>leverage: every money view</li>
+                  <li>one in-process test surface</li>
+                  <li>wallet seam stops leaking</li>
+                </ul>
+              </dd>
+            </div>
+          </dl>
+        </article>
+
+        <article
+          id="transaction-preparation"
+          class="border-t border-slate-300 pt-10"
+        >
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <h2 class="text-3xl font-semibold tracking-tight">
+              3. Deepen transaction screen preparation
+            </h2>
+            <div class="flex gap-2">
+              <span
+                class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900"
+                >Worth exploring</span
+              >
+              <span
+                class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800"
+                >ports &amp; adapters</span
+              >
+            </div>
+          </div>
+          <div class="mt-5 text-sm">
+            <span class="font-semibold text-slate-500">Files</span>
+            <p class="mt-1 font-mono text-xs leading-6 text-slate-700">
+              routes/_app/transactions/{new,$transactionId_.refund,$transactionId_.edit}.tsx
+              ·
+              features/transactions/{editable-transaction,linked-expense,wallet-options}.ts
+              · components/transaction-form.tsx
+            </p>
+          </div>
+          <div class="mt-7 grid gap-5 lg:grid-cols-2">
+            <figure class="diagram p-5">
+              <figcaption
+                class="text-xs font-bold uppercase tracking-wider text-red-700"
+              >
+                Before · routes reconstruct preparation
+              </figcaption>
+              <div
+                class="mt-5 space-y-2 text-center text-xs uppercase tracking-wider"
+              >
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="module">new route</div>
+                  <div class="module">refund route</div>
+                  <div class="module">edit route</div>
+                </div>
+                <div class="arrow leak">↓ &nbsp; ↓ &nbsp; ↓</div>
+                <div
+                  class="grid grid-cols-3 gap-2 normal-case tracking-normal text-slate-500"
+                >
+                  <div class="module">wallet + category + defaults</div>
+                  <div class="module">expense + refunds + wallets</div>
+                  <div class="module">conditional expense/refund graph</div>
+                </div>
+                <div class="arrow">↓</div>
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="module">wallet options</div>
+                  <div class="module">linked expense</div>
+                  <div class="module">editable transaction</div>
+                </div>
+                <div class="arrow">↓</div>
+                <div class="module border-slate-900 border-2">
+                  existing deep transaction form
+                </div>
+              </div>
+            </figure>
+            <figure class="diagram p-5 lg:border-l lg:border-slate-200 lg:pl-9">
+              <figcaption
+                class="text-xs font-bold uppercase tracking-wider text-emerald-800"
+              >
+                After · one preparation test surface
+              </figcaption>
+              <div
+                class="mt-7 flex flex-col items-center gap-3 text-center text-xs uppercase tracking-wider"
+              >
+                <div class="grid w-full grid-cols-3 gap-2">
+                  <div class="module">new route</div>
+                  <div class="module">refund route</div>
+                  <div class="module">edit route</div>
+                </div>
+                <div class="arrow">↓</div>
+                <div class="module-dark w-full">
+                  <p class="font-bold">transaction preparation module</p>
+                  <div
+                    class="mt-4 grid grid-cols-2 gap-2 normal-case tracking-normal text-slate-500"
+                  >
+                    <span>conditional read graph</span
+                    ><span>not-found outcomes</span><span>retained wallets</span
+                    ><span>refund allowance view</span>
+                  </div>
+                </div>
+                <div class="arrow">↓</div>
+                <div class="module w-2/3 border-slate-900 border-2">
+                  existing deep transaction form
+                </div>
+              </div>
+            </figure>
+          </div>
+          <dl class="mt-7 grid gap-5 md:grid-cols-3">
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Problem
+              </dt>
+              <dd class="mt-2 text-sm leading-6">
+                New, refund, and correction routes each coordinate remote reads
+                and pure transforms; bugs can hide in how individually tested
+                helpers are called.
+              </dd>
+            </div>
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Solution
+              </dt>
+              <dd class="mt-2 text-sm leading-6">
+                Concentrate conditional reads, retained-wallet policy, refund
+                facts, and form-ready shaping in one transaction preparation
+                module.
+              </dd>
+            </div>
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Benefits
+              </dt>
+              <dd class="mt-2">
+                <ul class="space-y-1 text-sm">
+                  <li>locality: preparation concentrates</li>
+                  <li>leverage: three transaction modes</li>
+                  <li>routes cross one seam</li>
+                  <li>tests cover helper composition</li>
+                </ul>
+              </dd>
+            </div>
+          </dl>
+          <div
+            class="mt-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+          >
+            <strong>ADR note:</strong> preserve ADR 0005: the browser consumes
+            refund allowance facts and may mirror hints; it does not become the
+            author of the refund allowance rule.
+          </div>
+        </article>
+
+        <article
+          id="session-transitions"
+          class="border-t border-slate-300 pt-10"
+        >
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <h2 class="text-3xl font-semibold tracking-tight">
+              4. Deepen signed-in session transitions
+            </h2>
+            <div class="flex gap-2">
+              <span
+                class="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-800"
+                >Speculative</span
+              >
+              <span
+                class="rounded-full bg-fuchsia-100 px-3 py-1 text-xs font-semibold text-fuchsia-800"
+                >mock</span
+              >
+            </div>
+          </div>
+          <div class="mt-5 text-sm">
+            <span class="font-semibold text-slate-500">Files</span>
+            <p class="mt-1 font-mono text-xs leading-6 text-slate-700">
+              core/auth/session.ts · core/api/unauthenticated-middleware.ts ·
+              main.tsx · features/auth/complete-provisioning.ts ·
+              hooks/use-{sign-in,sign-up}-form.ts · components/account-menu.tsx
+            </p>
+          </div>
+          <div class="mt-7 grid gap-5 lg:grid-cols-2">
+            <figure class="diagram p-5">
+              <figcaption
+                class="text-xs font-bold uppercase tracking-wider text-red-700"
+              >
+                Before · each caller knows the transition recipe
+              </figcaption>
+              <div
+                class="mt-6 grid grid-cols-3 gap-2 text-center text-[11px] uppercase tracking-wider"
+              >
+                <div class="module">sign in</div>
+                <div class="module">sign up</div>
+                <div class="module">sign out / 401</div>
+              </div>
+              <div class="my-3 text-center text-2xl text-red-600">
+                ↓ &nbsp; ↓ &nbsp; ↓
+              </div>
+              <div
+                class="grid grid-cols-3 gap-2 text-center text-[11px] text-slate-600"
+              >
+                <div class="module">provision<br />clear<br />navigate</div>
+                <div class="module">provision<br />clear<br />navigate</div>
+                <div class="module">clear<br />navigate</div>
+              </div>
+              <p class="mt-5 text-center text-xs font-semibold text-red-700">
+                ordering knowledge leaks into callers
+              </p>
+            </figure>
+            <figure class="diagram p-5 lg:border-l lg:border-slate-200 lg:pl-9">
+              <figcaption
+                class="text-xs font-bold uppercase tracking-wider text-emerald-800"
+              >
+                After · transition policy sits behind one seam
+              </figcaption>
+              <div class="mt-8 flex flex-col items-center gap-3 text-center">
+                <div
+                  class="grid w-full grid-cols-3 gap-2 text-[11px] uppercase tracking-wider"
+                >
+                  <div class="module">sign in</div>
+                  <div class="module">sign up</div>
+                  <div class="module">sign out / 401</div>
+                </div>
+                <div class="arrow">↓</div>
+                <div class="module-dark w-full">
+                  <p class="text-xs font-bold uppercase tracking-wider">
+                    signed-in session module
+                  </p>
+                  <p class="mt-4 text-xs text-slate-500">
+                    third-party adapter · provisioning · cache ownership ·
+                    navigation outcome
+                  </p>
+                </div>
+              </div>
+            </figure>
+          </div>
+          <dl class="mt-7 grid gap-5 md:grid-cols-3">
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Problem
+              </dt>
+              <dd class="mt-2 text-sm leading-6">
+                Five callers know when to provision, clear all cached reads, and
+                navigate after authentication changes.
+              </dd>
+            </div>
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Solution
+              </dt>
+              <dd class="mt-2 text-sm leading-6">
+                Concentrate signed-in session transition policy behind one
+                module while keeping Better Auth as the external adapter.
+              </dd>
+            </div>
+            <div>
+              <dt
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+              >
+                Benefits
+              </dt>
+              <dd class="mt-2">
+                <ul class="space-y-1 text-sm">
+                  <li>locality: ordering in one place</li>
+                  <li>leverage: every session change</li>
+                  <li>mock adapter tests transitions</li>
+                  <li>callers lose cache knowledge</li>
+                </ul>
+              </dd>
+            </div>
+          </dl>
+          <div
+            class="mt-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+          >
+            <strong>ADR note:</strong> preserve ADR 0003/0006: Hono remains the
+            sole backend and Better Auth remains the authentication
+            implementation. This candidate only deepens client-side transition
+            policy.
+          </div>
+        </article>
+      </section>
+
+      <section
+        id="top-recommendation"
+        class="rounded-2xl bg-slate-950 p-7 text-white sm:p-9"
+      >
+        <p
+          class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400"
+        >
+          Top recommendation
+        </p>
+        <h2 class="mt-3 text-3xl font-semibold">
+          <a
+            class="underline decoration-emerald-500 decoration-2 underline-offset-4"
+            href="#cached-reads"
+            >Give each feature its cached-read lifecycle</a
+          >
+        </h2>
+        <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+          It removes knowledge shared by the most callers, replaces path-prefix
+          cache coupling with feature locality, and creates one test surface for
+          reads, projections, and cache effects without reopening any ADR.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
