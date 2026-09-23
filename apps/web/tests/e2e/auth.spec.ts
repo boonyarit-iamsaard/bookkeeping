@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
-test("sign-up lands on wallets with the email in the account menu", async ({
-  page,
-}) => {
+test("sign-up lands on wallets with the email in the account menu", {
+  tag: "@matrix",
+}, async ({ page }) => {
   const { email } = await signUpFreshUser(page);
 
   await expect(page).toHaveURL(/\/wallets$/);
@@ -15,9 +15,9 @@ test("sign-up lands on wallets with the email in the account menu", async ({
   await expect(menu.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
 });
 
-test("sign-in with wrong credentials shows the error and keeps the email", async ({
-  page,
-}) => {
+test("sign-in with wrong credentials shows the error and keeps the email", {
+  tag: "@matrix",
+}, async ({ page }) => {
   const { email } = await signUpFreshUser(page);
   await page
     .getByRole("banner")
@@ -39,7 +39,7 @@ test("sign-in with wrong credentials shows the error and keeps the email", async
 
 // The guard redirects while the document is still loading, which WebKit
 // reports as an interrupted load, so these visits wait only for the commit.
-test("the guard redirects each way", async ({ page }) => {
+test("the guard redirects each way", { tag: "@matrix" }, async ({ page }) => {
   await page.goto("/wallets", { waitUntil: "commit" });
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(
@@ -57,9 +57,9 @@ test("the guard redirects each way", async ({ page }) => {
   await expect(page).toHaveURL(/\/wallets$/);
 });
 
-test("sign out returns to sign-in and back navigation shows no app content", async ({
-  page,
-}) => {
+test("sign out returns to sign-in and back navigation shows no app content", {
+  tag: "@matrix",
+}, async ({ page }) => {
   const { email } = await signUpFreshUser(page);
   await page
     .getByRole("banner")

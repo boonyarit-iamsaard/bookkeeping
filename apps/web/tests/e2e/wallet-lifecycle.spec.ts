@@ -4,7 +4,7 @@ import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test("archive and unarchive preserve totals and support management", async ({
   page,
-}, testInfo) => {
+}) => {
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {
     name: "Retired cash",
@@ -15,10 +15,6 @@ test("archive and unarchive preserve totals and support management", async ({
   await expect(
     page.getByRole("heading", { name: "Correct opening balance" }),
   ).toBeVisible();
-  await page.screenshot({
-    path: testInfo.outputPath("management.png"),
-    fullPage: true,
-  });
 
   await page.getByLabel("Opening balance (THB)").fill("12000.75");
   await page.getByRole("button", { name: "Save opening correction" }).click();

@@ -5,6 +5,10 @@ const baseURL = `http://localhost:${PORT}`;
 
 // Under CI the runner builds the client with the API origin it allocated and
 // previews that output; locally the dev server reads the origin from its env.
+// Domain flows run on the narrowest phone only; specs tagged `@matrix` cover
+// what differs by engine or viewport, such as layout, guards, and the PWA.
+const MATRIX_ONLY = /@matrix/;
+
 const serveCommand = process.env.CI
   ? `preview --outDir ${process.env.TEST_APP_DIST ?? "dist"}`
   : "";
@@ -12,8 +16,9 @@ const serveCommand = process.env.CI
 export default defineConfig({
   testDir: "tests/e2e",
   timeout: 60_000,
-  // All sign-ups share the API server's production rate limiter.
-  workers: 1,
+  // One worker keeps a local run within the machine's resource limits; the
+  // runner switches the API's sign-up throttle off, so CI runs in parallel.
+  workers: process.env.CI ? 2 : 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
@@ -32,8 +37,16 @@ export default defineConfig({
       // The narrowest supported phone; the milestone specifies 360px.
       use: { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } },
     },
-    { name: "phone-webkit", use: { ...devices["iPhone 15"] } },
-    { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "phone-webkit",
+      grep: MATRIX_ONLY,
+      use: { ...devices["iPhone 15"] },
+    },
+    {
+      name: "desktop-chromium",
+      grep: MATRIX_ONLY,
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: {
     command: `node ./node_modules/vite/bin/vite.js ${serveCommand} --port ${PORT} --strictPort`,

@@ -5,7 +5,9 @@ import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 // a 360px phone, so the phone projects assert it is present but hidden.
 const WORDMARK_MIN_WIDTH = 640;
 
-test("the shell renders the header once signed in", async ({ page }) => {
+test("the shell renders the header once signed in", { tag: "@matrix" }, async ({
+  page,
+}) => {
   await signUpFreshUser(page);
   await expect(page.getByRole("banner")).toBeVisible();
   // `/` redirects during the load, which WebKit reports as an interrupted load.

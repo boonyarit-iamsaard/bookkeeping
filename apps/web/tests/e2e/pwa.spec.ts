@@ -62,9 +62,9 @@ async function signInThenGoOffline(
   await context.setOffline(true);
 }
 
-test("the manifest describes an installable standalone app", async ({
-  page,
-}) => {
+test("the manifest describes an installable standalone app", {
+  tag: "@matrix",
+}, async ({ page }) => {
   await page.goto("/sign-in");
   const href = await page.locator('link[rel="manifest"]').getAttribute("href");
   expect(href).toBe("/manifest.webmanifest");
@@ -95,10 +95,9 @@ test("the manifest describes an installable standalone app", async ({
   }
 });
 
-test("an offline launch shows the fallback page until the network returns", async ({
-  page,
-  context,
-}) => {
+test("an offline launch shows the fallback page until the network returns", {
+  tag: "@matrix",
+}, async ({ page, context }) => {
   await signInThenGoOffline(page, context);
   await page.reload();
   await expect(
@@ -112,7 +111,7 @@ test("an offline launch shows the fallback page until the network returns", asyn
   ).toBeVisible();
 });
 
-test("API requests are never answered from cache", async ({
+test("API requests are never answered from cache", { tag: "@matrix" }, async ({
   page,
   context,
 }) => {

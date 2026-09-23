@@ -122,7 +122,16 @@ gateway. Real Better Auth over HTTP is covered by the gateway integration test
 and the API contract test.
 
 The SPA browser suite owns client and browser-boundary coverage; server
-integration tests own HTTP and persistence behavior.
+integration tests own HTTP and persistence behavior. The SPA has no component
+tests, so a browser test that asserts UI behavior, such as kept form values,
+focus, dialogs, or guards, stays even when the server covers the rule behind
+it. A browser test is redundant, and is removed, when its assertions are all
+HTTP-level ones that a route integration test already makes, or when another
+browser test asserts a superset of it through the same code path.
+
+Browser specs run on the narrowest phone project. Tag a test `@matrix` only
+when its behavior differs by engine or viewport, such as layout, navigation
+guards, or the service worker; the other two projects run only those tests.
 
 Budget: `pnpm test`, as Turborepo runs it with packages in parallel, completes
 in three minutes or less on the development machine. Check it by hand; it is

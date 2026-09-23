@@ -17,9 +17,9 @@ test.afterEach(async ({ page }) => {
   ).toEqual([]);
 });
 
-test("filters apply through the address and open the saved record", async ({
-  page,
-}, testInfo) => {
+test("filters apply through the address and open the saved record", {
+  tag: "@matrix",
+}, async ({ page }) => {
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {
     name: "Cash",
@@ -28,19 +28,11 @@ test("filters apply through the address and open the saved record", async ({
   });
   await page.goto("/transactions");
   await expect(page.getByText("Nothing recorded yet")).toBeVisible();
-  await page.screenshot({
-    path: testInfo.outputPath("history-before.png"),
-    fullPage: true,
-  });
   await page.goto("/transactions/new");
   await page.getByLabel("Amount").fill("500");
   await page.getByRole("button", { name: "Save −฿500.00 · Cash" }).click();
   await expectSavedRecord(page);
   await expect(page.locator("[data-saved]")).toBeInViewport();
-  await page.screenshot({
-    path: testInfo.outputPath("saved-history.png"),
-    fullPage: true,
-  });
   const expenseHref = await page.locator("[data-saved] a").getAttribute("href");
   if (!expenseHref) {
     throw new Error("Missing saved expense link");
@@ -66,10 +58,6 @@ test("filters apply through the address and open the saved record", async ({
   await expect(page).toHaveURL(/\/transactions\?.*type=expense/);
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
   await expect(page.getByText(/Recorded .*Bangkok/)).toBeVisible();
-  await page.screenshot({
-    path: testInfo.outputPath("history.png"),
-    fullPage: true,
-  });
   // The address alone restores the filters and keeps the disclosure open.
   await page.reload();
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
@@ -100,16 +88,6 @@ test("filters apply through the address and open the saved record", async ({
   );
   await page.getByRole("link", { name: "Back to list" }).click();
   await expect(page).toHaveURL(/\/transactions$/);
-});
-
-test("signed-out history requires authentication", async ({ page }) => {
-  await page.goto(
-    "/transactions?walletId=00000000-0000-4000-8000-000000000001",
-  );
-  await expect(page).toHaveURL(/\/sign-in/);
-  await expect(
-    page.getByRole("heading", { name: "Transactions", exact: true }),
-  ).toHaveCount(0);
 });
 
 test("invalid date filters and year zero keep editable controls with validation", async ({
