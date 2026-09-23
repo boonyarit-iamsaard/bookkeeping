@@ -14,8 +14,8 @@
     "dev": "turbo run dev",
     "dev:server": "turbo run dev --filter=@bookkeeping/server",
     "dev:web": "turbo run dev --filter=@bookkeeping/web",
-    "format": "prettier --write \"**/*.{md,yaml,yml}\"",
-    "format:check": "prettier --check \"**/*.{md,yaml,yml}\"",
+    "format": "prettier --write \"**/*.{md,yaml,yml,html}\"",
+    "format:check": "prettier --check \"**/*.{md,yaml,yml,html}\"",
     "lint": "biome check --no-errors-on-unmatched --files-ignore-unknown=true",
     "lint:md": "markdownlint \"**/*.md\" --ignore-path .gitignore",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" --ignore-path .gitignore",
@@ -48,10 +48,10 @@
   },
   "packageManager": "pnpm@10.27.0",
   "lint-staged": {
-    "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css,html}": [
+    "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css}": [
       "biome check --no-errors-on-unmatched --files-ignore-unknown=true"
     ],
-    "*.{md,yaml,yml}": [
+    "*.{md,yaml,yml,html}": [
       "prettier --check"
     ],
     "*.md": [

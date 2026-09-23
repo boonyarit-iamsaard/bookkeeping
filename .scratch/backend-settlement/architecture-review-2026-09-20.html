@@ -8,40 +8,128 @@
     <script type="module">
       import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
 
-      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose", flowchart: { htmlLabels: true, curve: "basis" } });
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "neutral",
+        securityLevel: "loose",
+        flowchart: { htmlLabels: true, curve: "basis" },
+      });
     </script>
     <style>
-      .seam { stroke-dasharray: 5 4; }
-      .leak { stroke: #dc2626; }
-      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); color: #f8fafc; }
-      .mod { border: 1.5px solid #64748b; border-radius: 6px; padding: 6px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; background: #fff; }
-      .mod.thin { border-style: solid; color: #475569; }
-      .mod.leaky { border-color: #dc2626; color: #991b1b; }
-      .band { border-left: 4px solid #94a3b8; background: #fff; }
-      .band.red { border-left-color: #dc2626; }
-      .band.deepband { border-left-color: #0f172a; }
-      .mermaid { font-size: 12px; }
-      .mermaid svg { max-width: 100%; height: auto; }
-      .faded { opacity: .45; }
+      .seam {
+        stroke-dasharray: 5 4;
+      }
+      .leak {
+        stroke: #dc2626;
+      }
+      .deep {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: #f8fafc;
+      }
+      .mod {
+        border: 1.5px solid #64748b;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        background: #fff;
+      }
+      .mod.thin {
+        border-style: solid;
+        color: #475569;
+      }
+      .mod.leaky {
+        border-color: #dc2626;
+        color: #991b1b;
+      }
+      .band {
+        border-left: 4px solid #94a3b8;
+        background: #fff;
+      }
+      .band.red {
+        border-left-color: #dc2626;
+      }
+      .band.deepband {
+        border-left-color: #0f172a;
+      }
+      .mermaid {
+        font-size: 12px;
+      }
+      .mermaid svg {
+        max-width: 100%;
+        height: auto;
+      }
+      .faded {
+        opacity: 0.45;
+      }
     </style>
   </head>
   <body class="bg-stone-50 text-slate-900 font-sans">
     <main class="max-w-6xl mx-auto px-6 py-12 space-y-14">
-
       <header class="space-y-4">
-        <p class="text-xs uppercase tracking-widest text-slate-500">Architecture review · backend settlement</p>
-        <h1 class="font-serif text-4xl">bookkeeping — <code class="font-mono text-2xl">packages/*</code> + <code class="font-mono text-2xl">apps/server</code></h1>
-        <p class="text-slate-600">2026-09-20 · after <code class="font-mono text-sm">hono-backend</code> and <code class="font-mono text-sm">test-suite-health</code> · scope: settle the backend before the Next.js cutoff. <code class="font-mono text-sm">apps/web</code> appears only as the second adapter over application operations.</p>
+        <p class="text-xs uppercase tracking-widest text-slate-500">
+          Architecture review · backend settlement
+        </p>
+        <h1 class="font-serif text-4xl">
+          bookkeeping — <code class="font-mono text-2xl">packages/*</code> +
+          <code class="font-mono text-2xl">apps/server</code>
+        </h1>
+        <p class="text-slate-600">
+          2026-09-20 · after
+          <code class="font-mono text-sm">hono-backend</code> and
+          <code class="font-mono text-sm">test-suite-health</code> · scope:
+          settle the backend before the Next.js cutoff.
+          <code class="font-mono text-sm">apps/web</code> appears only as the
+          second adapter over application operations.
+        </p>
         <div class="flex flex-wrap gap-4 text-xs text-slate-600 pt-2">
-          <span class="inline-flex items-center gap-2"><span class="inline-block w-6 h-4 border border-slate-500 rounded-sm bg-white"></span> module</span>
-          <span class="inline-flex items-center gap-2"><svg width="28" height="8"><title>seam</title><line x1="0" y1="4" x2="28" y2="4" stroke="#64748b" stroke-width="2" class="seam"/></svg> seam</span>
-          <span class="inline-flex items-center gap-2"><svg width="28" height="8"><title>leak</title><line x1="0" y1="4" x2="28" y2="4" stroke="#dc2626" stroke-width="2"/></svg> leak / duplication</span>
-          <span class="inline-flex items-center gap-2"><span class="inline-block w-6 h-4 rounded-sm deep"></span> deep module</span>
+          <span class="inline-flex items-center gap-2"
+            ><span
+              class="inline-block w-6 h-4 border border-slate-500 rounded-sm bg-white"
+            ></span>
+            module</span
+          >
+          <span class="inline-flex items-center gap-2"
+            ><svg width="28" height="8">
+              <title>seam</title>
+              <line
+                x1="0"
+                y1="4"
+                x2="28"
+                y2="4"
+                stroke="#64748b"
+                stroke-width="2"
+                class="seam"
+              />
+            </svg>
+            seam</span
+          >
+          <span class="inline-flex items-center gap-2"
+            ><svg width="28" height="8">
+              <title>leak</title>
+              <line
+                x1="0"
+                y1="4"
+                x2="28"
+                y2="4"
+                stroke="#dc2626"
+                stroke-width="2"
+              />
+            </svg>
+            leak / duplication</span
+          >
+          <span class="inline-flex items-center gap-2"
+            ><span class="inline-block w-6 h-4 rounded-sm deep"></span> deep
+            module</span
+          >
         </div>
       </header>
 
       <!-- Backend map -->
-      <section class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+      <section
+        class="rounded-lg border border-slate-200 bg-white p-5 space-y-3"
+      >
         <h2 class="font-serif text-xl">Where the seams are today</h2>
         <pre class="mermaid">
 flowchart LR
@@ -63,28 +151,56 @@ flowchart LR
   class A deep
   class S,W adapter
         </pre>
-        <p class="text-sm text-slate-600">The primary seam is the application function interface <code class="font-mono">(db: Database, input) ⇒ Promise&lt;Result&lt;T, E&gt;&gt;</code>, crossed by two adapters (Hono, web actions). It is a real seam and already deep: <code class="font-mono">createTransaction</code> hides locking order, savepoints, idempotency and eleven validators behind one call. The friction below is at the <em>edges</em> of that seam — what the error values carry, what the receipt stores, what each adapter must re-derive — not in the middle of it.</p>
+        <p class="text-sm text-slate-600">
+          The primary seam is the application function interface
+          <code class="font-mono"
+            >(db: Database, input) ⇒ Promise&lt;Result&lt;T, E&gt;&gt;</code
+          >, crossed by two adapters (Hono, web actions). It is a real seam and
+          already deep: <code class="font-mono">createTransaction</code> hides
+          locking order, savepoints, idempotency and eleven validators behind
+          one call. The friction below is at the <em>edges</em> of that seam —
+          what the error values carry, what the receipt stores, what each
+          adapter must re-derive — not in the middle of it.
+        </p>
       </section>
 
       <section id="candidates" class="space-y-12">
-
         <!-- ═══════════════════ Candidate 1 ═══════════════════ -->
-        <article id="c1" class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <article
+          id="c1"
+          class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6"
+        >
           <div class="flex flex-wrap items-center gap-3">
-            <h2 class="font-serif text-2xl">1 · Rejections name the field they address</h2>
-            <span class="rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1">Strong</span>
-            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">in-process</span>
+            <h2 class="font-serif text-2xl">
+              1 · Rejections name the field they address
+            </h2>
+            <span
+              class="rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1"
+              >Strong</span
+            >
+            <span
+              class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1"
+              >in-process</span
+            >
           </div>
           <p class="font-mono text-sm text-slate-600 leading-6">
-            packages/application/src/transactions/transaction.ts:238–261 (CreateTransactionError) · :846–856 (UpdateTransactionError)<br/>
-            packages/application/src/wallets/wallet.ts:150–260 (WalletOpeningIssue — the target shape) · categories/category.ts:85–125, 450–505<br/>
-            apps/server/src/features/transactions/transaction.routes.ts:193–274 (three switches) · wallet.routes.ts:146,176 · category.routes.ts:163<br/>
-            apps/web/src/features/transactions/server/transaction.actions.ts:222–335 (describeRejection)
+            packages/application/src/transactions/transaction.ts:238–261
+            (CreateTransactionError) · :846–856 (UpdateTransactionError)<br />
+            packages/application/src/wallets/wallet.ts:150–260
+            (WalletOpeningIssue — the target shape) ·
+            categories/category.ts:85–125, 450–505<br />
+            apps/server/src/features/transactions/transaction.routes.ts:193–274
+            (three switches) · wallet.routes.ts:146,176 ·
+            category.routes.ts:163<br />
+            apps/web/src/features/transactions/server/transaction.actions.ts:222–335
+            (describeRejection)
           </p>
 
           <div class="grid md:grid-cols-2 gap-4">
             <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — each adapter re-derives the field</p>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">
+                Before — each adapter re-derives the field
+              </p>
               <pre class="mermaid">
 flowchart TB
   V[validateTransactionOwner] -->|"{ code: 'before-opening', openingDate }"| E[(CreateTransactionError<br/>18 codes, no field)]
@@ -95,10 +211,16 @@ flowchart TB
   class H,W leak
   linkStyle 3 stroke:#dc2626,stroke-width:2px;
               </pre>
-              <p class="text-xs text-slate-500 mt-2">Wallet and category modules already return <code class="font-mono">{ field, code }</code>; transactions return bare codes. Three error vocabularies in one package.</p>
+              <p class="text-xs text-slate-500 mt-2">
+                Wallet and category modules already return
+                <code class="font-mono">{ field, code }</code>; transactions
+                return bare codes. Three error vocabularies in one package.
+              </p>
             </div>
             <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — the error knows its field; adapters are tables</p>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">
+                After — the error knows its field; adapters are tables
+              </p>
               <pre class="mermaid">
 flowchart TB
   V[validateTransactionOwner] -->|"{ field: 'transactionDate', code: 'before-opening', openingDate }"| E[(TransactionRejection<br/>field · code · detail)]
@@ -107,162 +229,410 @@ flowchart TB
   classDef deep fill:#0f172a,stroke:#0f172a,color:#f8fafc;
   class E deep
               </pre>
-              <p class="text-xs text-slate-500 mt-2">Same shape as <code class="font-mono">WalletOpeningIssue</code>. One field vocabulary per operation, owned where the rule is evaluated.</p>
+              <p class="text-xs text-slate-500 mt-2">
+                Same shape as <code class="font-mono">WalletOpeningIssue</code>.
+                One field vocabulary per operation, owned where the rule is
+                evaluated.
+              </p>
             </div>
           </div>
 
           <dl class="grid md:grid-cols-3 gap-5 text-sm">
-            <div><dt class="font-semibold">Problem</dt><dd class="text-slate-700">Which input a rejection addresses is decided in two adapters via exhaustive switches, and they already disagree (`wallet-archived` gets a pointer in Hono, no field in web).</dd></div>
-            <div><dt class="font-semibold">Solution</dt><dd class="text-slate-700">Transaction rejections carry <code class="font-mono">field</code> like wallet and category issues do; both adapters collapse to lookup tables. Adding a code touches the application file, not three.</dd></div>
-            <div><dt class="font-semibold">Wins</dt><dd><ul class="list-disc ml-4 text-slate-700 space-y-1">
-              <li>locality: field choice lives with the rule</li>
-              <li>leverage: SPA gets the table for free</li>
-              <li>delete 80 lines of <code class="font-mono">Exclude&lt;&gt;</code> switches</li>
-              <li>tests: route suite keeps D2 scope, asserts a table</li>
-              <li>one rejection shape across the package</li>
-            </ul></dd></div>
+            <div>
+              <dt class="font-semibold">Problem</dt>
+              <dd class="text-slate-700">
+                Which input a rejection addresses is decided in two adapters via
+                exhaustive switches, and they already disagree
+                (`wallet-archived` gets a pointer in Hono, no field in web).
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Solution</dt>
+              <dd class="text-slate-700">
+                Transaction rejections carry
+                <code class="font-mono">field</code> like wallet and category
+                issues do; both adapters collapse to lookup tables. Adding a
+                code touches the application file, not three.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Wins</dt>
+              <dd>
+                <ul class="list-disc ml-4 text-slate-700 space-y-1">
+                  <li>locality: field choice lives with the rule</li>
+                  <li>leverage: SPA gets the table for free</li>
+                  <li>
+                    delete 80 lines of
+                    <code class="font-mono">Exclude&lt;&gt;</code> switches
+                  </li>
+                  <li>tests: route suite keeps D2 scope, asserts a table</li>
+                  <li>one rejection shape across the package</li>
+                </ul>
+              </dd>
+            </div>
           </dl>
         </article>
 
         <!-- ═══════════════════ Candidate 2 ═══════════════════ -->
-        <article id="c2" class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <article
+          id="c2"
+          class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6"
+        >
           <div class="flex flex-wrap items-center gap-3">
-            <h2 class="font-serif text-2xl">2 · One pure transaction acceptance module</h2>
-            <span class="rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1">Strong</span>
-            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">in-process</span>
-            <span class="rounded-full bg-amber-100 text-amber-800 text-xs px-3 py-1">test-suite-health D9</span>
+            <h2 class="font-serif text-2xl">
+              2 · One pure transaction acceptance module
+            </h2>
+            <span
+              class="rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1"
+              >Strong</span
+            >
+            <span
+              class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1"
+              >in-process</span
+            >
+            <span
+              class="rounded-full bg-amber-100 text-amber-800 text-xs px-3 py-1"
+              >test-suite-health D9</span
+            >
           </div>
           <p class="font-mono text-sm text-slate-600 leading-6">
-            packages/application/src/transactions/transaction.ts:468 validateTransactionValues · :563 validateRefundShape · :576 validateTransferShape · :635 validateRefundAgainstExpense · :731 validateTransactionDate · :883 snapshotOf · :900 sameSnapshot · :969 inline after-snapshot · :1112 guardRefundedExpense<br/>
-            packages/application/src/transactions/transaction-create.integration.test.ts (1662 lines) · transaction-update.integration.test.ts (1256 lines)
+            packages/application/src/transactions/transaction.ts:468
+            validateTransactionValues · :563 validateRefundShape · :576
+            validateTransferShape · :635 validateRefundAgainstExpense · :731
+            validateTransactionDate · :883 snapshotOf · :900 sameSnapshot · :969
+            inline after-snapshot · :1112 guardRefundedExpense<br />
+            packages/application/src/transactions/transaction-create.integration.test.ts
+            (1662 lines) · transaction-update.integration.test.ts (1256 lines)
           </p>
 
           <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 space-y-2">
-              <p class="text-xs uppercase tracking-wider text-slate-500">Before — rules interleaved with locks</p>
+            <div
+              class="rounded-lg border border-slate-200 bg-stone-50 p-4 space-y-2"
+            >
+              <p class="text-xs uppercase tracking-wider text-slate-500">
+                Before — rules interleaved with locks
+              </p>
               <div class="space-y-1">
-                <div class="band h-8 flex items-center px-3 text-xs">validateTransactionValues <span class="ml-auto text-slate-400">pure</span></div>
-                <div class="band red h-8 flex items-center px-3 text-xs">executeIdempotentCreation → db.transaction <span class="ml-auto text-red-600">I/O</span></div>
-                <div class="band h-8 flex items-center px-3 text-xs">validateTransferShape / validateRefundShape <span class="ml-auto text-slate-400">pure</span></div>
-                <div class="band red h-8 flex items-center px-3 text-xs">lockRefundedExpense <span class="ml-auto text-red-600">I/O · lock order</span></div>
-                <div class="band red h-8 flex items-center px-3 text-xs">lockOwnedWallets (+ archived / retained rule) <span class="ml-auto text-red-600">I/O + rule</span></div>
-                <div class="band red h-8 flex items-center px-3 text-xs">validateTransactionCategory <span class="ml-auto text-red-600">I/O + rule</span></div>
-                <div class="band h-8 flex items-center px-3 text-xs">validateTransactionDate <span class="ml-auto text-slate-400">pure</span></div>
-                <div class="band red h-8 flex items-center px-3 text-xs">validateRefundAgainstExpense (currentRefundsOf + cap) <span class="ml-auto text-red-600">I/O + rule</span></div>
-              </div>
-              <p class="text-xs text-slate-500">Every pure rule is only reachable through Postgres. One rule change → 2 918 lines of integration tests are the nearest oracle.</p>
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 space-y-2">
-              <p class="text-xs uppercase tracking-wider text-slate-500">After — load facts, accept, persist</p>
-              <div class="space-y-1">
-                <div class="band red h-10 flex items-center px-3 text-xs">shell: lock expense → lock wallets → read category → read refunds <span class="ml-auto text-red-600">I/O, ordered</span></div>
-                <div class="band deepband deep h-24 flex flex-col justify-center px-3 text-xs space-y-1">
-                  <span class="font-semibold tracking-wider uppercase">acceptTransaction(fields, facts, today)</span>
-                  <span class="faded">shape · currency · amount · note · date bounds · before-opening · archived/retained · category kind · refund cap · expense guard · snapshot equality</span>
-                  <span class="faded">⇒ Result&lt;AcceptedTransaction, TransactionRejection&gt;</span>
+                <div class="band h-8 flex items-center px-3 text-xs">
+                  validateTransactionValues
+                  <span class="ml-auto text-slate-400">pure</span>
                 </div>
-                <div class="band red h-10 flex items-center px-3 text-xs">shell: insert · write change · read back <span class="ml-auto text-red-600">I/O</span></div>
+                <div class="band red h-8 flex items-center px-3 text-xs">
+                  executeIdempotentCreation → db.transaction
+                  <span class="ml-auto text-red-600">I/O</span>
+                </div>
+                <div class="band h-8 flex items-center px-3 text-xs">
+                  validateTransferShape / validateRefundShape
+                  <span class="ml-auto text-slate-400">pure</span>
+                </div>
+                <div class="band red h-8 flex items-center px-3 text-xs">
+                  lockRefundedExpense
+                  <span class="ml-auto text-red-600">I/O · lock order</span>
+                </div>
+                <div class="band red h-8 flex items-center px-3 text-xs">
+                  lockOwnedWallets (+ archived / retained rule)
+                  <span class="ml-auto text-red-600">I/O + rule</span>
+                </div>
+                <div class="band red h-8 flex items-center px-3 text-xs">
+                  validateTransactionCategory
+                  <span class="ml-auto text-red-600">I/O + rule</span>
+                </div>
+                <div class="band h-8 flex items-center px-3 text-xs">
+                  validateTransactionDate
+                  <span class="ml-auto text-slate-400">pure</span>
+                </div>
+                <div class="band red h-8 flex items-center px-3 text-xs">
+                  validateRefundAgainstExpense (currentRefundsOf + cap)
+                  <span class="ml-auto text-red-600">I/O + rule</span>
+                </div>
               </div>
-              <p class="text-xs text-slate-500">Facts = <code class="font-mono">{ wallets[{id, openingDate, archivedAt}], category?, expense?, existingRefunds[], current? }</code>. Create and update call the same acceptance once.</p>
+              <p class="text-xs text-slate-500">
+                Every pure rule is only reachable through Postgres. One rule
+                change → 2 918 lines of integration tests are the nearest
+                oracle.
+              </p>
+            </div>
+            <div
+              class="rounded-lg border border-slate-200 bg-stone-50 p-4 space-y-2"
+            >
+              <p class="text-xs uppercase tracking-wider text-slate-500">
+                After — load facts, accept, persist
+              </p>
+              <div class="space-y-1">
+                <div class="band red h-10 flex items-center px-3 text-xs">
+                  shell: lock expense → lock wallets → read category → read
+                  refunds <span class="ml-auto text-red-600">I/O, ordered</span>
+                </div>
+                <div
+                  class="band deepband deep h-24 flex flex-col justify-center px-3 text-xs space-y-1"
+                >
+                  <span class="font-semibold tracking-wider uppercase"
+                    >acceptTransaction(fields, facts, today)</span
+                  >
+                  <span class="faded"
+                    >shape · currency · amount · note · date bounds ·
+                    before-opening · archived/retained · category kind · refund
+                    cap · expense guard · snapshot equality</span
+                  >
+                  <span class="faded"
+                    >⇒ Result&lt;AcceptedTransaction,
+                    TransactionRejection&gt;</span
+                  >
+                </div>
+                <div class="band red h-10 flex items-center px-3 text-xs">
+                  shell: insert · write change · read back
+                  <span class="ml-auto text-red-600">I/O</span>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500">
+                Facts =
+                <code class="font-mono"
+                  >{ wallets[{id, openingDate, archivedAt}], category?,
+                  expense?, existingRefunds[], current? }</code
+                >. Create and update call the same acceptance once.
+              </p>
             </div>
           </div>
 
           <dl class="grid md:grid-cols-3 gap-5 text-sm">
-            <div><dt class="font-semibold">Problem</dt><dd class="text-slate-700">Nine private validators are woven between locks, so reading “what makes a transfer acceptable” means walking the I/O path, and no rule has a unit test. <code class="font-mono">sameSnapshot</code> already drifted (omits <code class="font-mono">refundOfTransactionId</code>; latent, since updates fix the link).</dd></div>
-            <div><dt class="font-semibold">Solution</dt><dd class="text-slate-700">One pure module with one interface: fields + loaded facts in, accepted command or field-addressed rejection out. The shell keeps lock ordering and persistence and stays integration-tested for exactly that.</dd></div>
-            <div><dt class="font-semibold">Wins</dt><dd><ul class="list-disc ml-4 text-slate-700 space-y-1">
-              <li>interface: one function, one test surface</li>
-              <li>tests: rules run in ms, no container</li>
-              <li>locality: create and update share one acceptance</li>
-              <li>integration suites shrink to lock/ownership/persistence</li>
-              <li>pairs with #1: the rejection shape is the output type</li>
-            </ul></dd></div>
+            <div>
+              <dt class="font-semibold">Problem</dt>
+              <dd class="text-slate-700">
+                Nine private validators are woven between locks, so reading
+                “what makes a transfer acceptable” means walking the I/O path,
+                and no rule has a unit test.
+                <code class="font-mono">sameSnapshot</code> already drifted
+                (omits <code class="font-mono">refundOfTransactionId</code>;
+                latent, since updates fix the link).
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Solution</dt>
+              <dd class="text-slate-700">
+                One pure module with one interface: fields + loaded facts in,
+                accepted command or field-addressed rejection out. The shell
+                keeps lock ordering and persistence and stays integration-tested
+                for exactly that.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Wins</dt>
+              <dd>
+                <ul class="list-disc ml-4 text-slate-700 space-y-1">
+                  <li>interface: one function, one test surface</li>
+                  <li>tests: rules run in ms, no container</li>
+                  <li>locality: create and update share one acceptance</li>
+                  <li>
+                    integration suites shrink to lock/ownership/persistence
+                  </li>
+                  <li>pairs with #1: the rejection shape is the output type</li>
+                </ul>
+              </dd>
+            </div>
           </dl>
-          <div class="rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm px-4 py-3">
-            <strong>ADR-0004</strong> assigns “use cases and business invariants” to <code class="font-mono">@bookkeeping/application</code>. Placing this module in <code class="font-mono">application/transactions/transaction-rules.ts</code> respects that and still needs no Postgres; placing it in <code class="font-mono">@bookkeeping/domain</code> (as D9 suggested) reopens that line. Worth deciding in the grilling, not by default.
+          <div
+            class="rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm px-4 py-3"
+          >
+            <strong>ADR-0004</strong> assigns “use cases and business
+            invariants” to
+            <code class="font-mono">@bookkeeping/application</code>. Placing
+            this module in
+            <code class="font-mono"
+              >application/transactions/transaction-rules.ts</code
+            >
+            respects that and still needs no Postgres; placing it in
+            <code class="font-mono">@bookkeeping/domain</code> (as D9 suggested)
+            reopens that line. Worth deciding in the grilling, not by default.
           </div>
         </article>
 
         <!-- ═══════════════════ Candidate 3 ═══════════════════ -->
-        <article id="c3" class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <article
+          id="c3"
+          class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6"
+        >
           <div class="flex flex-wrap items-center gap-3">
-            <h2 class="font-serif text-2xl">3 · Idempotent creation absorbs the receipt codec</h2>
-            <span class="rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1">Worth exploring</span>
-            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">in-process</span>
+            <h2 class="font-serif text-2xl">
+              3 · Idempotent creation absorbs the receipt codec
+            </h2>
+            <span
+              class="rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1"
+              >Worth exploring</span
+            >
+            <span
+              class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1"
+              >in-process</span
+            >
           </div>
           <p class="font-mono text-sm text-slate-600 leading-6">
-            packages/application/src/idempotency/idempotency.ts:34–56 (CreationResultCodec, IdempotentCreationOptions)<br/>
-            transactions/transaction.ts:289–392 (schema + codec + encode, 100 lines) · :200 findReplayedTransaction (no production caller)<br/>
-            wallets/wallet.ts:259–288 · categories/category.ts:506–549<br/>
-            call sites re-branch on idempotency-conflict: transaction.routes.ts:479 · wallet.routes.ts:241 · category.routes.ts:242 · transaction.actions.ts:328 · category.actions.ts:160
+            packages/application/src/idempotency/idempotency.ts:34–56
+            (CreationResultCodec, IdempotentCreationOptions)<br />
+            transactions/transaction.ts:289–392 (schema + codec + encode, 100
+            lines) · :200 findReplayedTransaction (no production caller)<br />
+            wallets/wallet.ts:259–288 · categories/category.ts:506–549<br />
+            call sites re-branch on idempotency-conflict:
+            transaction.routes.ts:479 · wallet.routes.ts:241 ·
+            category.routes.ts:242 · transaction.actions.ts:328 ·
+            category.actions.ts:160
           </p>
 
           <div class="grid md:grid-cols-2 gap-4">
             <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — interface as tall as the implementation</p>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                Before — interface as tall as the implementation
+              </p>
               <div class="flex items-end gap-6 h-56 px-2">
                 <div class="flex flex-col items-center gap-1 w-1/2">
-                  <div class="w-full rounded-t border border-slate-500 bg-white h-32 flex flex-col justify-center items-center text-[10px] uppercase tracking-wider text-slate-600 text-center px-2">
-                    <span>ownerId · operation · key</span><span>payload (hand-built)</span><span>resultCodec { encode, decode }</span><span>create(tx)</span><span class="text-red-700">+ unwrap outcome · rewrap</span><span class="text-red-700">+ branch conflict ×5 sites</span>
+                  <div
+                    class="w-full rounded-t border border-slate-500 bg-white h-32 flex flex-col justify-center items-center text-[10px] uppercase tracking-wider text-slate-600 text-center px-2"
+                  >
+                    <span>ownerId · operation · key</span
+                    ><span>payload (hand-built)</span
+                    ><span>resultCodec { encode, decode }</span
+                    ><span>create(tx)</span
+                    ><span class="text-red-700">+ unwrap outcome · rewrap</span
+                    ><span class="text-red-700"
+                      >+ branch conflict ×5 sites</span
+                    >
                   </div>
-                  <div class="w-full rounded-b deep h-16 flex items-center justify-center text-[10px] uppercase tracking-wider">lock · fingerprint · receipt · savepoint</div>
-                  <span class="text-xs text-slate-500">executeIdempotentCreation</span>
+                  <div
+                    class="w-full rounded-b deep h-16 flex items-center justify-center text-[10px] uppercase tracking-wider"
+                  >
+                    lock · fingerprint · receipt · savepoint
+                  </div>
+                  <span class="text-xs text-slate-500"
+                    >executeIdempotentCreation</span
+                  >
                 </div>
                 <div class="flex flex-col items-center gap-1 w-1/2">
-                  <div class="w-full rounded border border-red-500 bg-red-50 h-44 flex flex-col justify-center items-center text-[10px] uppercase tracking-wider text-red-800 text-center px-2">
-                    <span>storedXSchema (Zod)</span><span>codec.decode (field by field)</span><span>encodeX (field by field)</span><span class="mt-2">× transaction · wallet · category</span><span>≈ 180 lines mirroring 3 types</span>
+                  <div
+                    class="w-full rounded border border-red-500 bg-red-50 h-44 flex flex-col justify-center items-center text-[10px] uppercase tracking-wider text-red-800 text-center px-2"
+                  >
+                    <span>storedXSchema (Zod)</span
+                    ><span>codec.decode (field by field)</span
+                    ><span>encodeX (field by field)</span
+                    ><span class="mt-2">× transaction · wallet · category</span
+                    ><span>≈ 180 lines mirroring 3 types</span>
                   </div>
                   <span class="text-xs text-slate-500">per-feature codecs</span>
                 </div>
               </div>
             </div>
             <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — small interface, the module owns the snapshot</p>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                After — small interface, the module owns the snapshot
+              </p>
               <div class="flex items-end gap-6 h-56 px-2">
                 <div class="flex flex-col items-center gap-1 w-2/3">
-                  <div class="w-full rounded-t border border-slate-500 bg-white h-12 flex items-center justify-center text-[10px] uppercase tracking-wider text-slate-600 text-center px-2">scope · payload · create(tx) ⇒ Result&lt;T, E&gt;</div>
-                  <div class="w-full rounded-b deep h-36 flex flex-col justify-center items-center text-[10px] uppercase tracking-wider text-center px-2 space-y-1">
-                    <span>lock · fingerprint · receipt · savepoint</span><span class="faded">JSON-safe snapshot: bigint ↔ string, Date ↔ ISO, generic</span><span class="faded">replayed flag inside the Result</span><span class="faded">conflict is one Rejection like any other</span>
+                  <div
+                    class="w-full rounded-t border border-slate-500 bg-white h-12 flex items-center justify-center text-[10px] uppercase tracking-wider text-slate-600 text-center px-2"
+                  >
+                    scope · payload · create(tx) ⇒ Result&lt;T, E&gt;
                   </div>
-                  <span class="text-xs text-slate-500">executeIdempotentCreation</span>
+                  <div
+                    class="w-full rounded-b deep h-36 flex flex-col justify-center items-center text-[10px] uppercase tracking-wider text-center px-2 space-y-1"
+                  >
+                    <span>lock · fingerprint · receipt · savepoint</span
+                    ><span class="faded"
+                      >JSON-safe snapshot: bigint ↔ string, Date ↔ ISO,
+                      generic</span
+                    ><span class="faded">replayed flag inside the Result</span
+                    ><span class="faded"
+                      >conflict is one Rejection like any other</span
+                    >
+                  </div>
+                  <span class="text-xs text-slate-500"
+                    >executeIdempotentCreation</span
+                  >
                 </div>
                 <div class="flex flex-col items-center gap-1 w-1/3">
-                  <div class="w-full rounded border border-slate-300 border-dashed bg-white h-10 flex items-center justify-center text-[10px] uppercase tracking-wider text-slate-400 text-center px-2">per-feature: nothing</div>
+                  <div
+                    class="w-full rounded border border-slate-300 border-dashed bg-white h-10 flex items-center justify-center text-[10px] uppercase tracking-wider text-slate-400 text-center px-2"
+                  >
+                    per-feature: nothing
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <dl class="grid md:grid-cols-3 gap-5 text-sm">
-            <div><dt class="font-semibold">Problem</dt><dd class="text-slate-700">The idempotency module is deep, but every caller undoes it: hand-mirrors its result type into a codec, unwraps and rewraps the outcome, and re-branches on the conflict code. Adding a field to <code class="font-mono">TransactionDetail</code> means editing the codec or silently breaking replay.</dd></div>
-            <div><dt class="font-semibold">Solution</dt><dd class="text-slate-700">The module owns a generic JSON-safe snapshot (bigint/Date aware) and returns <code class="font-mono">replayed</code> inside the same <code class="font-mono">Result</code>; feature modules pass only scope, payload and <code class="font-mono">create</code>. Retire the dead <code class="font-mono">findReplayedTransaction</code> seam. Hard-deleted wallets keep the snapshot approach justified (re-reading is not an option for them).</dd></div>
-            <div><dt class="font-semibold">Wins</dt><dd><ul class="list-disc ml-4 text-slate-700 space-y-1">
-              <li>delete ~180 lines of type mirroring</li>
-              <li>locality: snapshot format in one module</li>
-              <li>leverage: next creating operation is free</li>
-              <li>tests: round-trip cases in idempotency.unit.test.ts</li>
-              <li>removes 5 conflict re-branches</li>
-            </ul></dd></div>
+            <div>
+              <dt class="font-semibold">Problem</dt>
+              <dd class="text-slate-700">
+                The idempotency module is deep, but every caller undoes it:
+                hand-mirrors its result type into a codec, unwraps and rewraps
+                the outcome, and re-branches on the conflict code. Adding a
+                field to <code class="font-mono">TransactionDetail</code> means
+                editing the codec or silently breaking replay.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Solution</dt>
+              <dd class="text-slate-700">
+                The module owns a generic JSON-safe snapshot (bigint/Date aware)
+                and returns <code class="font-mono">replayed</code> inside the
+                same <code class="font-mono">Result</code>; feature modules pass
+                only scope, payload and <code class="font-mono">create</code>.
+                Retire the dead
+                <code class="font-mono">findReplayedTransaction</code> seam.
+                Hard-deleted wallets keep the snapshot approach justified
+                (re-reading is not an option for them).
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Wins</dt>
+              <dd>
+                <ul class="list-disc ml-4 text-slate-700 space-y-1">
+                  <li>delete ~180 lines of type mirroring</li>
+                  <li>locality: snapshot format in one module</li>
+                  <li>leverage: next creating operation is free</li>
+                  <li>tests: round-trip cases in idempotency.unit.test.ts</li>
+                  <li>removes 5 conflict re-branches</li>
+                </ul>
+              </dd>
+            </div>
           </dl>
         </article>
 
         <!-- ═══════════════════ Candidate 4 ═══════════════════ -->
-        <article id="c4" class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <article
+          id="c4"
+          class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6"
+        >
           <div class="flex flex-wrap items-center gap-3">
-            <h2 class="font-serif text-2xl">4 · 409 problems carry the application's reason</h2>
-            <span class="rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1">Worth exploring</span>
-            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">ports &amp; adapters</span>
-            <span class="rounded-full bg-indigo-100 text-indigo-800 text-xs px-3 py-1">matters for the SPA cutoff</span>
+            <h2 class="font-serif text-2xl">
+              4 · 409 problems carry the application's reason
+            </h2>
+            <span
+              class="rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1"
+              >Worth exploring</span
+            >
+            <span
+              class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1"
+              >ports &amp; adapters</span
+            >
+            <span
+              class="rounded-full bg-indigo-100 text-indigo-800 text-xs px-3 py-1"
+              >matters for the SPA cutoff</span
+            >
           </div>
           <p class="font-mono text-sm text-slate-600 leading-6">
-            packages/application/src/transactions/transaction.ts:1060 DeleteTransactionError { refunds-exist, refunds } · categories/category.ts:334 RemoveCategoryError<br/>
-            apps/server/src/features/transactions/transaction.routes.ts:774–779 (bare 409) · category.routes.ts:135 isRemovalBlocked · core/http/problem-details.ts:7–20 problemCodes<br/>
-            apps/web/src/features/transactions/server/transaction.actions.ts:150–176 (formats the refund list — the knowledge the SPA will need)
+            packages/application/src/transactions/transaction.ts:1060
+            DeleteTransactionError { refunds-exist, refunds } ·
+            categories/category.ts:334 RemoveCategoryError<br />
+            apps/server/src/features/transactions/transaction.routes.ts:774–779
+            (bare 409) · category.routes.ts:135 isRemovalBlocked ·
+            core/http/problem-details.ts:7–20 problemCodes<br />
+            apps/web/src/features/transactions/server/transaction.actions.ts:150–176
+            (formats the refund list — the knowledge the SPA will need)
           </p>
 
           <div class="grid md:grid-cols-2 gap-4">
             <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before — the richest error is flattened at the seam</p>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">
+                Before — the richest error is flattened at the seam
+              </p>
               <pre class="mermaid">
 sequenceDiagram
   participant C as SPA client
@@ -276,7 +646,9 @@ sequenceDiagram
               </pre>
             </div>
             <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">After — the reason crosses in wire form</p>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">
+                After — the reason crosses in wire form
+              </p>
               <pre class="mermaid">
 sequenceDiagram
   participant C as SPA client
@@ -292,150 +664,434 @@ sequenceDiagram
           </div>
 
           <dl class="grid md:grid-cols-3 gap-5 text-sm">
-            <div><dt class="font-semibold">Problem</dt><dd class="text-slate-700">Deleting an expense with refunds and removing a protected / in-use category return a bare 409; the domain reason only survives in the temporary web adapter. The SPA would have to reinvent that read against a contract that hides it.</dd></div>
-            <div><dt class="font-semibold">Solution</dt><dd class="text-slate-700">Problem details carry the domain code (<code class="font-mono">refunds-exist</code>, <code class="font-mono">protected</code>, <code class="font-mono">has-children</code>, <code class="font-mono">in-use</code>) and a typed detail (refunds in Money wire form) — the ADR-0003 “stable machine-readable code” promise applied to 409s, not only 422 field errors.</dd></div>
-            <div><dt class="font-semibold">Wins</dt><dd><ul class="list-disc ml-4 text-slate-700 space-y-1">
-              <li>interface: contract says why, not just no</li>
-              <li>leverage: SPA and mobile share one read</li>
-              <li>locality: reason formatted once, client-side</li>
-              <li>tests: one route case per code, contract schema for details</li>
-            </ul></dd></div>
+            <div>
+              <dt class="font-semibold">Problem</dt>
+              <dd class="text-slate-700">
+                Deleting an expense with refunds and removing a protected /
+                in-use category return a bare 409; the domain reason only
+                survives in the temporary web adapter. The SPA would have to
+                reinvent that read against a contract that hides it.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Solution</dt>
+              <dd class="text-slate-700">
+                Problem details carry the domain code (<code class="font-mono"
+                  >refunds-exist</code
+                >, <code class="font-mono">protected</code>,
+                <code class="font-mono">has-children</code>,
+                <code class="font-mono">in-use</code>) and a typed detail
+                (refunds in Money wire form) — the ADR-0003 “stable
+                machine-readable code” promise applied to 409s, not only 422
+                field errors.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Wins</dt>
+              <dd>
+                <ul class="list-disc ml-4 text-slate-700 space-y-1">
+                  <li>interface: contract says why, not just no</li>
+                  <li>leverage: SPA and mobile share one read</li>
+                  <li>locality: reason formatted once, client-side</li>
+                  <li>
+                    tests: one route case per code, contract schema for details
+                  </li>
+                </ul>
+              </dd>
+            </div>
           </dl>
-          <div class="rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm px-4 py-3">
-            Consistent with <strong>ADR-0003</strong> (“expected failures use stable machine-readable codes”); it widens the problem-details contract before the SPA consumes it, which is cheaper now than after.
+          <div
+            class="rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm px-4 py-3"
+          >
+            Consistent with <strong>ADR-0003</strong> (“expected failures use
+            stable machine-readable codes”); it widens the problem-details
+            contract before the SPA consumes it, which is cheaper now than
+            after.
           </div>
         </article>
 
         <!-- ═══════════════════ Candidate 5 ═══════════════════ -->
-        <article id="c5" class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <article
+          id="c5"
+          class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6"
+        >
           <div class="flex flex-wrap items-center gap-3">
-            <h2 class="font-serif text-2xl">5 · Route handlers answer with a Result</h2>
-            <span class="rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1">Worth exploring</span>
-            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">in-process</span>
+            <h2 class="font-serif text-2xl">
+              5 · Route handlers answer with a Result
+            </h2>
+            <span
+              class="rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1"
+              >Worth exploring</span
+            >
+            <span
+              class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1"
+              >in-process</span
+            >
           </div>
           <p class="font-mono text-sm text-slate-600 leading-6">
-            apps/server/src/features/wallets/wallet.routes.ts (517) · categories/category.routes.ts (598) · transactions/transaction.routes.ts (830) · reports/report.routes.ts (131)<br/>
-            apps/server/src/core/http/problem-details.ts · request-validation.ts · idempotency.ts
+            apps/server/src/features/wallets/wallet.routes.ts (517) ·
+            categories/category.routes.ts (598) ·
+            transactions/transaction.routes.ts (830) · reports/report.routes.ts
+            (131)<br />
+            apps/server/src/core/http/problem-details.ts · request-validation.ts
+            · idempotency.ts
           </p>
 
           <div class="grid md:grid-cols-2 gap-4">
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 space-y-2">
-              <p class="text-xs uppercase tracking-wider text-slate-500">Before — one create handler, repeated three times</p>
+            <div
+              class="rounded-lg border border-slate-200 bg-stone-50 p-4 space-y-2"
+            >
+              <p class="text-xs uppercase tracking-wider text-slate-500">
+                Before — one create handler, repeated three times
+              </p>
               <div class="space-y-1 text-xs">
-                <div class="band h-7 flex items-center px-3">describeRoute · prose · 400/401 problems</div>
-                <div class="band h-7 flex items-center px-3">idempotencyKeyMiddleware · commandMiddleware</div>
-                <div class="band h-7 flex items-center px-3">describeResponse&lt;Env, Path, Input, {201,409,422}&gt;</div>
-                <div class="band red h-7 flex items-center px-3">c.get("session").user.id · header · body → input <span class="ml-auto text-slate-500">feature-specific</span></div>
-                <div class="band h-7 flex items-center px-3">if !ok &amp;&amp; conflict → idempotencyConflictProblem</div>
-                <div class="band h-7 flex items-center px-3">if !ok → 422 + toXFieldErrors(error, body)</div>
-                <div class="band h-7 flex items-center px-3">present(value) · 201 · Location header</div>
-                <div class="band h-7 flex items-center px-3">responses: { 201, 409, 422 } re-described</div>
-              </div>
-              <p class="text-xs text-slate-500">≈ 25 identical lines per create; 404/409 branching 7× per file; <code class="font-mono">getProblemOptionsForStatus(404)</code> 21× across routes.</p>
-            </div>
-            <div class="rounded-lg border border-slate-200 bg-stone-50 p-4 space-y-2">
-              <p class="text-xs uppercase tracking-wider text-slate-500">After — glue in core/http, projection in the feature</p>
-              <div class="space-y-1 text-xs">
-                <div class="band deepband deep h-16 flex flex-col justify-center px-3 space-y-1">
-                  <span class="uppercase tracking-wider font-semibold">respondWithResult(c, result, { created?, notFound, fieldPointers })</span>
-                  <span class="faded">status choice · problem body · Location · conflict · field table (#1) · documented responses</span>
+                <div class="band h-7 flex items-center px-3">
+                  describeRoute · prose · 400/401 problems
                 </div>
-                <div class="band red h-7 flex items-center px-3">feature: schema · toInput(c) · present(value)</div>
+                <div class="band h-7 flex items-center px-3">
+                  idempotencyKeyMiddleware · commandMiddleware
+                </div>
+                <div class="band h-7 flex items-center px-3">
+                  describeResponse&lt;Env, Path, Input, {201,409,422}&gt;
+                </div>
+                <div class="band red h-7 flex items-center px-3">
+                  c.get("session").user.id · header · body → input
+                  <span class="ml-auto text-slate-500">feature-specific</span>
+                </div>
+                <div class="band h-7 flex items-center px-3">
+                  if !ok &amp;&amp; conflict → idempotencyConflictProblem
+                </div>
+                <div class="band h-7 flex items-center px-3">
+                  if !ok → 422 + toXFieldErrors(error, body)
+                </div>
+                <div class="band h-7 flex items-center px-3">
+                  present(value) · 201 · Location header
+                </div>
+                <div class="band h-7 flex items-center px-3">
+                  responses: { 201, 409, 422 } re-described
+                </div>
               </div>
-              <p class="text-xs text-slate-500">Depends on #1: with field-addressed rejections the 422 branch needs a table, not a switch, so the helper can own it.</p>
+              <p class="text-xs text-slate-500">
+                ≈ 25 identical lines per create; 404/409 branching 7× per file;
+                <code class="font-mono">getProblemOptionsForStatus(404)</code>
+                21× across routes.
+              </p>
+            </div>
+            <div
+              class="rounded-lg border border-slate-200 bg-stone-50 p-4 space-y-2"
+            >
+              <p class="text-xs uppercase tracking-wider text-slate-500">
+                After — glue in core/http, projection in the feature
+              </p>
+              <div class="space-y-1 text-xs">
+                <div
+                  class="band deepband deep h-16 flex flex-col justify-center px-3 space-y-1"
+                >
+                  <span class="uppercase tracking-wider font-semibold"
+                    >respondWithResult(c, result, { created?, notFound,
+                    fieldPointers })</span
+                  >
+                  <span class="faded"
+                    >status choice · problem body · Location · conflict · field
+                    table (#1) · documented responses</span
+                  >
+                </div>
+                <div class="band red h-7 flex items-center px-3">
+                  feature: schema · toInput(c) · present(value)
+                </div>
+              </div>
+              <p class="text-xs text-slate-500">
+                Depends on #1: with field-addressed rejections the 422 branch
+                needs a table, not a switch, so the helper can own it.
+              </p>
             </div>
           </div>
 
           <dl class="grid md:grid-cols-3 gap-5 text-sm">
-            <div><dt class="font-semibold">Problem</dt><dd class="text-slate-700">Route files are ~70 % glue: the same Result-to-response branching, Location header, session projection and explicit <code class="font-mono">describeResponse</code> generics appear 15+ times, so each new endpoint is copied from the last one.</dd></div>
-            <div><dt class="font-semibold">Solution</dt><dd class="text-slate-700">A small deep helper in <code class="font-mono">core/http</code> that turns an application <code class="font-mono">Result</code> into the documented response; feature routes keep only schemas, the request→input projection, and presenters.</dd></div>
-            <div><dt class="font-semibold">Wins</dt><dd><ul class="list-disc ml-4 text-slate-700 space-y-1">
-              <li>leverage: one helper, 15 handlers</li>
-              <li>locality: problem mapping in one module</li>
-              <li>route files drop ~40 %</li>
-              <li>tests: helper unit-tested; route suites unchanged in intent</li>
-            </ul></dd></div>
+            <div>
+              <dt class="font-semibold">Problem</dt>
+              <dd class="text-slate-700">
+                Route files are ~70 % glue: the same Result-to-response
+                branching, Location header, session projection and explicit
+                <code class="font-mono">describeResponse</code> generics appear
+                15+ times, so each new endpoint is copied from the last one.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Solution</dt>
+              <dd class="text-slate-700">
+                A small deep helper in
+                <code class="font-mono">core/http</code> that turns an
+                application <code class="font-mono">Result</code> into the
+                documented response; feature routes keep only schemas, the
+                request→input projection, and presenters.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Wins</dt>
+              <dd>
+                <ul class="list-disc ml-4 text-slate-700 space-y-1">
+                  <li>leverage: one helper, 15 handlers</li>
+                  <li>locality: problem mapping in one module</li>
+                  <li>route files drop ~40 %</li>
+                  <li>
+                    tests: helper unit-tested; route suites unchanged in intent
+                  </li>
+                </ul>
+              </dd>
+            </div>
           </dl>
-          <div class="rounded-md bg-slate-50 border border-slate-200 text-slate-700 text-sm px-4 py-3">
-            Caution: <code class="font-mono">hono-openapi</code> cannot infer the <code class="font-mono">describeResponse</code> generics today (the comment repeats in every file). A helper that fights that inference is a shallow module in disguise; the grilling should prototype one create handler before committing.
+          <div
+            class="rounded-md bg-slate-50 border border-slate-200 text-slate-700 text-sm px-4 py-3"
+          >
+            Caution: <code class="font-mono">hono-openapi</code> cannot infer
+            the <code class="font-mono">describeResponse</code> generics today
+            (the comment repeats in every file). A helper that fights that
+            inference is a shallow module in disguise; the grilling should
+            prototype one create handler before committing.
           </div>
         </article>
 
         <!-- ═══════════════════ Candidate 6 ═══════════════════ -->
-        <article id="c6" class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <article
+          id="c6"
+          class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 space-y-6"
+        >
           <div class="flex flex-wrap items-center gap-3">
-            <h2 class="font-serif text-2xl">6 · The cursor speaks the list's own options</h2>
-            <span class="rounded-full bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1">Speculative</span>
-            <span class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1">in-process</span>
+            <h2 class="font-serif text-2xl">
+              6 · The cursor speaks the list's own options
+            </h2>
+            <span
+              class="rounded-full bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1"
+              >Speculative</span
+            >
+            <span
+              class="rounded-full bg-slate-100 text-slate-600 text-xs px-3 py-1"
+              >in-process</span
+            >
           </div>
           <p class="font-mono text-sm text-slate-600 leading-6">
-            packages/domain/src/transactions/transaction.types.ts:105 TransactionFilters · packages/application/src/transactions/transaction.ts listTransactionPage options<br/>
-            apps/server/src/features/transactions/transaction-cursor.ts:13 TransactionCursorFilters · transaction.routes.ts:399 toTransactionCursorFilters, :541–570
+            packages/domain/src/transactions/transaction.types.ts:105
+            TransactionFilters ·
+            packages/application/src/transactions/transaction.ts
+            listTransactionPage options<br />
+            apps/server/src/features/transactions/transaction-cursor.ts:13
+            TransactionCursorFilters · transaction.routes.ts:399
+            toTransactionCursorFilters, :541–570
           </p>
 
           <div class="grid md:grid-cols-2 gap-4">
             <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">Before — three shapes for one set of filters</p>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                Before — three shapes for one set of filters
+              </p>
               <div class="relative h-40">
-                <div class="mod absolute left-2 top-2 w-40 text-center">TransactionFilters<br/><span class="normal-case tracking-normal text-slate-500">domain · optional</span></div>
-                <div class="mod leaky absolute right-2 top-2 w-44 text-center">TransactionCursorFilters<br/><span class="normal-case tracking-normal text-slate-500">cursor · nullable</span></div>
-                <div class="mod leaky absolute left-1/2 -translate-x-1/2 bottom-2 w-52 text-center">toTransactionCursorFilters<br/><span class="normal-case tracking-normal text-slate-500">?? null mapper, then spread back</span></div>
-                <svg class="absolute inset-0 w-full h-full pointer-events-none"><title>three filter shapes mapped between each other</title>
-                  <line x1="45%" y1="30" x2="60%" y2="30" stroke="#dc2626" stroke-width="2"/>
-                  <line x1="30%" y1="52" x2="45%" y2="108" stroke="#dc2626" stroke-width="2"/>
-                  <line x1="75%" y1="52" x2="60%" y2="108" stroke="#dc2626" stroke-width="2"/>
+                <div class="mod absolute left-2 top-2 w-40 text-center">
+                  TransactionFilters<br /><span
+                    class="normal-case tracking-normal text-slate-500"
+                    >domain · optional</span
+                  >
+                </div>
+                <div class="mod leaky absolute right-2 top-2 w-44 text-center">
+                  TransactionCursorFilters<br /><span
+                    class="normal-case tracking-normal text-slate-500"
+                    >cursor · nullable</span
+                  >
+                </div>
+                <div
+                  class="mod leaky absolute left-1/2 -translate-x-1/2 bottom-2 w-52 text-center"
+                >
+                  toTransactionCursorFilters<br /><span
+                    class="normal-case tracking-normal text-slate-500"
+                    >?? null mapper, then spread back</span
+                  >
+                </div>
+                <svg class="absolute inset-0 w-full h-full pointer-events-none">
+                  <title>three filter shapes mapped between each other</title>
+                  <line
+                    x1="45%"
+                    y1="30"
+                    x2="60%"
+                    y2="30"
+                    stroke="#dc2626"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="30%"
+                    y1="52"
+                    x2="45%"
+                    y2="108"
+                    stroke="#dc2626"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="75%"
+                    y1="52"
+                    x2="60%"
+                    y2="108"
+                    stroke="#dc2626"
+                    stroke-width="2"
+                  />
                 </svg>
               </div>
             </div>
             <div class="rounded-lg border border-slate-200 bg-stone-50 p-4">
-              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">After — the cursor binds to the application's options</p>
+              <p class="text-xs uppercase tracking-wider text-slate-500 mb-3">
+                After — the cursor binds to the application's options
+              </p>
               <div class="relative h-40 flex items-center justify-center">
-                <div class="deep rounded-md px-5 py-4 text-center text-[11px] uppercase tracking-wider">
-                  encode({ ownerId, options, position })<br/>decode(cursor, { ownerId, options })<br/>
-                  <span class="faded normal-case tracking-normal">options = ListTransactionsOptions, unchanged</span>
+                <div
+                  class="deep rounded-md px-5 py-4 text-center text-[11px] uppercase tracking-wider"
+                >
+                  encode({ ownerId, options, position })<br />decode(cursor, {
+                  ownerId, options })<br />
+                  <span class="faded normal-case tracking-normal"
+                    >options = ListTransactionsOptions, unchanged</span
+                  >
                 </div>
               </div>
             </div>
           </div>
 
           <dl class="grid md:grid-cols-3 gap-5 text-sm">
-            <div><dt class="font-semibold">Problem</dt><dd class="text-slate-700">The active-filter set that a cursor is bound to is declared once in domain, again (nullable) in the cursor module, and mapped between them in the route — a shallow mapper whose only job is <code class="font-mono">?? null</code>.</dd></div>
-            <div><dt class="font-semibold">Solution</dt><dd class="text-slate-700">The cursor codec accepts and returns the application's own list options; the route passes one object through. Small, self-contained; ranks low because nothing currently breaks.</dd></div>
-            <div><dt class="font-semibold">Wins</dt><dd><ul class="list-disc ml-4 text-slate-700 space-y-1">
-              <li>delete two of three filter shapes</li>
-              <li>locality: adding a filter touches two files, not four</li>
-              <li>tests: cursor unit tests only</li>
-            </ul></dd></div>
+            <div>
+              <dt class="font-semibold">Problem</dt>
+              <dd class="text-slate-700">
+                The active-filter set that a cursor is bound to is declared once
+                in domain, again (nullable) in the cursor module, and mapped
+                between them in the route — a shallow mapper whose only job is
+                <code class="font-mono">?? null</code>.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Solution</dt>
+              <dd class="text-slate-700">
+                The cursor codec accepts and returns the application's own list
+                options; the route passes one object through. Small,
+                self-contained; ranks low because nothing currently breaks.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">Wins</dt>
+              <dd>
+                <ul class="list-disc ml-4 text-slate-700 space-y-1">
+                  <li>delete two of three filter shapes</li>
+                  <li>locality: adding a filter touches two files, not four</li>
+                  <li>tests: cursor unit tests only</li>
+                </ul>
+              </dd>
+            </div>
           </dl>
         </article>
       </section>
 
       <!-- DDD assessment -->
-      <section class="rounded-lg border border-slate-200 bg-white p-5 space-y-3 text-sm">
-        <h2 class="font-serif text-xl">DDD assessment (per <code class="font-mono">docs/agents/domain.md</code>)</h2>
-        <p class="text-slate-700">Concrete evidence of invariant drift: amount range, note length, calendar date, transfer shape and THB currency are each enforced in four places (application, HTTP schema, web form schema, Postgres check constraints); the before-opening date rule and the refund cap in two runtime places plus a client hint. The mutation check in <code class="font-mono">facts.md</code> already showed one rule turning seven tests red across three packages. No term has acquired conflicting meanings, and there is no second rule set needing separate ownership, so an aggregate or bounded context is not warranted.</p>
-        <p class="text-slate-700"><strong>Smallest practice that fits:</strong> a domain-owned invariant — candidate #2's acceptance module is exactly that. The HTTP and form schemas keep shape checks (they are the adapter's interface), the Postgres checks stay as a last line, but the <em>rule</em> gets one author and one unit-tested home. No new enforcement tooling; the existing Biome barrel and import rules already keep <code class="font-mono">@bookkeeping/domain</code> free of I/O.</p>
+      <section
+        class="rounded-lg border border-slate-200 bg-white p-5 space-y-3 text-sm"
+      >
+        <h2 class="font-serif text-xl">
+          DDD assessment (per
+          <code class="font-mono">docs/agents/domain.md</code>)
+        </h2>
+        <p class="text-slate-700">
+          Concrete evidence of invariant drift: amount range, note length,
+          calendar date, transfer shape and THB currency are each enforced in
+          four places (application, HTTP schema, web form schema, Postgres check
+          constraints); the before-opening date rule and the refund cap in two
+          runtime places plus a client hint. The mutation check in
+          <code class="font-mono">facts.md</code> already showed one rule
+          turning seven tests red across three packages. No term has acquired
+          conflicting meanings, and there is no second rule set needing separate
+          ownership, so an aggregate or bounded context is not warranted.
+        </p>
+        <p class="text-slate-700">
+          <strong>Smallest practice that fits:</strong> a domain-owned invariant
+          — candidate #2's acceptance module is exactly that. The HTTP and form
+          schemas keep shape checks (they are the adapter's interface), the
+          Postgres checks stay as a last line, but the <em>rule</em> gets one
+          author and one unit-tested home. No new enforcement tooling; the
+          existing Biome barrel and import rules already keep
+          <code class="font-mono">@bookkeeping/domain</code> free of I/O.
+        </p>
       </section>
 
       <!-- Not proposed -->
-      <section class="rounded-lg border border-slate-200 bg-white p-5 space-y-2 text-sm">
+      <section
+        class="rounded-lg border border-slate-200 bg-white p-5 space-y-2 text-sm"
+      >
         <h2 class="font-serif text-xl">Looked at, not proposed</h2>
         <ul class="list-disc ml-5 text-slate-700 space-y-1">
-          <li><strong>Repository seam over <code class="font-mono">Database</code></strong> — one adapter (Postgres). ADR-0004 says no; nothing has changed. Hypothetical seam.</li>
-          <li><strong>Splitting <code class="font-mono">transaction.ts</code> by operation</strong> — 1 345 lines but one deep interface; splitting moves code without concentrating anything. #2 shrinks it for a reason instead.</li>
-          <li><strong><code class="font-mono">validateWalletOpening</code> / <code class="font-mono">validateCategoryUpdate</code> exported for tests</strong> — each has one caller; harmless, but the same pattern #2 does properly. Fold into #2's shape when touched.</li>
-          <li><strong><code class="font-mono">invalid-currency</code> / <code class="font-mono">normalizeTransactionInput</code> currency dance</strong> — unreachable over HTTP or the web form; deletes itself inside #2.</li>
+          <li>
+            <strong
+              >Repository seam over
+              <code class="font-mono">Database</code></strong
+            >
+            — one adapter (Postgres). ADR-0004 says no; nothing has changed.
+            Hypothetical seam.
+          </li>
+          <li>
+            <strong
+              >Splitting <code class="font-mono">transaction.ts</code> by
+              operation</strong
+            >
+            — 1 345 lines but one deep interface; splitting moves code without
+            concentrating anything. #2 shrinks it for a reason instead.
+          </li>
+          <li>
+            <strong
+              ><code class="font-mono">validateWalletOpening</code> /
+              <code class="font-mono">validateCategoryUpdate</code> exported for
+              tests</strong
+            >
+            — each has one caller; harmless, but the same pattern #2 does
+            properly. Fold into #2's shape when touched.
+          </li>
+          <li>
+            <strong
+              ><code class="font-mono">invalid-currency</code> /
+              <code class="font-mono">normalizeTransactionInput</code> currency
+              dance</strong
+            >
+            — unreachable over HTTP or the web form; deletes itself inside #2.
+          </li>
         </ul>
       </section>
 
       <!-- Top recommendation -->
       <section id="top-recommendation" class="rounded-xl deep p-8 space-y-3">
-        <p class="text-xs uppercase tracking-widest text-slate-300">Top recommendation</p>
-        <h2 class="font-serif text-3xl"><a href="#c1" class="underline decoration-slate-500 underline-offset-4">#1 Rejections name their field</a>, then <a href="#c2" class="underline decoration-slate-500 underline-offset-4">#2 acceptance module</a> as one track</h2>
-        <p class="text-slate-200 max-w-3xl">#1 is the smallest change with two real adapters already paying for it, it unifies the three rejection vocabularies inside <code class="font-mono">@bookkeeping/application</code>, and its output type is what #2's pure module returns — so doing #1 first makes #2 a mechanical extraction instead of a design exercise. Together they close test-suite-health D9 and make #5's route helper possible. #4 is the one to do <em>before</em> the SPA consumes the contract; #3 and #6 are cleanups to schedule when those files are next open.</p>
+        <p class="text-xs uppercase tracking-widest text-slate-300">
+          Top recommendation
+        </p>
+        <h2 class="font-serif text-3xl">
+          <a
+            href="#c1"
+            class="underline decoration-slate-500 underline-offset-4"
+            >#1 Rejections name their field</a
+          >, then
+          <a
+            href="#c2"
+            class="underline decoration-slate-500 underline-offset-4"
+            >#2 acceptance module</a
+          >
+          as one track
+        </h2>
+        <p class="text-slate-200 max-w-3xl">
+          #1 is the smallest change with two real adapters already paying for
+          it, it unifies the three rejection vocabularies inside
+          <code class="font-mono">@bookkeeping/application</code>, and its
+          output type is what #2's pure module returns — so doing #1 first makes
+          #2 a mechanical extraction instead of a design exercise. Together they
+          close test-suite-health D9 and make #5's route helper possible. #4 is
+          the one to do <em>before</em> the SPA consumes the contract; #3 and #6
+          are cleanups to schedule when those files are next open.
+        </p>
       </section>
 
-      <footer class="text-xs text-slate-400 pt-4">Generated 2026-09-20 by /improve-codebase-architecture. Persisted under <code class="font-mono">.scratch/backend-settlement/</code> at the user's request.</footer>
+      <footer class="text-xs text-slate-400 pt-4">
+        Generated 2026-09-20 by /improve-codebase-architecture. Persisted under
+        <code class="font-mono">.scratch/backend-settlement/</code> at the
+        user's request.
+      </footer>
     </main>
   </body>
 </html>

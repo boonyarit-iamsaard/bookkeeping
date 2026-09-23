@@ -1,5 +1,5 @@
-# Prettier only owns the file types Biome does not support (Markdown, YAML).
-# Everything else is formatted by Biome ΓÇö see biome.json.
+# Prettier owns Markdown, YAML, and HTML; Biome ignores HTML so each file
+# type has one formatter. Everything else is formatted by Biome; see biome.json.
 
 # Lockfiles ΓÇö never reformat
 pnpm-lock.yaml

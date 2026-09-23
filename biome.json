@@ -20,7 +20,8 @@
       "!**/playwright-report",
       "!**/routeTree.gen.ts",
       "!**/openapi.gen.ts",
-      "!apps/web/src/core/api/openapi.json"
+      "!apps/web/src/core/api/openapi.json",
+      "!**/*.html"
     ]
   },
   "formatter": {
