@@ -1,7 +1,10 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { readSession } from "@/core/auth/session";
 import { AppHeader } from "@/core/shell/app-header";
+import { useIsFormScreen } from "@/core/shell/form-screen";
+import { TabBar } from "@/core/shell/tab-bar";
 import { AccountMenu } from "@/features/auth/components/account-menu";
+import { cn } from "@/shared/helpers/cn";
 
 /**
  * The signed-in half of the app. The cached session is the optimistic check;
@@ -21,11 +24,22 @@ export const Route = createFileRoute("/_app")({
 
 function AppLayout() {
   const { session } = Route.useRouteContext();
+  const isFormScreen = useIsFormScreen();
 
   return (
     <>
       <AppHeader accountMenu={<AccountMenu email={session.user.email} />} />
-      <Outlet />
+      {/* On phone the page ends above the tab bar, so nothing hides behind it. */}
+      <div
+        className={cn(
+          "flex flex-1 flex-col",
+          !isFormScreen &&
+            "max-sm:pb-[calc(3.5rem+env(safe-area-inset-bottom))]",
+        )}
+      >
+        <Outlet />
+      </div>
+      {!isFormScreen && <TabBar />}
     </>
   );
 }

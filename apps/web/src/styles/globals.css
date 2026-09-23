@@ -126,6 +126,8 @@
   }
   html {
     @apply font-sans;
+    /* An installed app neither rubber-bands nor pulls to refresh. */
+    overscroll-behavior-y: none;
     accent-color: var(--primary);
     caret-color: var(--primary);
   }

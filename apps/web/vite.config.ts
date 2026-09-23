@@ -5,10 +5,8 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-// DESIGN.md colours as sRGB hex: manifest parsers do not all read oklch.
-// `pwa-assets.config.ts` repeats cobalt; Vite's native config loader cannot
-// import a shared `.ts` module without an extension the compiler rejects.
-const COBALT = "#1f5ed9";
+// DESIGN.md Paper as sRGB hex: manifest parsers do not all read oklch. The
+// status bar matches the page, so theme and background are both Paper.
 const PAPER = "#ffffff";
 
 export default defineConfig({
@@ -29,7 +27,7 @@ export default defineConfig({
         start_url: "/",
         scope: "/",
         display: "standalone",
-        theme_color: COBALT,
+        theme_color: PAPER,
         background_color: PAPER,
         icons: [
           { src: "pwa-64x64.png", sizes: "64x64", type: "image/png" },

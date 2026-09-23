@@ -28,7 +28,7 @@ function CategoriesPage() {
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pb-8 sm:pt-8">
       <CategoryManagement categories={categoryCollection.items} usage={usage} />
     </main>
   );

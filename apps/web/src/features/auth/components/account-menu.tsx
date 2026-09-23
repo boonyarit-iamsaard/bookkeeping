@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronDown, LogOut } from "lucide-react";
+import { LogOut, Tags } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/core/auth/client";
 import { resetSessionCache } from "@/core/auth/session";
@@ -22,10 +22,11 @@ interface AccountMenuProps {
 }
 
 /**
- * The header's account control: who is signed in and the way out. One
- * capsule trigger holds an initial disc, the email from 640px, and a chevron;
- * the menu repeats the full email so signing out on a phone, where the
- * header cannot show it, still names the account it ends.
+ * The account control: who is signed in, the categories they file under,
+ * and the way out. The trigger is
+ * the initial disc alone, so the header keeps room for its destinations and
+ * New transaction; the menu names the full email, so signing out still says
+ * which account it ends.
  */
 export function AccountMenu({ email }: Readonly<AccountMenuProps>) {
   const navigate = useNavigate();
@@ -48,19 +49,12 @@ export function AccountMenu({ email }: Readonly<AccountMenuProps>) {
     });
   }
 
-  // A 36px circle below 640px so the header fits a 360px phone; the email
-  // joins the capsule from there and truncates before it can push the nav.
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         disabled={isPending}
         aria-label={isPending ? "Signing out…" : `Account: ${email}`}
-        render={
-          <Button
-            variant="outline"
-            className="max-w-64 gap-2 pr-2.5 pl-1 max-sm:size-9 max-sm:p-0"
-          />
-        }
+        render={<Button variant="outline" className="size-9 p-0" />}
       >
         <span
           aria-hidden="true"
@@ -68,14 +62,6 @@ export function AccountMenu({ email }: Readonly<AccountMenuProps>) {
         >
           {initial}
         </span>
-        <span className="truncate text-muted-foreground max-sm:hidden">
-          {isPending ? "Signing out…" : email}
-        </span>
-        <ChevronDown
-          aria-hidden="true"
-          strokeWidth={1.75}
-          className="text-muted-foreground max-sm:hidden"
-        />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8}>
         <DropdownMenuGroup>
@@ -86,6 +72,12 @@ export function AccountMenu({ email }: Readonly<AccountMenuProps>) {
             <span className="block font-medium text-foreground">{email}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => void navigate({ to: "/categories" })}
+          >
+            <Tags strokeWidth={1.75} />
+            Categories
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleSignOut}>
             <LogOut strokeWidth={1.75} />
             Sign out

@@ -38,7 +38,7 @@ import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { FieldErrors } from "@/shared/components/form/field-errors";
-import { Button, buttonVariants } from "@/shared/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import {
   Field,
   FieldDescription,
@@ -895,16 +895,6 @@ export function TransactionForm({
                 >
                   {isSubmitting || isPending ? "Saving…" : label}
                 </Button>
-                <Link
-                  to={cancelHref}
-                  className={buttonVariants({
-                    variant: "ghost",
-                    size: "lg",
-                    className: "h-11 w-full sm:hidden",
-                  })}
-                >
-                  Cancel
-                </Link>
               </div>
             </div>
           );

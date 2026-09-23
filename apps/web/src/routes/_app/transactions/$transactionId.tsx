@@ -3,6 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
 import { transactionQueries } from "@/core/api/queries";
+import { BackLink, TitleBar } from "@/core/shell/title-bar";
 import { ExpenseRefundsView } from "@/features/transactions/components/expense-refunds";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
@@ -39,18 +40,11 @@ function TransactionDetailPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-semibold text-2xl tracking-tight">
-          {TRANSACTION_TYPE_LABELS[transaction.type]}
-        </h1>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/transactions"
-            className={buttonVariants({ variant: "ghost" })}
-          >
-            Back to list
-          </Link>
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pb-8 sm:pt-8">
+      <TitleBar
+        title={TRANSACTION_TYPE_LABELS[transaction.type]}
+        back={<BackLink to="/transactions" aria-label="Back to Transactions" />}
+        actions={
           <Link
             to="/transactions/$transactionId/edit"
             params={{ transactionId: transaction.id }}
@@ -59,8 +53,8 @@ function TransactionDetailPage() {
             <Pencil data-icon="inline-start" strokeWidth={1.75} />
             Edit
           </Link>
-        </div>
-      </div>
+        }
+      />
       <TransactionDetailView transaction={transaction} />
       {transaction.type === "expense" && (
         <ExpenseRefundsSection transactionId={transaction.id} />

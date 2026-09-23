@@ -4,13 +4,13 @@ import {
   parseCalendarDate,
 } from "@bookkeeping/domain/dates";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useCreateWalletForm } from "@/features/wallets/hooks/use-create-wallet-form";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { FieldErrors } from "@/shared/components/form/field-errors";
-import { Button, buttonVariants } from "@/shared/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import {
   Field,
   FieldDescription,
@@ -236,16 +236,6 @@ export function CreateWalletForm({
               >
                 {isSubmitting ? "Saving…" : "Create wallet"}
               </Button>
-              <Link
-                to="/wallets"
-                className={buttonVariants({
-                  variant: "ghost",
-                  size: "lg",
-                  className: "h-11 w-full sm:hidden",
-                })}
-              >
-                Cancel
-              </Link>
             </div>
           </div>
         )}

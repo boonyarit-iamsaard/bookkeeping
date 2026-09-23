@@ -86,7 +86,7 @@ test("filters apply through the address and open the saved record", {
     "href",
     `${expenseHref}/edit`,
   );
-  await page.getByRole("link", { name: "Back to list" }).click();
+  await page.getByRole("link", { name: "Back to Transactions" }).click();
   await expect(page).toHaveURL(/\/transactions$/);
 });
 

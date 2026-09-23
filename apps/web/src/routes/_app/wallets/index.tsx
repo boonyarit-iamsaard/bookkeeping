@@ -2,6 +2,8 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { walletQueries } from "@/core/api/queries";
+import { TitleBar } from "@/core/shell/title-bar";
+import { AccountMenu } from "@/features/auth/components/account-menu";
 import { WalletList } from "@/features/wallets/components/wallet-list";
 import { buttonVariants } from "@/shared/components/ui/button";
 
@@ -22,21 +24,33 @@ export const Route = createFileRoute("/_app/wallets/")({
 function WalletsPage() {
   const { data } = useSuspenseQuery(walletQueries.list());
   const { created } = Route.useSearch();
+  const { session } = Route.useRouteContext();
   if (!data) {
     throw new Error("The wallets query returned no data");
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="font-semibold text-2xl tracking-tight">Wallets</h1>
-        {data.items.length > 0 && (
-          <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
-            <Plus data-icon="inline-start" />
-            Create wallet
-          </Link>
-        )}
-      </div>
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pb-8 sm:pt-8">
+      <TitleBar
+        title="Wallets"
+        actions={
+          <>
+            {data.items.length > 0 && (
+              <Link
+                to="/wallets/new"
+                className={buttonVariants({ variant: "outline", size: "lg" })}
+              >
+                <Plus data-icon="inline-start" />
+                New wallet
+              </Link>
+            )}
+            {/* Until Home's avatar sheet, the phone reaches its account here. */}
+            <div className="sm:hidden">
+              <AccountMenu email={session.user.email} />
+            </div>
+          </>
+        }
+      />
       <Link
         to="/dashboard"
         className={buttonVariants({

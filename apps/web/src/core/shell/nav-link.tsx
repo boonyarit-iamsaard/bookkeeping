@@ -1,24 +1,17 @@
-import { Link, useLocation } from "@tanstack/react-router";
-import { cn } from "@/shared/helpers/cn";
+import { Link } from "@tanstack/react-router";
+import type { DESTINATIONS } from "@/core/shell/destinations";
 
 interface NavLinkProps {
-  // Widened until the ported routes register these paths (tickets 05 to 11).
-  href: string;
+  to: (typeof DESTINATIONS)[number]["to"];
   children: React.ReactNode;
 }
 
-export function NavLink({ href, children }: Readonly<NavLinkProps>) {
-  const pathname = useLocation({ select: (location) => location.pathname });
-  const isCurrent = pathname === href || pathname.startsWith(`${href}/`);
-
+/** A header capsule; the link's own `aria-current` turns it Ink. */
+export function NavLink({ to, children }: Readonly<NavLinkProps>) {
   return (
     <Link
-      to={href}
-      aria-current={isCurrent ? "page" : undefined}
-      className={cn(
-        "rounded-4xl px-2 py-1.5 font-medium text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:px-3",
-        isCurrent ? "text-foreground" : "text-muted-foreground",
-      )}
+      to={to}
+      className="rounded-4xl px-2 py-1.5 font-medium text-muted-foreground text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[status=active]:text-foreground md:px-3"
     >
       {children}
     </Link>

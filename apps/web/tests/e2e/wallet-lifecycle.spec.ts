@@ -30,8 +30,12 @@ test("archive and unarchive preserve totals and support management", async ({
     page.getByRole("button", { name: "Unarchive wallet", exact: true }),
   ).toBeVisible();
   await page.goto("/wallets");
-  await expect(page.getByRole("listitem")).toContainText("Archived");
-  await expect(page.getByRole("listitem")).toContainText("฿12,000.75");
+  await expect(page.getByRole("main").getByRole("listitem")).toContainText(
+    "Archived",
+  );
+  await expect(page.getByRole("main").getByRole("listitem")).toContainText(
+    "฿12,000.75",
+  );
 
   await page.getByRole("link", { name: "Retired cash", exact: true }).click();
   await page

@@ -7,6 +7,7 @@ import {
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
+import { TitleBar } from "@/core/shell/title-bar";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { toWalletOptions } from "@/features/transactions/wallet-options";
 import { buttonVariants } from "@/shared/components/ui/button";
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/_app/transactions/new")({
       context.queryClient.ensureQueryData(transactionQueries.entryDefaults()),
     ]);
   },
+  staticData: { form: true },
   component: NewTransactionPage,
 });
 
@@ -38,21 +40,18 @@ function NewTransactionPage() {
       ?.id ?? wallets[0]?.id;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 pt-8 pb-40 sm:pb-12">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-semibold text-2xl tracking-tight">
-          New transaction
-        </h1>
-        <Link
-          to="/transactions"
-          className={buttonVariants({
-            variant: "ghost",
-            className: "max-sm:hidden",
-          })}
-        >
-          Cancel
-        </Link>
-      </div>
+    <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 pb-40 sm:pt-8 sm:pb-12">
+      <TitleBar
+        title="New transaction"
+        actions={
+          <Link
+            to="/transactions"
+            className={buttonVariants({ variant: "ghost" })}
+          >
+            Cancel
+          </Link>
+        }
+      />
       {defaultWalletId ? (
         <TransactionForm
           wallets={wallets}

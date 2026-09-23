@@ -6,6 +6,7 @@ import {
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
+import { TitleBar } from "@/core/shell/title-bar";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryFilters } from "@/features/transactions/components/history-filters";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
@@ -64,19 +65,21 @@ function TransactionsPage() {
   const filtered = hasHistoryFilters(search);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="font-semibold text-2xl tracking-tight">Transactions</h1>
-        {transactions.length > 0 && (
-          <Link
-            to="/transactions/new"
-            className={buttonVariants({ size: "lg" })}
-          >
-            <Plus data-icon="inline-start" />
-            Record
-          </Link>
-        )}
-      </div>
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pb-8 sm:pt-8">
+      <TitleBar
+        title="Transactions"
+        actions={
+          transactions.length > 0 && (
+            <Link
+              to="/transactions/new"
+              className={buttonVariants({ variant: "outline", size: "lg" })}
+            >
+              <Plus data-icon="inline-start" />
+              Record
+            </Link>
+          )
+        }
+      />
       {justDeleted && (
         <output className="rounded-xl border bg-muted px-4 py-3 text-sm leading-normal">
           <span className="font-medium">Transaction deleted.</span>{" "}

@@ -8,7 +8,15 @@ export interface RouterContext {
 }
 
 export function createAppRouter(context: Readonly<RouterContext>) {
-  return createRouter({ routeTree, context, defaultPreload: "intent" });
+  return createRouter({
+    routeTree,
+    context,
+    defaultPreload: "intent",
+    // Keyed by address rather than history entry, so returning to a tab by
+    // its link finds the place it was left.
+    scrollRestoration: true,
+    getScrollRestorationKey: (location) => location.href,
+  });
 }
 
 declare module "@tanstack/react-router" {

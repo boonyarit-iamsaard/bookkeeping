@@ -7,6 +7,7 @@ import type {
 } from "@bookkeeping/domain/categories";
 import { ChevronRight, Plus, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { TitleBar } from "@/core/shell/title-bar";
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
 import type { ManageCategoryOutcome } from "@/features/categories/category-mutations";
 import { searchCategories } from "@/features/categories/category-search";
@@ -74,36 +75,44 @@ export function CategoryManagement({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="font-semibold text-2xl tracking-tight">Categories</h1>
-        <Dialog.Root open={creating} onOpenChange={setCreating}>
-          <Dialog.Trigger
-            render={<Button size="lg" className="min-h-11 sm:min-h-10" />}
-          >
-            <Plus data-icon="inline-start" />
-            New category
-          </Dialog.Trigger>
-          <SheetPortal className="sm:h-auto sm:max-h-144">
-            <PanelHeader>
-              New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
-            </PanelHeader>
-            <CreateCategoryForm
-              kind={kind}
-              categories={categories}
-              initialName=""
-              onCreated={(outcome) => {
-                setCreating(false);
-                announce(
-                  outcome.createdParent
-                    ? `${outcome.createdParent.name} and ${outcome.category.name} created.`
-                    : `${outcome.category.name} created.`,
-                );
-              }}
-              onCancel={() => setCreating(false)}
-            />
-          </SheetPortal>
-        </Dialog.Root>
-      </div>
+      <TitleBar
+        title="Categories"
+        actions={
+          <Dialog.Root open={creating} onOpenChange={setCreating}>
+            <Dialog.Trigger
+              render={
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="min-h-11 sm:min-h-10"
+                />
+              }
+            >
+              <Plus data-icon="inline-start" />
+              New category
+            </Dialog.Trigger>
+            <SheetPortal className="sm:h-auto sm:max-h-144">
+              <PanelHeader>
+                New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
+              </PanelHeader>
+              <CreateCategoryForm
+                kind={kind}
+                categories={categories}
+                initialName=""
+                onCreated={(outcome) => {
+                  setCreating(false);
+                  announce(
+                    outcome.createdParent
+                      ? `${outcome.createdParent.name} and ${outcome.category.name} created.`
+                      : `${outcome.category.name} created.`,
+                  );
+                }}
+                onCancel={() => setCreating(false)}
+              />
+            </SheetPortal>
+          </Dialog.Root>
+        }
+      />
 
       <output
         ref={noticeRef}

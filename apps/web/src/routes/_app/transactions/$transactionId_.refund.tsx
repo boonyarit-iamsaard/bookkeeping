@@ -9,7 +9,7 @@ import {
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
-
+import { BackLink, TitleBar } from "@/core/shell/title-bar";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
@@ -38,6 +38,7 @@ export const Route = createFileRoute(
       context.queryClient.ensureQueryData(categoryQueries.list()),
     ]);
   },
+  staticData: { form: true },
   pendingComponent: HistoryLoading,
   errorComponent: HistoryErrorBoundary,
   component: RefundPage,
@@ -66,20 +67,26 @@ function RefundPage() {
   const linked = linkedExpenseView({ expense, refunds });
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 pt-8 pb-40 sm:pb-12">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-semibold text-2xl tracking-tight">Record refund</h1>
-        <Link
-          to="/transactions/$transactionId"
-          params={{ transactionId: expense.id }}
-          className={buttonVariants({
-            variant: "ghost",
-            className: "max-sm:hidden",
-          })}
-        >
-          Cancel
-        </Link>
-      </div>
+    <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 pb-40 sm:pt-8 sm:pb-12">
+      <TitleBar
+        title="Record refund"
+        back={
+          <BackLink
+            to="/transactions/$transactionId"
+            params={{ transactionId: expense.id }}
+            aria-label="Back to transaction"
+          />
+        }
+        actions={
+          <Link
+            to="/transactions/$transactionId"
+            params={{ transactionId: expense.id }}
+            className={buttonVariants({ variant: "ghost" })}
+          >
+            Cancel
+          </Link>
+        }
+      />
       {wallets.length > 0 ? (
         <TransactionForm
           wallets={wallets}

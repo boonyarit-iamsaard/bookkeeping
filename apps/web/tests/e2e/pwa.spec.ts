@@ -70,8 +70,11 @@ test("the manifest describes an installable standalone app", {
   expect(href).toBe("/manifest.webmanifest");
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
     "content",
-    "#1f5ed9",
+    "#ffffff",
   );
+  await expect(
+    page.locator('meta[name="apple-mobile-web-app-status-bar-style"]'),
+  ).toHaveAttribute("content", "default");
 
   const response = await page.request.get("/manifest.webmanifest");
   expect(response.ok()).toBe(true);
@@ -81,7 +84,7 @@ test("the manifest describes an installable standalone app", {
     short_name: "Bookkeeping",
     start_url: "/",
     display: "standalone",
-    theme_color: "#1f5ed9",
+    theme_color: "#ffffff",
     background_color: "#ffffff",
   });
   expect(manifest.icons.map((icon) => icon.sizes)).toEqual(

@@ -7,22 +7,20 @@ test("sign-up lands on wallets with the email in the account menu", {
   const { email } = await signUpFreshUser(page);
 
   await expect(page).toHaveURL(/\/wallets$/);
-  const header = page.getByRole("banner");
-  await header.getByRole("button", { name: `Account: ${email}` }).click();
+  await page.getByRole("button", { name: `Account: ${email}` }).click();
   const menu = page.getByRole("menu");
   await expect(menu.getByText("Signed in as")).toBeVisible();
   await expect(menu.getByText(email)).toBeVisible();
   await expect(menu.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
+  await menu.getByRole("menuitem", { name: "Categories" }).click();
+  await expect(page).toHaveURL(/\/categories$/);
 });
 
 test("sign-in with wrong credentials shows the error and keeps the email", {
   tag: "@matrix",
 }, async ({ page }) => {
   const { email } = await signUpFreshUser(page);
-  await page
-    .getByRole("banner")
-    .getByRole("button", { name: `Account: ${email}` })
-    .click();
+  await page.getByRole("button", { name: `Account: ${email}` }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
   await page.waitForURL(/\/sign-in$/);
 
@@ -45,12 +43,12 @@ test("the guard redirects each way", { tag: "@matrix" }, async ({ page }) => {
   await expect(
     page.getByText("Sign in to your account", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole("banner")).toHaveCount(0);
+  await expect(page.getByRole("navigation")).toHaveCount(0);
 
   await signUpFreshUser(page);
   // The URL changes before the guard has read the session; leaving earlier
   // would abort that read in the document being unloaded.
-  await expect(page.getByRole("banner")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
   await page.goto("/sign-in", { waitUntil: "commit" });
   await expect(page).toHaveURL(/\/wallets$/);
   await page.goto("/sign-up", { waitUntil: "commit" });
@@ -61,10 +59,7 @@ test("sign out returns to sign-in and back navigation shows no app content", {
   tag: "@matrix",
 }, async ({ page }) => {
   const { email } = await signUpFreshUser(page);
-  await page
-    .getByRole("banner")
-    .getByRole("button", { name: `Account: ${email}` })
-    .click();
+  await page.getByRole("button", { name: `Account: ${email}` }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
 
   await expect(page).toHaveURL(/\/sign-in$/);
@@ -75,7 +70,7 @@ test("sign out returns to sign-in and back navigation shows no app content", {
   await page.goBack();
 
   await expect(page).toHaveURL(/\/sign-in$/);
-  await expect(page.getByRole("banner")).toHaveCount(0);
+  await expect(page.getByRole("navigation")).toHaveCount(0);
   await expect(
     page.getByText("Sign in to your account", { exact: true }),
   ).toBeVisible();

@@ -2,6 +2,7 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FormEvent } from "react";
+import { TitleBar } from "@/core/shell/title-bar";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import { DatePicker } from "@/shared/components/date-picker";
 import { MonthPicker } from "@/shared/components/month-picker";
@@ -50,18 +51,18 @@ export function Dashboard({ search, initialToday }: Readonly<DashboardProps>) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-semibold text-2xl tracking-tight">
-          Monthly summary
-        </h1>
-        <Link
-          to="/transactions"
-          className={buttonVariants({ variant: "outline", size: "lg" })}
-        >
-          View history
-        </Link>
-      </div>
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pb-8 sm:pt-8">
+      <TitleBar
+        title="Monthly summary"
+        actions={
+          <Link
+            to="/transactions"
+            className={buttonVariants({ variant: "outline", size: "lg" })}
+          >
+            View history
+          </Link>
+        }
+      />
       <form
         key={JSON.stringify(plan.values)}
         aria-label="Report dates"
