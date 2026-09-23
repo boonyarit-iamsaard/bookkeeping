@@ -44,6 +44,18 @@ test("a new user creates a wallet and its opening balance survives a reload", as
   await expect(
     page.getByRole("listitem").filter({ hasText: "Kasikorn savings" }),
   ).toContainText("฿12,000.50");
+
+  // The row opens the wallet's own page, led by its balance.
+  await page
+    .getByRole("link", { name: "Kasikorn savings", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Kasikorn savings", level: 1 }),
+  ).toBeVisible();
+  const balance = page.locator('[aria-labelledby="wallet-balance-heading"]');
+  await expect(balance).toContainText("฿12,000.50");
+  await expect(balance).toContainText("Bank account");
+  await expect(page.getByText("No transactions yet")).toBeVisible();
 });
 
 test("validation names the problem and keeps the typed values", async ({

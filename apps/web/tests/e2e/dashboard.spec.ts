@@ -62,6 +62,7 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
 
   await page.goto("/wallets");
   await page.getByRole("link", { name: "Savings", exact: true }).click();
+  await page.getByRole("link", { name: "Manage" }).click();
   await page
     .getByRole("button", { name: "Archive wallet", exact: true })
     .click();

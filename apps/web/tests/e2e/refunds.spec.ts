@@ -96,6 +96,7 @@ test("a linked refund starts from the expense, falls back when the original wall
 
   // Archive the original wallet: the receiving wallet stays unselected.
   await page.getByRole("link", { name: "Cash", exact: true }).click();
+  await page.getByRole("link", { name: "Manage" }).click();
   await page
     .getByRole("button", { name: "Archive wallet", exact: true })
     .click();

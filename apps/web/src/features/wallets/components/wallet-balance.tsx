@@ -1,0 +1,21 @@
+import type { components } from "@/core/api/openapi.gen";
+import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
+import { DisplayFigure } from "@/shared/components/display-figure";
+
+type Wallet = components["schemas"]["Wallet"];
+
+interface WalletBalanceProps {
+  wallet: Readonly<Wallet>;
+}
+
+/** A wallet page's one display figure: what the wallet holds now. */
+export function WalletBalance({ wallet }: Readonly<WalletBalanceProps>) {
+  return (
+    <DisplayFigure
+      amount={wallet.balance}
+      heading="Current balance"
+      headingId="wallet-balance-heading"
+      caption={`${WALLET_TYPE_LABELS[wallet.type]}${wallet.archivedAt ? " · Archived" : ""}`}
+    />
+  );
+}

@@ -38,7 +38,7 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
             key={wallet.id}
             data-wallet-row
             className={cn(
-              "flex min-h-16 items-center gap-4 px-4 py-3 sm:px-0",
+              "relative flex min-h-16 items-center gap-4 px-4 py-3 sm:px-0",
               wallet.id === createdId &&
                 "motion-safe:fade-in motion-safe:animate-in motion-safe:duration-500",
             )}
@@ -47,10 +47,11 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
               <WalletTypeIcon type={wallet.type} className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
+              {/* The whole row opens the wallet; the link's name stays the wallet's. */}
               <Link
                 to="/wallets/$walletId"
                 params={{ walletId: wallet.id }}
-                className="flex min-h-11 items-center rounded-sm font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                className="flex min-h-11 items-center font-medium underline-offset-4 outline-none after:absolute after:inset-0 hover:underline focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50 focus-visible:after:ring-inset"
               >
                 <span className="truncate">{wallet.name}</span>
               </Link>

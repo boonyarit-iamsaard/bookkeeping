@@ -98,9 +98,14 @@ test("back goes to the logical parent, even from a deep link", async ({
 
   await page.goto("/wallets");
   await page.getByRole("link", { name: "Cash", exact: true }).click();
+  const walletUrl = page.url();
+  await page.goto(`${walletUrl}/manage`);
   await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCount(
     0,
   );
+  await page.getByRole("link", { name: "Back to Cash" }).click();
+  await expect(page).toHaveURL(walletUrl);
+  await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
   await page.getByRole("link", { name: "Back to Wallets" }).click();
   await expect(page).toHaveURL(/\/wallets$/);
 });

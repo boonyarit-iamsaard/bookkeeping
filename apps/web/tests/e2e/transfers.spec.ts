@@ -36,6 +36,7 @@ test(
     // An archived wallet is never offered on either side of a transfer.
     await page.goto("/wallets");
     await page.getByRole("link", { name: "Old", exact: true }).click();
+    await page.getByRole("link", { name: "Manage" }).click();
     await page
       .getByRole("button", { name: "Archive wallet", exact: true })
       .click();

@@ -592,7 +592,7 @@ export function TransactionForm({
                               {mode.expense.wallet.name}, the expense’s wallet,
                               is archived. Choose an active wallet, or{" "}
                               <Link
-                                to="/wallets/$walletId"
+                                to="/wallets/$walletId/manage"
                                 params={{ walletId: mode.expense.wallet.id }}
                                 className="underline underline-offset-4"
                               >

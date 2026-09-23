@@ -135,7 +135,7 @@ function NoReceivingWallet({
       </div>
       {originalWallet.archived && (
         <Link
-          to="/wallets/$walletId"
+          to="/wallets/$walletId/manage"
           params={{ walletId: originalWallet.id }}
           className={buttonVariants({ size: "lg" })}
         >

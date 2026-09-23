@@ -204,6 +204,7 @@ test("a correction keeps its archived wallet, cannot go below its refunds, and a
   // Archive Cash: new entries lose it, but the expense keeps it on edit.
   await page.goto("/wallets");
   await page.getByRole("link", { name: "Cash", exact: true }).click();
+  await page.getByRole("link", { name: "Manage" }).click();
   await page
     .getByRole("button", { name: "Archive wallet", exact: true })
     .click();
