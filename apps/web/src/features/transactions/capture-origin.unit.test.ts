@@ -38,6 +38,25 @@ describe("resolveCaptureOrigin", () => {
       "/transactions?type=expense&created=new-id",
     );
   });
+
+  test("returns history to its newest page after save but preserves the cursor on cancel", () => {
+    const transactionsOrigin = resolveCaptureOrigin(
+      "/transactions?type=expense&cursor=older-page",
+    );
+    const walletOrigin = resolveCaptureOrigin(
+      "/wallets/wallet-1?cursor=older-page",
+    );
+
+    expect(captureOriginHref(transactionsOrigin)).toBe(
+      "/transactions?type=expense&cursor=older-page",
+    );
+    expect(captureReturnHref(transactionsOrigin, "new-id")).toBe(
+      "/transactions?type=expense&created=new-id",
+    );
+    expect(captureReturnHref(walletOrigin, "new-id")).toBe(
+      "/wallets/wallet-1?created=new-id",
+    );
+  });
 });
 
 describe("captureSearchForLocation", () => {

@@ -68,12 +68,21 @@ export function captureReturnHref(
 ): string {
   const url = urlForCaptureOrigin(origin);
   url.searchParams.delete("created");
+  resetHistoryCursor(url);
   url.searchParams.set("created", transactionId);
   return `${url.pathname}${url.search}`;
 }
 
 function urlForCaptureOrigin(origin: Readonly<CaptureOrigin>): URL {
   return new URL(`${origin.pathname}${origin.search}`, INTERNAL_ORIGIN);
+}
+
+function resetHistoryCursor(url: URL): void {
+  const isTransactionsHistory = url.pathname === "/transactions";
+  const isWalletHistory = /^\/wallets\/[^/]+\/?$/.test(url.pathname);
+  if (isTransactionsHistory || isWalletHistory) {
+    url.searchParams.delete("cursor");
+  }
 }
 
 function homeCaptureOrigin(): CaptureOrigin {

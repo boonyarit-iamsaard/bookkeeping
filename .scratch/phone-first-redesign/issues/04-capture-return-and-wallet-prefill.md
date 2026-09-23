@@ -30,3 +30,4 @@ and cancel on edit and refund, which stay as they are.
 
 - Implemented capture-origin preservation, return highlighting, and active-wallet prefill; updated the transaction-entry spec.
 - Verified `pnpm run ci` and the focused `phone-chromium` transaction-entry browser spec (6 passed).
+- Successful history returns now reset pagination while Cancel preserves it; reran the same CI and browser checks.
