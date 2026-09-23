@@ -1,5 +1,5 @@
 import type { components } from "@/core/api/openapi.gen";
-import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
+import { walletCaption } from "@/features/wallets/wallet-labels";
 import { DisplayFigure } from "@/shared/components/display-figure";
 
 type Wallet = components["schemas"]["Wallet"];
@@ -15,7 +15,7 @@ export function WalletBalance({ wallet }: Readonly<WalletBalanceProps>) {
       amount={wallet.balance}
       heading="Current balance"
       headingId="wallet-balance-heading"
-      caption={`${WALLET_TYPE_LABELS[wallet.type]}${wallet.archivedAt ? " · Archived" : ""}`}
+      caption={walletCaption(wallet)}
     />
   );
 }

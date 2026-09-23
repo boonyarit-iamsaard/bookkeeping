@@ -15,7 +15,7 @@ it and file a ticket instead).
 - [ ] `impeccable-documenter` updates the existing `DESIGN.md` from the shipped build, given the project root, the web app as the artifact, `PRODUCT.md`, and the spec's Rule amendments section in place of a direction contract.
 - [ ] The rules read as amended: One Cobalt (one cobalt action per screen; selected states separate; ＋ where the tab bar shows, Save where it doesn't; the empty-state exception), two lifts (segmented indicator and floating popovers; sheets use the scrim), three motion moments, pictogram-plus-label with the universal-glyph exception, Destructive in use with its tokens.
 - [ ] The Navigation section describes the tab bar, the title bar, the desktop header and the avatar menu; the old email-and-Sign-out text is gone.
-- [ ] The sheet, Home and the wallet page are documented as components or screens.
+- [ ] The sheet, Home and the wallet page are documented as components or screens. The wallet row's caption reads the type, then Archived when archived ("Cash · Archived"), as on the wallet page.
 - [ ] The per-screen sections (Wallet management, Category management, History and financial reports) are removed; they live in `../spec.md`.
 - [ ] Every token and rule written is evidenced by the built code.
 - [ ] The spec's Status line reads `done`.

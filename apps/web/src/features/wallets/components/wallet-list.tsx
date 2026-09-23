@@ -5,7 +5,7 @@ import type { components } from "@/core/api/openapi.gen";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import {
-  WALLET_TYPE_LABELS,
+  walletCaption,
   walletCountLabel,
 } from "@/features/wallets/wallet-labels";
 import { Money } from "@/shared/components/money";
@@ -55,13 +55,8 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
               >
                 <span className="truncate">{wallet.name}</span>
               </Link>
-              {wallet.archivedAt && (
-                <span className="text-muted-foreground text-sm">
-                  Archived ·{" "}
-                </span>
-              )}
               <p className="flex flex-col text-muted-foreground text-sm sm:flex-row sm:gap-x-1.5">
-                <span>{WALLET_TYPE_LABELS[wallet.type]}</span>
+                <span>{walletCaption(wallet)}</span>
                 <span aria-hidden="true" className="hidden sm:inline">
                   ·
                 </span>

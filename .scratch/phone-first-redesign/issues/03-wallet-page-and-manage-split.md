@@ -56,3 +56,7 @@ passed alone on `phone-chromium`. Decisions made during the build, for review:
   page borrows history's error screen and skeleton, like Home; the error copy
   is folded into 06's existing checklist item. DESIGN.md's wallet management
   section still names the old route; 08 rewrites it.
+- The list and the wallet page caption a wallet with one `walletCaption`
+  ("Cash · Archived"), unit-tested. The list's loose "Archived ·" span, which
+  sat on its own line with a dangling dot, is gone. Management's "Current
+  balance · Archived" stays as it was.

@@ -99,16 +99,19 @@ test("archive and unarchive preserve totals and support management", async ({
   ).toBeVisible();
   await expect(page).toHaveURL(/\/manage$/);
   await page.goto("/wallets");
-  await expect(page.getByRole("main").getByRole("listitem")).toContainText(
-    "Archived",
-  );
+  await expect(
+    page
+      .getByRole("main")
+      .getByRole("listitem")
+      .getByText("Cash · Archived", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("main").getByRole("listitem")).toContainText(
     "฿12,000.75",
   );
 
   await page.getByRole("link", { name: "Retired cash", exact: true }).click();
   const balance = page.locator('[aria-labelledby="wallet-balance-heading"]');
-  await expect(balance).toContainText("Archived");
+  await expect(balance).toContainText("Cash · Archived");
   await expect(balance).toContainText("฿12,000.75");
   await page.getByRole("link", { name: "Manage" }).click();
   await page
