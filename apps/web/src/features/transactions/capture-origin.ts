@@ -26,7 +26,7 @@ export function captureSearchForLocation({
   pathname,
   searchStr,
 }: Readonly<CaptureLocation>): CaptureLinkSearch {
-  const walletId = /^\/wallets\/([^/]+)\/?$/.exec(pathname)?.[1];
+  const walletId = walletIdFromPathname(pathname);
   return {
     origin: `${pathname}${searchStr}`,
     ...(walletId ? { wallet: walletId } : {}),
@@ -79,10 +79,14 @@ function urlForCaptureOrigin(origin: Readonly<CaptureOrigin>): URL {
 
 function resetHistoryCursor(url: URL): void {
   const isTransactionsHistory = url.pathname === "/transactions";
-  const isWalletHistory = /^\/wallets\/[^/]+\/?$/.test(url.pathname);
+  const isWalletHistory = walletIdFromPathname(url.pathname) !== undefined;
   if (isTransactionsHistory || isWalletHistory) {
     url.searchParams.delete("cursor");
   }
+}
+
+function walletIdFromPathname(pathname: string): string | undefined {
+  return /^\/wallets\/([^/]+)\/?$/.exec(pathname)?.[1];
 }
 
 function homeCaptureOrigin(): CaptureOrigin {
