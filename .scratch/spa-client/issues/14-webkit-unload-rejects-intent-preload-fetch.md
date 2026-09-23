@@ -104,3 +104,12 @@ synthetic pointer away immediately after the Save click returns and before it
 waits for the history navigation or saved row. The new link cannot render
 under the stationary pointer and start an intent preload. The strict page-error
 assertion and production preload behavior remain unchanged.
+
+### 2026-09-23: blunt refresh after writes
+
+Commit `bb0266a` replaced the per-feature invalidations with
+`refreshAfterWrite`, which re-reads every on-screen read after a save, so more
+fetches can be in flight while a save navigates. Afterward,
+`dashboard.spec.ts --project=phone-webkit --repeat-each=5` passed 15 of 15
+with no page errors, matching the earlier 0/5 focused-loop rate. The race
+window did not measurably widen.
