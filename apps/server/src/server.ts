@@ -13,6 +13,7 @@ const auth = createAuth({
   baseURL: serverConfig.authBaseUrl,
   trustedOrigins: serverConfig.clientOrigins,
   cookiePrefix: API_COOKIE_PREFIX,
+  rateLimitEnabled: serverConfig.authRateLimitEnabled,
 });
 const app = createApp({
   auth: createAuthGateway(auth),

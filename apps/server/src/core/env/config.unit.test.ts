@@ -17,7 +17,22 @@ describe("server env config", () => {
       authSecret: requiredEnv.BETTER_AUTH_SECRET,
       authBaseUrl: "http://localhost:5000",
       clientOrigins: ["http://localhost:4000"],
+      authRateLimitEnabled: undefined,
     });
+  });
+
+  it("reads an explicit authentication rate limit switch", () => {
+    expect(
+      parseServerEnv({ ...requiredEnv, AUTH_RATE_LIMIT: "off" })
+        .authRateLimitEnabled,
+    ).toBe(false);
+    expect(
+      parseServerEnv({ ...requiredEnv, AUTH_RATE_LIMIT: "on" })
+        .authRateLimitEnabled,
+    ).toBe(true);
+    expect(() =>
+      parseServerEnv({ ...requiredEnv, AUTH_RATE_LIMIT: "false" }),
+    ).toThrow();
   });
 
   it("reads listener overrides from the environment source", () => {

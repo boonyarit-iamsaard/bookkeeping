@@ -30,6 +30,11 @@ export interface AuthOptions {
    * Auth's `better-auth`.
    */
   cookiePrefix?: string;
+  /**
+   * Whether Better Auth throttles its own endpoints. Omitted, it follows
+   * Better Auth's default: on only under NODE_ENV=production.
+   */
+  rateLimitEnabled?: boolean;
 }
 
 /**
@@ -41,6 +46,7 @@ export function createAuth({
   baseURL,
   trustedOrigins,
   cookiePrefix,
+  rateLimitEnabled,
 }: AuthOptions) {
   return betterAuth({
     database: drizzleAdapter(db, {
@@ -65,6 +71,9 @@ export function createAuth({
     secret,
     baseURL,
     trustedOrigins: [...(trustedOrigins ?? [])],
+    ...(rateLimitEnabled === undefined
+      ? {}
+      : { rateLimit: { enabled: rateLimitEnabled } }),
     advanced: {
       // Better Auth skips origin and CSRF checks under NODE_ENV=test unless
       // told otherwise; the checks are part of the contract, so tests run

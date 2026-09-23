@@ -1,4 +1,3 @@
-import { setTimeout as delay } from "node:timers/promises";
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
@@ -16,31 +15,16 @@ export async function signUpFreshUser(page: Page): Promise<{ email: string }> {
     .getByLabel("Password", { exact: true })
     .fill("correct-horse-battery");
   await page.getByLabel("Confirm Password").fill("correct-horse-battery");
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const responsePromise = page.waitForResponse(
-      (response) =>
-        new URL(response.url()).pathname === "/api/auth/sign-up/email",
-    );
-    await page.getByRole("button", { name: /sign up|create account/i }).click();
-    const response = await responsePromise;
-    if (response.status() !== 429) {
-      expect(response.ok(), "Fresh-user sign-up should succeed").toBe(true);
-      await page.waitForURL(/\/(dashboard|wallets)/);
-      await expect(
-        page.getByRole("heading", { name: "Wallets", exact: true }),
-      ).toBeVisible();
-      return { email };
-    }
-    await expect(
-      page.getByRole("alert").filter({ hasText: "Too many requests" }),
-    ).toBeVisible();
-    const retryAfter = Number(
-      response.headers()["x-retry-after"] ?? response.headers()["retry-after"],
-    );
-    if (!Number.isFinite(retryAfter) || retryAfter < 0 || retryAfter > 60) {
-      throw new Error("Sign-up rate limiter returned an invalid Retry-After");
-    }
-    await delay((retryAfter + 1) * 1000);
-  }
-  throw new Error("Sign-up stayed rate limited after retries");
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/auth/sign-up/email",
+  );
+  await page.getByRole("button", { name: /sign up|create account/i }).click();
+  const response = await responsePromise;
+  expect(response.ok(), "Fresh-user sign-up should succeed").toBe(true);
+  await page.waitForURL(/\/(dashboard|wallets)/);
+  await expect(
+    page.getByRole("heading", { name: "Wallets", exact: true }),
+  ).toBeVisible();
+  return { email };
 }

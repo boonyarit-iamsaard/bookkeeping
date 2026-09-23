@@ -78,6 +78,9 @@ async function startApiServer({
         BETTER_AUTH_SECRET: randomBytes(32).toString("base64"),
         BETTER_AUTH_URL: origin,
         CLIENT_ORIGINS: clientOrigin,
+        // Every spec signs up a fresh user, so parallel workers would trip
+        // the sign-up throttle if a production NODE_ENV ever enabled it.
+        AUTH_RATE_LIMIT: "off",
       },
       stdio: ["ignore", "ignore", "inherit"],
     },

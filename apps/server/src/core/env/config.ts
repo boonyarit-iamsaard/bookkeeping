@@ -15,6 +15,7 @@ const serverEnvSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: httpUrlSchema,
   CLIENT_ORIGINS: originListSchema,
+  AUTH_RATE_LIMIT: z.enum(["on", "off"]).optional(),
 });
 
 export interface ServerConfig {
@@ -26,6 +27,8 @@ export interface ServerConfig {
   authBaseUrl: string;
   /** Browser origins allowed to send credentialed requests. */
   clientOrigins: readonly string[];
+  /** Undefined leaves Better Auth's default: on only in production. */
+  authRateLimitEnabled: boolean | undefined;
 }
 
 export function parseServerEnv(
@@ -39,5 +42,9 @@ export function parseServerEnv(
     authSecret: parsed.BETTER_AUTH_SECRET,
     authBaseUrl: parsed.BETTER_AUTH_URL,
     clientOrigins: parsed.CLIENT_ORIGINS,
+    authRateLimitEnabled:
+      parsed.AUTH_RATE_LIMIT === undefined
+        ? undefined
+        : parsed.AUTH_RATE_LIMIT === "on",
   };
 }
