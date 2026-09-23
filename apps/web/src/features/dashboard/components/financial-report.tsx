@@ -1,7 +1,7 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { Link } from "@tanstack/react-router";
-import { parseApiMoney } from "@/core/api/api-money";
+import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";

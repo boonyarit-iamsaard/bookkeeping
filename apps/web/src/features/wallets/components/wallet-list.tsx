@@ -1,7 +1,7 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { Link } from "@tanstack/react-router";
 import { Plus, Wallet } from "lucide-react";
-import { parseApiMoney } from "@/core/api/api-money";
+import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";

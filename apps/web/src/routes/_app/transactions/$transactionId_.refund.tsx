@@ -14,7 +14,7 @@ import { HistoryErrorBoundary } from "@/features/transactions/components/history
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
-import { ensureTransaction } from "@/features/transactions/transaction-lookup";
+import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
 import { toWalletOptions } from "@/features/transactions/wallet-options";
 import { buttonVariants } from "@/shared/components/ui/button";
 
@@ -23,7 +23,7 @@ export const Route = createFileRoute(
 )({
   head: () => ({ meta: [{ title: "Record refund" }] }),
   loader: async ({ context, params }) => {
-    const expense = await ensureTransaction(
+    const expense = await loadOwnedTransaction(
       context.queryClient,
       params.transactionId,
     );

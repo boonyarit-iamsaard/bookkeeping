@@ -13,7 +13,7 @@ type Transaction = components["schemas"]["Transaction"];
  * loader. Ownership is part of the lookup: another user's id and a deleted
  * transaction both throw the router's not found.
  */
-export async function ensureTransaction(
+export async function loadOwnedTransaction(
   queryClient: QueryClient,
   transactionId: string,
 ): Promise<Transaction> {

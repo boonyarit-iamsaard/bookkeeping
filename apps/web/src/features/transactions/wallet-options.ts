@@ -1,5 +1,5 @@
 import { formatMoney } from "@bookkeeping/domain/money";
-import { parseApiMoney } from "@/core/api/api-money";
+import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import type { WalletOption } from "@/features/transactions/hooks/use-transaction-form";
 

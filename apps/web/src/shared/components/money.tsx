@@ -1,7 +1,7 @@
 import type { Currency } from "@bookkeeping/domain/money";
 import { formatMoney, formatMoneyParts } from "@bookkeeping/domain/money";
-import type { ApiMoney } from "@/core/api/api-money";
-import { parseApiMoney } from "@/core/api/api-money";
+import type { ApiMoney } from "@/core/api/money";
+import { parseApiMoney } from "@/core/api/money";
 import { cn } from "@/shared/helpers/cn";
 
 interface MoneyProps {

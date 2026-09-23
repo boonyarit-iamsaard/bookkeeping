@@ -1,5 +1,5 @@
 import { formatMoney, formatMoneyInput } from "@bookkeeping/domain/money";
-import { parseApiMoney } from "@/core/api/api-money";
+import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryLabel } from "@/features/categories/category-search";
 import type { LinkedExpenseView } from "@/features/transactions/transaction.types";

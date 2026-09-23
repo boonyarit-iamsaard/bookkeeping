@@ -17,9 +17,9 @@ import type {
   WalletOption,
 } from "@/features/transactions/hooks/use-transaction-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
+import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
 import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
-import { ensureTransaction } from "@/features/transactions/transaction-lookup";
 import { toWalletOptions } from "@/features/transactions/wallet-options";
 import { buttonVariants } from "@/shared/components/ui/button";
 
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_app/transactions/$transactionId_/edit")(
   {
     head: () => ({ meta: [{ title: "Edit transaction" }] }),
     loader: async ({ context, params }) => {
-      const transaction = await ensureTransaction(
+      const transaction = await loadOwnedTransaction(
         context.queryClient,
         params.transactionId,
       );

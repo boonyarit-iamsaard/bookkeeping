@@ -5,7 +5,7 @@ import {
 } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
 import { Link } from "@tanstack/react-router";
-import { parseApiMoney } from "@/core/api/api-money";
+import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
