@@ -17,8 +17,15 @@ Old `/dashboard` links land on Reports with their month and balance date kept.
 - [ ] The Reports tab and the desktop header's Reports link point to `/reports` and are current there.
 - [ ] Home's This month block links to `/reports` for the month.
 - [ ] The month picker sits in the title bar on phone and beside the h1 on desktop; the balance-date control, content and order stay as they are.
+- [ ] Home and Reports each show their own load-error copy; neither mentions filters (both borrow the Transactions error screen today, whose copy says the filters in the address are kept).
+- [ ] The report month for a Bangkok date comes from one named helper, used by the report search defaults and Home's month read (both use `today.slice(0, 7)` today).
+- [ ] The Income, Net expenses and Net row labels have one owner, shared by the report and Home's This month block.
 - [ ] The dashboard browser spec becomes the reports spec and covers the redirect keeping `month` and `asOf`.
 
 **Verify:** `pnpm run ci`, then the touched spec alone on `phone-chromium`.
 
 ## Comments
+
+From 02 (2026-09-23): the three criteria on error copy, the report month and
+the row labels came from 02's code review. They change no figures, and the
+report's content and order stay as they are.

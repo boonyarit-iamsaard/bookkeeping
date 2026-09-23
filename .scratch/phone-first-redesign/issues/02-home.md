@@ -48,7 +48,7 @@ during the build, for review:
 - The total now shares one sum (`wallet-total.ts`, unit-tested) and one
   display component with the Wallets screen, and the report uses the same
   sum.
-- Left for later (review judgement calls): Home reuses the transactions
+- Moved to 06 as checklist items (review findings): Home reuses the transactions
   error screen, whose copy mentions filters; the month is derived with
   `slice(0, 7)` in Home and the report schema; Income, Net expenses and Net
   labels are repeated between Home and the report.
