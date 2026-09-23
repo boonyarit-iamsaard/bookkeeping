@@ -10,7 +10,10 @@ framework. See [the supporting research](research/codebase-structure-and-naming.
 
 Keep the `core`, `shared`, and `features` roots. Feature code stays with its
 feature, infrastructure setup stays in `core`, and reusable code stays in
-`shared`. Create additional directories only when needed.
+`shared`. Create additional directories only when needed. `features` may
+import `core` and `shared`; `shared` may import `core/api` types and parsers,
+such as the shared `Money` component rendering API amounts, but never
+`features`.
 
 Vocabulary and exact value behavior that persistence and both apps need live in
 `@bookkeeping/domain` under feature directories such as `packages/domain/src/wallets/`,
@@ -92,9 +95,12 @@ keyed by OpenAPI path and parameters. After a successful write, callers call
 every read except the session instead of tracing which reads the write
 reached; reads embed each other's records, so a precise map would drift. A
 delete passes its record's own reads as `retired`, navigates away, and then
-calls `forgetReads`. Nothing else invalidates, removes, or overwrites cached
-reads. A screen may show the previous data briefly on its next visit while it
-re-reads; that is accepted.
+calls `forgetReads`. A session change (sign in, sign up, sign out, or a 401)
+clears every cached read through `resetSessionCache`; provisioning a new
+user's default categories needs no refresh because it runs before that
+clearing. Nothing else invalidates, removes, or overwrites cached reads. A
+screen may show the previous data briefly on its next visit while it re-reads;
+that is accepted.
 
 ## Test ownership
 

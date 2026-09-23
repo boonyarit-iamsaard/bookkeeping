@@ -670,15 +670,15 @@ flowchart TB
           <li>
             <strong>2. Money · reduced to a move.</strong> The depth already
             lives in <code>@bookkeeping/domain/money</code>. Wire parsing moved
-            to <code>core/api/api-money.ts</code>, <code>Money</code> to
+            to <code>core/api/money.ts</code>, <code>Money</code> to
             <code>shared/components/money.tsx</code> with a
             <code>sign</code> prop, and <code>SignedMoney</code> was deleted.
           </li>
           <li>
             <strong>3. Transaction preparation · reduced.</strong> Only the
             repeated owned-transaction lookup was extracted
-            (<code>ensureTransaction</code>); the edit loader's two conditional
-            reads do not earn a module.
+            (<code>loadOwnedTransaction</code>); the edit loader's two
+            conditional reads do not earn a module.
           </li>
           <li>
             <strong>4. Session transitions · dropped.</strong>
