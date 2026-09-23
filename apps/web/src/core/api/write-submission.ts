@@ -147,11 +147,9 @@ export function createWriteSubmission<Input, Output>({
 
   return {
     submit(input, options) {
-      if (inFlight === undefined) {
-        inFlight = deliver(input, options).finally(() => {
-          inFlight = undefined;
-        });
-      }
+      inFlight ??= deliver(input, options).finally(() => {
+        inFlight = undefined;
+      });
       return inFlight;
     },
   };

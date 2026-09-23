@@ -9,6 +9,7 @@ test.skip(
   () => process.env.TEST_APP_DIST === undefined,
   "The service worker only exists in the production build",
 );
+// The PWA baseline scopes service-worker checks to Chromium browser projects.
 test.skip(
   ({ browserName }) => browserName !== "chromium",
   "The install and offline checks are Chromium's",

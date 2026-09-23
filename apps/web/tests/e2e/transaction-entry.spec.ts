@@ -208,6 +208,7 @@ test("capture returns to its opening screen, preserves filters, and chooses the 
 test("the desktop header opens capture from its screen, even from capture itself", {
   tag: "@matrix",
 }, async ({ page }) => {
+  // Phone projects render the tab bar and do not have a desktop header.
   test.skip(!isDesktop(page), "The header is desktop-only");
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {

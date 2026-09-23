@@ -55,7 +55,7 @@ export function TabBar({ captureSearch }: Readonly<TabBarProps>) {
             <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground group-focus-visible:ring-[3px] group-focus-visible:ring-ring/50">
               <Plus aria-hidden="true" strokeWidth={1.75} className="size-6" />
             </span>
-            New
+            <span>New</span>
           </Link>
         </li>
         {DESTINATIONS.slice(CENTRE).map((destination) => (
