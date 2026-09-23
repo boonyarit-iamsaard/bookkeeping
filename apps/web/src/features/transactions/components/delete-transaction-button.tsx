@@ -9,16 +9,17 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import * as z from "zod";
 import { apiClient } from "@/core/api/client";
+import { transactionQueries } from "@/core/api/queries";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiRejection } from "@/core/api/write-submission";
+import {
+  forgetReads,
+  refreshAfterWrite,
+} from "@/core/query/refresh-after-write";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
 } from "@/features/transactions/transaction-labels";
-import {
-  forgetTransactionReads,
-  invalidateTransactionReads,
-} from "@/features/transactions/transaction-reads";
 import { parseApiMoney } from "@/features/wallets/components/money";
 import { Button } from "@/shared/components/ui/button";
 
@@ -138,11 +139,13 @@ export function DeleteTransactionButton({
       });
       return;
     }
-    await invalidateTransactionReads(queryClient, {
-      deletedTransactionId: transaction.id,
-    });
+    const retired = [
+      transactionQueries.detail(transaction.id).queryKey,
+      transactionQueries.refunds(transaction.id).queryKey,
+    ];
+    await refreshAfterWrite(queryClient, { retired });
     await navigate({ to: "/transactions", search: { deleted: 1 } });
-    forgetTransactionReads(queryClient, transaction.id);
+    forgetReads(queryClient, retired);
   }
 
   const deleting = state.name === "deleting";

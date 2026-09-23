@@ -11,6 +11,7 @@ import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError } from "@/core/api/write-submission";
+import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type {
   ExpenseRefundLimits,
   LinkedExpenseLimits,
@@ -18,7 +19,6 @@ import type {
   TransactionFormValues,
 } from "@/features/transactions/transaction-form-schema";
 import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
-import { invalidateTransactionReads } from "@/features/transactions/transaction-reads";
 
 export interface WalletOption {
   id: string;
@@ -307,8 +307,7 @@ export function useTransactionForm({
         return;
       }
 
-      // History, detail, balances, summaries, and a refund's expense re-read.
-      await invalidateTransactionReads(queryClient);
+      await refreshAfterWrite(queryClient);
       await navigate({
         to: "/transactions",
         search: { created: result.value.id },

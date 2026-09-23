@@ -11,6 +11,7 @@ import type { components } from "@/core/api/openapi.gen";
 import { categoryQueries } from "@/core/api/queries";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
+import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { CategoryFormInput } from "@/features/categories/category-form-schema";
 import {
   categoryFormSchema,
@@ -174,14 +175,9 @@ export function useCreateCategoryForm({
         return;
       }
 
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: categoryQueries.list().queryKey,
-        }),
-        queryClient.invalidateQueries({
-          queryKey: categoryQueries.usage().queryKey,
-        }),
-      ]);
+      // The category list is on screen wherever this form is, so it has
+      // re-read by the time the created parent is looked up below.
+      await refreshAfterWrite(queryClient);
 
       let createdParent: CategorySummary | undefined;
       if (parsed.data.parent && "create" in parsed.data.parent) {

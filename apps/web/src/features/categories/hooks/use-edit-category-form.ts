@@ -4,9 +4,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState, useTransition } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
-import { categoryQueries } from "@/core/api/queries";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
+import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { EditCategoryFormInput } from "@/features/categories/category-form-schema";
 import { editCategoryFormSchema } from "@/features/categories/category-form-schema";
 import type { ManageCategoryOutcome } from "@/features/categories/category-mutations";
@@ -99,17 +99,6 @@ export function useEditCategoryForm({
     onSubmit: ({ value }) => save(value),
   });
 
-  async function invalidateCategoryReads() {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: categoryQueries.list().queryKey,
-      }),
-      queryClient.invalidateQueries({
-        queryKey: categoryQueries.usage().queryKey,
-      }),
-    ]);
-  }
-
   async function save(value: Readonly<EditCategoryFormInput>) {
     setServerError(undefined);
     setFieldErrors({});
@@ -125,7 +114,7 @@ export function useEditCategoryForm({
       setServerError(describeCategoryRejection(result.error));
       return;
     }
-    await invalidateCategoryReads();
+    await refreshAfterWrite(queryClient);
     onDone({ operation: "update", category: result.value });
   }
 
@@ -138,7 +127,7 @@ export function useEditCategoryForm({
             setServerError(describeCategoryRejection(result.error));
             return;
           }
-          await invalidateCategoryReads();
+          await refreshAfterWrite(queryClient);
           onDone({ operation: "remove", reassigned: reassignedEntries });
         })
         .catch(() => setServerError(CONNECTION_MESSAGE));

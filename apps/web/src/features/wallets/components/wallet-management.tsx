@@ -9,6 +9,10 @@ import { walletQueries } from "@/core/api/queries";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
 import {
+  forgetReads,
+  refreshAfterWrite,
+} from "@/core/query/refresh-after-write";
+import {
   formatApiMoneyInput,
   Money,
 } from "@/features/wallets/components/money";
@@ -111,14 +115,8 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
     setNotice("");
   }
 
-  async function refreshAfterChange(nextWallet: Wallet, message: string) {
-    queryClient.setQueryData(
-      walletQueries.detail(wallet.id).queryKey,
-      nextWallet,
-    );
-    await queryClient.invalidateQueries({
-      queryKey: walletQueries.list().queryKey,
-    });
+  async function refreshAfterChange(message: string) {
+    await refreshAfterWrite(queryClient);
     setNotice(message);
   }
 
@@ -154,7 +152,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       setError(describeWalletRejection(result.error));
       return;
     }
-    await refreshAfterChange(result.value, "Opening balance corrected.");
+    await refreshAfterChange("Opening balance corrected.");
   }
 
   async function submitArchiveState(archived: boolean) {
@@ -173,7 +171,6 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       return;
     }
     await refreshAfterChange(
-      result.value,
       archived
         ? "Wallet archived. Its balance remains in your totals."
         : "Wallet unarchived. You can use it for new entries.",
@@ -195,10 +192,10 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       setError(describeWalletRejection(result.error));
       return;
     }
-    await queryClient.invalidateQueries({
-      queryKey: walletQueries.list().queryKey,
-    });
+    const retired = [walletQueries.detail(wallet.id).queryKey];
+    await refreshAfterWrite(queryClient, { retired });
     await navigate({ to: "/wallets" });
+    forgetReads(queryClient, retired);
   }
 
   return (

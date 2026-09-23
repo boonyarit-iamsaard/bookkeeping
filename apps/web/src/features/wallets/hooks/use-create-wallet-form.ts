@@ -6,9 +6,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
-import { walletQueries } from "@/core/api/queries";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError } from "@/core/api/write-submission";
+import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { WalletFormInput } from "@/features/wallets/wallet-form-schema";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
 
@@ -101,9 +101,7 @@ export function useCreateWalletForm({
         return;
       }
 
-      await queryClient.invalidateQueries({
-        queryKey: walletQueries.list().queryKey,
-      });
+      await refreshAfterWrite(queryClient);
       await navigate({
         to: "/wallets",
         search: { created: result.value.id },
