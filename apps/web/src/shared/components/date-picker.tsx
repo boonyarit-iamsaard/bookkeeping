@@ -59,6 +59,8 @@ interface DatePickerProps {
   placeholder?: string;
   /** Lets the chosen date be removed again, as a filter needs. */
   clearable?: boolean;
+  /** Shows and submits a malformed value as given, as a URL filter needs. */
+  keepMalformed?: boolean;
   disabled?: boolean;
   invalid?: boolean;
   className?: string;
@@ -83,6 +85,7 @@ export function DatePicker({
   max,
   placeholder = "Choose a date",
   clearable = false,
+  keepMalformed = false,
   disabled = false,
   invalid = false,
   className,
@@ -91,8 +94,9 @@ export function DatePicker({
   const [open, setOpen] = useState(false);
   const [internal, setInternal] = useState(defaultValue);
   const given = value ?? internal;
-  // Keep malformed URL text visible and submittable until a date is chosen.
   const current = given && parseCalendarDate(given).ok ? given : "";
+  // Unless kept, a malformed value reads as no choice at all.
+  const shown = keepMalformed ? given : current;
 
   function commit(next: CalendarDate) {
     setInternal(next);
@@ -108,7 +112,7 @@ export function DatePicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      {name ? <input type="hidden" name={name} value={given} /> : null}
+      {name ? <input type="hidden" name={name} value={shown} /> : null}
       <PopoverTrigger
         id={id}
         disabled={disabled}
@@ -132,10 +136,10 @@ export function DatePicker({
           data-slot="date-value"
           className={cn(
             "min-w-0 flex-1 truncate",
-            !given && "text-muted-foreground",
+            !shown && "text-muted-foreground",
           )}
         >
-          {current ? formatCalendarDate(current) : given || placeholder}
+          {current ? formatCalendarDate(current) : shown || placeholder}
         </span>
         <ChevronDown
           aria-hidden="true"

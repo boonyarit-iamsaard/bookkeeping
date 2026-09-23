@@ -159,6 +159,7 @@ export function HistoryFilters({
                   defaultValue={value("from")}
                   placeholder="Any date"
                   clearable
+                  keepMalformed
                 />
               </div>
               <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
@@ -171,6 +172,7 @@ export function HistoryFilters({
                   defaultValue={value("to")}
                   placeholder="Any date"
                   clearable
+                  keepMalformed
                 />
               </div>
               <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
