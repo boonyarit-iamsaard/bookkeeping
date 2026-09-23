@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import type { DESTINATIONS } from "@/core/shell/destinations";
+import type { Destination } from "@/core/shell/destinations";
 
 interface NavLinkProps {
-  to: (typeof DESTINATIONS)[number]["to"];
+  to: Destination["to"];
   children: React.ReactNode;
 }
 

@@ -1,11 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
+import type { Destination } from "@/core/shell/destinations";
 import { DESTINATIONS } from "@/core/shell/destinations";
 
-const [home, transactions, wallets, reports] = DESTINATIONS;
+// Capture sits in the centre, however many destinations flank it.
+const CENTRE = Math.ceil(DESTINATIONS.length / 2);
 
 interface TabItemProps {
-  destination: (typeof DESTINATIONS)[number];
+  destination: Destination;
 }
 
 function TabItem({ destination }: Readonly<TabItemProps>) {
@@ -35,7 +37,7 @@ export function TabBar() {
       className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-backdrop-filter:bg-background/80 sm:hidden"
     >
       <ul className="mx-auto flex h-14 w-full max-w-2xl items-stretch px-1">
-        {[home, transactions].map((destination) => (
+        {DESTINATIONS.slice(0, CENTRE).map((destination) => (
           <TabItem key={destination.to} destination={destination} />
         ))}
         <li className="flex flex-auto justify-center">
@@ -50,7 +52,7 @@ export function TabBar() {
             New
           </Link>
         </li>
-        {[wallets, reports].map((destination) => (
+        {DESTINATIONS.slice(CENTRE).map((destination) => (
           <TabItem key={destination.to} destination={destination} />
         ))}
       </ul>

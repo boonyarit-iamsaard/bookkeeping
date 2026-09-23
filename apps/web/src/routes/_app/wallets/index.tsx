@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { walletQueries } from "@/core/api/queries";
+import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import { WalletList } from "@/features/wallets/components/wallet-list";
@@ -30,7 +31,7 @@ function WalletsPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pb-8 sm:pt-8">
+    <Page layout="wide">
       <TitleBar
         title="Wallets"
         actions={
@@ -62,6 +63,6 @@ function WalletsPage() {
         Monthly summary &amp; balances
       </Link>
       <WalletList wallets={data.items} createdId={created} />
-    </main>
+    </Page>
   );
 }

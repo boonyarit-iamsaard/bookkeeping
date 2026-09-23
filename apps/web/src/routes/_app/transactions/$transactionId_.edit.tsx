@@ -8,6 +8,7 @@ import {
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
+import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
@@ -80,7 +81,7 @@ function EditTransactionPage() {
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 pb-40 sm:pt-8 sm:pb-12">
+    <Page layout="entry">
       <TitleBar
         title={`Edit ${TRANSACTION_TYPE_LABELS[transaction.type].toLowerCase()}`}
         back={
@@ -105,7 +106,7 @@ function EditTransactionPage() {
         wallets={wallets}
         categories={categoryCollection.items}
       />
-    </main>
+    </Page>
   );
 }
 

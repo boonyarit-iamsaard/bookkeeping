@@ -2,6 +2,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { walletQueries } from "@/core/api/queries";
+import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
 import { WalletManagement } from "@/features/wallets/components/wallet-management";
 
@@ -20,12 +21,12 @@ function WalletDetailPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 pb-8 sm:pt-8">
+    <Page layout="narrow">
       <TitleBar
         title={wallet.name}
         back={<BackLink to="/wallets" aria-label="Back to Wallets" />}
       />
       <WalletManagement wallet={wallet} />
-    </main>
+    </Page>
   );
 }

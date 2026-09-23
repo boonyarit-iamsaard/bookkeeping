@@ -7,6 +7,7 @@ import {
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
+import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { toWalletOptions } from "@/features/transactions/wallet-options";
@@ -40,7 +41,7 @@ function NewTransactionPage() {
       ?.id ?? wallets[0]?.id;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 pb-40 sm:pt-8 sm:pb-12">
+    <Page layout="entry">
       <TitleBar
         title="New transaction"
         actions={
@@ -62,7 +63,7 @@ function NewTransactionPage() {
       ) : (
         <NoWallet />
       )}
-    </main>
+    </Page>
   );
 }
 

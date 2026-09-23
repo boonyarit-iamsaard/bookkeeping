@@ -9,6 +9,7 @@ import {
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
+import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
@@ -67,7 +68,7 @@ function RefundPage() {
   const linked = linkedExpenseView({ expense, refunds });
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-4 pb-40 sm:pt-8 sm:pb-12">
+    <Page layout="entry">
       <TitleBar
         title="Record refund"
         back={
@@ -100,7 +101,7 @@ function RefundPage() {
           originalWallet={expense.wallet}
         />
       )}
-    </main>
+    </Page>
   );
 }
 

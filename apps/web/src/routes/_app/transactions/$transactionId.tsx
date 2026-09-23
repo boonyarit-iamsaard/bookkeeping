@@ -3,6 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
 import { transactionQueries } from "@/core/api/queries";
+import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
 import { ExpenseRefundsView } from "@/features/transactions/components/expense-refunds";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
@@ -40,7 +41,7 @@ function TransactionDetailPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pb-8 sm:pt-8">
+    <Page layout="wide">
       <TitleBar
         title={TRANSACTION_TYPE_LABELS[transaction.type]}
         back={<BackLink to="/transactions" aria-label="Back to Transactions" />}
@@ -59,7 +60,7 @@ function TransactionDetailPage() {
       {transaction.type === "expense" && (
         <ExpenseRefundsSection transactionId={transaction.id} />
       )}
-    </main>
+    </Page>
   );
 }
 

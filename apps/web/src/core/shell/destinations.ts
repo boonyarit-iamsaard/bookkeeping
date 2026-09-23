@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { ChartPie, House, ReceiptText, Wallet } from "lucide-react";
 
-interface Destination {
+export interface Destination {
   to: "/" | "/transactions" | "/wallets" | "/dashboard";
   label: string;
   icon: LucideIcon;

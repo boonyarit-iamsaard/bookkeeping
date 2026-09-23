@@ -2,6 +2,7 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { FormEvent } from "react";
+import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import { DatePicker } from "@/shared/components/date-picker";
@@ -51,7 +52,7 @@ export function Dashboard({ search, initialToday }: Readonly<DashboardProps>) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pb-8 sm:pt-8">
+    <Page layout="wide">
       <TitleBar
         title="Monthly summary"
         actions={
@@ -117,6 +118,6 @@ export function Dashboard({ search, initialToday }: Readonly<DashboardProps>) {
           Choose a valid month and balance date, then update the report.
         </p>
       )}
-    </main>
+    </Page>
   );
 }

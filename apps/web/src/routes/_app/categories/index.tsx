@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { categoryQueries } from "@/core/api/queries";
+import { Page } from "@/core/shell/page";
 import { CategoryManagement } from "@/features/categories/components/category-management";
 
 export const Route = createFileRoute("/_app/categories/")({
@@ -28,8 +29,8 @@ function CategoriesPage() {
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pb-8 sm:pt-8">
+    <Page layout="wide">
       <CategoryManagement categories={categoryCollection.items} usage={usage} />
-    </main>
+    </Page>
   );
 }
