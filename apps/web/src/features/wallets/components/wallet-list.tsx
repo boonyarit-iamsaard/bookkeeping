@@ -1,4 +1,5 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
+import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { Link } from "@tanstack/react-router";
 import { Plus, Wallet } from "lucide-react";
 import { parseApiMoney } from "@/core/api/money";
@@ -26,6 +27,10 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
     (sum, wallet) => sum + parseApiMoney(wallet.balance),
     0n,
   );
+  const totalAmount = {
+    value: formatMoneyInput({ amountInMinorUnits: total, currency: "THB" }),
+    currency: "THB" as const,
+  };
   const countLabel =
     wallets.length === 1 ? "1 wallet" : `${wallets.length} wallets`;
 
@@ -36,10 +41,7 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
           Total balance
         </h2>
         <p className="text-4xl leading-none sm:text-5xl">
-          <Money
-            amount={{ value: total.toString(), currency: "THB" }}
-            display
-          />
+          <Money amount={totalAmount} display />
         </p>
         <p className="mt-2 text-muted-foreground text-sm">
           Total across {countLabel}

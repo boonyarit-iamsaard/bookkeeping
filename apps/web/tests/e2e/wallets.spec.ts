@@ -34,6 +34,11 @@ test("a new user creates a wallet and its opening balance survives a reload", as
   await expect(row).toContainText("Bank account");
   await expect(row).toContainText("Opened 1 Sep 2026");
   await expect(row).toContainText("฿12,000.50");
+  await expect(
+    page.locator(
+      '[aria-labelledby="total-balance-heading"] .money [aria-hidden="true"]',
+    ),
+  ).toHaveText("฿12,000.50");
 
   await page.reload();
   await expect(
