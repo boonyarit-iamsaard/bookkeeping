@@ -1,6 +1,5 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
 import {
   categoryQueries,
   transactionQueries,
@@ -9,7 +8,10 @@ import {
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
-import { HistoryFilters } from "@/features/transactions/components/history-filters";
+import {
+  HistoryFilterChips,
+  HistoryFilters,
+} from "@/features/transactions/components/history-filters";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
 import type { HistorySearch } from "@/features/transactions/history-schema";
@@ -70,16 +72,18 @@ function TransactionsPage() {
       <TitleBar
         title="Transactions"
         actions={
-          transactions.length > 0 && (
-            <Link
-              to="/transactions/new"
-              className={buttonVariants({ variant: "outline", size: "lg" })}
-            >
-              <Plus data-icon="inline-start" />
-              Record
-            </Link>
-          )
+          <HistoryFilters
+            wallets={walletCollection.items}
+            categories={categoryCollection.items}
+            values={search}
+            valid={listQuery !== null}
+          />
         }
+      />
+      <HistoryFilterChips
+        wallets={walletCollection.items}
+        categories={categoryCollection.items}
+        values={search}
       />
       {justDeleted && (
         <output className="rounded-xl border bg-muted px-4 py-3 text-sm leading-normal">
@@ -89,21 +93,6 @@ function TransactionsPage() {
           </span>
         </output>
       )}
-      <Link
-        to="/dashboard"
-        className={buttonVariants({
-          variant: "outline",
-          size: "lg",
-          className: "self-start",
-        })}
-      >
-        Monthly summary &amp; balances
-      </Link>
-      <HistoryFilters
-        wallets={walletCollection.items}
-        categories={categoryCollection.items}
-        values={search}
-      />
       <TransactionHistory
         transactions={transactions}
         filtersValid={listQuery !== null}

@@ -37,37 +37,55 @@ test("filters apply through the address and open the saved record", {
   if (!expenseHref) {
     throw new Error("Missing saved expense link");
   }
-  await page.getByText("Filter history", { exact: true }).click();
-  await chooseOption(page.getByLabel("Type", { exact: true }), "Income");
-  await page.getByRole("button", { name: "Apply filters" }).click();
+  await page.goto("/transactions");
+  const sheet = page.getByRole("dialog", { name: "Filter transactions" });
+  const chips = page.getByRole("list", { name: "Active filters" });
+  const filter = page.getByRole("button", { name: "Filter", exact: true });
+  await filter.click();
+  await chooseOption(sheet.getByLabel("Type", { exact: true }), "Income");
+  await sheet.getByRole("button", { name: "Apply filters" }).click();
+  await expect(sheet).toBeHidden();
   await expect(page).toHaveURL(/\/transactions\?type=income$/);
   await expect(page.getByText("No matching transactions")).toBeVisible();
-  await page.getByRole("link", { name: "Clear filters" }).click();
+  await expect(chips.getByRole("listitem")).toHaveText(["Income"]);
+  await filter.click();
+  await sheet.getByRole("button", { name: "Clear filters" }).click();
   await expect(page).toHaveURL(/\/transactions$/);
+  await expect(chips).toBeHidden();
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
-  await page.getByText("Filter history", { exact: true }).focus();
-  await page.getByText("Filter history", { exact: true }).press("Enter");
+  // The sheet is a dialog: Escape closes it and focus returns to Filter.
+  await filter.focus();
+  await filter.press("Enter");
+  await expect(sheet).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  await expect(filter).toBeFocused();
+  await filter.click();
   const today = todayIn({ timeZone: APP_TIME_ZONE });
-  await chooseDate(page.getByLabel("From date"), addDays(today, -1));
-  await chooseDate(page.getByLabel("To date"), today);
-  await chooseOption(page.getByLabel("Filter wallet"), "Cash");
-  await chooseOption(page.getByLabel("Type", { exact: true }), "Expense");
+  await chooseDate(sheet.getByLabel("From date"), addDays(today, -1));
+  await chooseDate(sheet.getByLabel("To date"), today);
+  await chooseOption(sheet.getByLabel("Filter wallet"), "Cash");
+  await chooseOption(sheet.getByLabel("Type", { exact: true }), "Expense");
   // The first Uncategorized listed is the expense tree's.
-  await chooseOption(page.getByLabel("Filter category"), "Uncategorized");
-  await page.getByRole("button", { name: "Apply filters" }).click();
+  await chooseOption(sheet.getByLabel("Filter category"), "Uncategorized");
+  await sheet.getByRole("button", { name: "Apply filters" }).click();
   await expect(page).toHaveURL(/\/transactions\?.*type=expense/);
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
   await expect(page.getByText(/Recorded .*Bangkok/)).toBeVisible();
-  // The address alone restores the filters and keeps the disclosure open.
+  // The address alone restores the filters, their chips and the sheet's values.
   await page.reload();
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
-  await expect(
-    page.getByText("Filter history · Active filters", { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByLabel("Filter wallet")).toContainText("Cash");
-  await expect(page.getByLabel("Type", { exact: true })).toContainText(
-    "Expense",
+  await expect(chips.getByRole("listitem")).toHaveCount(5);
+  await page.getByRole("link", { name: "Remove filter Expense" }).click();
+  await expect(page).not.toHaveURL(/type=/);
+  await expect(page).toHaveURL(/walletId=/);
+  await expect(chips.getByRole("listitem")).toHaveCount(4);
+  await filter.click();
+  await expect(sheet.getByLabel("Filter wallet")).toContainText("Cash");
+  await expect(sheet.getByLabel("Type", { exact: true })).toContainText(
+    "All types",
   );
+  await page.keyboard.press("Escape");
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -98,14 +116,25 @@ test("invalid date filters and year zero keep editable controls with validation"
   await expect(
     page.getByRole("alert").filter({ hasText: "Choose valid filters" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
   await expect(page.getByLabel("From date")).toHaveText("3 Sep 2026");
   await expect(page.locator("input[name=from]")).toHaveValue("2026-09-03");
   await expect(page.getByLabel("To date")).toHaveText("1 Sep 2026");
+  await page.keyboard.press("Escape");
   await page.goto("/transactions?from=0000-01-01");
   await expect(
     page.getByRole("alert").filter({ hasText: "Choose valid filters" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Apply filters" }),
+    page.getByRole("list", { name: "Active filters" }).getByRole("listitem"),
+  ).toHaveText(["From 0000-01-01"]);
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
+  const sheet = page.getByRole("dialog", { name: "Filter transactions" });
+  await expect(
+    sheet.getByRole("alert").filter({ hasText: "Choose valid filters" }),
+  ).toBeVisible();
+  await expect(sheet.locator("input[name=from]")).toHaveValue("0000-01-01");
+  await expect(
+    sheet.getByRole("button", { name: "Apply filters" }),
   ).toBeVisible();
 });

@@ -70,9 +70,7 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
     page.getByRole("button", { name: "Unarchive wallet", exact: true }),
   ).toBeVisible();
 
-  await page.goto("/transactions");
-  await page.getByRole("link", { name: "Monthly summary & balances" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  await page.goto("/dashboard");
 
   await page.getByLabel("Report month").click();
   await page.getByRole("button", { name: "August 2026", exact: true }).click();

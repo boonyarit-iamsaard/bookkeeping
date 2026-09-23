@@ -1,26 +1,33 @@
+import { Dialog } from "@base-ui/react/dialog";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { SlidersHorizontal, X } from "lucide-react";
 import type { FormEvent } from "react";
+import { useState } from "react";
 import type { components } from "@/core/api/openapi.gen";
 import type { FilterOptionGroup } from "@/features/transactions/components/filter-select";
 import { FilterSelect } from "@/features/transactions/components/filter-select";
+import { historyFilterChips } from "@/features/transactions/history-chips";
 import type { HistorySearch } from "@/features/transactions/history-schema";
-import {
-  HISTORY_FILTER_KEYS,
-  hasHistoryFilters,
-} from "@/features/transactions/history-schema";
+import { HISTORY_FILTER_KEYS } from "@/features/transactions/history-schema";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
-import { Button, buttonVariants } from "@/shared/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
+import { SheetPortal } from "@/shared/components/ui/sheet";
 
 type ApiWallet = components["schemas"]["Wallet"];
 type ApiCategory = components["schemas"]["Category"];
 
-interface HistoryFiltersProps {
+interface HistoryFilterChipsProps {
   wallets: readonly ApiWallet[];
   categories: readonly ApiCategory[];
   values: Readonly<HistorySearch>;
+}
+
+interface HistoryFiltersProps extends HistoryFilterChipsProps {
+  /** False while the address holds filters the list cannot use. */
+  valid: boolean;
 }
 
 /** Each tree as a group: parents first, their children indented beneath. */
@@ -54,124 +61,179 @@ function filtersFromForm(form: HTMLFormElement): HistorySearch {
   );
 }
 
+/**
+ * Filter in the title bar: a sheet holding the history's GET controls. The
+ * address stays the source of truth, so an invalid value reopens as typed.
+ */
 export function HistoryFilters({
   wallets,
   categories,
   values,
+  valid,
 }: Readonly<HistoryFiltersProps>) {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   function value(key: (typeof HISTORY_FILTER_KEYS)[number]) {
     return values[key] ?? "";
   }
-  const active = hasHistoryFilters(values);
   const today = todayIn({ timeZone: APP_TIME_ZONE });
+
+  function showFilters(search: HistorySearch) {
+    setOpen(false);
+    void navigate({ to: "/transactions", search });
+  }
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void navigate({
-      to: "/transactions",
-      search: filtersFromForm(event.currentTarget),
-    });
+    showFilters(filtersFromForm(event.currentTarget));
   }
 
   return (
-    <details open={active} className="border-y py-5">
-      <summary className="min-h-11 cursor-pointer rounded-sm py-3 font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
-        Filter history{active ? " · Active filters" : ""}
-      </summary>
-      <form
-        key={JSON.stringify(values)}
-        onSubmit={applyFilters}
-        aria-label="History filters"
-        className="flex flex-col gap-4 pt-4"
-      >
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
-            <label htmlFor="history-from">From date</label>
-            <DatePicker
-              id="history-from"
-              name="from"
-              today={today}
-              max={today}
-              defaultValue={value("from")}
-              placeholder="Any date"
-              clearable
-            />
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Trigger render={<Button variant="outline" size="lg" />}>
+        <SlidersHorizontal data-icon="inline-start" />
+        Filter
+      </Dialog.Trigger>
+      <SheetPortal>
+        <Dialog.Title className="shrink-0 px-4 pt-4 pb-2 font-semibold text-lg sm:px-6 sm:pt-6">
+          Filter transactions
+        </Dialog.Title>
+        <form
+          key={JSON.stringify(values)}
+          onSubmit={applyFilters}
+          aria-label="History filters"
+          className="flex min-h-0 flex-col"
+        >
+          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-4 py-2 sm:px-6">
+            {!valid && (
+              <p role="alert" className="text-destructive text-sm">
+                Choose valid filters. From date must be on or before To date.
+              </p>
+            )}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+                <label htmlFor="history-from">From date</label>
+                <DatePicker
+                  id="history-from"
+                  name="from"
+                  today={today}
+                  max={today}
+                  defaultValue={value("from")}
+                  placeholder="Any date"
+                  clearable
+                />
+              </div>
+              <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+                <label htmlFor="history-to">To date</label>
+                <DatePicker
+                  id="history-to"
+                  name="to"
+                  today={today}
+                  max={today}
+                  defaultValue={value("to")}
+                  placeholder="Any date"
+                  clearable
+                />
+              </div>
+              <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+                <label htmlFor="history-walletId">Filter wallet</label>
+                <FilterSelect
+                  id="history-walletId"
+                  name="walletId"
+                  defaultValue={value("walletId")}
+                  allLabel="All wallets"
+                  groups={[
+                    {
+                      options: wallets.map((wallet) => ({
+                        value: wallet.id,
+                        label: wallet.name,
+                        hint: wallet.archivedAt ? "Archived" : undefined,
+                      })),
+                    },
+                  ]}
+                />
+              </div>
+              <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+                <label htmlFor="history-categoryId">Filter category</label>
+                <FilterSelect
+                  id="history-categoryId"
+                  name="categoryId"
+                  defaultValue={value("categoryId")}
+                  allLabel="All categories"
+                  groups={categoryGroups(categories)}
+                />
+              </div>
+              <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+                <label htmlFor="history-type">Type</label>
+                <FilterSelect
+                  id="history-type"
+                  name="type"
+                  defaultValue={value("type")}
+                  allLabel="All types"
+                  groups={[
+                    {
+                      options: TRANSACTION_TYPES.map((type) => ({
+                        value: type,
+                        label: TRANSACTION_TYPE_LABELS[type],
+                      })),
+                    },
+                  ]}
+                />
+              </div>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Dates are inclusive. A parent category includes its children; a
+              wallet includes transfers in either direction.
+            </p>
           </div>
-          <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
-            <label htmlFor="history-to">To date</label>
-            <DatePicker
-              id="history-to"
-              name="to"
-              today={today}
-              max={today}
-              defaultValue={value("to")}
-              placeholder="Any date"
-              clearable
-            />
+          <div className="flex shrink-0 flex-wrap gap-3 px-4 py-4 sm:px-6 sm:pb-6">
+            <Button type="submit" variant="outline" size="lg">
+              Apply filters
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              onClick={() => showFilters({})}
+            >
+              Clear filters
+            </Button>
           </div>
-          <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
-            <label htmlFor="history-walletId">Filter wallet</label>
-            <FilterSelect
-              id="history-walletId"
-              name="walletId"
-              defaultValue={value("walletId")}
-              allLabel="All wallets"
-              groups={[
-                {
-                  options: wallets.map((wallet) => ({
-                    value: wallet.id,
-                    label: wallet.name,
-                    hint: wallet.archivedAt ? "Archived" : undefined,
-                  })),
-                },
-              ]}
-            />
-          </div>
-          <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
-            <label htmlFor="history-categoryId">Filter category</label>
-            <FilterSelect
-              id="history-categoryId"
-              name="categoryId"
-              defaultValue={value("categoryId")}
-              allLabel="All categories"
-              groups={categoryGroups(categories)}
-            />
-          </div>
-          <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
-            <label htmlFor="history-type">Type</label>
-            <FilterSelect
-              id="history-type"
-              name="type"
-              defaultValue={value("type")}
-              allLabel="All types"
-              groups={[
-                {
-                  options: TRANSACTION_TYPES.map((type) => ({
-                    value: type,
-                    label: TRANSACTION_TYPE_LABELS[type],
-                  })),
-                },
-              ]}
-            />
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Button type="submit" variant="outline" size="lg">
-            Apply filters
-          </Button>
+        </form>
+      </SheetPortal>
+    </Dialog.Root>
+  );
+}
+
+/** The active filters under the title; each chip lifts just its own filter. */
+export function HistoryFilterChips({
+  wallets,
+  categories,
+  values,
+}: Readonly<HistoryFilterChipsProps>) {
+  const chips = historyFilterChips(values, { wallets, categories });
+  if (chips.length === 0) {
+    return null;
+  }
+  return (
+    <ul aria-label="Active filters" className="flex flex-wrap gap-2">
+      {chips.map((chip) => (
+        <li key={chip.key}>
           <Link
             to="/transactions"
-            className={buttonVariants({ variant: "ghost", size: "lg" })}
+            search={chip.without}
+            aria-label={`Remove filter ${chip.label}`}
+            className="flex min-h-9 max-w-full items-center gap-1 rounded-full border px-3 text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            Clear filters
+            <span className="truncate">{chip.label}</span>
+            <X
+              aria-hidden="true"
+              strokeWidth={1.75}
+              className="size-4 shrink-0"
+            />
           </Link>
-        </div>
-        <p className="text-muted-foreground text-sm">
-          Dates are inclusive. A parent category includes its children; a wallet
-          includes transfers in either direction.
-        </p>
-      </form>
-    </details>
+        </li>
+      ))}
+    </ul>
   );
 }

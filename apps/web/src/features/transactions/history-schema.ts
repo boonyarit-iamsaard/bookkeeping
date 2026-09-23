@@ -2,7 +2,7 @@ import { parseCalendarDate } from "@bookkeeping/domain/dates";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { z } from "zod";
 
-const calendarDate = z
+export const calendarDate = z
   .string()
   .refine(
     (value) => value >= "0001-01-01" && parseCalendarDate(value).ok,
