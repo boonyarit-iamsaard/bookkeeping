@@ -8,8 +8,7 @@ import { API_COOKIE_PREFIX, createAuthGateway } from "../core/auth/gateway.js";
 import type { AppEnv } from "../core/http/request-context.js";
 import { TEST_CLIENT_ORIGIN } from "./create-unit-test-app.js";
 
-export const TEST_AUTH_SECRET =
-  "integration-test-secret-with-at-least-32-chars";
+const TEST_AUTH_SECRET = "integration-test-secret-with-at-least-32-chars";
 export const TEST_API_ORIGIN = "http://localhost:5000";
 export const TEST_PASSWORD = "correct horse battery";
 

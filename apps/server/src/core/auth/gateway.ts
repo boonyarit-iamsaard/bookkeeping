@@ -8,9 +8,9 @@ import type { AppEnv } from "../http/request-context.js";
 export const AUTH_ROUTE_PATTERN = "/api/auth/*";
 
 /**
- * The API issues `bookkeeping-api.session_token`, distinct from the Next.js
- * mount's `better-auth.session_token`, so the two mounts keep separate
- * cookies even on one local hostname.
+ * The API issues `bookkeeping-api.session_token` rather than Better Auth's
+ * default `better-auth.session_token`, naming the cookie for the origin that
+ * owns it.
  */
 export const API_COOKIE_PREFIX = "bookkeeping-api";
 

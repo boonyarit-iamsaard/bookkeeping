@@ -1,5 +1,3 @@
-import { createAuth } from "@bookkeeping/auth/config";
-import { resolveSession } from "@bookkeeping/auth/session";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { Hono } from "hono";
@@ -9,7 +7,6 @@ import {
   createIntegrationTestApp,
   createUniqueTestEmail,
   TEST_PASSWORD as PASSWORD,
-  TEST_AUTH_SECRET,
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { API_COOKIE_PREFIX } from "./gateway.js";
@@ -19,7 +16,6 @@ const { withRollback } = setupTestDatabase();
 
 const WEB_ORIGIN = TEST_CLIENT_ORIGIN;
 const API_COOKIE_NAME = `${API_COOKIE_PREFIX}.session_token`;
-const WEB_COOKIE_NAME = "better-auth.session_token";
 
 /** The mounted app plus a protected probe route. */
 function createSessionProbeApp(db: Database) {
@@ -31,11 +27,6 @@ function createSessionProbeApp(db: Database) {
     ),
   );
   return app;
-}
-
-/** The temporary Next.js mount: same store and secret, its own origin. */
-function createWebAuthMount(db: Database) {
-  return createAuth({ db, secret: TEST_AUTH_SECRET, baseURL: WEB_ORIGIN });
 }
 
 interface SignUpRequest {
@@ -147,48 +138,6 @@ describe("Better Auth mounted in Hono", () => {
       );
 
       expect(response.status).toBe(403);
-    });
-  });
-
-  test("the Next.js and Hono mounts issue separate cookies over one user store", async () => {
-    await withRollback(async (db) => {
-      const app = createSessionProbeApp(db);
-      const webAuth = createWebAuthMount(db);
-      const email = createUniqueTestEmail("hono");
-
-      const honoSignUp = await app.request(
-        signUpRequest({ origin: WEB_ORIGIN, email }),
-      );
-      const honoCookie = honoSignUp.headers.get("set-cookie") ?? "";
-      const honoWhoami = await app.request(`${API_ORIGIN}/v1/whoami`, {
-        headers: { cookie: honoCookie },
-      });
-      const { userId } = await honoWhoami.json();
-
-      // The user Hono created signs in through the Next.js mount because both
-      // read the same user store...
-      const webSignIn = await webAuth.api.signInEmail({
-        body: { email, password: PASSWORD },
-        returnHeaders: true,
-      });
-      const webCookie = webSignIn.headers.get("set-cookie") ?? "";
-      const webSession = await resolveSession(
-        webAuth,
-        new Headers({ cookie: webCookie }),
-      );
-      expect(webSession?.user.id).toBe(userId);
-
-      // ...but each mount names its own cookie and ignores the other's, even
-      // when both share one hostname in local development.
-      expect(honoCookie).toContain(`${API_COOKIE_NAME}=`);
-      expect(webCookie).toContain(`${WEB_COOKIE_NAME}=`);
-      expect(
-        await resolveSession(webAuth, new Headers({ cookie: honoCookie })),
-      ).toBeNull();
-      const webCookieAtHono = await app.request(`${API_ORIGIN}/v1/whoami`, {
-        headers: { cookie: webCookie },
-      });
-      expect(webCookieAtHono.status).toBe(401);
     });
   });
 });
