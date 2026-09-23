@@ -8,8 +8,11 @@ import { ArrowRightLeft, Plus, ReceiptText } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
-import { SignedMoney } from "@/features/transactions/components/signed-money";
-import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
+import {
+  TRANSACTION_TYPE_LABELS,
+  TRANSACTION_TYPE_SIGNS,
+} from "@/features/transactions/transaction-labels";
+import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
 
@@ -93,8 +96,9 @@ export function TransactionList({
                 · Bangkok
               </p>
             </div>
-            <SignedMoney
-              transaction={transaction}
+            <Money
+              amount={transaction.amount}
+              sign={TRANSACTION_TYPE_SIGNS[transaction.type]}
               className="ml-auto shrink-0 text-lg"
             />
           </Link>

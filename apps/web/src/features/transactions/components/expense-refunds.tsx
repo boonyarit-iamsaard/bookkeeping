@@ -2,8 +2,9 @@ import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
 import { Link } from "@tanstack/react-router";
 import { Undo2 } from "lucide-react";
+import { parseApiMoney } from "@/core/api/api-money";
 import type { components } from "@/core/api/openapi.gen";
-import { Money, parseApiMoney } from "@/features/wallets/components/money";
+import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 type ApiTransactionRefunds = components["schemas"]["TransactionRefunds"];

@@ -8,6 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import * as z from "zod";
+import { parseApiMoney } from "@/core/api/api-money";
 import { apiClient } from "@/core/api/client";
 import { transactionQueries } from "@/core/api/queries";
 import { useApiMutation } from "@/core/api/use-api-mutation";
@@ -20,7 +21,6 @@ import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
 } from "@/features/transactions/transaction-labels";
-import { parseApiMoney } from "@/features/wallets/components/money";
 import { Button } from "@/shared/components/ui/button";
 
 interface DeleteTransactionButtonProps {

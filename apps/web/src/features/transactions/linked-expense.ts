@@ -1,8 +1,8 @@
 import { formatMoney, formatMoneyInput } from "@bookkeeping/domain/money";
+import { parseApiMoney } from "@/core/api/api-money";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryLabel } from "@/features/categories/category-search";
 import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
-import { parseApiMoney } from "@/features/wallets/components/money";
 
 type ApiTransaction = components["schemas"]["Transaction"];
 type ApiTransactionRefunds = components["schemas"]["TransactionRefunds"];

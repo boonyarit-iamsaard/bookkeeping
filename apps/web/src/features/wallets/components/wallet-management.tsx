@@ -3,6 +3,7 @@ import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { formatApiMoneyInput } from "@/core/api/api-money";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { walletQueries } from "@/core/api/queries";
@@ -12,12 +13,9 @@ import {
   forgetReads,
   refreshAfterWrite,
 } from "@/core/query/refresh-after-write";
-import {
-  formatApiMoneyInput,
-  Money,
-} from "@/features/wallets/components/money";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
 import { DatePicker } from "@/shared/components/date-picker";
+import { Money } from "@/shared/components/money";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";

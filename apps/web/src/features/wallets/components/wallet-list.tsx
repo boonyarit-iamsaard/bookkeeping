@@ -1,10 +1,11 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { Link } from "@tanstack/react-router";
 import { Plus, Wallet } from "lucide-react";
+import { parseApiMoney } from "@/core/api/api-money";
 import type { components } from "@/core/api/openapi.gen";
-import { Money, parseApiMoney } from "@/features/wallets/components/money";
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
+import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
 

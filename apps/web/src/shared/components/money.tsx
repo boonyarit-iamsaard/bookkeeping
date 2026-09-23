@@ -1,37 +1,13 @@
 import type { Currency } from "@bookkeeping/domain/money";
-import {
-  formatMoney,
-  formatMoneyInput,
-  formatMoneyParts,
-  parseMoneyInput,
-} from "@bookkeeping/domain/money";
-import type { components } from "@/core/api/openapi.gen";
+import { formatMoney, formatMoneyParts } from "@bookkeeping/domain/money";
+import type { ApiMoney } from "@/core/api/api-money";
+import { parseApiMoney } from "@/core/api/api-money";
 import { cn } from "@/shared/helpers/cn";
-
-type ApiMoney = components["schemas"]["Money"];
-
-/** Converts the API's exact decimal representation to the domain integer. */
-export function parseApiMoney(amount: Readonly<ApiMoney>): bigint {
-  const parsed = parseMoneyInput({
-    text: amount.value,
-    currency: amount.currency,
-  });
-  if (!parsed.ok) {
-    throw new Error("The API returned an invalid money value");
-  }
-  return parsed.value;
-}
-
-/** Formats an API money value for an editable amount field. */
-export function formatApiMoneyInput(amount: Readonly<ApiMoney>): string {
-  return formatMoneyInput({
-    amountInMinorUnits: parseApiMoney(amount),
-    currency: amount.currency,
-  });
-}
 
 interface MoneyProps {
   amount: ApiMoney;
+  /** Prefixed as given, such as "−" when the figure's meaning carries it. */
+  sign?: string;
   /** Display figures step the currency symbol and fraction down. */
   display?: boolean;
   className?: string;
@@ -40,6 +16,7 @@ interface MoneyProps {
 /** A THB figure with tabular numerals, always two decimals. */
 export function Money({
   amount,
+  sign = "",
   display = false,
   className,
 }: Readonly<MoneyProps>) {
@@ -49,6 +26,7 @@ export function Money({
   if (!display) {
     return (
       <span className={cn("money", className)} translate="no">
+        {sign}
         {formatMoney({ amountInMinorUnits, currency })}
       </span>
     );
@@ -58,9 +36,11 @@ export function Money({
   return (
     <span className={cn("money", className)} translate="no">
       <span className="sr-only">
+        {sign}
         {formatMoney({ amountInMinorUnits, currency })}
       </span>
       <span aria-hidden="true">
+        {sign}
         {parts.sign}
         <span className="font-medium text-[0.6em] text-muted-foreground">
           {parts.symbol}

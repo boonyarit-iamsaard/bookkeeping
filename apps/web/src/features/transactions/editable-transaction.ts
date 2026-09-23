@@ -1,13 +1,10 @@
 import { APP_TIME_ZONE, formatInstant } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
+import { formatApiMoneyInput, parseApiMoney } from "@/core/api/api-money";
 import type { components } from "@/core/api/openapi.gen";
 import type { EditableTransaction } from "@/features/transactions/components/transaction-form";
 import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
 import type { ExpenseRefundLimits } from "@/features/transactions/transaction-form-schema";
-import {
-  formatApiMoneyInput,
-  parseApiMoney,
-} from "@/features/wallets/components/money";
 
 type ApiTransaction = components["schemas"]["Transaction"];
 type ApiTransactionRefunds = components["schemas"]["TransactionRefunds"];

@@ -5,13 +5,16 @@ import {
 } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
 import { Link } from "@tanstack/react-router";
+import { parseApiMoney } from "@/core/api/api-money";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryLabel } from "@/features/categories/category-search";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
-import { SignedMoney } from "@/features/transactions/components/signed-money";
-import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
-import { parseApiMoney } from "@/features/wallets/components/money";
+import {
+  TRANSACTION_TYPE_LABELS,
+  TRANSACTION_TYPE_SIGNS,
+} from "@/features/transactions/transaction-labels";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
+import { Money } from "@/shared/components/money";
 
 type ApiTransaction = components["schemas"]["Transaction"];
 
@@ -41,7 +44,11 @@ export function TransactionDetailView({
           Amount
         </h2>
         <p className="text-4xl leading-none sm:text-5xl">
-          <SignedMoney transaction={transaction} display />
+          <Money
+            amount={transaction.amount}
+            sign={TRANSACTION_TYPE_SIGNS[transaction.type]}
+            display
+          />
         </p>
         <p className="mt-2 text-muted-foreground text-sm">
           {TRANSACTION_TYPE_LABELS[transaction.type]} ·{" "}
