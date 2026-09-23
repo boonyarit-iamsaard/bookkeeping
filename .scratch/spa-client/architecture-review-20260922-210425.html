@@ -647,6 +647,45 @@ flowchart TB
           reads, projections, and cache effects without reopening any ADR.
         </p>
       </section>
+
+      <section id="outcome" class="space-y-5 border-t border-slate-300 pt-10">
+        <h2 class="text-3xl font-semibold tracking-tight">
+          Outcome · 23 September 2026
+        </h2>
+        <p class="max-w-3xl text-sm leading-6 text-slate-700">
+          Grilled against the code before acting. The client uses TanStack
+          Query's default <code>staleTime: 0</code>, so a missed invalidation
+          shows previous data briefly on the next visit rather than leaving it
+          wrong; that is accepted.
+        </p>
+        <ul class="max-w-3xl space-y-3 text-sm leading-6">
+          <li>
+            <strong>1. Cached reads · replaced.</strong> No per-feature cache
+            modules and no split of <code>queries.ts</code>. Every write calls
+            one <code>refreshAfterWrite</code> that refreshes all reads except
+            the session; a delete retires its own reads. Recorded in
+            <code>docs/code-conventions.md</code> under “Cached reads”.
+          </li>
+          <li>
+            <strong>2. Money · reduced to a move.</strong> The depth already
+            lives in <code>@bookkeeping/domain/money</code>. Wire parsing moved
+            to <code>core/api/api-money.ts</code>, <code>Money</code> to
+            <code>shared/components/money.tsx</code> with a
+            <code>sign</code> prop, and <code>SignedMoney</code> was deleted.
+          </li>
+          <li>
+            <strong>3. Transaction preparation · reduced.</strong> Only the
+            repeated owned-transaction lookup was extracted
+            (<code>ensureTransaction</code>); the edit loader's two conditional
+            reads do not earn a module.
+          </li>
+          <li>
+            <strong>4. Session transitions · dropped.</strong>
+            <code>resetSessionCache</code> already concentrates the clearing; no
+            known bug justifies a mocked seam.
+          </li>
+        </ul>
+      </section>
     </main>
   </body>
 </html>

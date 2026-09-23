@@ -84,6 +84,18 @@ form schemas check types, formats, and required fields. A client may mirror a
 rule as a hint, but the hint never diverges from the rule and nothing outside
 the author asserts it. See ADR 0005.
 
+## Cached reads
+
+The SPA's read queries stay together in `apps/web/src/core/api/queries.ts`,
+keyed by OpenAPI path and parameters. After a successful write, callers call
+`refreshAfterWrite` from `core/query/refresh-after-write.ts`, which refreshes
+every read except the session instead of tracing which reads the write
+reached; reads embed each other's records, so a precise map would drift. A
+delete passes its record's own reads as `retired`, navigates away, and then
+calls `forgetReads`. Nothing else invalidates, removes, or overwrites cached
+reads. A screen may show the previous data briefly on its next visit while it
+re-reads; that is accepted.
+
 ## Test ownership
 
 The application package owns business-rule coverage. Other layers may rely on
