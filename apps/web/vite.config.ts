@@ -52,6 +52,9 @@ export default defineConfig({
         clientsClaim: true,
         // The shell, its hashed assets, the icons, and the offline page.
         globPatterns: ["**/*.{js,css,html,ico,png}"],
+        // A precached shell would answer `/`, the start URL, before the
+        // navigation route below, and boot offline instead of falling back.
+        globIgnores: ["index.html"],
         // Navigations go to the network so an offline launch can fall back to
         // the offline page instead of booting a shell that cannot reach the
         // API; the precache navigation route would otherwise answer first.
