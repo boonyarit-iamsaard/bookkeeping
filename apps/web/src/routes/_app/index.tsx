@@ -27,5 +27,5 @@ export const Route = createFileRoute("/_app/")({
 function HomeRoute() {
   const { initialToday } = Route.useLoaderData();
   const { created } = Route.useSearch();
-  return <Home initialToday={initialToday} createdId={created} />;
+  return <Home initialToday={initialToday} savedId={created} />;
 }

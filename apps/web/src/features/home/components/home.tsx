@@ -12,11 +12,11 @@ import { walletCountLabel } from "@/features/wallets/wallet-labels";
 
 interface HomeProps {
   initialToday: CalendarDate;
-  createdId?: string;
+  savedId?: string;
 }
 
 /** How much there is, how the month is going, and what was just recorded. */
-export function Home({ initialToday, createdId }: Readonly<HomeProps>) {
+export function Home({ initialToday, savedId }: Readonly<HomeProps>) {
   const today = useBangkokToday(initialToday);
   const plan = createHomeQueryPlan(today);
   const { data: walletCollection } = useSuspenseQuery(plan.wallets);
@@ -39,7 +39,7 @@ export function Home({ initialToday, createdId }: Readonly<HomeProps>) {
             caption={`Across ${walletCountLabel(wallets.length)}`}
           />
           <ThisMonth report={report} />
-          <RecentTransactions transactions={recent.items} savedId={createdId} />
+          <RecentTransactions transactions={recent.items} savedId={savedId} />
         </>
       )}
     </Page>
