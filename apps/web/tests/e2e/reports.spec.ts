@@ -144,6 +144,8 @@ test("shows loading without sample money, then the empty report", async ({
   page,
 }) => {
   await signUpFreshUser(page);
+  // Home has already read this month's report; a fresh load clears it.
+  await page.goto("/wallets");
   await page.route("**/v1/reports/monthly?*", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 2_500));
     await route.continue();

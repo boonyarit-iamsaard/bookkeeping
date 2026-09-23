@@ -43,7 +43,7 @@ export function useSignInForm() {
 
       await completeProvisioning();
       resetSessionCache(queryClient);
-      await navigate({ to: "/wallets" });
+      await navigate({ to: "/" });
     },
   });
 

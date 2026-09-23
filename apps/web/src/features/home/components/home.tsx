@@ -11,12 +11,18 @@ import { WalletsTotal } from "@/features/wallets/components/wallet-total";
 import { walletCountLabel } from "@/features/wallets/wallet-labels";
 
 interface HomeProps {
+  /** The phone account control the route supplies; the header has its own from 640px. */
+  accountControl: React.ReactNode;
   initialToday: CalendarDate;
   savedId?: string;
 }
 
 /** How much there is, how the month is going, and what was just recorded. */
-export function Home({ initialToday, savedId }: Readonly<HomeProps>) {
+export function Home({
+  accountControl,
+  initialToday,
+  savedId,
+}: Readonly<HomeProps>) {
   const today = useBangkokToday(initialToday);
   const plan = createHomeQueryPlan(today);
   const { data: walletCollection } = useSuspenseQuery(plan.wallets);
@@ -29,7 +35,10 @@ export function Home({ initialToday, savedId }: Readonly<HomeProps>) {
 
   return (
     <Page layout="wide">
-      <TitleBar title="Home" />
+      <TitleBar
+        title="Home"
+        actions={<div className="sm:hidden">{accountControl}</div>}
+      />
       {wallets.length === 0 ? (
         <EmptyWallets />
       ) : (

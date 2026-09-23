@@ -1,5 +1,6 @@
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { createFileRoute } from "@tanstack/react-router";
+import { AccountSheet } from "@/features/auth/components/account-sheet";
 import { Home } from "@/features/home/components/home";
 import { HomeErrorBoundary } from "@/features/home/components/home-error-boundary";
 import { HomeLoading } from "@/features/home/components/home-loading";
@@ -27,5 +28,12 @@ export const Route = createFileRoute("/_app/")({
 function HomeRoute() {
   const { initialToday } = Route.useLoaderData();
   const { created } = Route.useSearch();
-  return <Home initialToday={initialToday} savedId={created} />;
+  const { session } = Route.useRouteContext();
+  return (
+    <Home
+      accountControl={<AccountSheet email={session.user.email} />}
+      initialToday={initialToday}
+      savedId={created}
+    />
+  );
 }

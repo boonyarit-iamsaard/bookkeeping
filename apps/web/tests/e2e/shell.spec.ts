@@ -15,16 +15,16 @@ test("the tab bar navigates on phone and the header from 640px", {
 
   await signUpFreshUser(page);
   const nav = page.getByRole("navigation", { name: "Primary" });
-  const wallets = nav.getByRole("link", { name: "Wallets", exact: true });
-  await expect(wallets).toHaveAttribute("aria-current", "page");
   const home = nav.getByRole("link", { name: "Home", exact: true });
-  await home.click();
-  await expect(page).toHaveURL(/\/$/);
-  await expect(
-    page.getByRole("heading", { name: "Home", level: 1 }),
-  ).toBeVisible();
   await expect(home).toHaveAttribute("aria-current", "page");
-  await expect(wallets).not.toHaveAttribute("aria-current");
+  const wallets = nav.getByRole("link", { name: "Wallets", exact: true });
+  await wallets.click();
+  await expect(page).toHaveURL(/\/wallets$/);
+  await expect(
+    page.getByRole("heading", { name: "Wallets", level: 1 }),
+  ).toBeVisible();
+  await expect(wallets).toHaveAttribute("aria-current", "page");
+  await expect(home).not.toHaveAttribute("aria-current");
 
   if (isDesktop(page)) {
     const header = page.getByRole("banner");
@@ -45,7 +45,7 @@ test("the tab bar navigates on phone and the header from 640px", {
     await expect(
       nav.getByRole("link", { name: "Transactions", exact: true }),
     ).toHaveAttribute("aria-current", "page");
-    await expect(home).not.toHaveAttribute("aria-current");
+    await expect(wallets).not.toHaveAttribute("aria-current");
     await nav.getByRole("link", { name: "New", exact: true }).click();
   }
 

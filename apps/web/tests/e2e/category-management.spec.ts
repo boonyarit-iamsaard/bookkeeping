@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { z } from "zod";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
+import { isDesktop } from "./helpers/viewport";
 
 test.setTimeout(120_000);
 const ROUND_TRIP = { timeout: 20_000 };
@@ -89,8 +90,14 @@ test("management preserves tree rules, moves entries, and creates categories", a
   await expect(rows.nth(1)).toHaveText(/Food & Drink/);
   await expect(rows.nth(2)).toHaveText(/Groceries.*1 entry/);
 
-  await rows.nth(1).click();
   const sheet = page.getByRole("dialog", { name: "Edit category" });
+  // The editor is a dialog: Escape closes it and focus returns to its row.
+  await rows.nth(1).click();
+  await expect(sheet).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  await expect(rows.nth(1)).toBeFocused();
+  await rows.nth(1).click();
   await expect(sheet.getByLabel("Name")).toHaveValue("Food & Drink");
   await expect(sheet.getByLabel("Name")).toBeFocused();
   await expect(sheet).toContainText(
@@ -154,4 +161,42 @@ test("management preserves tree rules, moves entries, and creates categories", a
   await expect(create).toBeHidden(ROUND_TRIP);
   await expect(page.getByRole("status")).toHaveText("Royalties created.");
   await expect(income.getByRole("button", { name: "Royalties" })).toBeVisible();
+});
+
+test("the category editor is a bottom sheet on phone and a centred dialog from 640px", {
+  tag: "@matrix",
+}, async ({ page }) => {
+  await signUpFreshUser(page);
+  await page.goto("/categories");
+  await page
+    .getByRole("list", { name: "Expense categories" })
+    .getByRole("button")
+    .first()
+    .click();
+  const sheet = page.getByRole("dialog", { name: "Edit category" });
+  await expect(sheet.getByLabel("Name")).toHaveValue("Uncategorized");
+  const viewport = page.viewportSize();
+  if (!viewport) {
+    throw new Error("The browser test has no viewport");
+  }
+  // The panel slides in on phone; poll until it has settled.
+  await expect
+    .poll(async () => {
+      const box = await sheet.boundingBox();
+      if (!box) {
+        return "missing";
+      }
+      const above = Math.round(box.y);
+      const below = Math.round(viewport.height - (box.y + box.height));
+      const fullWidth = Math.round(box.width) === viewport.width;
+      if (isDesktop(page)) {
+        return above > 0 && Math.abs(above - below) <= 1 && !fullWidth
+          ? "centred dialog"
+          : `above ${above}, below ${below}`;
+      }
+      return below === 0 && fullWidth
+        ? "bottom sheet"
+        : `below ${below}, width ${box.width}`;
+    })
+    .toBe(isDesktop(page) ? "centred dialog" : "bottom sheet");
 });

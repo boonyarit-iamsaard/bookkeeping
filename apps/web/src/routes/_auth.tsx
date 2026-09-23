@@ -4,7 +4,7 @@ import { readSession } from "@/core/auth/session";
 export const Route = createFileRoute("/_auth")({
   beforeLoad: async ({ context }) => {
     if (await readSession(context.queryClient)) {
-      throw redirect({ to: "/wallets" });
+      throw redirect({ to: "/" });
     }
   },
   component: AuthLayout,

@@ -1,11 +1,12 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { LogOut, Tags } from "lucide-react";
-import { useState } from "react";
-import { authClient } from "@/core/auth/client";
-import { resetSessionCache } from "@/core/auth/session";
+import {
+  AccountDisc,
+  accountLabel,
+} from "@/features/auth/components/account-disc";
+import { useSignOut } from "@/features/auth/hooks/use-sign-out";
 import { Button } from "@/shared/components/ui/button";
 import {
   DropdownMenu,
@@ -22,46 +23,23 @@ interface AccountMenuProps {
 }
 
 /**
- * The account control: who is signed in, the categories they file under,
- * and the way out. The trigger is
- * the initial disc alone, so the header keeps room for its destinations and
- * New transaction; the menu names the full email, so signing out still says
- * which account it ends.
+ * The desktop account control: who is signed in, the categories they file
+ * under, and the way out. The trigger is the initial disc alone, so the
+ * header keeps room for its destinations and New transaction; the menu names
+ * the full email, so signing out still says which account it ends.
  */
 export function AccountMenu({ email }: Readonly<AccountMenuProps>) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [isPending, setIsPending] = useState(false);
-  const initial = email.trim().charAt(0).toUpperCase() || "?";
-
-  async function handleSignOut() {
-    setIsPending(true);
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          resetSessionCache(queryClient);
-          void navigate({ to: "/sign-in" });
-        },
-        onError: () => {
-          setIsPending(false);
-        },
-      },
-    });
-  }
+  const { signOut, isPending } = useSignOut();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         disabled={isPending}
-        aria-label={isPending ? "Signing out…" : `Account: ${email}`}
+        aria-label={isPending ? "Signing out…" : accountLabel(email)}
         render={<Button variant="outline" className="size-9 p-0" />}
       >
-        <span
-          aria-hidden="true"
-          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted font-medium text-foreground text-sm"
-        >
-          {initial}
-        </span>
+        <AccountDisc email={email} className="size-7" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8}>
         <DropdownMenuGroup>
@@ -78,7 +56,7 @@ export function AccountMenu({ email }: Readonly<AccountMenuProps>) {
             <Tags strokeWidth={1.75} />
             Categories
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleSignOut}>
+          <DropdownMenuItem onClick={signOut}>
             <LogOut strokeWidth={1.75} />
             Sign out
           </DropdownMenuItem>

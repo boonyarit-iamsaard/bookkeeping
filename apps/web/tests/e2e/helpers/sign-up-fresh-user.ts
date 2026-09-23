@@ -22,9 +22,9 @@ export async function signUpFreshUser(page: Page): Promise<{ email: string }> {
   await page.getByRole("button", { name: /sign up|create account/i }).click();
   const response = await responsePromise;
   expect(response.ok(), "Fresh-user sign-up should succeed").toBe(true);
-  await page.waitForURL(/\/(dashboard|wallets)/);
+  await page.waitForURL((url) => url.pathname === "/");
   await expect(
-    page.getByRole("heading", { name: "Wallets", exact: true }),
+    page.getByRole("heading", { name: "Home", exact: true }),
   ).toBeVisible();
   return { email };
 }

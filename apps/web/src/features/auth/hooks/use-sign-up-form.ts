@@ -68,7 +68,7 @@ export function useSignUpForm() {
 
       await completeProvisioning();
       resetSessionCache(queryClient);
-      await navigate({ to: "/wallets" });
+      await navigate({ to: "/" });
     },
   });
 
