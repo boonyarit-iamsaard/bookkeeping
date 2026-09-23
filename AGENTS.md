@@ -23,13 +23,12 @@ remain unchanged. `pnpm run ci` is the routine gate and excludes browser tests;
 ### Host commands
 
 When `pnpm run ci:e2e` or Git writes such as `git add`, `git commit`, or branch
-changes need host access, finish independent work first, then request elevated
-execution with `sandbox_permissions: require_escalated` and a justification that
-names the operation. This uses the app's approval flow. If that route is
-unavailable or rejected, give the user one exact command or short command
-sequence to run outside the sandbox; do not retry a rejected operation. Verify
-the test outcome or Git state before claiming completion. Follow the browser
-resource limits above for `ci:e2e`.
+changes must run outside the agent's sandbox, finish independent work first and
+request host execution through the current harness's supported approval flow.
+Name the operation and explain why it needs host access. If the harness has no
+such flow or the request is rejected, give the user one exact command or short
+command sequence to run on the host. Verify the test outcome or Git state before
+claiming completion. Follow the browser resource limits above for `ci:e2e`.
 
 ### Code conventions
 
