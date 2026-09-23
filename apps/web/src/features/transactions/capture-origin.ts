@@ -15,65 +15,31 @@ export interface CaptureOrigin {
 
 const searchValue = z.string().optional().catch(undefined);
 
-/** Search parameters accepted by the new-entry route. */
+/** Search parameters accepted by the capture route. */
 export const captureSearchSchema = z.object({
   origin: searchValue,
   wallet: searchValue,
 });
 
-/** Builds capture link search from the screen's path, search, and optional wallet. */
-export function captureSearchForLocation({
-  pathname,
-  searchStr,
-}: Readonly<CaptureLocation>): CaptureLinkSearch {
-  const walletId = walletIdFromPathname(pathname);
-  return {
-    origin: `${pathname}${searchStr}`,
-    ...(walletId ? { wallet: walletId } : {}),
-  };
-}
-
-/** Accepts only same-app absolute paths and preserves their query string. */
-export function resolveCaptureOrigin(origin?: string): CaptureOrigin {
-  if (
-    !origin?.startsWith("/") ||
-    origin.startsWith("//") ||
-    origin.includes("\\")
-  ) {
-    return homeCaptureOrigin();
-  }
-
-  try {
-    const url = new URL(origin, INTERNAL_ORIGIN);
-    if (url.origin !== INTERNAL_ORIGIN) {
-      return homeCaptureOrigin();
-    }
-    return { pathname: url.pathname, search: url.search };
-  } catch {
-    return homeCaptureOrigin();
-  }
-}
-
-/** Builds the return link for Cancel, dropping any earlier arrival marker. */
-export function captureOriginHref(origin: Readonly<CaptureOrigin>): string {
-  const url = urlForCaptureOrigin(origin);
-  url.searchParams.delete("created");
-  return `${url.pathname}${url.search}`;
-}
-
-/** Builds a return link with the newly created transaction marked for its list. */
-export function captureReturnHref(
-  origin: Readonly<CaptureOrigin>,
-  transactionId: string,
-): string {
-  const url = urlForCaptureOrigin(origin);
-  resetHistoryCursor(url);
-  url.searchParams.set("created", transactionId);
-  return `${url.pathname}${url.search}`;
+function pathWithSearch({ pathname, search }: Readonly<CaptureOrigin>): string {
+  return `${pathname}${search}`;
 }
 
 function urlForCaptureOrigin(origin: Readonly<CaptureOrigin>): URL {
-  return new URL(`${origin.pathname}${origin.search}`, INTERNAL_ORIGIN);
+  return new URL(pathWithSearch(origin), INTERNAL_ORIGIN);
+}
+
+function homeCaptureOrigin(): CaptureOrigin {
+  return { pathname: "/", search: "" };
+}
+
+function isCapturePathname(pathname: string): boolean {
+  return /^\/transactions\/new\/?$/.test(pathname);
+}
+
+function walletIdFromPathname(pathname: string): string | undefined {
+  const walletId = /^\/wallets\/([^/]+)\/?$/.exec(pathname)?.[1];
+  return walletId === "new" ? undefined : walletId;
 }
 
 function resetHistoryCursor(url: URL): void {
@@ -84,10 +50,72 @@ function resetHistoryCursor(url: URL): void {
   }
 }
 
-function walletIdFromPathname(pathname: string): string | undefined {
-  return /^\/wallets\/([^/]+)\/?$/.exec(pathname)?.[1];
+function captureLinkSearch(
+  origin: string,
+  wallet: string | undefined,
+): CaptureLinkSearch {
+  return wallet ? { origin, wallet } : { origin };
 }
 
-function homeCaptureOrigin(): CaptureOrigin {
-  return { pathname: "/", search: "" };
+/** Accepts only same-app absolute paths other than capture, keeping their query string. */
+export function parseCaptureOrigin(origin?: string): CaptureOrigin {
+  if (
+    !origin?.startsWith("/") ||
+    origin.startsWith("//") ||
+    origin.includes("\\")
+  ) {
+    return homeCaptureOrigin();
+  }
+
+  try {
+    const url = new URL(origin, INTERNAL_ORIGIN);
+    if (url.origin !== INTERNAL_ORIGIN || isCapturePathname(url.pathname)) {
+      return homeCaptureOrigin();
+    }
+    return { pathname: url.pathname, search: url.search };
+  } catch {
+    return homeCaptureOrigin();
+  }
+}
+
+/**
+ * Builds capture link search from the screen's path, search, and optional
+ * wallet. On capture itself the link keeps capture's own origin and wallet.
+ */
+export function captureSearchForLocation({
+  pathname,
+  searchStr,
+}: Readonly<CaptureLocation>): CaptureLinkSearch {
+  if (isCapturePathname(pathname)) {
+    const search = captureSearchSchema.parse(
+      Object.fromEntries(new URLSearchParams(searchStr)),
+    );
+    return captureLinkSearch(
+      pathWithSearch(parseCaptureOrigin(search.origin)),
+      search.wallet,
+    );
+  }
+
+  return captureLinkSearch(
+    pathWithSearch({ pathname, search: searchStr }),
+    walletIdFromPathname(pathname),
+  );
+}
+
+/** Builds the return link for Cancel, dropping any earlier arrival marker. */
+export function captureOriginHref(origin: Readonly<CaptureOrigin>): string {
+  const url = urlForCaptureOrigin(origin);
+  url.searchParams.delete("created");
+  return pathWithSearch(url);
+}
+
+/** Builds a return link with the newly created transaction marked for its list. */
+export function captureReturnHref(
+  origin: Readonly<CaptureOrigin>,
+  transactionId: string,
+): string {
+  const url = urlForCaptureOrigin(origin);
+  resetHistoryCursor(url);
+  url.searchParams.set("created", transactionId);
+  return pathWithSearch(url);
 }

@@ -12,7 +12,7 @@ import { TitleBar } from "@/core/shell/title-bar";
 import {
   captureOriginHref,
   captureSearchSchema,
-  resolveCaptureOrigin,
+  parseCaptureOrigin,
 } from "@/features/transactions/capture-origin";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import {
@@ -47,7 +47,7 @@ function NewTransactionPage() {
     throw new Error("The transaction entry queries returned no data");
   }
   const wallets = toWalletOptions(walletCollection.items);
-  const captureOrigin = resolveCaptureOrigin(search.origin);
+  const captureOrigin = parseCaptureOrigin(search.origin);
   const returnHref = captureOriginHref(captureOrigin);
   const defaultWalletId = resolveDefaultWalletId({
     requestedWalletId: search.wallet,
