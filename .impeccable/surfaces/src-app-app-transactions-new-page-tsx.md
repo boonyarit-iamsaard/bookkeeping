@@ -1,12 +1,12 @@
 ---
 version: 1
 slug: "src-app-app-transactions-new-page-tsx"
-primary_target: "src/app/(app)/transactions/new/page.tsx"
+primary_target: "src/routes/_app/transactions/new.tsx"
 related_targets:
-  - "src/app/(app)/transactions/page.tsx"
-  - "src/app/(app)/transactions/[id]/page.tsx"
-  - "src/app/(app)/transactions/[id]/edit/page.tsx"
-  - "src/app/(app)/transactions/[id]/refund/page.tsx"
+  - "src/routes/_app/transactions/index.tsx"
+  - "src/routes/_app/transactions/$transactionId.tsx"
+  - "src/routes/_app/transactions/$transactionId_.edit.tsx"
+  - "src/routes/_app/transactions/$transactionId_.refund.tsx"
 ---
 
 # Surface brief: transactions (create, edit, list, detail)

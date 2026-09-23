@@ -1,5 +1,11 @@
 # API parity inventory
 
+> Closed 2026-09-21. This is a historical record: it proved the Hono API
+> covered the former Next.js adapter before the SPA client replaced it
+> ([ADR 0006](adr/0006-vite-tanstack-router-spa-client.md)). The flow names
+> below refer to that removed app. The API's current contract is its
+> generated OpenAPI document.
+
 Every user-visible backend behavior the former Next.js adapter offered, and the
 Hono operation that covers it. This is the closing audit for the Hono backend
 and shared-package extraction: a flow is either mapped to a tested HTTP
@@ -94,9 +100,10 @@ These are decided, not overlooked.
 
 - **Category removal reports no reassignment summary.** `deleteCategory`
   answers `204` with no body ([ticket 22](../.scratch/hono-backend/issues/22-remove-categories-over-http.md)).
-  The Next.js page's "N entries moved to X" message comes from the application
-  result it already holds; an HTTP client re-reads the tree and its usage. A
-  removal-outcome representation needs a real client asking for one.
+  The Next.js page built its "N entries moved to X" message from the
+  application result it held; the SPA builds the same message from the usage
+  it read before removing. A removal-outcome representation needs a real
+  client asking for one.
 - **Transaction change history stays private.** `listTransactionChanges` backs
   atomicity and concurrency tests, not a user-facing feature, so the spec keeps
   it off the API.
@@ -104,11 +111,12 @@ These are decided, not overlooked.
   catalog and its search, form schemas, and money formatting are client
   concerns; the API publishes exact semantic values and lets each client
   render them.
-- **Next.js cache invalidation has no API surface.** `revalidatePath` is how
-  the temporary adapter refreshes its own rendered pages.
-- **The API paginates where Next.js does not.** `listTransactions` returns
-  opaque cursors from its first version; the Next.js history page reads an
-  unpaginated list. The API is a superset here, not a gap.
+- **Next.js cache invalidation had no API surface.** `revalidatePath` was how
+  the adapter refreshed its own rendered pages; the SPA refreshes its cached
+  reads after each write on its own.
+- **The API paginated where Next.js did not.** `listTransactions` returns
+  opaque cursors from its first version; the Next.js history page read an
+  unpaginated list. The SPA history pages through those cursors.
 - **Wallet and category collections stay unpaginated.** Both are small and
   bounded by one owner's own records.
 

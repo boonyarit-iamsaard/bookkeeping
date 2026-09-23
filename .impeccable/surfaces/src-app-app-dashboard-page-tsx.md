@@ -1,10 +1,10 @@
 ---
 version: 1
 slug: "src-app-app-dashboard-page-tsx"
-primary_target: "src/app/(app)/dashboard/page.tsx"
+primary_target: "src/routes/_app/dashboard.tsx"
 related_targets:
-  - "src/app/(app)/transactions/page.tsx"
-  - "src/features/transactions/components/financial-report.tsx"
+  - "src/routes/_app/transactions/index.tsx"
+  - "src/features/dashboard/components/financial-report.tsx"
   - "src/features/transactions/components/history-filters.tsx"
 ---
 

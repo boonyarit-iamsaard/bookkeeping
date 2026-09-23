@@ -86,8 +86,8 @@ recurring transactions, attachments, split categories, reconciliation,
 multi-currency, sharing, Thai translation, export/import.
 
 Stack: Hono on Node.js as the sole backend (`docs/adr/0003`), a Vite +
-TanStack Router single-page web client installable as a PWA replacing the
-Next.js app (`docs/adr/0006`), React, TypeScript, PostgreSQL with Drizzle,
+TanStack Router single-page web client installable as a PWA, which replaced
+the Next.js app (`docs/adr/0006`), React, TypeScript, PostgreSQL with Drizzle,
 Better Auth (email/password), Tailwind CSS v4, shadcn with Base UI, Lucide
 icons, Inter and JetBrains Mono. React Native and native wrappers are not
 planned.

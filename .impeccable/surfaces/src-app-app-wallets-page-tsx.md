@@ -1,7 +1,7 @@
 ---
 version: 1
 slug: "src-app-app-wallets-page-tsx"
-primary_target: "src/app/(app)/wallets/page.tsx"
+primary_target: "src/routes/_app/wallets/index.tsx"
 related_targets: []
 ---
 

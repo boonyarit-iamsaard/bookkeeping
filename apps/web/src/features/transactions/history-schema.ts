@@ -27,7 +27,7 @@ export type TransactionFilters = z.infer<typeof transactionFiltersSchema>;
 /**
  * Empty GET controls mean all records. Repeated parameters stay invalid. The
  * router reads `?type=7` as a number; the control still shows that text, so
- * the filter validation can reject it as the legacy page did.
+ * the filter validation rejects it rather than filtering by it.
  */
 const searchValue = z.preprocess((value) => {
   if (typeof value === "string") {

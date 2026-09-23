@@ -44,5 +44,7 @@ it makes Hono the sole application backend in practice, not only in intent.
 
 ## Outcome
 
-Completed on 2026-09-21. The SPA replaced the Next.js adapter, and the legacy
-app, its Better Auth mount, and frozen browser suite were removed.
+On 2026-09-21 the SPA replaced the Next.js adapter, and the legacy app, its
+Better Auth mount, and frozen browser suite were removed. The final
+three-project browser gate did not yet pass cleanly: an intermittent WebKit
+failure is tracked in `.scratch/spa-client/issues/14-webkit-unload-rejects-intent-preload-fetch.md`.

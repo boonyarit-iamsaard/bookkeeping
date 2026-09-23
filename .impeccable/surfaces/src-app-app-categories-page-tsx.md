@@ -1,7 +1,7 @@
 ---
 version: 1
 slug: "src-app-app-categories-page-tsx"
-primary_target: "src/app/(app)/categories/page.tsx"
+primary_target: "src/routes/_app/categories/index.tsx"
 related_targets: ["src/features/categories/components/category-management.tsx"]
 ---
 

@@ -1,8 +1,10 @@
 # Bookkeeping
 
-A bookkeeping application built with Next.js App Router, TypeScript, PostgreSQL,
-and Drizzle ORM. Email and password authentication uses Better Auth. Shared UI
-uses Tailwind CSS and shadcn components with Base UI.
+A phone-first bookkeeping application: a Vite and TanStack Router single-page
+client installable as a PWA, calling a Hono API on Node.js, with TypeScript,
+PostgreSQL, and Drizzle ORM. Email and password authentication uses Better
+Auth, mounted in the API. Shared UI uses Tailwind CSS and shadcn components
+with Base UI.
 
 ## Local setup
 
@@ -11,17 +13,16 @@ before starting the database.
 
 ```bash
 pnpm install
-cp apps/legacy-web/.env.example apps/legacy-web/.env
+cp apps/web/.env.example apps/web/.env
 cp apps/server/.env.example apps/server/.env
 cp packages/database/.env.example packages/database/.env
 cp .env.local.example .env.local
 ```
 
-Set `BETTER_AUTH_SECRET` to the same random secret of at least 32 characters
-(generate one with `openssl rand -base64 32`) in both `apps/legacy-web/.env` and
-`apps/server/.env`: both apps mount Better Auth over one user store, and each
-mount issues its own host-only session cookie (`better-auth.session_token`
-for the web app, `bookkeeping-api.session_token` for the API). Then start the
+Set `BETTER_AUTH_SECRET` in `apps/server/.env` to a random secret of at least
+32 characters (generate one with `openssl rand -base64 32`). Set
+`DATABASE_URL` in `apps/server/.env` and `packages/database/.env` to match the
+PostgreSQL credentials in the root `.env.local`, which Docker Compose reads. Then start the
 database and both apps:
 
 ```bash
@@ -30,63 +31,64 @@ pnpm db:push
 pnpm dev
 ```
 
-For an existing checkout, keep your existing `apps/legacy-web/.env`. Set `DATABASE_URL`
-in `apps/legacy-web/.env`, `apps/server/.env`, and `packages/database/.env` to match
-the PostgreSQL credentials in the root `.env.local` Compose file.
+`pnpm dev` runs the client and the API together through Turborepo and stops
+them when you interrupt it; `pnpm dev:web` and `pnpm dev:server` run one alone.
 
-`pnpm dev` runs every app's `dev` task together through Turborepo and stops
-them when you interrupt it. While the SPA port is in progress
-([ADR 0006](docs/adr/0006-vite-tanstack-router-spa-client.md)), the Next.js
-app in `apps/legacy-web` and the Vite client in `apps/web` both claim port
-4000, so run one of them at a time beside the API: `pnpm dev:server` with
-`pnpm dev:legacy-web` or `pnpm dev:web`. The Vite client serves only the app
-shell until its routes are ported; its browser suite runs with
-`pnpm --filter @bookkeeping/web test:e2e` and boots a test database and the
-Hono API itself.
-
-Open [localhost:4000](http://localhost:4000). The home page is
-`apps/legacy-web/src/app/page.tsx` and redirects to `/dashboard`. Without a session, the dashboard
-redirects to `/sign-in`. Create an account at `/sign-up`. The API answers at
+Open [localhost:4000](http://localhost:4000). The home page redirects to
+`/wallets`; without a session, every app page redirects to `/sign-in`. Create
+an account at `/sign-up`. The API answers at
 [localhost:5000/health](http://localhost:5000/health); see
 [Local origins](#local-origins) to change either address.
 
-Global styles are in `apps/legacy-web/src/styles/globals.css`. Fonts are Inter
-and JetBrains Mono, configured in `apps/legacy-web/src/styles/fonts.ts`.
+Global styles are in `apps/web/src/styles/globals.css`. Fonts are Inter and
+JetBrains Mono, declared in `apps/web/src/styles/fonts.css`.
 
 ## Project structure
 
-The repo is a pnpm workspace with Turborepo; `apps/legacy-web` is the Next.js app and
-`apps/server` is the standalone Hono backend being introduced under
-[ADR 0003](docs/adr/0003-hono-application-backend.md). Further services will
-live beside them as further `apps/*` (see
-[ADR 0002](docs/adr/0002-turborepo-monorepo.md)). Code both apps need lives in
+The repo is a pnpm workspace with Turborepo (see
+[ADR 0002](docs/adr/0002-turborepo-monorepo.md)). `apps/web` is the
+single-page client ([ADR 0006](docs/adr/0006-vite-tanstack-router-spa-client.md))
+and `apps/server` is the Hono API, the sole application backend
+([ADR 0003](docs/adr/0003-hono-application-backend.md)). Backend code lives in
 private `packages/*` (see
 [ADR 0004](docs/adr/0004-shared-backend-package-graph.md)).
 
 ```text
-apps/legacy-web/
+apps/web/
+  index.html              # The app shell Vite serves and builds
+  public/                 # PWA icons and the offline fallback page
   src/
-    app/                  # Route entry points, layouts, and route handlers
+    routes/               # TanStack Router file routes; _auth and _app are the signed-out and guarded layouts
     core/
-      auth/               # Next.js mount of @bookkeeping/auth, browser client, and session helper
-      env/config.ts       # T3 Env schemas and runtime validation
-      database/client.ts  # Server-only Drizzle client over @bookkeeping/database
+      api/                # Typed API client generated from the server's OpenAPI document, read queries, write helper
+      auth/               # Better Auth browser client against the API and the session read
+      env/config.ts       # Client environment schema (VITE_API_ORIGIN)
+      query/              # TanStack Query client and cached-read refresh after writes
+      router/             # Router construction
+      shell/              # App header and navigation
     features/
-      auth/               # Sign-in/sign-up forms, hooks, and sign-out button
-      categories/         # Category vocabulary, behavior, and picker forms
-      transactions/       # Transaction vocabulary, behavior, and entry form
-      wallets/            # Wallet operations, server actions, form, and list
+      auth/               # Sign-in/sign-up forms, provisioning retry, and sign-out
+      categories/         # Category labels, forms, and management
+      dashboard/          # Balances and monthly summary for chosen dates
+      transactions/       # Entry, history, detail, correction, transfer, and refund
+      wallets/            # Wallet labels, forms, list, and detail
     shared/
       components/ui/      # Reusable UI primitives
       components/form/    # Reusable form feedback
       helpers/            # Helpers independent of business features
     styles/               # Global styles and fonts
-    testing/              # Fixtures shared by the app's own Vitest suites
+  scripts/generate-api.ts # Regenerates the committed OpenAPI document and client types
   tests/
-    e2e/                  # Playwright browser tests (the frozen compatibility suite)
+    e2e/                  # Playwright browser tests and their runner
 ```
 
-The server app mirrors the same layout:
+`pnpm --filter @bookkeeping/web generate:api` rewrites
+`src/core/api/openapi.json` and `openapi.gen.ts` from the server's app factory
+without starting a server; the client build fails when they no longer match.
+Run it after changing an API route. `pnpm --filter @bookkeeping/web
+generate:icons` regenerates the PWA icons from `public/icon.svg`.
+
+The server app follows the same `core` and `features` split:
 
 ```text
 apps/server/
@@ -107,9 +109,9 @@ apps/server/
   scripts/build.ts        # esbuild bundle of the entrypoint and workspace packages
 ```
 
-[docs/api-parity.md](docs/api-parity.md) maps every user-visible Next.js flow
-to the Hono operation that covers it, and records the differences that are
-deliberate.
+[docs/api-parity.md](docs/api-parity.md) is the closing audit that mapped
+every user-visible flow of the former Next.js app to the Hono operation that
+covers it, with the differences that are deliberate.
 
 Better Auth answers under `/api/auth/*` on the API origin; every route below
 `/v1` requires the API session cookie and otherwise returns an
@@ -182,18 +184,16 @@ remain independent of HTTP response shapes.
 
 `@bookkeeping/auth` owns the framework-independent Better Auth configuration:
 the Drizzle adapter over the database package's auth tables (with transactions
-enabled for Better Auth's own multi-write flows), the session contract both
-app adapters derive owner ids from, and the fresh-user provisioning hook. That
+enabled for Better Auth's own multi-write flows), the session contract the
+server derives owner ids from, and the fresh-user provisioning hook. That
 hook runs `initializeDefaultCategories` after a sign-up commits; because it
 runs post-commit, a failure is logged rather than failing the sign-up, and the
-explicit retry (`POST /v1/categories/defaults` in Hono, a server action after
-sign-in/sign-up in Next.js) completes the set. That POST is an idempotent
+explicit retry `POST /v1/categories/defaults`, which the client sends after
+sign-in and sign-up, completes the set. That POST is an idempotent
 action rather than resource creation: it needs no `Idempotency-Key` and
 answers `200` with the trees it seeded, not `201` with a `Location`. Reads
-never provision. Each app
-passes its validated secret and base URL plus any framework plugin, so Next.js
-and Hono mount one configuration against one user store while each origin
-keeps its own host-only cookie:
+never provision. The server passes its validated secret and base URL and
+mounts the configuration; the API origin keeps its own host-only cookie:
 
 ```text
 packages/auth/
@@ -211,74 +211,78 @@ described.
 
 Keep routes focused on composing features. Group business logic, vocabulary,
 and UI by feature. Promote code to `shared/` only when it is independent of a
-particular feature. Database schemas import pure feature vocabulary from
-`*.types.ts`; those modules have no database, server, or UI dependencies.
-See [code conventions](docs/code-conventions.md) for the authoritative structure,
-filename and symbol naming rules, dependency boundaries, and enforcement.
+particular feature. See [code conventions](docs/code-conventions.md) for the
+authoritative structure, filename and symbol naming rules, dependency
+boundaries, cached reads, and enforcement.
 
-Server-side feature code can import `db` from `@/core/database/client`, the
-web app's one connection, which it opens by passing its validated
-`DATABASE_URL` to `createDatabase` from `@bookkeeping/database/connection`.
-Keep that client out of Client Components. Feature operations take a
-`Database` parameter and import tables from the `@bookkeeping/database`
-feature subpaths, so tests can run them inside a rolled-back transaction. The
-Drizzle CLI reads the schema through `packages/database/drizzle.config.ts`.
+Application operations take a `Database` parameter and import tables from the
+`@bookkeeping/database` feature subpaths, so tests can run them inside a
+rolled-back transaction. The server opens its one connection by passing its
+validated `DATABASE_URL` to `createDatabase` from
+`@bookkeeping/database/connection`. The Drizzle CLI reads the schema through
+`packages/database/drizzle.config.ts`.
 
 ## Environment configuration
 
-Set these values in `apps/legacy-web/.env` for local development or inject them into
-the server environment when deploying:
+Each app validates its own environment with Zod.
 
-| Variable             | Purpose                                       |
-| -------------------- | --------------------------------------------- |
-| `BETTER_AUTH_SECRET` | Auth secret of at least 32 characters         |
-| `BETTER_AUTH_URL`    | App base URL, locally `http://localhost:4000` |
-| `DATABASE_URL`       | PostgreSQL connection URL                     |
+`apps/web/.env` (copy `apps/web/.env.example`):
 
-T3 Env validates these values when `apps/legacy-web/src/core/env/config.ts` loads,
-including during database and auth initialization. The Drizzle CLI does not
-read this file; it reads `DATABASE_URL` from `packages/database/.env` (copy
-`packages/database/.env.example`) and validates it in `drizzle.config.ts`.
+| Variable          | Purpose                                         |
+| ----------------- | ----------------------------------------------- |
+| `VITE_API_ORIGIN` | The API origin, locally `http://localhost:5000` |
+
+Vite inlines `VITE_` variables into the bundle, so the API origin is fixed at
+build time. `apps/web/src/core/env/config.ts` validates it when the client
+loads.
+
+`apps/server/.env` (copy `apps/server/.env.example`), or the deployed server
+environment:
+
+| Variable             | Purpose                                                              |
+| -------------------- | -------------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET` | Auth secret of at least 32 characters                                |
+| `BETTER_AUTH_URL`    | The API origin, locally `http://localhost:5000`                      |
+| `CLIENT_ORIGINS`     | Comma-separated client origins allowed to send credentialed requests |
+| `DATABASE_URL`       | PostgreSQL connection URL                                            |
+| `HOST`, `PORT`       | Optional; default `0.0.0.0` and `5000`                               |
+| `AUTH_RATE_LIMIT`    | Optional `on` or `off`; unset throttles only in production           |
+
+`apps/server/src/core/env/config.ts` validates these at startup.
+`pnpm dev:server` loads `apps/server/.env` when it exists;
+`pnpm --filter @bookkeeping/server start` runs the compiled production output
+with the environment the caller injects. The Drizzle CLI reads `DATABASE_URL`
+from `packages/database/.env` (copy `packages/database/.env.example`) and
+validates it in `drizzle.config.ts`.
 
 The local Docker Compose infrastructure reads the root `.env.local` (see
 `.env.local.example`); its `POSTGRES_PASSWORD` must match the password embedded
 in `DATABASE_URL`.
 
-`pnpm build` builds both apps and every package through Turborepo: the Next.js
-production build and the server's esbuild bundle. The web build sets
-`SKIP_ENV_VALIDATION=1` only for the build process, allowing the app to build
-without runtime secrets or a running database. Do not set that flag in the
-deployed server environment. `pnpm start` builds if needed and then runs both
-production outputs with runtime validation enabled; `pnpm start:legacy-web` and
+`pnpm build` builds both apps and every package through Turborepo: the Vite
+client build (which first checks the generated API client) and the server's
+esbuild bundle. `pnpm start` builds if needed and then serves both production
+outputs, the client through `vite preview`; `pnpm start:web` and
 `pnpm start:server` run one app alone.
-
-The Hono server owns its own environment. `apps/server/src/core/env/config.ts`
-validates optional `PORT` (default `5000`) and `HOST` (default `0.0.0.0`)
-values from the server environment with Zod at startup and ignores the web
-app's variables. `pnpm dev:server` loads `apps/server/.env` when it exists
-(copy `apps/server/.env.example`); `pnpm --filter @bookkeeping/server start`
-runs the compiled production output with the environment the caller injects.
 
 ### Local origins
 
 Each app owns its local origin:
 
-| App                       | Default origin          | Configured by                                  |
-| ------------------------- | ----------------------- | ---------------------------------------------- |
-| Next.js UI (`legacy-web`) | `http://localhost:4000` | `-p 4000` in the web `dev` and `start` scripts |
-| Hono API (`server`)       | `http://localhost:5000` | `HOST` and `PORT` in `apps/server/.env`        |
+| App                 | Default origin          | Configured by                                               |
+| ------------------- | ----------------------- | ----------------------------------------------------------- |
+| SPA client (`web`)  | `http://localhost:4000` | `--port 4000 --strictPort` in its `dev` and `start` scripts |
+| Hono API (`server`) | `http://localhost:5000` | `HOST` and `PORT` in `apps/server/.env`                     |
 
-Next.js reads its port from the CLI, not from `.env`, so the web scripts pass
-`-p 4000` explicitly; change it with `pnpm dev:legacy-web -- -p 4001` and update
-`BETTER_AUTH_URL` to match. The web `start` script names port 4000 through
-dotenvx, which leaves a `PORT` the environment already sets in place, so a
-deployment platform that injects `PORT` still wins. The server reads `HOST`
-and `PORT` from its environment; `pnpm dev:server` loads `apps/server/.env`,
-and the `dev` task passes shell `HOST` and `PORT` through Turborepo, so
-`PORT=5001 pnpm dev:server` also works. Both ports avoid the Next.js default
-of `3000` so a stray `next dev` elsewhere does not collide with either app.
+Vite reads the client port from the CLI flags in `apps/web/package.json`. The
+server reads `HOST` and `PORT` from its
+environment; `pnpm dev:server` loads `apps/server/.env`, and the `dev` task
+passes shell `HOST` and `PORT` through Turborepo, so
+`PORT=5001 pnpm dev:server` also works. Both ports avoid the common `3000`
+default so a stray dev server elsewhere does not collide with either app.
 When either origin changes, update the server's `BETTER_AUTH_URL` (the API
-origin) and `CLIENT_ORIGINS` (the web origin) to match.
+origin), its `CLIENT_ORIGINS` (the client origin), and the client's
+`VITE_API_ORIGIN` to match.
 
 ## Database commands
 
@@ -299,7 +303,7 @@ requires `db:push` until the user explicitly authorizes switching to migrations.
 PostgreSQL stores its initialized credentials in the persistent data volume.
 Changing `POSTGRES_PASSWORD` in `.env.local` does not change the password of an
 already initialized database; update the existing database password, `.env.local`,
-and `DATABASE_URL` in `apps/legacy-web/.env` and `packages/database/.env` together when
+and `DATABASE_URL` in `apps/server/.env` and `packages/database/.env` together when
 changing credentials.
 
 ## Tests
@@ -307,19 +311,14 @@ changing credentials.
 ```bash
 pnpm test          # Vitest: unit and PostgreSQL integration tests, both apps and every package
 pnpm test:watch    # The same suites in watch mode, per workspace, through Turborepo
-pnpm test:e2e      # Playwright: browser flows against an isolated app/database
+pnpm test:e2e      # Playwright: SPA browser flows against an isolated API and database
 pnpm run ci        # Routine static, type, unit, integration, and contract checks, then both app builds
-pnpm run ci:e2e    # Explicit production-build browser compatibility gate
+pnpm run ci:e2e    # Explicit production-build browser gate
 ```
 
-Tests load `apps/legacy-web/.env` in every environment. GitHub Actions copies the
-checked-in `apps/legacy-web/.env.ci.example` to `apps/legacy-web/.env` before running checks.
-Runtime environment validation
-stays enabled. Testcontainers supplies the database URL, and the browser runner
-overrides the app URL with its actual port.
-
-Unit tests (`*.unit.test.ts`) are colocated with their source modules. Run them
-without Docker using `pnpm --filter @bookkeeping/legacy-web exec vitest run --project unit`.
+Unit tests (`*.unit.test.ts`) are colocated with their source modules and need
+no Docker or `.env` file. Run one workspace's suite with, for example,
+`pnpm --filter @bookkeeping/web test`.
 
 Integration tests (`*.integration.test.ts`) use Testcontainers to start a disposable
 PostgreSQL 18 database on an available port. Docker must be running. The harness,
@@ -327,23 +326,23 @@ owned by `@bookkeeping/database/testing`, applies the current schema with the
 database package's `db:push`, provides its connection URL to test workers, and
 stops the container after the suite. Every test runs inside a
 transaction that is rolled back, except concurrency checks that use committed
-writes isolated by owner. No local development database is used. Run this suite
-alone using `pnpm --filter @bookkeeping/legacy-web exec vitest run --project integration`.
+writes isolated by owner. No local development database is used.
 
-Browser tests live in `apps/legacy-web/tests/e2e/` and `apps/web/tests/e2e/`.
-Install the browsers used by each suite once:
+Browser tests live in `apps/web/tests/e2e/`. Install their browsers once:
 
 ```bash
-pnpm --filter @bookkeeping/legacy-web exec playwright install --with-deps chromium
 pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium webkit
 ```
 
-The browser runner creates its own disposable PostgreSQL database, pushes the
-schema, and starts a fresh app server on an available port. The legacy runner
-uses `pnpm dev` locally and `pnpm start` in CI; the SPA runner uses Vite locally
-and builds a Vite preview in CI. Both wait for server teardown before stopping
-the database, including when interrupted. Server errors remain visible; enable
-server stdout and startup diagnostics with `DEBUG=pw:webserver pnpm test:e2e`.
+The runner (`apps/web/tests/e2e/run.ts`) creates its own disposable PostgreSQL
+database, pushes the schema, and starts the Hono API from source and the
+client on available ports with a fresh auth secret. It serves the client with
+Vite locally; under `ci:e2e` it builds a client for `vite preview` with the
+test API origin baked in. It waits for server teardown before stopping the
+database, including when interrupted. Specs run on 360px Chromium; tests tagged
+`@matrix` also run on iPhone WebKit and desktop Chromium. See the
+[test ownership](docs/code-conventions.md#test-ownership) rules and the
+browser test policy in [AGENTS.md](AGENTS.md).
 
 ## Local SonarQube
 
@@ -382,9 +381,10 @@ Open [localhost:9000](http://localhost:9000) and use the admin credentials from
 before running setup. Do not commit or share `.env.sonar`.
 
 The scanner analyzes
-`apps/legacy-web/src/`, `apps/server/src/`, `packages/domain/src/`,
+`apps/web/src/`, `apps/server/src/`, `packages/domain/src/`,
 `packages/database/src/`, `packages/application/src/`, and `packages/auth/src/`
-and classifies colocated Vitest tests and `apps/legacy-web/tests/` as test code. It does
+and classifies colocated Vitest tests and `apps/web/tests/` as test code; it
+skips the generated route tree. It does
 not run tests or generate coverage; coverage reporting is not configured.
 
 `pnpm sonar:stop` stops this stack and retains its database and analysis data.
@@ -419,19 +419,14 @@ pnpm test:e2e
 linting, every workspace type check, the package and app suites (unit,
 PostgreSQL integration, and the Hono contract tests), and then both app builds
 as a separate step, so a production build never runs beside the test suites.
-The explicit `pnpm run ci:e2e` compatibility gate builds the application and
-runs the browser suite against the production server using `next start`; run it
-on its own, never beside another heavy task.
+The explicit `pnpm run ci:e2e` gate builds the client and runs the full
+browser matrix against `vite preview`; run it on its own, never beside another
+heavy task.
 `pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
-caches and parallelizes per-workspace tasks across `apps/legacy-web`, `apps/server`,
+caches and parallelizes per-workspace tasks across `apps/web`, `apps/server`,
 and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
-`pnpm test:e2e` always uses `next dev`; `pnpm run ci:e2e` selects the
-production-build `next start` mode.
 `pnpm check` applies Biome fixes;
-`pnpm format` formats Markdown and YAML files.
-
-`pnpm types:check` generates Next.js route types before running TypeScript, so
-it works from a clean checkout.
+`pnpm format` formats Markdown, YAML, and HTML files.
 
 GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
 `main`. Two jobs run side by side, each installing dependencies with a frozen
@@ -440,17 +435,14 @@ lockfile: one runs `pnpm run ci`, and the other installs Chromium plus WebKit
 The browser runner switches the API's sign-up throttle off
 (`AUTH_RATE_LIMIT=off`) so parallel sign-ups never meet it. Testcontainers
 supplies disposable PostgreSQL databases for both operation and browser tests.
+No job needs a checked-in `.env` file.
 
 To run the workflow locally, install `act`, start Docker, and run:
 
 ```bash
-cp apps/legacy-web/.env.ci.example apps/legacy-web/.env.ci
 act push -j ci
 ```
 
 `.actrc` selects the `catthehacker/ubuntu:act-latest` runner image and
-`linux/amd64` architecture and loads `apps/legacy-web/.env.ci` instead of the local
-development `apps/legacy-web/.env`. Both are ignored by Git; only the templates are
-committed. The workflow copies `apps/legacy-web/.env.ci.example` to `apps/legacy-web/.env`
-inside the runner.
-Testcontainers manages PostgreSQL, so local CI needs Docker access.
+`linux/amd64` architecture. Testcontainers manages PostgreSQL, so local CI
+needs Docker access.
