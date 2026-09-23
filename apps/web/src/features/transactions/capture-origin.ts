@@ -67,7 +67,6 @@ export function captureReturnHref(
   transactionId: string,
 ): string {
   const url = urlForCaptureOrigin(origin);
-  url.searchParams.delete("created");
   resetHistoryCursor(url);
   url.searchParams.set("created", transactionId);
   return `${url.pathname}${url.search}`;
