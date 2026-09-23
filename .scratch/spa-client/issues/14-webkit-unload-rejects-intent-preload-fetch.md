@@ -14,7 +14,7 @@ due to access control checks.
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** done
 
 ## Handoff context (2026-09-22)
 
@@ -113,3 +113,11 @@ fetches can be in flight while a save navigates. Afterward,
 `dashboard.spec.ts --project=phone-webkit --repeat-each=5` passed 15 of 15
 with no page errors, matching the earlier 0/5 focused-loop rate. The race
 window did not measurably widen.
+
+### 2026-09-23: closed
+
+Fixed test-side by `ddbc63c` (move the pointer off the saved row before the
+history navigation). Focused WebKit loop: 15 of 15 with no page errors. The
+full three-project matrix then passed in CI on `9e0ab57`. The app-side option
+(treating unload-time fetch `TypeError`s as benign for real Safari users) was
+not taken; revisit only if it shows up outside tests.

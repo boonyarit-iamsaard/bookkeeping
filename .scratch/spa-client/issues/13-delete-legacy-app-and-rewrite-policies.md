@@ -26,7 +26,7 @@ database migrations; touching `DESIGN.md`.
 - [x] Root `CLAUDE.md`: the top Next.js block and the "Browser test execution policy" section are replaced with a policy for the SPA suite: run the relevant unit, integration, and contract tests by default; run one focused SPA spec on one project when a change touches the browser boundary; full three-project matrix only on explicit request, at a migration checkpoint, or in CI; local resource limits unchanged.
 - [x] `docs/api-parity.md` "What this does not close" no longer lists the SPA migration and states that the Next.js adapter is removed; `docs/code-conventions.md` no longer refers to Next.js routing or Server Actions where it describes the current layout.
 - [x] `docs/adr/0006-vite-tanstack-router-spa-client.md` gains a short "Outcome" note with the completion date.
-- [ ] `pnpm run ci` is green and `pnpm run ci:e2e` passes the full three-project matrix once, run on its own (this ticket is the final parity gate).
+- [x] `pnpm run ci` is green and `pnpm run ci:e2e` passes the full three-project matrix once, run on its own (this ticket is the final parity gate).
 
 **Verify:** `pnpm run ci`; then `pnpm run ci:e2e` alone.
 
@@ -44,3 +44,11 @@ unchanged SPA specs in `apps/web/tests/e2e/dashboard.spec.ts` and
 `apps/web/tests/e2e/transaction-entry.spec.ts`; the flaky runs were in the
 dashboard and refunds specs. This ticket makes no `apps/web` behavior changes,
 so the browser failures remain untickable without expanding scope.
+
+### 2026-09-23: parity gate closed
+
+The last criterion is met by CI on `9e0ab57`: the "CI" job (`pnpm run ci`) and
+the separate "SPA browser suite" job (full phone-chromium, phone-webkit,
+desktop-chromium matrix) both succeeded, as did the two preceding `main`
+runs. The earlier failures were fixed by `bc4f466` and `ddbc63c` (ticket 14).
+CI runs with `retries: 1`, so a first-attempt flake would not fail the job.

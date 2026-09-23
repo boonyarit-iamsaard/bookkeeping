@@ -1,6 +1,6 @@
 # Phone-first PWA client replacing Next.js
 
-Status: confirmed
+Status: done
 
 Design confirmed on 2026-09-20 by grilling. Decision recorded in
 `docs/adr/0006-vite-tanstack-router-spa-client.md`. This supersedes the
