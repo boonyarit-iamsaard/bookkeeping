@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
+import type { CaptureLinkSearch } from "@/core/shell/capture-link-search";
 import type { Destination } from "@/core/shell/destinations";
 import { DESTINATIONS } from "@/core/shell/destinations";
 
@@ -8,6 +9,10 @@ const CENTRE = Math.ceil(DESTINATIONS.length / 2);
 
 interface TabItemProps {
   destination: Destination;
+}
+
+interface TabBarProps {
+  captureSearch: CaptureLinkSearch;
 }
 
 function TabItem({ destination }: Readonly<TabItemProps>) {
@@ -30,7 +35,7 @@ function TabItem({ destination }: Readonly<TabItemProps>) {
  * capture as the centre ＋. Current is Ink and the rest Graphite; the link's
  * own `aria-current` marks it, with no pill, underline or cobalt.
  */
-export function TabBar() {
+export function TabBar({ captureSearch }: Readonly<TabBarProps>) {
   return (
     <nav
       aria-label="Primary"
@@ -44,6 +49,7 @@ export function TabBar() {
           {/* The circle rises above the bar so its word lines up with the others. */}
           <Link
             to="/transactions/new"
+            search={captureSearch}
             className="group flex flex-col items-center justify-end gap-0.5 pb-1.5 font-medium text-muted-foreground text-sm leading-snug outline-none"
           >
             <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground group-focus-visible:ring-[3px] group-focus-visible:ring-ring/50">

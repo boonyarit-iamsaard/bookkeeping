@@ -12,6 +12,8 @@ import type { components } from "@/core/api/openapi.gen";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError } from "@/core/api/write-submission";
 import { refreshAfterWrite } from "@/core/query/refresh-after-write";
+import type { CaptureOrigin } from "@/features/transactions/capture-origin";
+import { captureReturnHref } from "@/features/transactions/capture-origin";
 import type {
   ExpenseRefundLimits,
   LinkedExpenseLimits,
@@ -50,6 +52,8 @@ interface UseTransactionFormOptions {
   expenseRefunds?: ExpenseRefundLimits;
   /** Set when the form corrects an existing transaction instead of recording one. */
   editingId?: string;
+  /** Set only for a new entry that returns to its opening screen. */
+  captureOrigin?: CaptureOrigin;
 }
 
 type CreateTransactionRequest =
@@ -222,6 +226,7 @@ export function useTransactionForm({
   linkedExpense,
   expenseRefunds,
   editingId,
+  captureOrigin,
 }: Readonly<UseTransactionFormOptions>) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -308,10 +313,16 @@ export function useTransactionForm({
       }
 
       await refreshAfterWrite(queryClient);
-      await navigate({
-        to: "/transactions",
-        search: { created: result.value.id },
-      });
+      if (captureOrigin) {
+        await navigate({
+          href: captureReturnHref(captureOrigin, result.value.id),
+        });
+      } else {
+        await navigate({
+          to: "/transactions",
+          search: { created: result.value.id },
+        });
+      }
     },
   });
 

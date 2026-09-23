@@ -14,6 +14,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CreateCategoryOutcome } from "@/features/categories/category-mutations";
 import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
+import type { CaptureOrigin } from "@/features/transactions/capture-origin";
+import { captureOriginHref } from "@/features/transactions/capture-origin";
 import { DeleteTransactionButton } from "@/features/transactions/components/delete-transaction-button";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import type {
@@ -83,7 +85,11 @@ export interface EditableTransaction {
 }
 
 export type TransactionFormMode =
-  | { kind: "create"; defaultWalletId: string }
+  | {
+      kind: "create";
+      defaultWalletId: string;
+      captureOrigin: CaptureOrigin;
+    }
   /** A new refund of one expense; the wallet is unset when the original is archived. */
   | { kind: "refund"; expense: LinkedExpenseView; defaultWalletId: string }
   | { kind: "edit"; transaction: EditableTransaction };
@@ -278,7 +284,7 @@ function cancelHrefFor(mode: Readonly<TransactionFormMode>) {
   if (mode.kind === "refund") {
     return `/transactions/${mode.expense.id}`;
   }
-  return "/transactions";
+  return captureOriginHref(mode.captureOrigin);
 }
 
 function walletLabelFor(type: TransactionType) {
@@ -374,7 +380,7 @@ export function TransactionForm({
         formElement.contains(event.target)
       ) {
         event.preventDefault();
-        void navigate({ to: cancelHref });
+        void navigate({ href: cancelHref });
       }
     }
     document.addEventListener("keydown", cancelOnEscape);
@@ -399,6 +405,7 @@ export function TransactionForm({
     linkedExpense,
     expenseRefunds: editing?.expenseRefunds,
     editingId: editing?.id,
+    captureOrigin: mode.kind === "create" ? mode.captureOrigin : undefined,
   });
   const today = useBangkokToday(initialToday);
   const yesterday = addDays(today, -1);

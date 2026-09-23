@@ -1,6 +1,6 @@
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Wallet as WalletIcon } from "lucide-react";
 import {
   categoryQueries,
@@ -9,12 +9,21 @@ import {
 } from "@/core/api/queries";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
+import {
+  captureOriginHref,
+  captureSearchSchema,
+  resolveCaptureOrigin,
+} from "@/features/transactions/capture-origin";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
-import { toWalletOptions } from "@/features/transactions/wallet-options";
+import {
+  resolveDefaultWalletId,
+  toWalletOptions,
+} from "@/features/transactions/wallet-options";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const Route = createFileRoute("/_app/transactions/new")({
   head: () => ({ meta: [{ title: "New transaction" }] }),
+  validateSearch: captureSearchSchema,
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(walletQueries.list()),
@@ -27,6 +36,8 @@ export const Route = createFileRoute("/_app/transactions/new")({
 });
 
 function NewTransactionPage() {
+  const navigate = useNavigate();
+  const search = Route.useSearch();
   const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
   const { data: categoryCollection } = useSuspenseQuery(categoryQueries.list());
   const { data: entryDefaults } = useSuspenseQuery(
@@ -36,21 +47,37 @@ function NewTransactionPage() {
     throw new Error("The transaction entry queries returned no data");
   }
   const wallets = toWalletOptions(walletCollection.items);
-  const defaultWalletId =
-    wallets.find((wallet) => wallet.id === entryDefaults.lastUsedWalletId)
-      ?.id ?? wallets[0]?.id;
+  const captureOrigin = resolveCaptureOrigin(search.origin);
+  const returnHref = captureOriginHref(captureOrigin);
+  const defaultWalletId = resolveDefaultWalletId({
+    requestedWalletId: search.wallet,
+    lastUsedWalletId: entryDefaults.lastUsedWalletId,
+    activeWallets: wallets,
+  });
 
   return (
     <Page layout="entry">
       <TitleBar
         title="New transaction"
         actions={
-          <Link
-            to="/transactions"
+          <a
+            href={returnHref}
+            onClick={(event) => {
+              if (
+                event.button === 0 &&
+                !event.metaKey &&
+                !event.ctrlKey &&
+                !event.shiftKey &&
+                !event.altKey
+              ) {
+                event.preventDefault();
+                void navigate({ href: returnHref });
+              }
+            }}
             className={buttonVariants({ variant: "ghost" })}
           >
             Cancel
-          </Link>
+          </a>
         }
       />
       {defaultWalletId ? (
@@ -58,7 +85,7 @@ function NewTransactionPage() {
           wallets={wallets}
           categories={categoryCollection.items}
           today={todayIn({ timeZone: APP_TIME_ZONE })}
-          mode={{ kind: "create", defaultWalletId }}
+          mode={{ kind: "create", defaultWalletId, captureOrigin }}
         />
       ) : (
         <NoWallet />

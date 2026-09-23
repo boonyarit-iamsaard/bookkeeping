@@ -13,6 +13,28 @@ interface WalletOptionsOptions {
   retainedWalletIds?: readonly string[];
 }
 
+interface DefaultWalletOptions {
+  requestedWalletId?: string;
+  lastUsedWalletId?: string | null;
+  activeWallets: readonly Pick<WalletOption, "id">[];
+}
+
+/** Chooses the requested, last-used, then first active wallet for a new entry. */
+export function resolveDefaultWalletId({
+  requestedWalletId,
+  lastUsedWalletId,
+  activeWallets,
+}: Readonly<DefaultWalletOptions>): string | undefined {
+  const activeIds = new Set(activeWallets.map((wallet) => wallet.id));
+  if (requestedWalletId && activeIds.has(requestedWalletId)) {
+    return requestedWalletId;
+  }
+  if (lastUsedWalletId && activeIds.has(lastUsedWalletId)) {
+    return lastUsedWalletId;
+  }
+  return activeWallets[0]?.id;
+}
+
 /** The wallets an entry may pick, with their balances as labels. */
 export function toWalletOptions(
   wallets: readonly ApiWallet[],

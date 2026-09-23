@@ -19,7 +19,7 @@ function walletHistoryQuery(walletId: string, cursor: string | undefined) {
 
 export const Route = createFileRoute("/_app/wallets/$walletId")({
   head: () => ({ meta: [{ title: "Wallet" }] }),
-  validateSearch: historySearchSchema.pick({ cursor: true }),
+  validateSearch: historySearchSchema.pick({ cursor: true, created: true }),
   loaderDeps: ({ search }) => ({ cursor: search.cursor }),
   loader: ({ context, params, deps }) =>
     Promise.all([
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_app/wallets/$walletId")({
 
 function WalletPage() {
   const { walletId } = Route.useParams();
-  const { cursor } = Route.useSearch();
+  const { cursor, created } = Route.useSearch();
   const { data: wallet } = useSuspenseQuery(walletQueries.detail(walletId));
   const { data: page } = useSuspenseQuery(walletHistoryQuery(walletId, cursor));
   if (!wallet || !page) {
@@ -72,7 +72,7 @@ function WalletPage() {
         {page.items.length === 0 ? (
           <p className="text-muted-foreground text-sm">No transactions yet</p>
         ) : (
-          <TransactionList transactions={page.items} />
+          <TransactionList transactions={page.items} savedId={created} />
         )}
       </section>
       {nextCursor && (

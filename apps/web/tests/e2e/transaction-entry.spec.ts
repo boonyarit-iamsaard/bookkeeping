@@ -76,6 +76,127 @@ test("records an expense and an income with the default wallet and chosen catego
   ).toContainText("฿1,130.00");
 });
 
+test("capture returns to its opening screen, preserves filters, and chooses the right wallet", async ({
+  page,
+}) => {
+  await signUpFreshUser(page);
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  const openingDate = addDays(today, -3);
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "1000",
+    openingDate,
+  });
+  await createWalletThroughForm(page, {
+    name: "Savings",
+    openingAmount: "2000",
+    openingDate,
+  });
+  await createWalletThroughForm(page, {
+    name: "Travel",
+    openingAmount: "3000",
+    openingDate,
+  });
+
+  const savingsHref = await page
+    .getByRole("link", { name: "Savings", exact: true })
+    .getAttribute("href");
+  const travelHref = await page
+    .getByRole("link", { name: "Travel", exact: true })
+    .getAttribute("href");
+  if (!savingsHref || !travelHref) {
+    throw new Error("Expected wallet links in the wallet list");
+  }
+  const savingsUrl = new URL(savingsHref, page.url());
+  const travelId = new URL(travelHref, page.url()).pathname.split("/").at(-1);
+  if (!travelId) {
+    throw new Error("Expected the Travel wallet id in its link");
+  }
+
+  // Seed the last-used wallet as Cash before opening capture from other screens.
+  await page.goto("/transactions/new");
+  await page.getByLabel("Amount").fill("5");
+  await page.getByRole("button", { name: /^Save −/ }).click();
+  await expectSavedRecord(page);
+
+  const primaryNav = page.getByRole("navigation", { name: "Primary" });
+  await page.goto("/");
+  await primaryNav.getByRole("link", { name: "New", exact: true }).click();
+  let entryUrl = new URL(page.url());
+  expect(entryUrl.searchParams.get("origin")).toBe("/");
+  expect(entryUrl.searchParams.get("wallet")).toBeNull();
+  await page.getByLabel("Amount").fill("11");
+  await page.getByRole("button", { name: /^Save −/ }).click();
+  let saved = await expectSavedRecord(page);
+  expect(new URL(page.url()).pathname).toBe("/");
+  await expect(saved).toHaveClass(/fade-in/);
+
+  await page.goto("/transactions?type=expense");
+  await primaryNav.getByRole("link", { name: "New", exact: true }).click();
+  entryUrl = new URL(page.url());
+  expect(entryUrl.searchParams.get("origin")).toBe(
+    "/transactions?type=expense",
+  );
+  expect(entryUrl.searchParams.get("wallet")).toBeNull();
+  await expect(page.getByLabel("Wallet", { exact: true })).toContainText(
+    "Cash",
+  );
+  await page.getByLabel("Amount").fill("12");
+  await page.getByRole("button", { name: /^Save −/ }).click();
+  saved = await expectSavedRecord(page);
+  const transactionsUrl = new URL(page.url());
+  expect(transactionsUrl.pathname).toBe("/transactions");
+  expect(transactionsUrl.searchParams.get("type")).toBe("expense");
+  await expect(saved).toHaveClass(/fade-in/);
+
+  await page.goto(savingsUrl.pathname);
+  await primaryNav.getByRole("link", { name: "New", exact: true }).click();
+  entryUrl = new URL(page.url());
+  expect(entryUrl.searchParams.get("wallet")).toBe(
+    savingsUrl.pathname.split("/").at(-1),
+  );
+  await expect(page.getByLabel("Wallet", { exact: true })).toContainText(
+    "Savings",
+  );
+  await page.getByLabel("Amount").fill("13");
+  await page.getByRole("button", { name: /^Save −/ }).click();
+  saved = await expectSavedRecord(page);
+  expect(new URL(page.url()).pathname).toBe(savingsUrl.pathname);
+  await expect(saved).toHaveClass(/fade-in/);
+
+  await page.getByRole("link", { name: "Manage" }).click();
+  await page
+    .getByRole("button", { name: "Archive wallet", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Unarchive wallet", exact: true }),
+  ).toBeVisible();
+  await page.goto(savingsUrl.pathname);
+  await primaryNav.getByRole("link", { name: "New", exact: true }).click();
+  await expect(page.getByLabel("Wallet", { exact: true })).toContainText(
+    "Cash",
+  );
+  await page.getByRole("link", { name: "Cancel", exact: true }).click();
+  await expect(page).toHaveURL(savingsUrl.href);
+  expect(new URL(page.url()).searchParams.has("created")).toBe(false);
+
+  await page.goto(`/transactions?walletId=${travelId}`);
+  await primaryNav.getByRole("link", { name: "New", exact: true }).click();
+  entryUrl = new URL(page.url());
+  expect(entryUrl.searchParams.get("origin")).toBe(
+    `/transactions?walletId=${travelId}`,
+  );
+  expect(entryUrl.searchParams.get("wallet")).toBeNull();
+  await expect(page.getByLabel("Wallet", { exact: true })).toContainText(
+    "Cash",
+  );
+  await page.getByRole("link", { name: "Cancel", exact: true }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/transactions\\?walletId=${travelId}$`),
+  );
+  expect(new URL(page.url()).searchParams.has("created")).toBe(false);
+});
+
 test("validation keeps values, rejects a date before opening, and shows server errors", async ({
   page,
 }) => {

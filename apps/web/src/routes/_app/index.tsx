@@ -4,9 +4,11 @@ import { Home } from "@/features/home/components/home";
 import { HomeLoading } from "@/features/home/components/home-loading";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
+import { historySearchSchema } from "@/features/transactions/history-schema";
 
 export const Route = createFileRoute("/_app/")({
   head: () => ({ meta: [{ title: "Home" }] }),
+  validateSearch: historySearchSchema.pick({ created: true }),
   loader: async ({ context }) => {
     const initialToday = todayIn({ timeZone: APP_TIME_ZONE });
     const plan = createHomeQueryPlan(initialToday);
@@ -24,5 +26,6 @@ export const Route = createFileRoute("/_app/")({
 
 function HomeRoute() {
   const { initialToday } = Route.useLoaderData();
-  return <Home initialToday={initialToday} />;
+  const { created } = Route.useSearch();
+  return <Home initialToday={initialToday} createdId={created} />;
 }

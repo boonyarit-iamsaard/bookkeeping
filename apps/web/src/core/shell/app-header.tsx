@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { CaptureLinkSearch } from "@/core/shell/capture-link-search";
 import { DESTINATIONS } from "@/core/shell/destinations";
 import { NavLink } from "@/core/shell/nav-link";
 import { buttonVariants } from "@/shared/components/ui/button";
@@ -6,10 +7,14 @@ import { buttonVariants } from "@/shared/components/ui/button";
 interface AppHeaderProps {
   /** The account control the signed-in layout supplies; the shell owns no feature. */
   accountMenu: React.ReactNode;
+  captureSearch: CaptureLinkSearch;
 }
 
 /** The desktop header from 640px; below it the tab bar and title bar take over. */
-export function AppHeader({ accountMenu }: Readonly<AppHeaderProps>) {
+export function AppHeader({
+  accountMenu,
+  captureSearch,
+}: Readonly<AppHeaderProps>) {
   return (
     <header className="border-b bg-background max-sm:hidden">
       <div className="mx-auto flex h-14 w-full max-w-2xl items-center gap-3 px-4 md:gap-6">
@@ -29,6 +34,7 @@ export function AppHeader({ accountMenu }: Readonly<AppHeaderProps>) {
         <div className="ml-auto flex min-w-0 items-center gap-2">
           <Link
             to="/transactions/new"
+            search={captureSearch}
             className={buttonVariants({ size: "lg" })}
           >
             New transaction
