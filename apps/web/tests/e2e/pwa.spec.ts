@@ -52,12 +52,19 @@ async function waitForServiceWorker(page: Page): Promise<void> {
   );
 }
 
-/** Signs in, so the worker has seen API traffic, then cuts the network. */
-async function signInThenGoOffline(
+/**
+ * Signs in and launches at the manifest's start URL, so the worker has seen
+ * API traffic, then cuts the network.
+ */
+async function launchSignedInThenGoOffline(
   page: Page,
   context: BrowserContext,
 ): Promise<void> {
   await signUpFreshUser(page);
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Home", level: 1 }),
+  ).toBeVisible();
   await waitForServiceWorker(page);
   await context.setOffline(true);
 }
@@ -101,7 +108,7 @@ test("the manifest describes an installable standalone app", {
 test("an offline launch shows the fallback page until the network returns", {
   tag: "@matrix",
 }, async ({ page, context }) => {
-  await signInThenGoOffline(page, context);
+  await launchSignedInThenGoOffline(page, context);
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "You're offline" }),
@@ -110,7 +117,7 @@ test("an offline launch shows the fallback page until the network returns", {
   await context.setOffline(false);
   await page.getByRole("button", { name: "Retry" }).click();
   await expect(
-    page.getByRole("heading", { name: "Wallets", exact: true }),
+    page.getByRole("heading", { name: "Home", level: 1 }),
   ).toBeVisible();
 });
 
@@ -122,9 +129,9 @@ test("API requests are never answered from cache", { tag: "@matrix" }, async ({
   if (!apiOrigin) {
     throw new Error("The browser test has no API origin");
   }
-  // The signed-in wallets page has already fetched both endpoints online, so
+  // The signed-in Home has already fetched both endpoints online, so
   // a cached answer would be available if the worker stored one.
-  await signInThenGoOffline(page, context);
+  await launchSignedInThenGoOffline(page, context);
 
   const cachedUrls = await page.evaluate(async () => {
     const names = await caches.keys();

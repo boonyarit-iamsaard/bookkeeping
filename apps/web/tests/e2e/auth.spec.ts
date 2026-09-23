@@ -38,7 +38,7 @@ test("sign-in with wrong credentials shows the error and keeps the email", {
 // The guard redirects while the document is still loading, which WebKit
 // reports as an interrupted load, so these visits wait only for the commit.
 test("the guard redirects each way", { tag: "@matrix" }, async ({ page }) => {
-  await page.goto("/wallets", { waitUntil: "commit" });
+  await page.goto("/", { waitUntil: "commit" });
   await expect(page).toHaveURL(/\/sign-in$/);
   await expect(
     page.getByText("Sign in to your account", { exact: true }),

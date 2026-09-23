@@ -1,11 +1,13 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
-import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { Link } from "@tanstack/react-router";
 import { Plus, Wallet } from "lucide-react";
-import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
+import { WalletsTotal } from "@/features/wallets/components/wallet-total";
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
-import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
+import {
+  WALLET_TYPE_LABELS,
+  walletCountLabel,
+} from "@/features/wallets/wallet-labels";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
@@ -23,30 +25,12 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
     return <EmptyWallets />;
   }
 
-  const total = wallets.reduce(
-    (sum, wallet) => sum + parseApiMoney(wallet.balance),
-    0n,
-  );
-  const totalAmount = {
-    value: formatMoneyInput({ amountInMinorUnits: total, currency: "THB" }),
-    currency: "THB" as const,
-  };
-  const countLabel =
-    wallets.length === 1 ? "1 wallet" : `${wallets.length} wallets`;
-
   return (
     <div className="flex flex-col gap-8">
-      <section aria-labelledby="total-balance-heading">
-        <h2 id="total-balance-heading" className="sr-only">
-          Total balance
-        </h2>
-        <p className="text-4xl leading-none sm:text-5xl">
-          <Money amount={totalAmount} display />
-        </p>
-        <p className="mt-2 text-muted-foreground text-sm">
-          Total across {countLabel}
-        </p>
-      </section>
+      <WalletsTotal
+        wallets={wallets}
+        caption={`Total across ${walletCountLabel(wallets.length)}`}
+      />
 
       <ul className="-mx-4 divide-y sm:mx-0" aria-label="Wallets">
         {wallets.map((wallet) => (
@@ -91,7 +75,8 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
   );
 }
 
-function EmptyWallets() {
+/** A new account holder's first step: create a wallet. */
+export function EmptyWallets() {
   return (
     <section
       aria-labelledby="empty-wallets-heading"

@@ -1,8 +1,7 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
-import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { Link } from "@tanstack/react-router";
-import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
+import { totalWalletBalance } from "@/features/wallets/wallet-total";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
 
@@ -25,25 +24,14 @@ const SUMMARY_ROWS = [
   { key: "net", label: "Net" },
 ] as const;
 
-function totalBalance(wallets: readonly WalletSummary[]): ApiMoney {
-  const amountInMinorUnits = wallets.reduce(
-    (total, wallet) => total + parseApiMoney(wallet.balance),
-    0n,
-  );
-  return {
-    value: formatMoneyInput({ amountInMinorUnits, currency: "THB" }),
-    currency: "THB",
-  };
-}
-
 export function FinancialReport({
   summary,
   currentWallets,
   datedWallets,
   asOf,
 }: Readonly<FinancialReportProps>) {
-  const currentTotal = totalBalance(currentWallets);
-  const datedTotal = totalBalance(datedWallets);
+  const currentTotal = totalWalletBalance(currentWallets);
+  const datedTotal = totalWalletBalance(datedWallets);
 
   return (
     <>

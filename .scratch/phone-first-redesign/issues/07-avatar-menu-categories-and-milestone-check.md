@@ -20,6 +20,7 @@ becomes its own follow-up ticket in this directory); the DESIGN.md rewrite
 - [ ] Home's title bar shows a 32px Mist disc with the Account email's first letter, uppercased, labelled for assistive technology.
 - [ ] The disc opens the sheet with the email in Caption, then Categories and Sign out rows; both work.
 - [ ] The stopgap account dropdown in the Wallets title bar on phone (added in 01) is removed.
+- [ ] Sign-in and sign-up land on Home, and a signed-in visit to either auth page redirects to Home (02 left them on Wallets while sign-out lived there on phone).
 - [ ] On desktop, the account dropdown lists Categories above Sign out.
 - [ ] Categories stays reachable from the category picker.
 - [ ] The category editor opens in the restyled sheet on phone and as the dialog from 640px; its content and behaviour are unchanged.

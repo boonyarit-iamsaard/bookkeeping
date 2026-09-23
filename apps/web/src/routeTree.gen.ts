@@ -9,9 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
@@ -25,11 +25,6 @@ import { Route as AppWalletsNewRouteImport } from './routes/_app/wallets/new'
 import { Route as AppTransactionsTransactionIdEditRouteImport } from './routes/_app/transactions/$transactionId_.edit'
 import { Route as AppTransactionsTransactionIdRefundRouteImport } from './routes/_app/transactions/$transactionId_.refund'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -37,6 +32,11 @@ const AppRoute = AppRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
@@ -103,7 +103,7 @@ const AppTransactionsTransactionIdRefundRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
   '/dashboard': typeof AppDashboardRoute
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
@@ -118,7 +118,7 @@ export interface FileRoutesByFullPath {
   '/transactions/$transactionId/refund': typeof AppTransactionsTransactionIdRefundRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
   '/dashboard': typeof AppDashboardRoute
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
@@ -134,12 +134,12 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/_auth': typeof AuthRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
+  '/_app/': typeof AppIndexRoute
   '/_app/transactions/$transactionId': typeof AppTransactionsTransactionIdRoute
   '/_app/transactions/new': typeof AppTransactionsNewRoute
   '/_app/wallets/$walletId': typeof AppWalletsWalletIdRoute
@@ -183,12 +183,12 @@ export interface FileRouteTypes {
     | '/transactions/$transactionId/refund'
   id:
     | '__root__'
-    | '/'
     | '/_app'
     | '/_auth'
     | '/_app/dashboard'
     | '/_auth/sign-in'
     | '/_auth/sign-up'
+    | '/_app/'
     | '/_app/transactions/$transactionId'
     | '/_app/transactions/new'
     | '/_app/wallets/$walletId'
@@ -201,20 +201,12 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -228,6 +220,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/dashboard': {
       id: '/_app/dashboard'
@@ -318,6 +317,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
+  AppIndexRoute: typeof AppIndexRoute
   AppTransactionsTransactionIdRoute: typeof AppTransactionsTransactionIdRoute
   AppTransactionsNewRoute: typeof AppTransactionsNewRoute
   AppWalletsWalletIdRoute: typeof AppWalletsWalletIdRoute
@@ -331,6 +331,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
+  AppIndexRoute: AppIndexRoute,
   AppTransactionsTransactionIdRoute: AppTransactionsTransactionIdRoute,
   AppTransactionsNewRoute: AppTransactionsNewRoute,
   AppWalletsWalletIdRoute: AppWalletsWalletIdRoute,
@@ -358,7 +359,6 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
 }
