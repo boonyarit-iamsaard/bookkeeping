@@ -60,3 +60,8 @@ passed alone on `phone-chromium`. Decisions made during the build, for review:
   ("Cash · Archived"), unit-tested. The list's loose "Archived ·" span, which
   sat on its own line with a dangling dot, is gone. Management's "Current
   balance · Archived" stays as it was.
+- Transaction detail still writes its wallet rows' "type · Archived" by hand
+  (`transaction-detail.tsx`, wallet and To rows). Move it to `walletCaption`
+  when that caption's wording or the detail screen next changes; the helper
+  will then need to accept `archived: boolean`. The entry form's wallet
+  picker composes different text and is not a copy.
