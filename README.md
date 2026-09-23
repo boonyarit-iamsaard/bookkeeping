@@ -434,9 +434,11 @@ production-build `next start` mode.
 it works from a clean checkout.
 
 GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
-`main`. It installs dependencies with a frozen lockfile, runs `pnpm run ci`,
-then installs Chromium for the legacy suite and Chromium plus WebKit for the
-SPA suite before running both browser suites sequentially. Testcontainers
+`main`. Two jobs run side by side, each installing dependencies with a frozen
+lockfile: one runs `pnpm run ci`, and the other installs Chromium plus WebKit
+(cached by Playwright version) and runs the SPA browser suite on two workers.
+The browser runner switches the API's sign-up throttle off
+(`AUTH_RATE_LIMIT=off`) so parallel sign-ups never meet it. Testcontainers
 supplies disposable PostgreSQL databases for both operation and browser tests.
 
 To run the workflow locally, install `act`, start Docker, and run:
