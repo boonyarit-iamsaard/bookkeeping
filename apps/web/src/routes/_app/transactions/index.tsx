@@ -76,7 +76,6 @@ function TransactionsPage() {
             wallets={walletCollection.items}
             categories={categoryCollection.items}
             values={search}
-            valid={listQuery !== null}
           />
         }
       />

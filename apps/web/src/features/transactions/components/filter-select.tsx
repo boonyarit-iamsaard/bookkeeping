@@ -50,6 +50,8 @@ export function FilterSelect({
       group.options.map((option) => [option.value, option] as const),
     ),
   );
+  const unknownValue =
+    defaultValue && !labels.has(defaultValue) ? defaultValue : null;
   return (
     <Select name={name} defaultValue={defaultValue || null}>
       <SelectTrigger id={id}>
@@ -57,7 +59,7 @@ export function FilterSelect({
           {(selected: string | null) => {
             const option = selected ? labels.get(selected) : undefined;
             if (!option) {
-              return allLabel;
+              return selected ?? allLabel;
             }
             return (
               <>
@@ -76,6 +78,11 @@ export function FilterSelect({
         <SelectItem value={null} label={allLabel}>
           {allLabel}
         </SelectItem>
+        {unknownValue && (
+          <SelectItem value={unknownValue} label={unknownValue}>
+            {unknownValue}
+          </SelectItem>
+        )}
         {groups.map((group, index) => (
           <SelectGroup key={group.label ?? index}>
             <SelectSeparator />

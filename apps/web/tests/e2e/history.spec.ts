@@ -108,7 +108,7 @@ test("filters apply through the address and open the saved record", {
   await expect(page).toHaveURL(/\/transactions$/);
 });
 
-test("invalid date filters and year zero keep editable controls with validation", async ({
+test("invalid filter values stay visible and editable with field errors", async ({
   page,
 }) => {
   await signUpFreshUser(page);
@@ -131,10 +131,32 @@ test("invalid date filters and year zero keep editable controls with validation"
   await page.getByRole("button", { name: "Filter", exact: true }).click();
   const sheet = page.getByRole("dialog", { name: "Filter transactions" });
   await expect(
-    sheet.getByRole("alert").filter({ hasText: "Choose valid filters" }),
+    sheet.getByRole("alert").filter({ hasText: "Choose a valid From date" }),
   ).toBeVisible();
   await expect(sheet.locator("input[name=from]")).toHaveValue("0000-01-01");
   await expect(
     sheet.getByRole("button", { name: "Apply filters" }),
   ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.goto(
+    "/transactions?from=bogus&walletId=gone&categoryId=lost&type=7",
+  );
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
+  await expect(sheet.getByLabel("From date")).toHaveText("bogus");
+  await expect(sheet.locator("input[name=from]")).toHaveValue("bogus");
+  await expect(sheet.getByLabel("Filter wallet")).toContainText("gone");
+  await expect(sheet.getByLabel("Filter category")).toContainText("lost");
+  await expect(sheet.getByLabel("Type", { exact: true })).toContainText("7");
+  await expect(sheet.getByRole("alert")).toContainText(
+    "Choose a valid From date",
+  );
+  await expect(sheet.getByRole("alert")).toContainText("Choose a valid wallet");
+  await expect(sheet.getByRole("alert")).toContainText(
+    "Choose a valid category",
+  );
+  await expect(sheet.getByRole("alert")).toContainText("Choose a valid type");
+  await chooseOption(sheet.getByLabel("Type", { exact: true }), "Expense");
+  await sheet.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(/type=expense/);
+  await expect(page).toHaveURL(/walletId=gone/);
 });

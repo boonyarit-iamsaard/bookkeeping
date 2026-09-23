@@ -10,7 +10,11 @@ import type { FilterOptionGroup } from "@/features/transactions/components/filte
 import { FilterSelect } from "@/features/transactions/components/filter-select";
 import { historyFilterChips } from "@/features/transactions/history-chips";
 import type { HistorySearch } from "@/features/transactions/history-schema";
-import { HISTORY_FILTER_KEYS } from "@/features/transactions/history-schema";
+import {
+  HISTORY_FILTER_KEYS,
+  historyFilters,
+  transactionFiltersSchema,
+} from "@/features/transactions/history-schema";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { Button } from "@/shared/components/ui/button";
@@ -25,9 +29,41 @@ interface HistoryFilterChipsProps {
   values: Readonly<HistorySearch>;
 }
 
-interface HistoryFiltersProps extends HistoryFilterChipsProps {
-  /** False while the address holds filters the list cannot use. */
-  valid: boolean;
+interface HistoryFiltersProps extends HistoryFilterChipsProps {}
+
+const FILTER_ERROR_MESSAGES = {
+  from: "Choose a valid From date.",
+  to: "Choose a valid To date.",
+  walletId: "Choose a valid wallet.",
+  categoryId: "Choose a valid category.",
+  type: "Choose a valid type.",
+} as const;
+
+function filterErrors(values: Readonly<HistorySearch>) {
+  const result = transactionFiltersSchema.safeParse(historyFilters(values));
+  if (result.success) {
+    return [];
+  }
+  return [
+    ...new Set(
+      result.error.issues.map((issue) => {
+        switch (issue.path[0]) {
+          case "from":
+            return FILTER_ERROR_MESSAGES.from;
+          case "to":
+            return FILTER_ERROR_MESSAGES.to;
+          case "walletId":
+            return FILTER_ERROR_MESSAGES.walletId;
+          case "categoryId":
+            return FILTER_ERROR_MESSAGES.categoryId;
+          case "type":
+            return FILTER_ERROR_MESSAGES.type;
+          default:
+            return issue.message;
+        }
+      }),
+    ),
+  ];
 }
 
 /** Each tree as a group: parents first, their children indented beneath. */
@@ -69,7 +105,6 @@ export function HistoryFilters({
   wallets,
   categories,
   values,
-  valid,
 }: Readonly<HistoryFiltersProps>) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -77,6 +112,7 @@ export function HistoryFilters({
     return values[key] ?? "";
   }
   const today = todayIn({ timeZone: APP_TIME_ZONE });
+  const errors = filterErrors(values);
 
   function showFilters(search: HistorySearch) {
     setOpen(false);
@@ -105,10 +141,12 @@ export function HistoryFilters({
           className="flex min-h-0 flex-col"
         >
           <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-4 py-2 sm:px-6">
-            {!valid && (
-              <p role="alert" className="text-destructive text-sm">
-                Choose valid filters. From date must be on or before To date.
-              </p>
+            {errors.length > 0 && (
+              <div role="alert" className="text-destructive text-sm">
+                {errors.map((error) => (
+                  <p key={error}>{error}</p>
+                ))}
+              </div>
             )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">

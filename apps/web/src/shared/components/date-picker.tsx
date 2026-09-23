@@ -90,8 +90,8 @@ export function DatePicker({
 }: Readonly<DatePickerProps>) {
   const [open, setOpen] = useState(false);
   const [internal, setInternal] = useState(defaultValue);
-  // A malformed value (a hand-edited URL) reads as no choice at all.
   const given = value ?? internal;
+  // Keep malformed URL text visible and submittable until a date is chosen.
   const current = given && parseCalendarDate(given).ok ? given : "";
 
   function commit(next: CalendarDate) {
@@ -108,7 +108,7 @@ export function DatePicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      {name ? <input type="hidden" name={name} value={current} /> : null}
+      {name ? <input type="hidden" name={name} value={given} /> : null}
       <PopoverTrigger
         id={id}
         disabled={disabled}
@@ -132,10 +132,10 @@ export function DatePicker({
           data-slot="date-value"
           className={cn(
             "min-w-0 flex-1 truncate",
-            !current && "text-muted-foreground",
+            !given && "text-muted-foreground",
           )}
         >
-          {current ? formatCalendarDate(current) : placeholder}
+          {current ? formatCalendarDate(current) : given || placeholder}
         </span>
         <ChevronDown
           aria-hidden="true"
