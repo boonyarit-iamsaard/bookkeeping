@@ -79,16 +79,7 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   await expect(page).toHaveTitle(/Reports/);
   await expect(reportsLink).toHaveAttribute("aria-current", "page");
 
-  // The month picker sits on the h1's row and applies as soon as it is chosen.
-  const heading = await page
-    .getByRole("heading", { name: "Reports", level: 1 })
-    .boundingBox();
-  const monthPicker = await page.getByLabel("Report month").boundingBox();
-  if (!heading || !monthPicker) {
-    throw new Error("Missing the Reports title bar");
-  }
-  expect(monthPicker.y).toBeLessThan(heading.y + heading.height);
-  expect(monthPicker.y + monthPicker.height).toBeGreaterThan(heading.y);
+  // The month picker applies as soon as a month is chosen.
   await page.getByLabel("Report month").click();
   await page.getByRole("button", { name: "August 2026", exact: true }).click();
   await expect(page).toHaveURL(/\/reports\?month=2026-08$/);
@@ -129,6 +120,26 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   );
 });
 
+test("the month picker sits on the Reports title's row", {
+  tag: "@matrix",
+}, async ({ page }) => {
+  await signUpFreshUser(page);
+  await page.goto("/reports");
+
+  const heading = await page
+    .getByRole("heading", { name: "Reports", level: 1 })
+    .boundingBox();
+  const monthPicker = await page.getByLabel("Report month").boundingBox();
+  const balanceDate = await page.getByLabel("Balance date").boundingBox();
+  if (!heading || !monthPicker || !balanceDate) {
+    throw new Error("Missing the Reports title bar or its balance date");
+  }
+  expect(monthPicker.y).toBeLessThan(heading.y + heading.height);
+  expect(monthPicker.y + monthPicker.height).toBeGreaterThan(heading.y);
+  expect(monthPicker.x).toBeGreaterThan(heading.x);
+  expect(monthPicker.y).toBeLessThan(balanceDate.y);
+});
+
 test("shows loading without sample money, then the empty report", async ({
   page,
 }) => {
@@ -138,8 +149,14 @@ test("shows loading without sample money, then the empty report", async ({
     await route.continue();
   });
 
-  await page.getByRole("link", { name: "Monthly summary & balances" }).click();
-  await expect(page.getByText("Loading your records…")).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("link", { name: "Reports", exact: true })
+    .click();
+  await expect(page.getByText("Loading your report…")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Reports", level: 1 }),
+  ).toBeVisible();
   await expect(page.getByText(/฿/)).toHaveCount(0);
   await expect(
     page.getByText("Add a wallet to begin tracking balances."),

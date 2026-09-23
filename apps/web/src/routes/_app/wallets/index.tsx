@@ -52,16 +52,6 @@ function WalletsPage() {
           </>
         }
       />
-      <Link
-        to="/reports"
-        className={buttonVariants({
-          variant: "outline",
-          size: "lg",
-          className: "self-start",
-        })}
-      >
-        Monthly summary &amp; balances
-      </Link>
       <WalletList wallets={data.items} createdId={created} />
     </Page>
   );

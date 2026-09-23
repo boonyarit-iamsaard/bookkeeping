@@ -29,3 +29,9 @@ Old `/dashboard` links land on Reports with their month and balance date kept.
 From 02 (2026-09-23): the three criteria on error copy, the report month and
 the row labels came from 02's code review. They change no figures, and the
 report's content and order stay as they are.
+
+From 06's code review (2026-09-23): the Wallets screen's "Monthly summary &
+balances" link is removed, as Transactions' was in 05; the Reports tab and
+header link are the ways in. Reports has its own loading skeleton instead of
+the Transactions one, and an `@matrix` browser test checks the month picker
+on the title's row at phone and desktop widths.

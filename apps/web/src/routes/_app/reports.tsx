@@ -2,9 +2,9 @@ import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { createFileRoute } from "@tanstack/react-router";
 import { ReportErrorBoundary } from "@/features/reports/components/report-error-boundary";
 import { Reports } from "@/features/reports/components/reports";
+import { ReportsLoading } from "@/features/reports/components/reports-loading";
 import { createReportQueryPlan } from "@/features/reports/report-queries";
 import { reportSearchSchema } from "@/features/reports/report-schema";
-import { HistoryLoading } from "@/features/transactions/components/history-loading";
 
 export const Route = createFileRoute("/_app/reports")({
   head: () => ({ meta: [{ title: "Reports" }] }),
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_app/reports")({
     }
     return { initialToday };
   },
-  pendingComponent: HistoryLoading,
+  pendingComponent: ReportsLoading,
   errorComponent: ReportErrorBoundary,
   component: ReportsRoute,
 });
