@@ -4,7 +4,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Wallet as WalletIcon } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
-import { ApiProblemError } from "@/core/api/problem";
 import {
   categoryQueries,
   transactionQueries,
@@ -15,34 +14,19 @@ import { HistoryErrorBoundary } from "@/features/transactions/components/history
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
+import { ensureTransaction } from "@/features/transactions/transaction-lookup";
 import { toWalletOptions } from "@/features/transactions/wallet-options";
 import { buttonVariants } from "@/shared/components/ui/button";
-
-const NOT_FOUND_STATUS = 404;
 
 export const Route = createFileRoute(
   "/_app/transactions/$transactionId_/refund",
 )({
   head: () => ({ meta: [{ title: "Record refund" }] }),
   loader: async ({ context, params }) => {
-    let expense: components["schemas"]["Transaction"] | undefined;
-    try {
-      expense = await context.queryClient.ensureQueryData(
-        transactionQueries.detail(params.transactionId),
-      );
-    } catch (error) {
-      // Ownership is part of the lookup: another user's id reads as not found.
-      if (
-        error instanceof ApiProblemError &&
-        error.problem.status === NOT_FOUND_STATUS
-      ) {
-        throw notFound();
-      }
-      throw error;
-    }
-    if (!expense) {
-      throw new Error("The transaction query returned no data");
-    }
+    const expense = await ensureTransaction(
+      context.queryClient,
+      params.transactionId,
+    );
     if (expense.type !== "expense") {
       throw notFound();
     }

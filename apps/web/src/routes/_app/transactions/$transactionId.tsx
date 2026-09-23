@@ -1,40 +1,23 @@
 // biome-ignore lint/style/useFilenamingConvention: TanStack Router dynamic params must be valid JavaScript identifiers.
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
-import type { components } from "@/core/api/openapi.gen";
-import { ApiProblemError } from "@/core/api/problem";
 import { transactionQueries } from "@/core/api/queries";
 import { ExpenseRefundsView } from "@/features/transactions/components/expense-refunds";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionDetailView } from "@/features/transactions/components/transaction-detail";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
+import { ensureTransaction } from "@/features/transactions/transaction-lookup";
 import { buttonVariants } from "@/shared/components/ui/button";
-
-const NOT_FOUND_STATUS = 404;
 
 export const Route = createFileRoute("/_app/transactions/$transactionId")({
   head: () => ({ meta: [{ title: "Transaction" }] }),
   loader: async ({ context, params }) => {
-    let transaction: components["schemas"]["Transaction"] | undefined;
-    try {
-      transaction = await context.queryClient.ensureQueryData(
-        transactionQueries.detail(params.transactionId),
-      );
-    } catch (error) {
-      // Ownership is part of the lookup: another user's id reads as not found.
-      if (
-        error instanceof ApiProblemError &&
-        error.problem.status === NOT_FOUND_STATUS
-      ) {
-        throw notFound();
-      }
-      throw error;
-    }
-    if (!transaction) {
-      throw new Error("The transaction query returned no data");
-    }
+    const transaction = await ensureTransaction(
+      context.queryClient,
+      params.transactionId,
+    );
     if (transaction.type === "expense") {
       await context.queryClient.ensureQueryData(
         transactionQueries.refunds(params.transactionId),
