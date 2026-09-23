@@ -22,12 +22,12 @@ becomes its own follow-up ticket in this directory); the DESIGN.md rewrite
 - [ ] The stopgap account dropdown in the Wallets title bar on phone (added in 01) is removed.
 - [ ] Sign-in and sign-up land on Home, and a signed-in visit to either auth page redirects to Home (02 left them on Wallets while sign-out lived there on phone).
 - [ ] On desktop, the account dropdown lists Categories above Sign out.
-- [ ] Categories stays reachable from the category picker.
+- [ ] The category picker still creates categories inline, icon included; it does not link to Categories (see 09).
 - [ ] The category editor opens in the restyled sheet on phone and as the dialog from 640px; its content and behaviour are unchanged.
 - [ ] The auth and category-management browser specs cover the avatar sheet, the dropdown's Categories entry, Sign out, and the editor sheet.
 - [ ] `pnpm run ci` is green.
 - [ ] The full three-project browser matrix (`phone-chromium`, `phone-webkit`, `desktop-chromium`) runs once, alone, and passes; any failure is fixed or filed.
-- [ ] An `impeccable` critique/audit of the shipped shell, Home, wallet page, Transactions and Reports runs against `../spec.md`, and each material finding is filed as a follow-up ticket in `issues/`, numbered after 08.
+- [ ] An `impeccable` critique/audit of the shipped shell, Home, wallet page, Transactions and Reports runs against `../spec.md`, and each material finding is filed as a follow-up ticket in `issues/`, numbered after 10.
 
 **Verify:** `pnpm run ci`, then the full browser matrix alone (`pnpm run ci:e2e` or the three projects in one run), never alongside another heavy task.
 
@@ -41,3 +41,22 @@ sign-out stays reachable; the criterion above removes it once Home's disc
 ships. Note for "Categories stays reachable from the category picker": the
 picker has no link to `/categories` today (it creates categories inline), so
 that criterion needs deciding rather than keeping.
+
+From 07's grilling (2026-09-24):
+
+- Picker: inline create, icon included, meets the Categories-from-picker
+  story; no link out, since it would drop the draft. Editing an existing
+  category mid-entry is deferred to 09.
+- The disc sits in Home's title bar on phone only; from 640px the header
+  dropdown is the account control. Other tabs get no disc.
+- The avatar sheet has a visually hidden "Account" title, the email in
+  Caption, then hairline rows of at least 48px with the dropdown's icons.
+  Sign out is neutral and reads "Signing out…" while pending.
+- Sign-in, sign-up and a signed-in auth visit all land on Home; returning to
+  the requested page after sign-in is 10.
+- Matrix: request host execution of `pnpm run ci:e2e` once the code is done,
+  with `pnpm run test:e2e` across all three projects as the fallback.
+  Failures this ticket caused are fixed here; older ones are filed.
+- Critique: after the matrix passes, at 360px and 1280px. Material means a
+  spec or rule-amendment breach, an accessibility failure or a broken layout
+  at either width; each gets its own ticket. Taste notes share one ticket.

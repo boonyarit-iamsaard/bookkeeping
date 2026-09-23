@@ -124,7 +124,7 @@ After the build, `DESIGN.md` is rewritten from what shipped.
 
 1. As a phone user, I want a 32px initial disc in Home's title bar that opens a sheet with my email, Categories and Sign out, so that the account actions are reachable without a tab.
 2. As a desktop user, I want the header's account dropdown to include Categories, so that category management is reachable on desktop too.
-3. As the account holder, I want to reach Categories from the category picker as today, so that fixing a category mid-entry still works.
+3. As the account holder, I want to create a category, icon included, from the category picker as today, so that a missing category never stops an entry. Editing an existing category mid-entry is deferred to 09.
 4. As the account holder, I want the category editor to open as a sheet on phone and a dialog on desktop, so that editing a category matches the other sheets.
 5. As the account holder, I want New category as an outline title-bar button, so that the screen keeps one cobalt action.
 
@@ -304,8 +304,9 @@ nested (and its back target), its title-bar actions, and whether it is a form
 
 ### Categories
 
-- Reached from the avatar menu (phone), the account dropdown (desktop) and
-  the category picker. Not a tab.
+- Reached from the avatar menu (phone) and the account dropdown (desktop);
+  the category picker creates categories inline but does not link here. Not
+  a tab.
 - Category management (moved from `DESIGN.md`; only the button styling and
   sheet primitive change): both trees behind the Expense | Income segmented
   control, as hairline rows in the 672px column. Parents lead with the 40px

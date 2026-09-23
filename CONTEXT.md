@@ -9,7 +9,7 @@ The signed-in identity, identified by email, that owns all of a user's wallets, 
 _Avoid_: Wallet, user profile
 
 **Wallet**:
-A money holding owned by one user, with a type of cash, bank account, or e-wallet.
+A money holding owned by one Account, with a type of cash, bank account, or e-wallet.
 _Avoid_: Account when referring to money holdings collectively
 
 **Opening balance**:
