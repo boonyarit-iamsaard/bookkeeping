@@ -1,15 +1,8 @@
-import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
-
-// The tab bar serves phones; from 640px the header carries the destinations.
-const DESKTOP_MIN_WIDTH = 640;
-
-function isDesktop(page: Page): boolean {
-  return (page.viewportSize()?.width ?? 0) >= DESKTOP_MIN_WIDTH;
-}
+import { isDesktop } from "./helpers/viewport";
 
 test("the tab bar navigates on phone and the header from 640px", {
   tag: "@matrix",
@@ -56,7 +49,7 @@ test("the tab bar navigates on phone and the header from 640px", {
     await nav.getByRole("link", { name: "New", exact: true }).click();
   }
 
-  await expect(page).toHaveURL(/\/transactions\/new$/);
+  await expect(page).toHaveURL(/\/transactions\/new\?origin=/);
   await expect(
     page.getByRole("heading", { name: "New transaction" }),
   ).toBeVisible();
