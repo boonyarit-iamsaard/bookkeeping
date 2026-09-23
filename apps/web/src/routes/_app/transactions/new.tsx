@@ -1,12 +1,13 @@
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { Wallet as WalletIcon } from "lucide-react";
 import {
   categoryQueries,
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
+import { isSignedInPathname } from "@/core/router/router";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import {
@@ -36,7 +37,7 @@ export const Route = createFileRoute("/_app/transactions/new")({
 });
 
 function NewTransactionPage() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const search = Route.useSearch();
   const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
   const { data: categoryCollection } = useSuspenseQuery(categoryQueries.list());
@@ -47,7 +48,9 @@ function NewTransactionPage() {
     throw new Error("The transaction entry queries returned no data");
   }
   const wallets = toWalletOptions(walletCollection.items);
-  const captureOrigin = parseCaptureOrigin(search.origin);
+  const captureOrigin = parseCaptureOrigin(search.origin, (pathname) =>
+    isSignedInPathname(router, pathname),
+  );
   const returnHref = captureOriginHref(captureOrigin);
   const defaultWalletId = resolveDefaultWalletId({
     requestedWalletId: search.wallet,
@@ -60,6 +63,8 @@ function NewTransactionPage() {
       <TitleBar
         title="New transaction"
         actions={
+          // Link requires a typed `to`; the origin is a built path, so a plain
+          // anchor navigates in-app and leaves modified clicks to the browser.
           <a
             href={returnHref}
             onClick={(event) => {
@@ -71,7 +76,7 @@ function NewTransactionPage() {
                 !event.altKey
               ) {
                 event.preventDefault();
-                void navigate({ href: returnHref });
+                void router.navigate({ href: returnHref });
               }
             }}
             className={buttonVariants({ variant: "ghost" })}

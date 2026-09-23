@@ -19,8 +19,24 @@ export function createAppRouter(context: Readonly<RouterContext>) {
   });
 }
 
+type AppRouter = ReturnType<typeof createAppRouter>;
+
 declare module "@tanstack/react-router" {
   interface Register {
-    router: ReturnType<typeof createAppRouter>;
+    router: AppRouter;
   }
+}
+
+/** Whether a pathname reaches a signed-in screen rather than not-found or sign-in. */
+export function isSignedInPathname(
+  router: Readonly<Pick<AppRouter, "getMatchedRoutes">>,
+  pathname: string,
+): boolean {
+  const [matchedRoutes, rawParams, foundRoute] =
+    router.getMatchedRoutes(pathname);
+  return (
+    foundRoute !== undefined &&
+    rawParams["**"] === undefined &&
+    matchedRoutes.some((route) => route.id === "/_app")
+  );
 }

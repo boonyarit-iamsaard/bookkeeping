@@ -1,7 +1,10 @@
 import { z } from "zod";
 import type { CaptureLinkSearch } from "@/core/shell/capture-link-search";
+import type { HistorySearch } from "@/features/transactions/history-schema";
 
 const INTERNAL_ORIGIN = "https://bookkeeping.invalid";
+const ARRIVAL_KEY = "created" satisfies keyof HistorySearch;
+const CURSOR_KEY = "cursor" satisfies keyof HistorySearch;
 
 interface CaptureLocation {
   pathname: string;
@@ -34,7 +37,8 @@ function homeCaptureOrigin(): CaptureOrigin {
 }
 
 function isCapturePathname(pathname: string): boolean {
-  return /^\/transactions\/new\/?$/.test(pathname);
+  // Route matching ignores case, so capture is recognised in any case too.
+  return /^\/transactions\/new\/?$/i.test(pathname);
 }
 
 function walletIdFromPathname(pathname: string): string | undefined {
@@ -46,7 +50,7 @@ function resetHistoryCursor(url: URL): void {
   const isTransactionsHistory = url.pathname === "/transactions";
   const isWalletHistory = walletIdFromPathname(url.pathname) !== undefined;
   if (isTransactionsHistory || isWalletHistory) {
-    url.searchParams.delete("cursor");
+    url.searchParams.delete(CURSOR_KEY);
   }
 }
 
@@ -57,8 +61,14 @@ function captureLinkSearch(
   return wallet ? { origin, wallet } : { origin };
 }
 
-/** Accepts only same-app absolute paths other than capture, keeping their query string. */
-export function parseCaptureOrigin(origin?: string): CaptureOrigin {
+/**
+ * Accepts only same-app absolute paths to a signed-in screen other than capture,
+ * keeping their query string.
+ */
+export function parseCaptureOrigin(
+  origin: string | undefined,
+  isSignedInPathname: (pathname: string) => boolean,
+): CaptureOrigin {
   if (
     !origin?.startsWith("/") ||
     origin.startsWith("//") ||
@@ -69,7 +79,11 @@ export function parseCaptureOrigin(origin?: string): CaptureOrigin {
 
   try {
     const url = new URL(origin, INTERNAL_ORIGIN);
-    if (url.origin !== INTERNAL_ORIGIN || isCapturePathname(url.pathname)) {
+    if (
+      url.origin !== INTERNAL_ORIGIN ||
+      isCapturePathname(url.pathname) ||
+      !isSignedInPathname(url.pathname)
+    ) {
       return homeCaptureOrigin();
     }
     return { pathname: url.pathname, search: url.search };
@@ -80,7 +94,8 @@ export function parseCaptureOrigin(origin?: string): CaptureOrigin {
 
 /**
  * Builds capture link search from the screen's path, search, and optional
- * wallet. On capture itself the link keeps capture's own origin and wallet.
+ * wallet. On capture itself the link passes on capture's own origin and
+ * wallet, which the capture screen parses.
  */
 export function captureSearchForLocation({
   pathname,
@@ -91,7 +106,7 @@ export function captureSearchForLocation({
       Object.fromEntries(new URLSearchParams(searchStr)),
     );
     return captureLinkSearch(
-      pathWithSearch(parseCaptureOrigin(search.origin)),
+      search.origin ?? pathWithSearch(homeCaptureOrigin()),
       search.wallet,
     );
   }
@@ -105,7 +120,7 @@ export function captureSearchForLocation({
 /** Builds the return link for Cancel, dropping any earlier arrival marker. */
 export function captureOriginHref(origin: Readonly<CaptureOrigin>): string {
   const url = urlForCaptureOrigin(origin);
-  url.searchParams.delete("created");
+  url.searchParams.delete(ARRIVAL_KEY);
   return pathWithSearch(url);
 }
 
@@ -116,6 +131,6 @@ export function captureReturnHref(
 ): string {
   const url = urlForCaptureOrigin(origin);
   resetHistoryCursor(url);
-  url.searchParams.set("created", transactionId);
+  url.searchParams.set(ARRIVAL_KEY, transactionId);
   return pathWithSearch(url);
 }

@@ -6,10 +6,25 @@ import {
   parseCaptureOrigin,
 } from "@/features/transactions/capture-origin";
 
+const APP_PATHNAMES = new Set([
+  "/",
+  "/transactions",
+  "/transactions/new",
+  "/wallets/new",
+  "/wallets/wallet-1",
+]);
+
+function isSignedInPathname(pathname: string): boolean {
+  return APP_PATHNAMES.has(pathname);
+}
+
 describe("parseCaptureOrigin", () => {
   test("keeps an internal path and its search", () => {
     expect(
-      parseCaptureOrigin("/transactions?walletId=wallet-1&type=expense"),
+      parseCaptureOrigin(
+        "/transactions?walletId=wallet-1&type=expense",
+        isSignedInPathname,
+      ),
     ).toEqual({
       pathname: "/transactions",
       search: "?walletId=wallet-1&type=expense",
@@ -23,7 +38,16 @@ describe("parseCaptureOrigin", () => {
     "//example.com/transactions",
     "/\\example.com/transactions",
   ])("resolves an unsafe or missing origin (%s) to Home", (origin) => {
-    expect(parseCaptureOrigin(origin)).toEqual({
+    expect(parseCaptureOrigin(origin, isSignedInPathname)).toEqual({
+      pathname: "/",
+      search: "",
+    });
+  });
+
+  test("resolves a path with no screen of its own to Home", () => {
+    expect(
+      parseCaptureOrigin("/nope?type=expense", isSignedInPathname),
+    ).toEqual({
       pathname: "/",
       search: "",
     });
@@ -32,8 +56,9 @@ describe("parseCaptureOrigin", () => {
   test.each([
     "/transactions/new?origin=%2Ftransactions",
     "/transactions/new/?origin=%2Ftransactions",
+    "/Transactions/New?origin=%2Ftransactions",
   ])("never returns to capture itself (%s)", (origin) => {
-    expect(parseCaptureOrigin(origin)).toEqual({
+    expect(parseCaptureOrigin(origin, () => true)).toEqual({
       pathname: "/",
       search: "",
     });
@@ -42,6 +67,7 @@ describe("parseCaptureOrigin", () => {
   test("builds a return link with the new id while keeping the origin search", () => {
     const origin = parseCaptureOrigin(
       "/transactions?type=expense&created=older-id",
+      isSignedInPathname,
     );
     expect(captureOriginHref(origin)).toBe("/transactions?type=expense");
     expect(captureReturnHref(origin, "new-id")).toBe(
@@ -52,9 +78,11 @@ describe("parseCaptureOrigin", () => {
   test("returns history to its newest page after save but preserves the cursor on cancel", () => {
     const transactionsOrigin = parseCaptureOrigin(
       "/transactions?type=expense&cursor=older-page",
+      isSignedInPathname,
     );
     const walletOrigin = parseCaptureOrigin(
       "/wallets/wallet-1?cursor=older-page",
+      isSignedInPathname,
     );
 
     expect(captureOriginHref(transactionsOrigin)).toBe(
@@ -69,7 +97,10 @@ describe("parseCaptureOrigin", () => {
   });
 
   test("does not treat the new-wallet screen as wallet history", () => {
-    const origin = parseCaptureOrigin("/wallets/new?cursor=older-page");
+    const origin = parseCaptureOrigin(
+      "/wallets/new?cursor=older-page",
+      isSignedInPathname,
+    );
     expect(captureReturnHref(origin, "new-id")).toBe(
       "/wallets/new?cursor=older-page&created=new-id",
     );
@@ -132,5 +163,14 @@ describe("captureSearchForLocation", () => {
         searchStr: "",
       }),
     ).toEqual({ origin: "/" });
+  });
+
+  test("leaves checking capture's own origin to the capture screen", () => {
+    expect(
+      captureSearchForLocation({
+        pathname: "/transactions/new",
+        searchStr: "?origin=%2Fnope",
+      }),
+    ).toEqual({ origin: "/nope" });
   });
 });
