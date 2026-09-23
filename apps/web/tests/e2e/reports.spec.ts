@@ -1,4 +1,3 @@
-import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
@@ -70,23 +69,39 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
     page.getByRole("button", { name: "Unarchive wallet", exact: true }),
   ).toBeVisible();
 
-  await page.goto("/dashboard");
+  // Management is a form screen without the tab bar; Home carries it.
+  await page.goto("/");
+  const reportsLink = page
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("link", { name: "Reports", exact: true });
+  await reportsLink.click();
+  await expect(page).toHaveURL(/\/reports$/);
+  await expect(page).toHaveTitle(/Reports/);
+  await expect(reportsLink).toHaveAttribute("aria-current", "page");
 
+  // The month picker sits on the h1's row and applies as soon as it is chosen.
+  const heading = await page
+    .getByRole("heading", { name: "Reports", level: 1 })
+    .boundingBox();
+  const monthPicker = await page.getByLabel("Report month").boundingBox();
+  if (!heading || !monthPicker) {
+    throw new Error("Missing the Reports title bar");
+  }
+  expect(monthPicker.y).toBeLessThan(heading.y + heading.height);
+  expect(monthPicker.y + monthPicker.height).toBeGreaterThan(heading.y);
   await page.getByLabel("Report month").click();
   await page.getByRole("button", { name: "August 2026", exact: true }).click();
-  await page.getByRole("button", { name: "Update report" }).click();
-  // The balance date is left untouched, so it stays at the app's today.
-  const today = todayIn({ timeZone: APP_TIME_ZONE });
-  await expect(page).toHaveURL(`/dashboard?month=2026-08&asOf=${today}`);
+  await expect(page).toHaveURL(/\/reports\?month=2026-08$/);
   await expect(page.locator('[data-summary="income"]')).toContainText("฿0.00");
 
   await page.getByLabel("Report month").click();
   await page
     .getByRole("button", { name: "September 2026", exact: true })
     .click();
+  await expect(page).toHaveURL(/\/reports\?month=2026-09$/);
   await chooseDate(page.getByLabel("Balance date"), "2026-09-03");
   await page.getByRole("button", { name: "Update report" }).click();
-  await expect(page).toHaveURL(/\/dashboard\?month=2026-09&asOf=2026-09-03$/);
+  await expect(page).toHaveURL(/\/reports\?month=2026-09&asOf=2026-09-03$/);
 
   const expectedSummary = {
     income: "฿1,000.00",
@@ -112,9 +127,6 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   await expect(page.locator('[data-summary="net"]')).toHaveClass(
     /font-semibold/,
   );
-  await expect(
-    page.getByRole("link", { name: "View history" }),
-  ).toHaveAttribute("href", "/transactions");
 });
 
 test("shows loading without sample money, then the empty report", async ({
@@ -137,11 +149,12 @@ test("shows loading without sample money, then the empty report", async ({
   ).toBeVisible();
 });
 
-test("keeps invalid URL controls editable and retries a failed report", async ({
+test("old dashboard links keep their values, and a failed report retries", async ({
   page,
 }) => {
   await signUpFreshUser(page);
   await page.goto("/dashboard?month=not-a-month&asOf=2026-02-30");
+  await expect(page).toHaveURL(/\/reports\?month=not-a-month&asOf=2026-02-30$/);
   await expect(
     page.getByRole("alert").filter({ hasText: "Choose a valid month" }),
   ).toBeVisible();
@@ -168,11 +181,12 @@ test("keeps invalid URL controls editable and retries a failed report", async ({
   });
   await page.goto("/dashboard?month=2026-09&asOf=2026-09-03");
   await expect(
-    page.getByRole("heading", { name: "Your records could not load" }),
+    page.getByRole("heading", { name: "Your report could not load" }),
   ).toBeVisible();
+  await expect(page.getByRole("alert")).not.toContainText("filters");
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(
     page.getByRole("heading", { name: "September 2026" }),
   ).toBeVisible();
-  await expect(page).toHaveURL(/\/dashboard\?month=2026-09&asOf=2026-09-03$/);
+  await expect(page).toHaveURL(/\/reports\?month=2026-09&asOf=2026-09-03$/);
 });

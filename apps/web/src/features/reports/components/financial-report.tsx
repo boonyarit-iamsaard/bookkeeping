@@ -4,6 +4,8 @@ import type { components } from "@/core/api/openapi.gen";
 import { totalWalletBalance } from "@/features/wallets/wallet-total";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
+import type { ReportFigure } from "../report-labels";
+import { REPORT_FIGURE_LABELS } from "../report-labels";
 
 type MonthlyReport = components["schemas"]["MonthlyReport"];
 type WalletSummary = components["schemas"]["Wallet"];
@@ -16,13 +18,13 @@ interface FinancialReportProps {
   asOf: string;
 }
 
-const SUMMARY_ROWS = [
-  { key: "income", label: "Income" },
-  { key: "grossExpenses", label: "Gross expenses" },
-  { key: "refunds", label: "Refunds" },
-  { key: "netExpenses", label: "Net expenses" },
-  { key: "net", label: "Net" },
-] as const;
+const SUMMARY_FIGURES = [
+  "income",
+  "grossExpenses",
+  "refunds",
+  "netExpenses",
+  "net",
+] as const satisfies readonly ReportFigure[];
 
 export function FinancialReport({
   summary,
@@ -47,13 +49,13 @@ export function FinancialReport({
           }).format(new Date(`${summary.month}-01T00:00:00Z`))}
         </h2>
         <dl className="divide-y">
-          {SUMMARY_ROWS.map(({ key, label }) => (
+          {SUMMARY_FIGURES.map((key) => (
             <div
               key={key}
               data-summary={key}
               className={`flex flex-wrap items-center justify-between gap-3 py-4 ${key === "net" ? "font-semibold" : ""}`}
             >
-              <dt>{label}</dt>
+              <dt>{REPORT_FIGURE_LABELS[key]}</dt>
               <dd>
                 <Money amount={summary[key]} className="text-lg" />
               </dd>

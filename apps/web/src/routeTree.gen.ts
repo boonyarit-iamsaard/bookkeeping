@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as AppCategoriesIndexRouteImport } from './routes/_app/categories/index'
@@ -42,6 +43,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
 const AuthSignInRoute = AuthSignInRouteImport.update({
@@ -112,6 +118,7 @@ const AppWalletsWalletIdManageRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/dashboard': typeof AppDashboardRoute
+  '/reports': typeof AppReportsRoute
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/transactions/$transactionId': typeof AppTransactionsTransactionIdRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/dashboard': typeof AppDashboardRoute
+  '/reports': typeof AppReportsRoute
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/transactions/$transactionId': typeof AppTransactionsTransactionIdRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_auth': typeof AuthRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/reports': typeof AppReportsRoute
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_app/': typeof AppIndexRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/reports'
     | '/sign-in'
     | '/sign-up'
     | '/transactions/$transactionId'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/reports'
     | '/sign-in'
     | '/sign-up'
     | '/transactions/$transactionId'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_auth'
     | '/_app/dashboard'
+    | '/_app/reports'
     | '/_auth/sign-in'
     | '/_auth/sign-up'
     | '/_app/'
@@ -246,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_auth/sign-in': {
@@ -337,6 +356,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
+  AppReportsRoute: typeof AppReportsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppTransactionsTransactionIdRoute: typeof AppTransactionsTransactionIdRoute
   AppTransactionsNewRoute: typeof AppTransactionsNewRoute
@@ -352,6 +372,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
+  AppReportsRoute: AppReportsRoute,
   AppIndexRoute: AppIndexRoute,
   AppTransactionsTransactionIdRoute: AppTransactionsTransactionIdRoute,
   AppTransactionsNewRoute: AppTransactionsNewRoute,

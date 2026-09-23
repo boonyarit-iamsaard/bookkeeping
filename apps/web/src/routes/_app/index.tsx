@@ -1,9 +1,9 @@
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { createFileRoute } from "@tanstack/react-router";
 import { Home } from "@/features/home/components/home";
+import { HomeErrorBoundary } from "@/features/home/components/home-error-boundary";
 import { HomeLoading } from "@/features/home/components/home-loading";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
-import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { historySearchSchema } from "@/features/transactions/history-schema";
 
 export const Route = createFileRoute("/_app/")({
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_app/")({
     return { initialToday };
   },
   pendingComponent: HomeLoading,
-  errorComponent: HistoryErrorBoundary,
+  errorComponent: HomeErrorBoundary,
   component: HomeRoute,
 });
 

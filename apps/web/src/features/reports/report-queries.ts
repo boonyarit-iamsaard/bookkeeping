@@ -3,7 +3,7 @@ import { reportQueries, walletQueries } from "@/core/api/queries";
 import type { ReportSearch, ReportValues } from "./report-schema";
 import { reportSchema, reportValues } from "./report-schema";
 
-interface DashboardQueryPlan {
+interface ReportQueryPlan {
   valid: boolean;
   values: ReportValues;
   invalidFields: ReadonlySet<keyof ReportValues>;
@@ -13,10 +13,10 @@ interface DashboardQueryPlan {
 }
 
 /** One report address translated into validation state and its three reads. */
-export function createDashboardQueryPlan(
+export function createReportQueryPlan(
   search: Readonly<ReportSearch>,
   today: CalendarDate,
-): DashboardQueryPlan {
+): ReportQueryPlan {
   const values = reportValues(search, today);
   const parsed = reportSchema.safeParse(values);
   const invalidFields = new Set<keyof ReportValues>();

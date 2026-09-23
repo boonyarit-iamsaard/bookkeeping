@@ -1,6 +1,7 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { parseCalendarDate } from "@bookkeeping/domain/dates";
 import { z } from "zod";
+import { reportMonthOf } from "./report-month";
 
 const calendarDate = z
   .string()
@@ -47,7 +48,7 @@ export function reportValues(
   today: CalendarDate,
 ): ReportValues {
   return {
-    month: search.month ?? today.slice(0, 7),
+    month: search.month ?? reportMonthOf(today),
     asOf: search.asOf ?? today,
   };
 }

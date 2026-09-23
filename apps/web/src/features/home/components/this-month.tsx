@@ -1,16 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
+import type { ReportFigure } from "@/features/reports/report-labels";
+import { REPORT_FIGURE_LABELS } from "@/features/reports/report-labels";
 import { Money } from "@/shared/components/money";
 import { cn } from "@/shared/helpers/cn";
 
 type MonthlyReport = components["schemas"]["MonthlyReport"];
 
-const MONTH_ROWS = [
-  { key: "income", label: "Income" },
-  { key: "netExpenses", label: "Net expenses" },
-  { key: "net", label: "Net" },
-] as const;
+const MONTH_FIGURES = [
+  "income",
+  "netExpenses",
+  "net",
+] as const satisfies readonly ReportFigure[];
 
 interface ThisMonthProps {
   report: Readonly<MonthlyReport>;
@@ -28,7 +30,7 @@ export function ThisMonth({ report }: Readonly<ThisMonthProps>) {
     >
       <h2 id="this-month-heading" className="pt-3 font-semibold text-lg">
         <Link
-          to="/dashboard"
+          to="/reports"
           search={{ month: report.month }}
           className="flex items-center justify-between gap-2 outline-none after:absolute after:inset-0 after:rounded-sm focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
         >
@@ -41,7 +43,7 @@ export function ThisMonth({ report }: Readonly<ThisMonthProps>) {
         </Link>
       </h2>
       <dl className="divide-y">
-        {MONTH_ROWS.map(({ key, label }) => (
+        {MONTH_FIGURES.map((key) => (
           <div
             key={key}
             className={cn(
@@ -49,7 +51,7 @@ export function ThisMonth({ report }: Readonly<ThisMonthProps>) {
               key === "net" && "font-semibold",
             )}
           >
-            <dt>{label}</dt>
+            <dt>{REPORT_FIGURE_LABELS[key]}</dt>
             <dd>
               <Money amount={report[key]} className="text-lg" />
             </dd>

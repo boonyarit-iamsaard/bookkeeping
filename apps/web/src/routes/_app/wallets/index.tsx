@@ -53,7 +53,7 @@ function WalletsPage() {
         }
       />
       <Link
-        to="/dashboard"
+        to="/reports"
         className={buttonVariants({
           variant: "outline",
           size: "lg",

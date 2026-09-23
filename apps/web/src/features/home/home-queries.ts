@@ -4,6 +4,7 @@ import {
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
+import { reportMonthOf } from "@/features/reports/report-month";
 
 // Enough to confirm what was just recorded; history holds the rest.
 const RECENT_TRANSACTION_LIMIT = "10";
@@ -12,7 +13,7 @@ const RECENT_TRANSACTION_LIMIT = "10";
 export function createHomeQueryPlan(today: CalendarDate) {
   return {
     wallets: walletQueries.list(),
-    monthly: reportQueries.monthly(today.slice(0, 7)),
+    monthly: reportQueries.monthly(reportMonthOf(today)),
     recent: transactionQueries.list({ limit: RECENT_TRANSACTION_LIMIT }),
   };
 }

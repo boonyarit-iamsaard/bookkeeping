@@ -13,6 +13,7 @@ describe("isSignedInPathname", () => {
     "/wallets/wallet-1/manage",
     "/wallets",
     "/categories",
+    "/reports",
     "/dashboard",
     "/transactions/transaction-1",
     "/transactions/transaction-1/edit",

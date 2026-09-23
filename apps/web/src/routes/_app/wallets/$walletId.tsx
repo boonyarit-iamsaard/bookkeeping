@@ -5,11 +5,11 @@ import { SlidersHorizontal } from "lucide-react";
 import { transactionQueries, walletQueries } from "@/core/api/queries";
 import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
-import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionList } from "@/features/transactions/components/transaction-list";
 import { historySearchSchema } from "@/features/transactions/history-schema";
 import { WalletBalance } from "@/features/wallets/components/wallet-balance";
+import { WalletPageErrorBoundary } from "@/features/wallets/components/wallet-page-error-boundary";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 /** One wallet's history: the list's own address, pinned to this wallet. */
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_app/wallets/$walletId")({
       ),
     ]),
   pendingComponent: HistoryLoading,
-  errorComponent: HistoryErrorBoundary,
+  errorComponent: WalletPageErrorBoundary,
   component: WalletPage,
 });
 

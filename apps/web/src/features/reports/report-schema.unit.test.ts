@@ -5,7 +5,7 @@ import {
   reportValues,
 } from "./report-schema";
 
-describe("dashboard report filters", () => {
+describe("report filters", () => {
   test("default missing filters to the current Bangkok month and date", () => {
     const search = reportSearchSchema.parse({});
 

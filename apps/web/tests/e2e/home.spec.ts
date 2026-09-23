@@ -70,7 +70,7 @@ test("Home shows the total, this month and the latest entries", async ({
   await page.goto("/");
   await page.getByRole("link", { name: "This month" }).click();
   const thisMonth = todayIn({ timeZone: APP_TIME_ZONE }).slice(0, 7);
-  await expect(page).toHaveURL(`/dashboard?month=${thisMonth}`);
+  await expect(page).toHaveURL(`/reports?month=${thisMonth}`);
   // Income is the report's first figure.
   await expect(page.getByRole("definition").first()).toHaveText("฿500.00");
 });

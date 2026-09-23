@@ -99,3 +99,17 @@ test("double-tapping Save creates one wallet", async ({ page }) => {
     page.getByRole("listitem").filter({ hasText: "Double-tap cash" }),
   ).toHaveCount(1);
 });
+
+test("an unknown wallet's page offers the way back to Wallets", async ({
+  page,
+}) => {
+  await signUpFreshUser(page);
+
+  await page.goto("/wallets/00000000-0000-4000-8000-000000000000");
+  await expect(
+    page.getByRole("heading", { name: "This wallet could not load" }),
+  ).toBeVisible();
+  await expect(page.getByRole("alert")).not.toContainText("filters");
+  await page.getByRole("link", { name: "Back to Wallets" }).click();
+  await expect(page).toHaveURL(/\/wallets$/);
+});

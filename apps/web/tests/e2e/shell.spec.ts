@@ -120,6 +120,6 @@ test("each tab keeps its scroll position", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 
   await nav.getByRole("link", { name: "Reports", exact: true }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/reports$/);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(160);
 });
