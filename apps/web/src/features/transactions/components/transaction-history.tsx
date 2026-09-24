@@ -5,22 +5,25 @@ type ApiTransaction = components["schemas"]["Transaction"];
 
 interface TransactionHistoryProps {
   transactions: readonly ApiTransaction[];
-  filtersValid: boolean;
+  /** Why the address's filters are invalid; empty when the history can show. */
+  filterErrors: readonly string[];
   filtered: boolean;
   savedId?: string;
 }
 
 export function TransactionHistory({
   transactions,
-  filtersValid,
+  filterErrors,
   filtered,
   savedId,
 }: Readonly<TransactionHistoryProps>) {
-  if (!filtersValid) {
+  if (filterErrors.length > 0) {
     return (
-      <p role="alert" className="text-destructive text-sm">
-        Choose valid filters. From date must be on or before To date.
-      </p>
+      <div role="alert" className="text-destructive text-sm">
+        {filterErrors.map((error) => (
+          <p key={error}>{error}</p>
+        ))}
+      </div>
     );
   }
 

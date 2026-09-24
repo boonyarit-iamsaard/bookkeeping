@@ -17,6 +17,7 @@ import { TransactionHistory } from "@/features/transactions/components/transacti
 import type { HistorySearch } from "@/features/transactions/history-schema";
 import {
   hasHistoryFilters,
+  historyFilterErrors,
   historyFilters,
   historySearchSchema,
   transactionFiltersSchema,
@@ -94,7 +95,7 @@ function TransactionsPage() {
       )}
       <TransactionHistory
         transactions={transactions}
-        filtersValid={listQuery !== null}
+        filterErrors={historyFilterErrors(search)}
         filtered={filtered}
         savedId={search.created}
       />

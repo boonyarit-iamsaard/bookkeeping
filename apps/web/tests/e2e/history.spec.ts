@@ -115,18 +115,16 @@ test("invalid filter values stay visible and editable with field errors", async 
 }) => {
   await signUpFreshUser(page);
   await page.goto("/transactions?from=2026-09-03&to=2026-09-01");
-  await expect(
-    page.getByRole("alert").filter({ hasText: "Choose valid filters" }),
-  ).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText(
+    "From date must be on or before To date.",
+  );
   await page.getByRole("button", { name: "Filter", exact: true }).click();
   await expect(page.getByLabel("From date")).toHaveText("3 Sep 2026");
   await expect(page.locator("input[name=from]")).toHaveValue("2026-09-03");
   await expect(page.getByLabel("To date")).toHaveText("1 Sep 2026");
   await page.keyboard.press("Escape");
   await page.goto("/transactions?from=0000-01-01");
-  await expect(
-    page.getByRole("alert").filter({ hasText: "Choose valid filters" }),
-  ).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Choose a valid From date.");
   await expect(
     page.getByRole("list", { name: "Active filters" }).getByRole("listitem"),
   ).toHaveText(["From 0000-01-01"]);
@@ -143,6 +141,10 @@ test("invalid filter values stay visible and editable with field errors", async 
   await page.goto(
     "/transactions?from=bogus&walletId=gone&categoryId=lost&type=7",
   );
+  await expect(page.getByRole("alert")).toContainText(
+    "Choose a valid From date.",
+  );
+  await expect(page.getByRole("alert")).not.toContainText("on or before");
   await page.getByRole("button", { name: "Filter", exact: true }).click();
   await expect(sheet.getByLabel("From date")).toHaveText("bogus");
   await expect(sheet.locator("input[name=from]")).toHaveValue("bogus");

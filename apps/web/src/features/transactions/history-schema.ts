@@ -89,3 +89,39 @@ export function historyFilters(
 export function hasHistoryFilters(search: Readonly<HistorySearch>): boolean {
   return HISTORY_FILTER_KEYS.some((key) => Boolean(search[key]));
 }
+
+const FILTER_ERROR_MESSAGES = {
+  from: "Choose a valid From date.",
+  to: "Choose a valid To date.",
+  walletId: "Choose a valid wallet.",
+  categoryId: "Choose a valid category.",
+  type: "Choose a valid type.",
+} as const;
+
+/** What is wrong with the address's filters, one message per field; empty when valid. */
+export function historyFilterErrors(search: Readonly<HistorySearch>): string[] {
+  const result = transactionFiltersSchema.safeParse(historyFilters(search));
+  if (result.success) {
+    return [];
+  }
+  return [
+    ...new Set(
+      result.error.issues.map((issue) => {
+        switch (issue.path[0]) {
+          case "from":
+            return FILTER_ERROR_MESSAGES.from;
+          case "to":
+            return FILTER_ERROR_MESSAGES.to;
+          case "walletId":
+            return FILTER_ERROR_MESSAGES.walletId;
+          case "categoryId":
+            return FILTER_ERROR_MESSAGES.categoryId;
+          case "type":
+            return FILTER_ERROR_MESSAGES.type;
+          default:
+            return issue.message;
+        }
+      }),
+    ),
+  ];
+}

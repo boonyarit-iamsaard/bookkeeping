@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   hasHistoryFilters,
+  historyFilterErrors,
   historyFilters,
   historySearchSchema,
   transactionFiltersSchema,
@@ -104,5 +105,33 @@ describe("history filters", () => {
       false,
     );
     expect(hasHistoryFilters({ type: "income" })).toBe(true);
+  });
+});
+
+describe("history filter errors", () => {
+  test("valid filters have no errors", () => {
+    expect(
+      historyFilterErrors({ from: "2026-09-01", to: "2026-09-30" }),
+    ).toEqual([]);
+  });
+
+  test("names each malformed field rather than the date order", () => {
+    expect(
+      historyFilterErrors({ from: "bogus", walletId: "gone", type: "7" }),
+    ).toEqual([
+      "Choose a valid From date.",
+      "Choose a valid wallet.",
+      "Choose a valid type.",
+    ]);
+  });
+
+  test("a reversed range names the date order", () => {
+    expect(
+      historyFilterErrors({ from: "2026-09-03", to: "2026-09-01" }),
+    ).toEqual(["From date must be on or before To date."]);
+  });
+
+  test("ignores the page cursor and the saved id", () => {
+    expect(historyFilterErrors({ cursor: "x", created: "y" })).toEqual([]);
   });
 });

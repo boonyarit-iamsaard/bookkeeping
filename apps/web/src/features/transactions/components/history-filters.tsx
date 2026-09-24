@@ -12,8 +12,7 @@ import { historyFilterChips } from "@/features/transactions/history-chips";
 import type { HistorySearch } from "@/features/transactions/history-schema";
 import {
   HISTORY_FILTER_KEYS,
-  historyFilters,
-  transactionFiltersSchema,
+  historyFilterErrors,
 } from "@/features/transactions/history-schema";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
@@ -30,41 +29,6 @@ interface HistoryFilterChipsProps {
 }
 
 interface HistoryFiltersProps extends HistoryFilterChipsProps {}
-
-const FILTER_ERROR_MESSAGES = {
-  from: "Choose a valid From date.",
-  to: "Choose a valid To date.",
-  walletId: "Choose a valid wallet.",
-  categoryId: "Choose a valid category.",
-  type: "Choose a valid type.",
-} as const;
-
-function filterErrors(values: Readonly<HistorySearch>) {
-  const result = transactionFiltersSchema.safeParse(historyFilters(values));
-  if (result.success) {
-    return [];
-  }
-  return [
-    ...new Set(
-      result.error.issues.map((issue) => {
-        switch (issue.path[0]) {
-          case "from":
-            return FILTER_ERROR_MESSAGES.from;
-          case "to":
-            return FILTER_ERROR_MESSAGES.to;
-          case "walletId":
-            return FILTER_ERROR_MESSAGES.walletId;
-          case "categoryId":
-            return FILTER_ERROR_MESSAGES.categoryId;
-          case "type":
-            return FILTER_ERROR_MESSAGES.type;
-          default:
-            return issue.message;
-        }
-      }),
-    ),
-  ];
-}
 
 /** Each tree as a group: parents first, their children indented beneath. */
 function categoryGroups(
@@ -112,7 +76,7 @@ export function HistoryFilters({
     return values[key] ?? "";
   }
   const today = todayIn({ timeZone: APP_TIME_ZONE });
-  const errors = filterErrors(values);
+  const errors = historyFilterErrors(values);
 
   function showFilters(search: HistorySearch) {
     setOpen(false);
