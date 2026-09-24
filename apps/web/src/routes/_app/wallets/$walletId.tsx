@@ -18,18 +18,23 @@ function walletHistoryQuery(walletId: string, cursor: string | undefined) {
 }
 
 export const Route = createFileRoute("/_app/wallets/$walletId")({
-  head: () => ({ meta: [{ title: "Wallet" }] }),
   validateSearch: historySearchSchema.pick({ cursor: true, created: true }),
   loaderDeps: ({ search }) => ({ cursor: search.cursor }),
-  loader: ({ context, params, deps }) =>
-    Promise.all([
+  loader: async ({ context, params, deps }) => {
+    const [wallet] = await Promise.all([
       context.queryClient.ensureQueryData(
         walletQueries.detail(params.walletId),
       ),
       context.queryClient.ensureQueryData(
         walletHistoryQuery(params.walletId, deps.cursor),
       ),
-    ]),
+    ]);
+    return { walletName: wallet?.name };
+  },
+  // After the loader, so its data is typed here.
+  head: ({ loaderData }) => ({
+    meta: [{ title: loaderData?.walletName ?? "Wallet" }],
+  }),
   pendingComponent: HistoryLoading,
   errorComponent: WalletPageErrorBoundary,
   component: WalletPage,
@@ -54,7 +59,7 @@ function WalletPage() {
           <Link
             to="/wallets/$walletId/manage"
             params={{ walletId: wallet.id }}
-            className={buttonVariants({ variant: "outline" })}
+            className={buttonVariants({ variant: "outline", size: "touch" })}
           >
             <SlidersHorizontal data-icon="inline-start" strokeWidth={1.75} />
             Manage

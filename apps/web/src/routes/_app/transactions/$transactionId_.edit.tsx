@@ -95,7 +95,7 @@ function EditTransactionPage() {
           <Link
             to="/transactions/$transactionId"
             params={{ transactionId: transaction.id }}
-            className={buttonVariants({ variant: "ghost" })}
+            className={buttonVariants({ variant: "ghost", size: "touch" })}
           >
             Cancel
           </Link>

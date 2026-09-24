@@ -28,6 +28,7 @@ test("sign-up lands on Home, whose account control reaches Categories", {
   } else {
     const sheet = page.getByRole("dialog", { name: "Account" });
     await expect(sheet).toHaveAccessibleDescription(email);
+    await expect(sheet.getByRole("heading", { name: "Account" })).toBeVisible();
     await expect(sheet.getByRole("listitem")).toHaveText([
       "Categories",
       "Sign out",
@@ -36,6 +37,9 @@ test("sign-up lands on Home, whose account control reaches Categories", {
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
     await expect(account).toBeFocused();
+    await account.click();
+    await sheet.getByRole("button", { name: "Close" }).click();
+    await expect(sheet).toBeHidden();
     await account.click();
     await sheet.getByRole("link", { name: "Categories" }).click();
     await expect(sheet).toBeHidden();

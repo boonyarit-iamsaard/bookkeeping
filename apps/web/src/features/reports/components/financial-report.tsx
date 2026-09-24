@@ -1,3 +1,4 @@
+import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { Link } from "@tanstack/react-router";
 import type { components } from "@/core/api/openapi.gen";
@@ -15,7 +16,7 @@ interface FinancialReportProps {
   summary: Readonly<MonthlyReport>;
   currentWallets: readonly WalletSummary[];
   datedWallets: readonly WalletSummary[];
-  asOf: string;
+  asOf: CalendarDate;
 }
 
 const SUMMARY_FIGURES = [
@@ -95,7 +96,8 @@ export function FinancialReport({
             <BalanceRow
               name="Overall balance"
               current={currentTotal}
-              selected={datedTotal}
+              dated={datedTotal}
+              asOf={asOf}
             />
             {currentWallets.map((wallet) => (
               <BalanceRow
@@ -104,7 +106,8 @@ export function FinancialReport({
                 walletId={wallet.id}
                 archived={Boolean(wallet.archivedAt)}
                 current={wallet.balance}
-                selected={
+                asOf={asOf}
+                dated={
                   datedWallets.find((dated) => dated.id === wallet.id)
                     ?.balance ?? { value: "0.00", currency: "THB" }
                 }
@@ -122,7 +125,9 @@ interface BalanceRowProps {
   walletId?: string;
   archived?: boolean;
   current: ApiMoney;
-  selected: ApiMoney;
+  /** The balance at the end of `asOf`. */
+  dated: ApiMoney;
+  asOf: CalendarDate;
 }
 
 function BalanceRow({
@@ -130,7 +135,8 @@ function BalanceRow({
   walletId,
   archived,
   current,
-  selected,
+  dated,
+  asOf,
 }: Readonly<BalanceRowProps>) {
   return (
     <div data-balance-row={name} className="flex flex-col gap-3 py-4">
@@ -159,8 +165,10 @@ function BalanceRow({
           data-balance-total={walletId ? undefined : true}
           className="flex flex-wrap items-baseline justify-between gap-2"
         >
-          <span className="text-muted-foreground text-sm">Selected date</span>
-          <Money amount={selected} />
+          <span className="text-muted-foreground text-sm">
+            {formatCalendarDate(asOf)}
+          </span>
+          <Money amount={dated} />
         </span>
       </dd>
     </div>

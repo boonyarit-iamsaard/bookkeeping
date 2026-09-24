@@ -214,6 +214,23 @@ test("editing loads the saved values, keeps the type fixed, and replaces the bal
   const category = page.getByRole("button", { name: /^Category/ });
   await expect(category).toHaveText("Uncategorized");
   await category.click();
+  const categorySheet = page.getByRole("dialog");
+  await expect(
+    categorySheet.getByRole("button", { name: "Close" }),
+  ).toBeVisible();
+  await categorySheet
+    .getByRole("button", { name: "New category", exact: true })
+    .click();
+  await expect(
+    categorySheet.getByRole("heading", { name: "New expense category" }),
+  ).toBeVisible();
+  await expect(
+    categorySheet.getByRole("button", { name: "Back to search" }),
+  ).toBeVisible();
+  await categorySheet.getByRole("button", { name: "Close" }).click();
+  await expect(categorySheet).toBeHidden();
+
+  await category.click();
   await page
     .getByRole("dialog", { name: "Expense category" })
     .getByRole("button", { name: "Groceries", exact: true })

@@ -9,7 +9,7 @@ import {
   accountLabel,
 } from "@/features/auth/components/account-disc";
 import { useSignOut } from "@/features/auth/hooks/use-sign-out";
-import { SheetPortal } from "@/shared/components/ui/sheet";
+import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 
 interface AccountSheetProps {
   email: string;
@@ -36,10 +36,7 @@ export function AccountSheet({ email }: Readonly<AccountSheetProps>) {
         <AccountDisc email={email} className="size-8" />
       </Dialog.Trigger>
       <SheetPortal>
-        <Dialog.Title className="sr-only">Account</Dialog.Title>
-        <Dialog.Description className="truncate px-4 pt-4 pb-2 text-muted-foreground text-sm">
-          {email}
-        </Dialog.Description>
+        <SheetHeader subtitle={email}>Account</SheetHeader>
         <ul className="divide-y border-t pb-2">
           <li>
             <Link

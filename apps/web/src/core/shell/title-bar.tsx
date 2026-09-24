@@ -13,7 +13,7 @@ function BackAnchor({ className, ...props }: Readonly<BackAnchorProps>) {
     <a
       {...props}
       className={cn(
-        "-ml-2 flex size-10 shrink-0 items-center justify-center rounded-full text-foreground outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "-ml-2 flex size-11 shrink-0 items-center justify-center rounded-full text-foreground outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50",
         className,
       )}
     >
@@ -41,6 +41,7 @@ interface TitleBarProps {
   title: React.ReactNode;
   /** A `BackLink` on nested screens. */
   back?: React.ReactNode;
+  /** Buttons and links at size `touch`, so every action shares one height. */
   actions?: React.ReactNode;
 }
 

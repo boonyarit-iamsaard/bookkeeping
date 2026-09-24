@@ -17,7 +17,7 @@ import {
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { Button } from "@/shared/components/ui/button";
-import { SheetPortal } from "@/shared/components/ui/sheet";
+import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 
 type ApiWallet = components["schemas"]["Wallet"];
 type ApiCategory = components["schemas"]["Category"];
@@ -91,14 +91,12 @@ export function HistoryFilters({
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger render={<Button variant="outline" size="lg" />}>
+      <Dialog.Trigger render={<Button variant="outline" size="touch" />}>
         <SlidersHorizontal data-icon="inline-start" />
         Filter
       </Dialog.Trigger>
       <SheetPortal>
-        <Dialog.Title className="shrink-0 px-4 pt-4 pb-2 font-semibold text-lg sm:px-6 sm:pt-6">
-          Filter transactions
-        </Dialog.Title>
+        <SheetHeader>Filter transactions</SheetHeader>
         <form
           key={JSON.stringify(values)}
           onSubmit={applyFilters}
@@ -141,7 +139,7 @@ export function HistoryFilters({
                 />
               </div>
               <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
-                <label htmlFor="history-walletId">Filter wallet</label>
+                <label htmlFor="history-walletId">Wallet</label>
                 <FilterSelect
                   id="history-walletId"
                   name="walletId"
@@ -159,7 +157,7 @@ export function HistoryFilters({
                 />
               </div>
               <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
-                <label htmlFor="history-categoryId">Filter category</label>
+                <label htmlFor="history-categoryId">Category</label>
                 <FilterSelect
                   id="history-categoryId"
                   name="categoryId"
@@ -192,13 +190,13 @@ export function HistoryFilters({
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-3 px-4 py-4 sm:px-6 sm:pb-6">
-            <Button type="submit" variant="outline" size="lg">
+            <Button type="submit" variant="outline" size="touch">
               Apply filters
             </Button>
             <Button
               type="button"
               variant="ghost"
-              size="lg"
+              size="touch"
               onClick={() => showFilters({})}
             >
               Clear filters
@@ -231,7 +229,7 @@ export function HistoryFilterChips({
             // match would mark every chip as the current page.
             activeOptions={{ exact: true, includeSearch: true }}
             aria-label={`Remove filter ${chip.label}`}
-            className="flex min-h-9 max-w-full items-center gap-1 rounded-full border px-3 text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="flex min-h-11 max-w-full items-center gap-1 rounded-full border px-3 text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <span className="truncate">{chip.label}</span>
             <X

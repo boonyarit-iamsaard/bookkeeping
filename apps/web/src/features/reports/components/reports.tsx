@@ -1,13 +1,11 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import type { FormEvent } from "react";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import { DatePicker } from "@/shared/components/date-picker";
 import { MonthPicker } from "@/shared/components/month-picker";
-import { Button } from "@/shared/components/ui/button";
 import { reportMonthOf } from "../report-month";
 import { createReportQueryPlan } from "../report-queries";
 import type { ReportSearch } from "../report-schema";
@@ -39,21 +37,14 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
   });
   const navigate = useNavigate({ from: "/reports" });
 
-  // Each control changes only its own value; the other keeps the address's,
-  // so a malformed one stays visible until it is corrected.
+  // Each control applies on pick and changes only its own value; the other
+  // keeps the address's, so a malformed one stays visible until corrected.
   function showMonth(month: string) {
     void navigate({ search: { month, asOf: search.asOf } });
   }
 
-  function updateBalanceDate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const nextAsOf = new FormData(event.currentTarget).get("asOf");
-    void navigate({
-      search: {
-        month: search.month,
-        asOf: typeof nextAsOf === "string" ? nextAsOf : undefined,
-      },
-    });
+  function showBalanceDate(asOf: CalendarDate) {
+    void navigate({ search: { month: search.month, asOf } });
   }
 
   return (
@@ -78,35 +69,21 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
           </>
         }
       />
-      <form
-        key={plan.values.asOf}
-        aria-label="Report dates"
-        className="flex flex-col gap-4 border-y py-5"
-        onSubmit={updateBalanceDate}
-      >
-        {/* The grid keeps the control the width it had beside the month. */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
-            <label htmlFor="balance-date">Balance date</label>
-            <DatePicker
-              id="balance-date"
-              name="asOf"
-              today={today}
-              max={today}
-              defaultValue={plan.values.asOf}
-              invalid={plan.invalidFields.has("asOf")}
-            />
-          </div>
+      {/* The grid keeps the control the width it had beside the month. */}
+      <div className="grid gap-4 border-y py-5 sm:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+          <label htmlFor="balance-date">Balance date</label>
+          <DatePicker
+            key={plan.values.asOf}
+            id="balance-date"
+            today={today}
+            max={today}
+            defaultValue={plan.values.asOf}
+            invalid={plan.invalidFields.has("asOf")}
+            onChange={showBalanceDate}
+          />
         </div>
-        <Button
-          type="submit"
-          size="lg"
-          variant="outline"
-          className="self-start"
-        >
-          Update report
-        </Button>
-      </form>
+      </div>
       {plan.valid &&
       report.data !== undefined &&
       currentWallets.data !== undefined &&

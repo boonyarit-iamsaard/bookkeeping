@@ -49,7 +49,7 @@ function TransactionDetailPage() {
           <Link
             to="/transactions/$transactionId/edit"
             params={{ transactionId: transaction.id }}
-            className={buttonVariants({ variant: "outline" })}
+            className={buttonVariants({ variant: "outline", size: "touch" })}
           >
             <Pencil data-icon="inline-start" strokeWidth={1.75} />
             Edit

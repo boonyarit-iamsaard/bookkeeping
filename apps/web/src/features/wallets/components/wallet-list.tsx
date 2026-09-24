@@ -29,7 +29,7 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
     <div className="flex flex-col gap-8">
       <WalletsTotal
         wallets={wallets}
-        caption={`Total across ${walletCountLabel(wallets.length)}`}
+        caption={`Across ${walletCountLabel(wallets.length)}`}
       />
 
       <ul className="-mx-4 divide-y sm:mx-0" aria-label="Wallets">

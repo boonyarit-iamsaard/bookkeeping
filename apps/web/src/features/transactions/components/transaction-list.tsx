@@ -1,8 +1,4 @@
-import {
-  APP_TIME_ZONE,
-  formatCalendarDate,
-  formatInstant,
-} from "@bookkeeping/domain/dates";
+import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { Link } from "@tanstack/react-router";
 import { ArrowRightLeft, Plus, ReceiptText } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
@@ -94,10 +90,8 @@ export function TransactionList({
             </span>
             <div className="min-w-32 flex-1">
               <p className="line-clamp-2 font-medium leading-snug">
-                <span className="text-muted-foreground">
-                  {TRANSACTION_TYPE_LABELS[transaction.type]}
-                  {transaction.category ? " · " : ""}
-                </span>
+                {TRANSACTION_TYPE_LABELS[transaction.type]}
+                {transaction.category ? " · " : ""}
                 {transaction.category
                   ? categoryLabel(transaction.category)
                   : ""}
@@ -128,14 +122,6 @@ export function TransactionList({
                   {transaction.note}
                 </p>
               )}
-              <p className="text-muted-foreground text-xs">
-                Recorded{" "}
-                {formatInstant({
-                  instant: new Date(transaction.recordedAt),
-                  timeZone: APP_TIME_ZONE,
-                })}{" "}
-                · Bangkok
-              </p>
             </div>
             <Money
               amount={transaction.amount}

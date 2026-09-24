@@ -5,7 +5,7 @@ import type {
   CategoryKind,
   CategorySummary,
 } from "@bookkeeping/domain/categories";
-import { ArrowLeft, Check, ChevronDown, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Plus, Search } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
 import type { CreateCategoryOutcome } from "@/features/categories/category-mutations";
@@ -18,7 +18,7 @@ import { CategoryIcon } from "@/features/categories/components/category-icon";
 import { CreateCategoryForm } from "@/features/categories/components/create-category-form";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { SheetPortal } from "@/shared/components/ui/sheet";
+import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/helpers/cn";
 
 interface CategoryPickerProps {
@@ -118,21 +118,21 @@ export function CategoryPicker({
           />
         ) : (
           <>
-            <header className="flex h-14 shrink-0 items-center gap-2 px-2 sm:px-4">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-lg"
-                aria-label="Back to search"
-                onClick={() => setView({ name: "search" })}
-                className="size-11"
-              >
-                <ArrowLeft strokeWidth={1.75} className="size-5" />
-              </Button>
-              <Dialog.Title className="flex-1 font-semibold text-lg">
-                New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
-              </Dialog.Title>
-            </header>
+            <SheetHeader
+              leadingAction={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-touch"
+                  aria-label="Back to search"
+                  onClick={() => setView({ name: "search" })}
+                >
+                  <ArrowLeft strokeWidth={1.75} className="size-5" />
+                </Button>
+              }
+            >
+              New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
+            </SheetHeader>
             <CreateCategoryForm
               kind={kind}
               categories={categories}
@@ -242,24 +242,7 @@ function SearchView({
 
   return (
     <>
-      <header className="flex h-14 shrink-0 items-center gap-2 pr-2 pl-4 sm:pl-6">
-        <Dialog.Title className="flex-1 font-semibold text-lg">
-          {CATEGORY_KIND_LABELS[kind]} category
-        </Dialog.Title>
-        <Dialog.Close
-          aria-label="Close"
-          render={
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-lg"
-              className="size-11"
-            />
-          }
-        >
-          <X strokeWidth={1.75} className="size-5" />
-        </Dialog.Close>
-      </header>
+      <SheetHeader>{CATEGORY_KIND_LABELS[kind]} category</SheetHeader>
       <div className="shrink-0 px-4 pb-3 sm:px-6">
         <div className="relative">
           <Search

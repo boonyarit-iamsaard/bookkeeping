@@ -5,7 +5,7 @@ import type {
   CategoryKind,
   CategorySummary,
 } from "@bookkeeping/domain/categories";
-import { ChevronRight, Plus, X } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { useRef, useState } from "react";
 import { TitleBar } from "@/core/shell/title-bar";
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
@@ -20,7 +20,7 @@ import {
 } from "@/features/categories/components/edit-category-form";
 import { Button } from "@/shared/components/ui/button";
 import { SegmentedControl } from "@/shared/components/ui/segmented-control";
-import { SheetPortal } from "@/shared/components/ui/sheet";
+import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/helpers/cn";
 
 interface CategoryManagementProps {
@@ -79,22 +79,14 @@ export function CategoryManagement({
         title="Categories"
         actions={
           <Dialog.Root open={creating} onOpenChange={setCreating}>
-            <Dialog.Trigger
-              render={
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="min-h-11 sm:min-h-10"
-                />
-              }
-            >
+            <Dialog.Trigger render={<Button variant="outline" size="touch" />}>
               <Plus data-icon="inline-start" />
               New category
             </Dialog.Trigger>
             <SheetPortal className="sm:h-auto sm:max-h-144">
-              <PanelHeader>
+              <SheetHeader>
                 New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
-              </PanelHeader>
+              </SheetHeader>
               <CreateCategoryForm
                 kind={kind}
                 categories={categories}
@@ -233,7 +225,7 @@ function CategoryRow({
         />
       </Dialog.Trigger>
       <SheetPortal className="sm:h-auto sm:max-h-144">
-        <PanelHeader
+        <SheetHeader
           subtitle={
             removal.parentName
               ? `${CATEGORY_KIND_LABELS[category.kind]} · ${removal.parentName} › ${category.name}`
@@ -241,7 +233,7 @@ function CategoryRow({
           }
         >
           Edit category
-        </PanelHeader>
+        </SheetHeader>
         <EditCategoryForm
           category={category}
           removal={removal}
@@ -253,41 +245,6 @@ function CategoryRow({
         />
       </SheetPortal>
     </Dialog.Root>
-  );
-}
-
-interface PanelHeaderProps {
-  children: React.ReactNode;
-  subtitle?: string;
-}
-
-function PanelHeader({ children, subtitle }: Readonly<PanelHeaderProps>) {
-  return (
-    <header className="flex min-h-14 shrink-0 items-center gap-2 py-2 pr-2 pl-4 sm:pl-6">
-      <div className="min-w-0 flex-1">
-        <Dialog.Title className="font-semibold text-lg leading-tight">
-          {children}
-        </Dialog.Title>
-        {subtitle && (
-          <Dialog.Description className="truncate text-muted-foreground text-sm">
-            {subtitle}
-          </Dialog.Description>
-        )}
-      </div>
-      <Dialog.Close
-        aria-label="Close"
-        render={
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-lg"
-            className="size-11"
-          />
-        }
-      >
-        <X strokeWidth={1.75} className="size-5" />
-      </Dialog.Close>
-    </header>
   );
 }
 

@@ -1,3 +1,4 @@
+import type { Locator } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
@@ -17,6 +18,24 @@ test("the tab bar navigates on phone and the header from 640px", {
   const nav = page.getByRole("navigation", { name: "Primary" });
   const home = nav.getByRole("link", { name: "Home", exact: true });
   await expect(home).toHaveAttribute("aria-current", "page");
+  if (isDesktop(page)) {
+    // The wordmark leads Home too, but only the destination is current.
+    await expect(
+      page.getByRole("banner").getByRole("link", { name: "Bookkeeping" }),
+    ).not.toHaveAttribute("aria-current");
+  } else {
+    // Two equal halves put ＋ at the bar's exact centre.
+    const bar = await nav.boundingBox();
+    const capture = await nav
+      .getByRole("link", { name: "New transaction" })
+      .boundingBox();
+    if (!bar || !capture) {
+      throw new Error("Missing tab bar geometry");
+    }
+    expect(
+      Math.abs(capture.x + capture.width / 2 - (bar.x + bar.width / 2)),
+    ).toBeLessThan(1);
+  }
   const wallets = nav.getByRole("link", { name: "Wallets", exact: true });
   await wallets.click();
   await expect(page).toHaveURL(/\/wallets$/);
@@ -99,6 +118,7 @@ test("back goes to the logical parent, even from a deep link", async ({
 
   await page.goto("/wallets");
   await page.getByRole("link", { name: "Cash", exact: true }).click();
+  await expect(page).toHaveTitle(/^Cash/);
   const walletUrl = page.url();
   await page.goto(`${walletUrl}/manage`);
   await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCount(
@@ -117,9 +137,7 @@ test("each tab keeps its scroll position", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 420 });
   const nav = page.getByRole("navigation", { name: "Primary" });
   await nav.getByRole("link", { name: "Reports", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Update report" }),
-  ).toBeVisible();
+  await expect(page.getByLabel("Balance date")).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 160));
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(160);
 
@@ -130,4 +148,40 @@ test("each tab keeps its scroll position", async ({ page }) => {
   await nav.getByRole("link", { name: "Reports", exact: true }).click();
   await expect(page).toHaveURL(/\/reports$/);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(160);
+});
+
+test("phone controls keep a 44px touch target", async ({ page }) => {
+  await signUpFreshUser(page);
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "1000",
+    openingDate: "2026-09-01",
+  });
+
+  async function expectTouchHeight(control: Locator) {
+    await expect(control).toBeVisible();
+    const box = await control.boundingBox();
+    expect(box?.height).toBe(44);
+  }
+
+  await page.goto("/wallets");
+  await expect(
+    page.getByRole("region", { name: "Total balance" }),
+  ).toContainText("Across 1 wallet");
+  await expectTouchHeight(page.getByRole("link", { name: "New wallet" }));
+  await page.getByRole("link", { name: "Cash", exact: true }).click();
+  await expectTouchHeight(page.getByRole("link", { name: "Back to Wallets" }));
+  await expectTouchHeight(page.getByRole("link", { name: "Manage" }));
+
+  await page.goto("/transactions?type=expense");
+  await expectTouchHeight(
+    page.getByRole("link", { name: "Remove filter Expense" }),
+  );
+  const filter = page.getByRole("button", { name: "Filter", exact: true });
+  await expectTouchHeight(filter);
+  await filter.click();
+  const sheet = page.getByRole("dialog", { name: "Filter transactions" });
+  await expectTouchHeight(sheet.getByRole("button", { name: "Apply filters" }));
+  await expectTouchHeight(sheet.getByRole("button", { name: "Clear filters" }));
+  await expectTouchHeight(sheet.getByRole("button", { name: "Close" }));
 });

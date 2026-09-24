@@ -17,7 +17,10 @@ function NewWalletPage() {
       <TitleBar
         title="New wallet"
         actions={
-          <Link to="/wallets" className={buttonVariants({ variant: "ghost" })}>
+          <Link
+            to="/wallets"
+            className={buttonVariants({ variant: "ghost", size: "touch" })}
+          >
             Cancel
           </Link>
         }

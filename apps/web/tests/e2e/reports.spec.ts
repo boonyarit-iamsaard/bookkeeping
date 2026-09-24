@@ -91,7 +91,7 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
     .click();
   await expect(page).toHaveURL(/\/reports\?month=2026-09$/);
   await chooseDate(page.getByLabel("Balance date"), "2026-09-03");
-  await page.getByRole("button", { name: "Update report" }).click();
+  // The balance date applies on pick, like the month.
   await expect(page).toHaveURL(/\/reports\?month=2026-09&asOf=2026-09-03$/);
 
   const expectedSummary = {
@@ -107,14 +107,14 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
 
   const overall = page.locator('[data-balance-row="Overall balance"]');
   await expect(overall).toContainText("Current฿1,800.00");
-  await expect(overall).toContainText("Selected date฿1,700.00");
+  await expect(overall).toContainText("3 Sep 2026฿1,700.00");
   const cash = page.locator('[data-balance-row="Cash"]');
   await expect(cash).toContainText("Current฿1,400.00");
-  await expect(cash).toContainText("Selected date฿1,500.00");
+  await expect(cash).toContainText("3 Sep 2026฿1,500.00");
   const savings = page.locator('[data-balance-row="Savings"]');
   await expect(savings).toContainText("Archived");
   await expect(savings).toContainText("Current฿400.00");
-  await expect(savings).toContainText("Selected date฿200.00");
+  await expect(savings).toContainText("3 Sep 2026฿200.00");
   await expect(page.locator('[data-summary="net"]')).toHaveClass(
     /font-semibold/,
   );

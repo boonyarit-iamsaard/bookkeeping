@@ -36,7 +36,7 @@ function WalletsPage() {
           data.items.length > 0 && (
             <Link
               to="/wallets/new"
-              className={buttonVariants({ variant: "outline", size: "lg" })}
+              className={buttonVariants({ variant: "outline", size: "touch" })}
             >
               <Plus data-icon="inline-start" />
               New wallet

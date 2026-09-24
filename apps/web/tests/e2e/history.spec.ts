@@ -64,14 +64,20 @@ test("filters apply through the address and open the saved record", {
   const today = todayIn({ timeZone: APP_TIME_ZONE });
   await chooseDate(sheet.getByLabel("From date"), addDays(today, -1));
   await chooseDate(sheet.getByLabel("To date"), today);
-  await chooseOption(sheet.getByLabel("Filter wallet"), "Cash");
+  await chooseOption(sheet.getByLabel("Wallet", { exact: true }), "Cash");
   await chooseOption(sheet.getByLabel("Type", { exact: true }), "Expense");
   // The first Uncategorized listed is the expense tree's.
-  await chooseOption(sheet.getByLabel("Filter category"), "Uncategorized");
+  await chooseOption(
+    sheet.getByLabel("Category", { exact: true }),
+    "Uncategorized",
+  );
   await sheet.getByRole("button", { name: "Apply filters" }).click();
   await expect(page).toHaveURL(/\/transactions\?.*type=expense/);
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
-  await expect(page.getByText(/Recorded .*Bangkok/)).toBeVisible();
+  // Rows leave the recorded time to the detail page.
+  await expect(page.locator("[data-transaction-row]")).not.toContainText(
+    "Recorded",
+  );
   // The address alone restores the filters, their chips and the sheet's values.
   await page.reload();
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
@@ -83,7 +89,9 @@ test("filters apply through the address and open the saved record", {
   await expect(page).toHaveURL(/walletId=/);
   await expect(chips.getByRole("listitem")).toHaveCount(4);
   await filter.click();
-  await expect(sheet.getByLabel("Filter wallet")).toContainText("Cash");
+  await expect(sheet.getByLabel("Wallet", { exact: true })).toContainText(
+    "Cash",
+  );
   await expect(sheet.getByLabel("Type", { exact: true })).toContainText(
     "All types",
   );
@@ -148,8 +156,12 @@ test("invalid filter values stay visible and editable with field errors", async 
   await page.getByRole("button", { name: "Filter", exact: true }).click();
   await expect(sheet.getByLabel("From date")).toHaveText("bogus");
   await expect(sheet.locator("input[name=from]")).toHaveValue("bogus");
-  await expect(sheet.getByLabel("Filter wallet")).toContainText("gone");
-  await expect(sheet.getByLabel("Filter category")).toContainText("lost");
+  await expect(sheet.getByLabel("Wallet", { exact: true })).toContainText(
+    "gone",
+  );
+  await expect(sheet.getByLabel("Category", { exact: true })).toContainText(
+    "lost",
+  );
   await expect(sheet.getByLabel("Type", { exact: true })).toContainText("7");
   await expect(sheet.getByRole("alert")).toContainText(
     "Choose a valid From date",

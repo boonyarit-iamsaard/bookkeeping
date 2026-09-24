@@ -1,6 +1,8 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
+import { X } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
 
 interface SheetPortalProps {
@@ -31,13 +33,49 @@ export function SheetPortal({
             className,
           )}
         >
-          <div
-            aria-hidden="true"
-            className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-border sm:hidden"
-          />
           {children}
         </Dialog.Popup>
       </Dialog.Viewport>
     </Dialog.Portal>
+  );
+}
+
+interface SheetHeaderProps {
+  children: React.ReactNode;
+  /** A caption beneath the title; it becomes the dialog's description. */
+  subtitle?: string;
+  /** A sheet-specific action before the title, such as a nested-view back. */
+  leadingAction?: React.ReactNode;
+}
+
+/**
+ * A Dialog sheet's title with a 44px ✕ beside it, so dismissal never relies
+ * on the scrim or Escape. An alert has no ✕: it is answered, not dismissed.
+ */
+export function SheetHeader({
+  children,
+  subtitle,
+  leadingAction,
+}: Readonly<SheetHeaderProps>) {
+  return (
+    <header className="flex min-h-14 shrink-0 items-center gap-2 py-2 pr-2 pl-4 sm:pl-6">
+      {leadingAction}
+      <div className="min-w-0 flex-1">
+        <Dialog.Title className="font-semibold text-lg leading-tight">
+          {children}
+        </Dialog.Title>
+        {subtitle && (
+          <Dialog.Description className="truncate text-muted-foreground text-sm">
+            {subtitle}
+          </Dialog.Description>
+        )}
+      </div>
+      <Dialog.Close
+        aria-label="Close"
+        render={<Button type="button" variant="ghost" size="icon-touch" />}
+      >
+        <X strokeWidth={1.75} className="size-5" />
+      </Dialog.Close>
+    </header>
   );
 }
