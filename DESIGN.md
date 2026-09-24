@@ -286,12 +286,12 @@ The shadcn radius scale is present in full (`sm` 6px through `4xl` 26px) but the
 
 ## Components
 
-Controls are tactile and quiet: capsules on a flat page, a 3px cobalt halo on focus, and a 1px press-down on click.
+Controls are tactile and quiet: capsules on a flat page and a 3px cobalt halo on focus; a pressed button stays where it is.
 
 ### Buttons
 
 - **Shape:** capsule (`{rounded.pill}`), 1px transparent border with `background-clip: padding-box`, Label typography, icon 16px with 6px gap and reduced padding on the icon side (`data-icon="inline-start"`).
-- **Primary** (`button-primary`): Cobalt fill, Cobalt Foreground text; the list page's Create wallet is size `lg` (40px, 16px side padding). The form Save is 48px tall, full width, Body-size text (`button-primary-save`). Hover: Cobalt at 80%. Active: `translateY(1px)`. Disabled: 50% opacity, pointer events off, label reads "Saving…" while in flight.
+- **Primary** (`button-primary`): Cobalt fill, Cobalt Foreground text; the list page's Create wallet is size `lg` (40px, 16px side padding). The form Save is 48px tall, full width, Body-size text (`button-primary-save`). Hover: Cobalt at 80%. Disabled: 50% opacity, pointer events off, label reads "Saving…" while in flight.
 - **Outline** (`button-outline`): Hairline stroke, Hairline fill at 30% (50% on hover); used for Sign out in the header. 36px.
 - **Ghost** (`button-ghost`): no fill; Mist on hover; used for Cancel (36px beside the h1 on desktop, 44px full width in the phone Save bar).
 - **Focus:** border becomes Cobalt and a 3px ring of Cobalt at 50% appears; `focus-visible` only.
