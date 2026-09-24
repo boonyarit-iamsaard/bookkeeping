@@ -46,10 +46,12 @@ export function TabBar({ captureSearch }: Readonly<TabBarProps>) {
           <TabItem key={destination.to} destination={destination} />
         ))}
         <li className="flex flex-auto justify-center">
-          {/* The circle rises above the bar so its word lines up with the others. */}
+          {/* The circle rises above the bar so its word lines up with the others.
+              Its name starts with that word so voice control still finds it. */}
           <Link
             to="/transactions/new"
             search={captureSearch}
+            aria-label="New transaction"
             className="group flex flex-col items-center justify-end gap-0.5 pb-1.5 font-medium text-muted-foreground text-sm leading-snug outline-none"
           >
             <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground group-focus-visible:ring-[3px] group-focus-visible:ring-ring/50">

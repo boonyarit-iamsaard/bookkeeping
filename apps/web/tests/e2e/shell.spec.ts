@@ -37,7 +37,13 @@ test("the tab bar navigates on phone and the header from 640px", {
     await header.getByRole("link", { name: "New transaction" }).click();
   } else {
     await expect(page.getByRole("banner")).toHaveCount(0);
-    for (const name of ["Home", "Transactions", "New", "Wallets", "Reports"]) {
+    for (const name of [
+      "Home",
+      "Transactions",
+      "New transaction",
+      "Wallets",
+      "Reports",
+    ]) {
       await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
     }
     await nav.getByRole("link", { name: "Transactions", exact: true }).click();
@@ -46,7 +52,9 @@ test("the tab bar navigates on phone and the header from 640px", {
       nav.getByRole("link", { name: "Transactions", exact: true }),
     ).toHaveAttribute("aria-current", "page");
     await expect(wallets).not.toHaveAttribute("aria-current");
-    await nav.getByRole("link", { name: "New", exact: true }).click();
+    await nav
+      .getByRole("link", { name: "New transaction", exact: true })
+      .click();
   }
 
   await expect(page).toHaveURL(/\/transactions\/new\?origin=/);

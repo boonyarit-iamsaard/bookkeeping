@@ -120,9 +120,11 @@ test("capture returns to its opening screen, preserves filters, and chooses the 
   await page.getByRole("button", { name: /^Save −/ }).click();
   await expectSavedRecord(page);
 
-  const primaryNav = page.getByRole("navigation", { name: "Primary" });
+  const newTransaction = page
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("link", { name: "New transaction", exact: true });
   await page.goto("/");
-  await primaryNav.getByRole("link", { name: "New", exact: true }).click();
+  await newTransaction.click();
   let entryUrl = new URL(page.url());
   expect(entryUrl.searchParams.get("origin")).toBe("/");
   expect(entryUrl.searchParams.get("wallet")).toBeNull();
@@ -133,7 +135,7 @@ test("capture returns to its opening screen, preserves filters, and chooses the 
   await expect(saved).toHaveClass(/fade-in/);
 
   await page.goto("/transactions?type=expense");
-  await primaryNav.getByRole("link", { name: "New", exact: true }).click();
+  await newTransaction.click();
   entryUrl = new URL(page.url());
   expect(entryUrl.searchParams.get("origin")).toBe(
     "/transactions?type=expense",
@@ -151,7 +153,7 @@ test("capture returns to its opening screen, preserves filters, and chooses the 
   await expect(saved).toHaveClass(/fade-in/);
 
   await page.goto(savingsUrl.pathname);
-  await primaryNav.getByRole("link", { name: "New", exact: true }).click();
+  await newTransaction.click();
   entryUrl = new URL(page.url());
   expect(entryUrl.searchParams.get("wallet")).toBe(
     savingsUrl.pathname.split("/").at(-1),
@@ -173,7 +175,7 @@ test("capture returns to its opening screen, preserves filters, and chooses the 
     page.getByRole("button", { name: "Unarchive wallet", exact: true }),
   ).toBeVisible();
   await page.goto(savingsUrl.pathname);
-  await primaryNav.getByRole("link", { name: "New", exact: true }).click();
+  await newTransaction.click();
   await expect(page.getByLabel("Wallet", { exact: true })).toContainText(
     "Cash",
   );
@@ -182,7 +184,7 @@ test("capture returns to its opening screen, preserves filters, and chooses the 
   expect(new URL(page.url()).searchParams.has("created")).toBe(false);
 
   await page.goto(`/transactions?walletId=${travelId}`);
-  await primaryNav.getByRole("link", { name: "New", exact: true }).click();
+  await newTransaction.click();
   entryUrl = new URL(page.url());
   expect(entryUrl.searchParams.get("origin")).toBe(
     `/transactions?walletId=${travelId}`,
