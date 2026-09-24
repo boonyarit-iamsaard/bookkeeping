@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { chooseDate } from "./choose-date";
+import { parkPointer } from "./park-pointer";
 
 interface WalletSeed {
   name: string;
@@ -19,6 +20,8 @@ export async function createWalletThroughForm(
   await page.getByLabel("Opening balance").fill(openingAmount);
   await chooseDate(page.getByLabel("Opening date"), openingDate);
   await page.getByRole("button", { name: "Create wallet" }).click();
+  // The button spans the bottom of the phone screen, where the list's ＋ tab lands.
+  await parkPointer(page);
   await expect(page).toHaveURL(/\/wallets(\?.*)?$/);
   await expect(
     page.getByRole("listitem").filter({ hasText: name }),

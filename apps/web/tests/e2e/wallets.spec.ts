@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
+import { parkPointer } from "./helpers/park-pointer";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test.afterEach(async ({ page }) => {
@@ -26,6 +27,7 @@ test("a new user creates a wallet and its opening balance survives a reload", as
   await page.getByLabel("Opening balance").fill("12000.5");
   await chooseDate(page.getByLabel("Opening date"), "2026-09-01");
   await page.getByRole("button", { name: "Create wallet" }).click();
+  await parkPointer(page);
 
   await expect(page).toHaveURL(/\/wallets(\?.*)?$/);
   const row = page
