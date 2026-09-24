@@ -124,7 +124,18 @@ test("the month picker sits on the Reports title's row", {
   tag: "@matrix",
 }, async ({ page }) => {
   await signUpFreshUser(page);
-  await page.goto("/reports");
+  // September is the longest month name the trigger has to fit.
+  await page.goto("/reports?month=2026-09");
+
+  const monthValue = page
+    .getByLabel("Report month")
+    .locator('[data-slot="month-value"]');
+  await expect(monthValue).toHaveText("September 2026");
+  expect(
+    await monthValue.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+  ).toBe(true);
 
   const heading = await page
     .getByRole("heading", { name: "Reports", level: 1 })

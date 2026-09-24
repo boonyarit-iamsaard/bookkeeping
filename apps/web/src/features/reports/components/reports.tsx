@@ -73,7 +73,7 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
               defaultValue={plan.values.month}
               invalid={plan.invalidFields.has("month")}
               onChange={showMonth}
-              className="w-44"
+              className="w-auto"
             />
           </>
         }
