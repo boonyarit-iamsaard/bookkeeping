@@ -124,7 +124,7 @@ After the build, `DESIGN.md` is rewritten from what shipped.
 
 1. As a phone user, I want a 32px initial disc in Home's title bar that opens a sheet with my email, Categories and Sign out, so that the account actions are reachable without a tab.
 2. As a desktop user, I want the header's account dropdown to include Categories, so that category management is reachable on desktop too.
-3. As the account holder, I want to create a category, icon included, from the category picker as today, so that a missing category never stops an entry. Editing an existing category mid-entry is deferred to 09.
+3. As the account holder, I want to create a category, icon included, from the category picker as today, so that a missing category never stops an entry. Editing an existing category mid-entry is deferred to the backlog (`.scratch/backlog/issues/01-edit-category-from-picker.md`).
 4. As the account holder, I want the category editor to open as a sheet on phone and a dialog on desktop, so that editing a category matches the other sheets.
 5. As the account holder, I want New category as an outline title-bar button, so that the screen keeps one cobalt action.
 
@@ -416,6 +416,9 @@ These govern the build and are written into `DESIGN.md` at the rewrite.
 - An impeccable shape pass or comp. The decisions are specified to the
   token, and the visual system is locked.
 - Database migrations (the `db:push` rule stands).
+- Deferred to `.scratch/backlog/`: editing an existing category from the
+  picker mid-entry (was 09) and returning to the requested page after sign-in
+  (was 10); every sign-in lands on Home.
 
 ## Further Notes
 
