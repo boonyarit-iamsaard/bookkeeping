@@ -11,23 +11,23 @@ critique/audit of the shipped screens.
 
 **Blocked by:** 02 (Home), 03 (Wallet page and the `/manage` split), 04 (＋ capture), 05 (Transactions filter sheet and chips), 06 (Reports rename and redirect)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Out of scope:** fixing what the critique finds (each material finding
 becomes its own follow-up ticket in this directory); the DESIGN.md rewrite
 (08).
 
-- [ ] Home's title bar shows a 32px Mist disc with the Account email's first letter, uppercased, labelled for assistive technology.
-- [ ] The disc opens the sheet with the email in Caption, then Categories and Sign out rows; both work.
-- [ ] The stopgap account dropdown in the Wallets title bar on phone (added in 01) is removed.
-- [ ] Sign-in and sign-up land on Home, and a signed-in visit to either auth page redirects to Home (02 left them on Wallets while sign-out lived there on phone).
-- [ ] On desktop, the account dropdown lists Categories above Sign out.
-- [ ] The category picker still creates categories inline, icon included; it does not link to Categories (see 09).
-- [ ] The category editor opens in the restyled sheet on phone and as the dialog from 640px; its content and behaviour are unchanged.
-- [ ] The auth and category-management browser specs cover the avatar sheet, the dropdown's Categories entry, Sign out, and the editor sheet.
-- [ ] `pnpm run ci` is green.
-- [ ] The full three-project browser matrix (`phone-chromium`, `phone-webkit`, `desktop-chromium`) runs once, alone, and passes; any failure is fixed or filed.
-- [ ] An `impeccable` critique/audit of the shipped shell, Home, wallet page, Transactions and Reports runs against `../spec.md`, and each material finding is filed as a follow-up ticket in `issues/`, numbered after 10.
+- [x] Home's title bar shows a 32px Mist disc with the Account email's first letter, uppercased, labelled for assistive technology.
+- [x] The disc opens the sheet with the email in Caption, then Categories and Sign out rows; both work.
+- [x] The stopgap account dropdown in the Wallets title bar on phone (added in 01) is removed.
+- [x] Sign-in and sign-up land on Home, and a signed-in visit to either auth page redirects to Home (02 left them on Wallets while sign-out lived there on phone).
+- [x] On desktop, the account dropdown lists Categories above Sign out.
+- [x] The category picker still creates categories inline, icon included; it does not link to Categories (see 09).
+- [x] The category editor opens in the restyled sheet on phone and as the dialog from 640px; its content and behaviour are unchanged.
+- [x] The auth and category-management browser specs cover the avatar sheet, the dropdown's Categories entry, Sign out, and the editor sheet.
+- [x] `pnpm run ci` is green.
+- [x] The full three-project browser matrix (`phone-chromium`, `phone-webkit`, `desktop-chromium`) runs once, alone, and passes; any failure is fixed or filed.
+- [x] An `impeccable` critique/audit of the shipped shell, Home, wallet page, Transactions and Reports runs against `../spec.md`, and each material finding is filed as a follow-up ticket in `issues/`, numbered after 10.
 
 **Verify:** `pnpm run ci`, then the full browser matrix alone (`pnpm run ci:e2e` or the three projects in one run), never alongside another heavy task.
 
@@ -60,3 +60,14 @@ From 07's grilling (2026-09-24):
 - Critique: after the matrix passes, at 360px and 1280px. Material means a
   spec or rule-amendment breach, an accessibility failure or a broken layout
   at either width; each gets its own ticket. Taste notes share one ticket.
+
+Closed (2026-09-24):
+
+- Built in 345eb86. `pnpm run ci` passes; the auth, category-management,
+  shell and reports specs pass on `phone-chromium`.
+- Matrix: `pnpm run ci:e2e` ran once, alone: 61 passed, 5 skipped, 0
+  failed. Two older `phone-webkit` tests were flaky once each and passed on
+  retry; the cause is outside this ticket and is filed as 11.
+- Critique: dual-agent `impeccable` critique and audit at 360px and 1280px
+  on seeded local data, 26/36 (Good). Material findings are 12–18; taste
+  notes, including sub-44px phone targets, are collected in 19.
