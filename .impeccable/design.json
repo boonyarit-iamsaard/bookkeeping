@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-13T00:00:00+07:00",
+  "generatedAt": "2026-09-24T12:00:00+07:00",
   "title": "Design System: Bookkeeping",
   "extensions": {
     "colorMeta": {
@@ -8,31 +8,29 @@
         "role": "primary",
         "displayName": "Cobalt",
         "canonical": "oklch(0.52 0.2 262)",
-        "cssVar": "--primary",
         "tonalRamp": [
           "oklch(0.15 0.2 262)",
-          "oklch(0.25 0.2 262)",
-          "oklch(0.35 0.2 262)",
-          "oklch(0.45 0.2 262)",
+          "oklch(0.27 0.2 262)",
+          "oklch(0.39 0.2 262)",
           "oklch(0.52 0.2 262)",
-          "oklch(0.65 0.2 262)",
-          "oklch(0.8 0.2 262)",
+          "oklch(0.63 0.2 262)",
+          "oklch(0.74 0.2 262)",
+          "oklch(0.85 0.2 262)",
           "oklch(0.95 0.2 262)"
         ]
       },
       "cobalt-foreground": {
-        "role": "on-primary",
+        "role": "neutral",
         "displayName": "Cobalt Foreground",
         "canonical": "oklch(0.985 0 0)",
-        "cssVar": "--primary-foreground",
         "tonalRamp": [
           "oklch(0.15 0 0)",
-          "oklch(0.25 0 0)",
-          "oklch(0.35 0 0)",
-          "oklch(0.45 0 0)",
-          "oklch(0.6 0 0)",
-          "oklch(0.75 0 0)",
-          "oklch(0.9 0 0)",
+          "oklch(0.27 0 0)",
+          "oklch(0.39 0 0)",
+          "oklch(0.52 0 0)",
+          "oklch(0.63 0 0)",
+          "oklch(0.74 0 0)",
+          "oklch(0.85 0 0)",
           "oklch(0.985 0 0)"
         ]
       },
@@ -40,15 +38,14 @@
         "role": "neutral",
         "displayName": "Paper",
         "canonical": "oklch(1 0 0)",
-        "cssVar": "--background",
         "tonalRamp": [
           "oklch(0.15 0 0)",
-          "oklch(0.25 0 0)",
-          "oklch(0.35 0 0)",
-          "oklch(0.45 0 0)",
-          "oklch(0.6 0 0)",
-          "oklch(0.75 0 0)",
-          "oklch(0.9 0 0)",
+          "oklch(0.27 0 0)",
+          "oklch(0.39 0 0)",
+          "oklch(0.52 0 0)",
+          "oklch(0.63 0 0)",
+          "oklch(0.74 0 0)",
+          "oklch(0.85 0 0)",
           "oklch(1 0 0)"
         ]
       },
@@ -56,15 +53,14 @@
         "role": "neutral",
         "displayName": "Ink",
         "canonical": "oklch(0.145 0 0)",
-        "cssVar": "--foreground",
         "tonalRamp": [
           "oklch(0.145 0 0)",
-          "oklch(0.25 0 0)",
-          "oklch(0.35 0 0)",
-          "oklch(0.45 0 0)",
-          "oklch(0.6 0 0)",
-          "oklch(0.75 0 0)",
-          "oklch(0.9 0 0)",
+          "oklch(0.27 0 0)",
+          "oklch(0.39 0 0)",
+          "oklch(0.52 0 0)",
+          "oklch(0.63 0 0)",
+          "oklch(0.74 0 0)",
+          "oklch(0.85 0 0)",
           "oklch(0.95 0 0)"
         ]
       },
@@ -72,15 +68,14 @@
         "role": "neutral",
         "displayName": "Mist",
         "canonical": "oklch(0.97 0 0)",
-        "cssVar": "--muted",
         "tonalRamp": [
           "oklch(0.15 0 0)",
-          "oklch(0.25 0 0)",
-          "oklch(0.35 0 0)",
-          "oklch(0.45 0 0)",
-          "oklch(0.6 0 0)",
-          "oklch(0.75 0 0)",
-          "oklch(0.9 0 0)",
+          "oklch(0.27 0 0)",
+          "oklch(0.39 0 0)",
+          "oklch(0.52 0 0)",
+          "oklch(0.63 0 0)",
+          "oklch(0.74 0 0)",
+          "oklch(0.85 0 0)",
           "oklch(0.97 0 0)"
         ]
       },
@@ -88,14 +83,13 @@
         "role": "neutral",
         "displayName": "Graphite",
         "canonical": "oklch(0.556 0 0)",
-        "cssVar": "--muted-foreground",
         "tonalRamp": [
           "oklch(0.15 0 0)",
-          "oklch(0.25 0 0)",
-          "oklch(0.35 0 0)",
-          "oklch(0.45 0 0)",
+          "oklch(0.27 0 0)",
+          "oklch(0.39 0 0)",
           "oklch(0.556 0 0)",
-          "oklch(0.7 0 0)",
+          "oklch(0.63 0 0)",
+          "oklch(0.74 0 0)",
           "oklch(0.85 0 0)",
           "oklch(0.95 0 0)"
         ]
@@ -104,31 +98,29 @@
         "role": "neutral",
         "displayName": "Hairline",
         "canonical": "oklch(0.922 0 0)",
-        "cssVar": "--border, --input",
         "tonalRamp": [
           "oklch(0.15 0 0)",
-          "oklch(0.25 0 0)",
-          "oklch(0.35 0 0)",
-          "oklch(0.45 0 0)",
-          "oklch(0.6 0 0)",
-          "oklch(0.75 0 0)",
-          "oklch(0.922 0 0)",
-          "oklch(0.97 0 0)"
+          "oklch(0.27 0 0)",
+          "oklch(0.39 0 0)",
+          "oklch(0.52 0 0)",
+          "oklch(0.63 0 0)",
+          "oklch(0.74 0 0)",
+          "oklch(0.85 0 0)",
+          "oklch(0.922 0 0)"
         ]
       },
       "signal-red": {
-        "role": "error",
+        "role": "tertiary",
         "displayName": "Signal Red",
         "canonical": "oklch(0.577 0.245 27.325)",
-        "cssVar": "--destructive",
         "tonalRamp": [
           "oklch(0.15 0.245 27.325)",
-          "oklch(0.25 0.245 27.325)",
-          "oklch(0.35 0.245 27.325)",
-          "oklch(0.45 0.245 27.325)",
+          "oklch(0.27 0.245 27.325)",
+          "oklch(0.39 0.245 27.325)",
           "oklch(0.577 0.245 27.325)",
-          "oklch(0.7 0.245 27.325)",
-          "oklch(0.85 0.245 27.325)",
+          "oklch(0.68 0.245 27.325)",
+          "oklch(0.77 0.245 27.325)",
+          "oklch(0.86 0.245 27.325)",
           "oklch(0.95 0.245 27.325)"
         ]
       }
@@ -136,253 +128,203 @@
     "typographyMeta": {
       "display-figure": {
         "displayName": "Display Figure",
-        "purpose": "The one total at the top of a list; symbol and satang stepped to 0.6em Graphite, weight 500. 36px on phone, 48px from 640px."
+        "purpose": "The single leading balance or total on a screen."
       },
       "display-figure-desktop": {
-        "displayName": "Display Figure (desktop)",
-        "purpose": "Display Figure from the sm breakpoint (640px)."
+        "displayName": "Display Figure Desktop",
+        "purpose": "The display figure from the 640px breakpoint."
       },
       "row-figure": {
         "displayName": "Row Figure",
-        "purpose": "Balances in list rows and the money input value; uniform, no stepping, right-aligned."
+        "purpose": "Aligned THB values in rows, reports, and amount entry."
       },
-      "headline": {
-        "displayName": "Headline",
-        "purpose": "The page h1; one per page."
-      },
+      "headline": { "displayName": "Headline", "purpose": "The screen title." },
       "title": {
         "displayName": "Title",
-        "purpose": "Section titles inside a block (empty-state heading)."
+        "purpose": "Section and sheet titles."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Primary row line (wallet name) and native input text on phone; the wordmark at 600 with tight tracking."
+        "purpose": "Primary row text and input values."
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Buttons, nav links, field labels, segment labels, the THB suffix."
+        "purpose": "Controls, fields, navigation, and segments."
       },
       "caption": {
         "displayName": "Caption",
-        "purpose": "Muted secondary lines, field descriptions, count line, errors."
+        "purpose": "Metadata, descriptions, and errors."
       }
     },
     "shadows": [
       {
         "name": "indicator-lift",
         "value": "0 1px 2px rgba(0,0,0,0.08), 0 1px 6px rgba(0,0,0,0.06)",
-        "purpose": "The segmented control's sliding indicator only; the single shadow in the system."
+        "purpose": "The Paper indicator inside a segmented track."
+      },
+      {
+        "name": "popover-lift",
+        "value": "0 2px 4px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08)",
+        "purpose": "Floating Select, date/month picker, and account-menu surfaces."
       }
     ],
     "motion": [
       {
         "name": "indicator-slide",
         "value": "transform 200ms ease-out",
-        "purpose": "Segmented indicator moving to the checked segment; removed under prefers-reduced-motion."
-      },
-      {
-        "name": "segment-colour",
-        "value": "color 200ms",
-        "purpose": "Segment label turning Cobalt when checked."
+        "purpose": "Moves the selected segmented-control indicator."
       },
       {
         "name": "arrival-fade",
-        "value": "fade-in 500ms (tw-animate-css animate-in)",
-        "purpose": "A newly created row identified by ?created=<id>; motion-safe only."
+        "value": "opacity 500ms",
+        "purpose": "Confirms a newly created wallet or transaction in its returned list."
       },
       {
-        "name": "control-transition",
-        "value": "color, background-color, border-color, box-shadow, opacity 150ms",
-        "purpose": "Button state transitions; never transform, so a pressed button stays put."
+        "name": "sheet-slide",
+        "value": "transform 200ms ease-out",
+        "purpose": "Moves a phone sheet from the bottom edge; the scrim fades in parallel."
       }
     ],
-    "breakpoints": [
-      {
-        "name": "sm",
-        "value": "640px",
-        "purpose": "Rows move inside the column, title and action share a line, display figure grows to 48px, Save bar becomes static."
-      },
-      {
-        "name": "md",
-        "value": "768px",
-        "purpose": "Native input text drops from 16px to 14px."
-      }
-    ],
-    "focus": {
-      "value": "border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent)",
-      "purpose": "focus-visible on every control."
-    },
-    "invalid": {
-      "value": "border-color: var(--destructive); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 20%, transparent)",
-      "purpose": "aria-invalid on inputs; the field label and error text also turn destructive."
-    },
-    "selection": {
-      "value": "background: color-mix(in oklch, var(--primary) 18%, transparent); caret-color: var(--primary); accent-color: var(--primary)",
-      "purpose": "Global text selection, caret, and native control accent."
-    },
-    "theme": "light-only; a .dark block exists in globals.css as shadcn scaffolding but nothing toggles it"
+    "breakpoints": [{ "name": "sm", "value": "640px" }]
   },
   "components": [
     {
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The one primary action on a screen; size lg (40px) on list pages, 48px full width as the form Save.",
-      "html": "<button class=\"ds-btn-primary\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>Create wallet</button>",
-      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; padding: 0 16px 0 12px; border: 1px solid transparent; background-clip: padding-box; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; outline: none; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-btn-primary:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } .ds-btn-primary:disabled { opacity: 0.5; pointer-events: none; }"
+      "description": "The screen's one Cobalt action; 44px on phone.",
+      "html": "<button class=\"ds-btn-primary\">New transaction</button>",
+      "css": ".ds-btn-primary { height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-btn-primary:focus-visible { outline: none; border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
     },
     {
-      "name": "Outline Button",
+      "name": "Destructive Button",
       "kind": "button",
-      "refersTo": "button-outline",
-      "description": "Secondary action with a hairline stroke; Sign out in the header.",
-      "html": "<button class=\"ds-btn-outline\">Sign out</button>",
-      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border: 1px solid var(--border, oklch(0.922 0 0)); background-clip: padding-box; border-radius: 26px; background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 30%, transparent); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; outline: none; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-outline:hover { background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 50%, transparent); } .ds-btn-outline:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
-    },
-    {
-      "name": "Ghost Button",
-      "kind": "button",
-      "refersTo": "button-ghost",
-      "description": "Cancel: no fill at rest, Mist on hover.",
-      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
-      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 12px; border: 1px solid transparent; border-radius: 26px; background: transparent; color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; outline: none; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-ghost:hover { background: var(--muted, oklch(0.97 0 0)); } .ds-btn-ghost:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
+      "refersTo": "button-destructive",
+      "description": "Signal Red removal action used for wallets, categories, and transactions.",
+      "html": "<button class=\"ds-btn-destructive\">Delete transaction</button>",
+      "css": ".ds-btn-destructive { height: 44px; padding: 0 12px; border: 1px solid transparent; border-radius: 26px; background: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 10%, transparent); color: var(--destructive, oklch(0.577 0.245 27.325)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms, border-color 150ms, box-shadow 150ms; } .ds-btn-destructive:hover { background: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 20%, transparent); } .ds-btn-destructive:focus-visible { outline: none; border-color: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 40%, transparent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 20%, transparent); }"
     },
     {
       "name": "Text Field",
       "kind": "input",
       "refersTo": "input",
-      "description": "Capsule input with label and description; 44px tall in the wallet form.",
-      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-name\">Name</label><input id=\"ds-name\" class=\"ds-input\" type=\"text\" placeholder=\"Kasikorn savings\"><p class=\"ds-field-desc\">Up to 40 characters.</p></div>",
-      "css": ".ds-field { display: flex; flex-direction: column; gap: 12px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-field-label { font-size: 14px; font-weight: 500; line-height: 1.375; color: var(--foreground, oklch(0.145 0 0)); width: fit-content; } .ds-input { height: 44px; width: 100%; min-width: 0; padding: 4px 12px; border: 1px solid var(--input, oklch(0.922 0 0)); border-radius: 26px; background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 30%, transparent); color: var(--foreground, oklch(0.145 0 0)); font-size: 16px; outline: none; transition: color 150ms, border-color 150ms, box-shadow 150ms; } .ds-input::placeholder { color: var(--muted-foreground, oklch(0.556 0 0)); } .ds-input:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } .ds-input[aria-invalid=\"true\"] { border-color: var(--destructive, oklch(0.577 0.245 27.325)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 20%, transparent); } .ds-field-desc { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted-foreground, oklch(0.556 0 0)); } @media (min-width: 768px) { .ds-input { font-size: 14px; } }"
-    },
-    {
-      "name": "Money Input",
-      "kind": "input",
-      "refersTo": "input-money",
-      "description": "48px amount field in JetBrains Mono with a pinned ฿ prefix and THB suffix; inputmode decimal.",
-      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-amount\">Opening balance</label><div class=\"ds-money-wrap\"><span class=\"ds-money-prefix\" aria-hidden=\"true\">฿</span><input id=\"ds-amount\" class=\"ds-input ds-input-money\" type=\"text\" inputmode=\"decimal\" placeholder=\"0.00\"><span class=\"ds-money-suffix\" aria-hidden=\"true\">THB</span></div><p class=\"ds-field-desc\">In Thai baht, to the satang. A negative balance is allowed.</p></div>",
-      "css": ".ds-field { display: flex; flex-direction: column; gap: 12px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-field-label { font-size: 14px; font-weight: 500; line-height: 1.375; width: fit-content; } .ds-money-wrap { position: relative; } .ds-money-prefix, .ds-money-suffix { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; pointer-events: none; color: var(--muted-foreground, oklch(0.556 0 0)); } .ds-money-prefix { left: 16px; } .ds-money-suffix { right: 16px; font-size: 14px; font-weight: 500; } .ds-input { width: 100%; border: 1px solid var(--input, oklch(0.922 0 0)); border-radius: 26px; background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 30%, transparent); color: var(--foreground, oklch(0.145 0 0)); outline: none; transition: border-color 150ms, box-shadow 150ms; } .ds-input-money { height: 48px; padding: 4px 64px 4px 36px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; font-size: 18px; } .ds-input::placeholder { color: var(--muted-foreground, oklch(0.556 0 0)); } .ds-input:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } .ds-field-desc { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted-foreground, oklch(0.556 0 0)); }"
+      "description": "A 44px Hairline capsule with the shared Cobalt focus ring.",
+      "html": "<label class=\"ds-field\"><span>Name</span><input class=\"ds-input\" placeholder=\"Wallet name\"></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 8px; color: var(--foreground, oklch(0.145 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-input { height: 44px; padding: 4px 12px; border: 1px solid var(--border, oklch(0.922 0 0)); border-radius: 26px; background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 30%, transparent); color: var(--foreground, oklch(0.145 0 0)); font-size: 16px; outline: none; } .ds-input:hover { background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 50%, transparent); } .ds-input:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
     },
     {
       "name": "Segmented Control",
       "kind": "custom",
       "refersTo": "segmented-track",
-      "description": "Single-choice control on a Mist track; a white capsule indicator slides behind the checked segment, whose label turns Cobalt.",
-      "html": "<div class=\"ds-seg\" role=\"radiogroup\" aria-label=\"Type\"><span class=\"ds-seg-indicator\" aria-hidden=\"true\"></span><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"true\" data-checked>Cash</button><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"false\">Bank account</button><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"false\">E-wallet</button></div>",
-      "css": ".ds-seg { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); height: 44px; padding: 4px; border-radius: 26px; background: var(--muted, oklch(0.97 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-seg-indicator { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 26px; background: var(--background, oklch(1 0 0)); box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 1px 6px rgba(0,0,0,0.06); transform: translateX(0%); transition: transform 200ms ease-out; pointer-events: none; } .ds-seg-item { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; padding: 0 8px; border: 0; border-radius: 26px; background: transparent; color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; font-weight: 500; cursor: pointer; outline: none; transition: color 200ms; } .ds-seg-item[data-checked] { color: var(--primary, oklch(0.52 0.2 262)); } .ds-seg-item:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (prefers-reduced-motion: reduce) { .ds-seg-indicator, .ds-seg-item { transition: none; } }"
+      "description": "A Mist track whose Paper indicator is the first of the system's two lifts.",
+      "html": "<div class=\"ds-seg\" role=\"radiogroup\" aria-label=\"Type\"><span class=\"ds-seg-indicator\" aria-hidden=\"true\"></span><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"true\" data-checked>Expense</button><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"false\">Income</button></div>",
+      "css": ".ds-seg { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); height: 44px; padding: 4px; border-radius: 26px; background: var(--muted, oklch(0.97 0 0)); } .ds-seg-indicator { position: absolute; inset-block: 4px; left: 4px; width: calc((100% - 8px) / 2); border-radius: 26px; background: var(--background, oklch(1 0 0)); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 1px 6px rgba(0,0,0,.06); transition: transform 200ms ease-out; } .ds-seg-item { position: relative; z-index: 1; border: 0; border-radius: 26px; background: transparent; color: var(--muted-foreground, oklch(0.556 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-seg-item[data-checked] { color: var(--primary, oklch(0.52 0.2 262)); } .ds-seg-item:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (prefers-reduced-motion: reduce) { .ds-seg-indicator { transition: none; } }"
     },
     {
-      "name": "Display Figure",
+      "name": "Phone Tab Bar",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Two equal halves around the centred Cobalt New action.",
+      "html": "<nav class=\"ds-tabs\" aria-label=\"Primary\"><div class=\"ds-tab-half\"><a class=\"ds-tab ds-current\" href=\"#\">⌂<span>Home</span></a><a class=\"ds-tab\" href=\"#\">↕<span>Transactions</span></a></div><a class=\"ds-new\" href=\"#\" aria-label=\"New transaction\"><b>＋</b><span>New</span></a><div class=\"ds-tab-half\"><a class=\"ds-tab\" href=\"#\">▢<span>Wallets</span></a><a class=\"ds-tab\" href=\"#\">▥<span>Reports</span></a></div></nav>",
+      "css": ".ds-tabs { display: flex; align-items: stretch; height: 56px; padding: 0 4px; border-top: 1px solid var(--border, oklch(0.922 0 0)); background: color-mix(in oklab, var(--background, oklch(1 0 0)) 80%, transparent); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-tab-half { display: flex; min-width: 0; flex: 1; justify-content: space-around; } .ds-tab, .ds-new { display: flex; min-width: 56px; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; padding: 0 4px 6px; border-radius: 8px; color: var(--muted-foreground, oklch(0.556 0 0)); text-decoration: none; } .ds-tab span, .ds-new span { font-size: 14px; } .ds-current { color: var(--foreground, oklch(0.145 0 0)); } .ds-new b { display: flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font-size: 24px; font-weight: 400; } .ds-tab:hover { background: var(--muted, oklch(0.97 0 0)); } .ds-tab:focus-visible, .ds-new:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
+    },
+    {
+      "name": "Sheet",
       "kind": "custom",
-      "refersTo": "display-figure",
-      "description": "The total at the top of a list: mono, tabular, symbol and satang stepped to 0.6em Graphite.",
-      "html": "<p class=\"ds-display-figure\"><span class=\"ds-money\"><span class=\"ds-money-minor\">฿</span>131,730<span class=\"ds-money-minor\">.25</span></span></p><p class=\"ds-display-caption\">Total across 3 wallets</p>",
-      "css": ".ds-display-figure { margin: 0; font-size: 36px; line-height: 1; color: var(--foreground, oklch(0.145 0 0)); } .ds-money { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; } .ds-money-minor { font-size: 0.6em; font-weight: 500; color: var(--muted-foreground, oklch(0.556 0 0)); } .ds-display-caption { margin: 8px 0 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.5; color: var(--muted-foreground, oklch(0.556 0 0)); } @media (min-width: 640px) { .ds-display-figure { font-size: 48px; } }"
+      "description": "A phone bottom sheet with a shared title and 44px close header, using the scrim rather than a shadow.",
+      "html": "<div class=\"ds-scrim\"><section class=\"ds-sheet\" role=\"dialog\" aria-labelledby=\"ds-sheet-title\"><header class=\"ds-sheet-header\"><div><h2 id=\"ds-sheet-title\">Account</h2><p>you@example.com</p></div><button aria-label=\"Close\">✕</button></header><a href=\"#\">Categories</a><button>Sign out</button></section></div>",
+      "css": ".ds-scrim { display: flex; min-height: 320px; align-items: end; justify-content: center; background: color-mix(in oklab, var(--foreground, oklch(0.145 0 0)) 40%, transparent); } .ds-sheet { width: 100%; max-height: 85dvh; overflow: auto; border-radius: 14px 14px 0 0; background: var(--background, oklch(1 0 0)); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; transition: transform 200ms ease-out; } .ds-sheet-header { display: flex; min-height: 56px; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; } .ds-sheet-header div { min-width: 0; flex: 1; } .ds-sheet h2, .ds-sheet p { margin: 0; } .ds-sheet h2 { font-size: 18px; line-height: 1.25; } .ds-sheet p { color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; } .ds-sheet button[aria-label] { width: 44px; height: 44px; border: 0; border-radius: 9999px; background: transparent; } .ds-sheet > a, .ds-sheet > button:not([aria-label]) { display: flex; min-height: 48px; width: 100%; align-items: center; padding: 0 16px; border: 0; border-top: 1px solid var(--border, oklch(0.922 0 0)); background: transparent; color: inherit; text-decoration: none; } .ds-sheet button:hover, .ds-sheet a:hover { background: var(--muted, oklch(0.97 0 0)); } .ds-sheet button:focus-visible, .ds-sheet a:focus-visible { outline: none; box-shadow: inset 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (prefers-reduced-motion: reduce) { .ds-sheet { transition: none; } }"
     },
     {
       "name": "Wallet Row",
       "kind": "card",
       "refersTo": "wallet-row",
-      "description": "A hairline-divided list row: 40px Mist disc with a Lucide pictogram, name over type · opened date, right-aligned mono balance.",
-      "html": "<ul class=\"ds-rows\"><li class=\"ds-row\"><span class=\"ds-row-disc\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10 18v-7\"/><path d=\"M11.12 2.198a2 2 0 0 1 1.76.006l7.866 3.847c.476.233.31.949-.22.949H3.474c-.53 0-.695-.716-.22-.949z\"/><path d=\"M14 18v-7\"/><path d=\"M18 18v-7\"/><path d=\"M3 22h18\"/><path d=\"M6 18v-7\"/></svg></span><div class=\"ds-row-text\"><p class=\"ds-row-name\">Kasikorn savings</p><p class=\"ds-row-meta\"><span>Bank account</span><span aria-hidden=\"true\">·</span><span>Opened 1 Sep 2026</span></p></div><span class=\"ds-money ds-row-figure\">฿128,400.75</span></li><li class=\"ds-row\"><span class=\"ds-row-disc\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\" ry=\"2\"/><path d=\"M12 18h.01\"/></svg></span><div class=\"ds-row-text\"><p class=\"ds-row-name\">TrueMoney</p><p class=\"ds-row-meta\"><span>E-wallet</span><span aria-hidden=\"true\">·</span><span>Opened 10 Sep 2026</span></p></div><span class=\"ds-money ds-row-figure\">−฿120.50</span></li></ul>",
-      "css": ".ds-rows { list-style: none; margin: 0; padding: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: var(--foreground, oklch(0.145 0 0)); } .ds-row { display: flex; align-items: center; gap: 16px; min-height: 64px; padding: 12px 0; } .ds-row + .ds-row { border-top: 1px solid var(--border, oklch(0.922 0 0)); } .ds-row-disc { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 9999px; background: var(--muted, oklch(0.97 0 0)); } .ds-row-text { min-width: 0; flex: 1; } .ds-row-name { margin: 0; font-size: 16px; font-weight: 500; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-row-meta { margin: 0; display: flex; gap: 6px; font-size: 14px; line-height: 1.5; color: var(--muted-foreground, oklch(0.556 0 0)); } .ds-money { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; } .ds-row-figure { flex-shrink: 0; font-size: 18px; line-height: 1.556; }"
+      "description": "A flat, divided row whose caption reads the type then Archived when applicable.",
+      "html": "<div class=\"ds-wallet-row\"><span class=\"ds-wallet-disc\">▣</span><div class=\"ds-wallet-copy\"><a href=\"#\">Cash</a><p>Cash · Archived</p></div><span class=\"ds-wallet-money\">฿1,250.00</span></div>",
+      "css": ".ds-wallet-row { display: flex; min-height: 64px; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--border, oklch(0.922 0 0)); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-wallet-disc { display: flex; width: 40px; height: 40px; flex: none; align-items: center; justify-content: center; border-radius: 9999px; background: var(--muted, oklch(0.97 0 0)); } .ds-wallet-copy { min-width: 0; flex: 1; } .ds-wallet-copy a { display: flex; min-height: 44px; align-items: center; color: inherit; font-weight: 500; text-decoration: none; } .ds-wallet-copy a:hover { text-decoration: underline; } .ds-wallet-copy a:focus-visible { outline: 2px solid var(--ring, oklch(0.52 0.2 262)); } .ds-wallet-copy p { margin: -10px 0 0; color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; } .ds-wallet-money { flex: none; font: 400 18px/1.556 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }"
     },
     {
       "name": "Empty State",
       "kind": "card",
       "refersTo": "empty-state",
-      "description": "Dashed hairline box with a Mist disc, a title, a caption, and the page's only primary action.",
-      "html": "<section class=\"ds-empty\"><span class=\"ds-empty-disc\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1\"/><path d=\"M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4\"/></svg></span><div class=\"ds-empty-text\"><h2 class=\"ds-empty-title\">No wallets yet</h2><p class=\"ds-empty-copy\">Add the cash, bank accounts, and e-wallets you want to track. Each one starts from an opening balance on the date its history begins.</p></div><button class=\"ds-btn-primary\">Create your first wallet</button></section>",
-      "css": ".ds-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px; border: 1px dashed var(--border, oklch(0.922 0 0)); border-radius: 14px; background: var(--background, oklch(1 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: var(--foreground, oklch(0.145 0 0)); } .ds-empty-disc { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 9999px; background: var(--muted, oklch(0.97 0 0)); } .ds-empty-text { display: flex; flex-direction: column; gap: 4px; } .ds-empty-title { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.556; } .ds-empty-copy { margin: 0; max-width: 65ch; font-size: 14px; line-height: 1.5; color: var(--muted-foreground, oklch(0.556 0 0)); } .ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; border: 1px solid transparent; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font-size: 14px; font-weight: 500; cursor: pointer; outline: none; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-btn-primary:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (min-width: 640px) { .ds-empty { padding: 32px; } }"
-    },
-    {
-      "name": "App Header",
-      "kind": "nav",
-      "refersTo": "nav-link",
-      "description": "56px header with a bottom hairline: wordmark, capsule nav links, email, outline Sign out.",
-      "html": "<header class=\"ds-header\"><div class=\"ds-header-inner\"><a class=\"ds-wordmark\" href=\"#\">Bookkeeping</a><nav class=\"ds-nav\" aria-label=\"Primary\"><a class=\"ds-nav-link\" href=\"#\" aria-current=\"page\">Wallets</a><a class=\"ds-nav-link\" href=\"#\">Transactions</a></nav><div class=\"ds-header-end\"><span class=\"ds-header-email\">you@example.com</span><button class=\"ds-btn-outline\">Sign out</button></div></div></header>",
-      "css": ".ds-header { border-bottom: 1px solid var(--border, oklch(0.922 0 0)); background: var(--background, oklch(1 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: var(--foreground, oklch(0.145 0 0)); } .ds-header-inner { display: flex; align-items: center; gap: 24px; height: 56px; max-width: 672px; margin: 0 auto; padding: 0 16px; } .ds-wordmark { font-weight: 600; letter-spacing: -0.025em; color: inherit; text-decoration: none; outline: none; } .ds-wordmark:focus-visible { border-radius: 6px; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } .ds-nav { display: flex; align-items: center; gap: 4px; } .ds-nav-link { padding: 6px 12px; border-radius: 26px; font-size: 14px; font-weight: 500; color: var(--muted-foreground, oklch(0.556 0 0)); text-decoration: none; outline: none; } .ds-nav-link[aria-current=\"page\"] { color: var(--foreground, oklch(0.145 0 0)); } .ds-nav-link:hover { background: var(--muted, oklch(0.97 0 0)); } .ds-nav-link:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } .ds-header-end { margin-left: auto; display: flex; align-items: center; gap: 12px; } .ds-header-email { display: none; font-size: 14px; color: var(--muted-foreground, oklch(0.556 0 0)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-btn-outline { display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border: 1px solid var(--border, oklch(0.922 0 0)); border-radius: 26px; background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 30%, transparent); color: inherit; font-size: 14px; font-weight: 500; cursor: pointer; outline: none; } .ds-btn-outline:hover { background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 50%, transparent); } .ds-btn-outline:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (min-width: 640px) { .ds-header-email { display: inline; } }"
-    },
-    {
-      "name": "Phone Save Bar",
-      "kind": "custom",
-      "refersTo": "button-primary-save",
-      "description": "Fixed bottom bar on phone: hairline top, blurred Paper, 48px primary Save and 44px ghost Cancel; static and transparent from 640px.",
-      "html": "<div class=\"ds-savebar\"><div class=\"ds-savebar-inner\"><button class=\"ds-btn-save\">Create wallet</button><button class=\"ds-btn-ghost-lg\">Cancel</button></div></div>",
-      "css": ".ds-savebar { position: sticky; bottom: 0; z-index: 20; border-top: 1px solid var(--border, oklch(0.922 0 0)); background: color-mix(in oklab, var(--background, oklch(1 0 0)) 80%, transparent); backdrop-filter: blur(8px); padding: 12px 16px max(12px, env(safe-area-inset-bottom)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-savebar-inner { display: flex; flex-direction: column; gap: 12px; max-width: 448px; margin: 0 auto; } .ds-btn-save { height: 48px; width: 100%; border: 1px solid transparent; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font-size: 16px; font-weight: 500; cursor: pointer; outline: none; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-save:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-btn-save:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } .ds-btn-save:disabled { opacity: 0.5; pointer-events: none; } .ds-btn-ghost-lg { height: 44px; width: 100%; border: 1px solid transparent; border-radius: 26px; background: transparent; color: var(--foreground, oklch(0.145 0 0)); font-size: 14px; font-weight: 500; cursor: pointer; outline: none; } .ds-btn-ghost-lg:hover { background: var(--muted, oklch(0.97 0 0)); } @media (min-width: 640px) { .ds-savebar { position: static; border-top: 0; background: transparent; backdrop-filter: none; padding: 0; } .ds-savebar-inner { max-width: none; } .ds-btn-ghost-lg { display: none; } }"
+      "description": "The sole Cobalt-action exception: a dashed Hairline box for the screen's one next step.",
+      "html": "<section class=\"ds-empty\"><span class=\"ds-empty-disc\">▢</span><h2>No wallets yet</h2><p>Add the cash, bank accounts, and e-wallets you want to track.</p><button class=\"ds-empty-action\">Create your first wallet</button></section>",
+      "css": ".ds-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px; border: 1px dashed var(--border, oklch(0.922 0 0)); border-radius: 14px; background: var(--background, oklch(1 0 0)); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-empty-disc { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--muted, oklch(0.97 0 0)); } .ds-empty h2, .ds-empty p { margin: 0; } .ds-empty h2 { font-size: 18px; } .ds-empty p { color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; } .ds-empty-action { height: 44px; padding: 0 16px; border: 0; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font-weight: 500; } .ds-empty-action:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-empty-action:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
     }
   ],
   "narrative": {
     "northStar": "The Statement of Holdings",
-    "overview": "Bookkeeping is a bank statement rendered as a web app: a light, near-white page, near-black Inter for words, JetBrains Mono for every figure, and one cobalt reserved for the thing you can do next. It is the clean modern fintech canon played straight (the standing brand commitment in PRODUCT.md), executed at the craft level of K PLUS, SCB Easy, and Apple Wallet rather than reinvented. Trust comes from exactness: currency symbol and satang are always present, numerals are tabular, and nothing on the page is decorative.\n\nDensity is calm and columnar. Pages sit in one centred column (672px for reading, 448px for forms) with 32px between blocks. Lists are flat: rows divided by hairlines, never wrapped in cards or tiles, and there is no stat-strip hero. The single display-size figure at the top of a list is the only large element on a screen. Controls are pills; everything that is not a control is a rectangle with a 14px corner or no corner at all.\n\nMotion is feedback, never celebration. The system ships two moments: the segmented indicator slides (200ms ease-out) and a newly created row fades in (500ms). Both collapse under prefers-reduced-motion. Confirmed visual rejections from the direction contract and PRODUCT.md: the card grid of icon tiles, the stat-strip hero, green/red as the sole carrier of meaning, celebratory motion, and \"account\" in place of \"wallet\".",
+    "overview": "Bookkeeping is a bank statement rendered as a phone-first web app: Paper behind near-black Inter, JetBrains Mono for every money figure, and one Cobalt action that is easy to reach after paying. It plays the clean modern fintech canon straight. Trust comes from exact money, quiet hierarchy, predictable controls, and motion used only to explain a state change.\n\nDensity is calm and columnar. Home answers the daily questions in one pass; deeper screens keep the same flat rows, hairlines, and narrow reading order. Controls are capsules, content is not boxed into cards, and the single display-size figure leads whenever a balance is the subject.",
     "keyCharacteristics": [
-      "Light-only, near-white ground with near-black type; one cobalt accent for action, focus, selection, caret, and text selection.",
-      "Two typefaces with hard roles: Inter for words, JetBrains Mono (tabular) for money.",
-      "Display figures step the currency symbol and satang down to 0.6em so whole baht leads; row figures stay uniform to align.",
-      "Pill controls (26px radius) on a page of hairlines; no card shells around list content.",
-      "Lucide pictograms at one stroke weight (1.75) inside a 40px muted disc, always accompanied by a text label.",
-      "Phone: full-bleed rows and a fixed, safe-area-aware Save bar; desktop: the same order in a centred column."
+      "Light-only Paper and achromatic greys with one Cobalt accent and Signal Red for validation or destruction.",
+      "Inter for language; JetBrains Mono with tabular numerals for THB and only THB.",
+      "Flat, hairline-divided rows; one display figure; capsules for controls.",
+      "A phone shell built around the title bar and bottom tab bar, with the desktop header taking over from 640px.",
+      "Lucide pictograms at stroke 1.75, paired with words except for universally understood, accessibly named controls.",
+      "Exactly three motion moments: segmented indicator, arriving row, and sheet."
     ],
     "rules": [
       {
         "name": "The One Cobalt Rule",
-        "body": "Cobalt appears on a screen only as the primary action, the focus ring, or the selected state of a control. Two cobalt fills on one screen means one of them is wrong.",
+        "body": "A screen has one Cobalt action. Selected states are separate: segment text, the chosen date or month, and a Select check may also be Cobalt. When the phone tab bar is present, its 48px ＋ is the action and page-level creates are outline buttons. When the tab bar is hidden, Save is the action. On desktop, New transaction in the header is the action. An empty state may use its own primary when it is the screen's sole next step.",
         "section": "colors"
       },
       {
         "name": "The Red Means Wrong Rule",
-        "body": "Signal Red is validation and destruction. Transaction type, direction, or sign is never carried by red or green alone; it is carried by the word and the sign (−, +, →, ↩) with colour permitted only as reinforcement.",
+        "body": "Signal Red means validation or destruction. Transaction type, direction, and sign use words and symbols rather than red or green alone.",
         "section": "colors"
       },
       {
         "name": "The Grey Steps Rule",
-        "body": "Every neutral is a lightness step of the same achromatic grey (oklch(L 0 0)). Do not introduce tinted greys, warm whites, or a second surface tone.",
+        "body": "Every neutral is an achromatic OKLCH lightness step. Do not introduce tinted greys, warm whites, or a second accent.",
         "section": "colors"
       },
       {
         "name": "The Mono Is Money Rule",
-        "body": "JetBrains Mono is applied through the money utility and only to THB figures (and the amount input). Dates, counts, IDs, and labels stay in Inter.",
+        "body": "The money treatment belongs only to THB figures and the amount input. Dates, counts, IDs, and labels remain Inter.",
         "section": "typography"
       },
       {
         "name": "The Always Satang Rule",
-        "body": "A figure is always ฿12,000.00: symbol, grouped whole baht, two decimals, true minus sign (−) for negatives. Never round, never drop the symbol, never localise away the decimals.",
+        "body": "A figure is always ฿12,000.00: symbol, grouped whole baht, two decimals, and a true minus sign for negatives.",
         "section": "typography"
       },
       {
         "name": "The Step-Down Rule",
-        "body": "Only display-size figures step the symbol and satang to 0.6em Graphite. Row and input figures stay uniform.",
+        "body": "Only display-size figures step down the symbol and satang. Row and input figures remain uniform.",
         "section": "typography"
       },
       {
-        "name": "The Hairline Rule",
-        "body": "Structure is drawn with 1px Hairline strokes, not with shadows, fills, or card shells. A list is rows separated by hairlines; a header is a bar with one hairline beneath.",
-        "section": "elevation"
+        "name": "The 44px Phone Control Rule",
+        "body": "Phone controls, including title-bar actions and filter chips, use a 44px target; the central ＋ and form Save are 48px. Desktop compact actions may reduce to 40px.",
+        "section": "layout"
       },
       {
-        "name": "The One Lift Rule",
-        "body": "Shadows exist only where a control physically sits on a track (the segmented indicator). Do not add elevation to buttons, rows, inputs, or containers.",
+        "name": "The Two Lifts Rule",
+        "body": "Only the segmented indicator and floating popovers cast shadows. Sheets use their scrim; buttons, inputs, rows, tab bars, and content containers remain flat.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "Do set every THB figure with the money utility and the full ฿12,000.00 form (symbol, grouping, two decimals, true minus sign), right-aligned in lists.",
-      "Do step only display-size figures: ฿ and satang at 0.6em, weight 500, Graphite; keep row and input figures uniform.",
-      "Do use Cobalt for exactly one primary action per screen, plus focus rings and selected states; leave figures and headings in Ink.",
-      "Do build lists as hairline-divided rows at 64px minimum, full-bleed on phone, inside the 672px column from 640px.",
-      "Do make every control a capsule (26px radius) at 44–48px on phone, with the 3px Cobalt-at-50% focus ring.",
-      "Do mount a form's primary action in the fixed safe-area Save bar on phone (48px button, hairline top, blurred Paper) and inline on desktop.",
-      "Do pair every pictogram with a text label and draw it from Lucide at stroke 1.75, size-5, inside a 40px Mist disc.",
-      "Do keep motion to feedback (indicator slide 200ms, arrival fade 500ms) and remove it under prefers-reduced-motion."
+      "Do render every THB figure with the money treatment and the full ฿12,000.00 form, right-aligned in lists.",
+      "Do keep one Cobalt action per screen, treating selected control states and the sole empty-state action as the documented exceptions.",
+      "Do use 44px phone controls, 48px for the central ＋ and form Save, and the same height for actions sharing a title bar.",
+      "Do build lists as full-bleed phone rows separated by Hairlines, inside the 672px column from 640px.",
+      "Do use the two lifts only for the segmented indicator and floating popovers; use a scrim for sheets.",
+      "Do keep motion to the indicator slide, arrival fade, and sheet slide, and remove all three for reduced motion.",
+      "Do pair pictograms with text; an icon-only control requires an accessible name and a universal glyph such as ‹, ✕, or a calendar arrow.",
+      "Do use the destructive variant for wallet, category, and transaction removal."
     ],
     "donts": [
       "Don't wrap list content in cards, tiles, or a card grid; the list is the surface.",
       "Don't add a stat strip or more than one display-size figure to a screen.",
-      "Don't carry transaction type, sign, or direction by green/red alone; Signal Red is for validation and destructive actions only.",
-      "Don't put shadows on buttons, inputs, rows, or containers; the segmented indicator's lift is the only shadow.",
-      "Don't introduce tinted or warm neutrals, a second accent, or a dark theme; the build is light-only.",
+      "Don't use a second Cobalt page action where the phone ＋, form Save, or desktop New transaction already owns the action.",
+      "Don't carry transaction type, sign, or direction by red or green alone.",
+      "Don't put shadows on buttons, inputs, rows, sheets, tab bars, or content containers.",
+      "Don't introduce tinted neutrals, a second accent, or a dark theme; the shipped product is light-only.",
       "Don't set dates, counts, or labels in JetBrains Mono, or money in Inter.",
-      "Don't use celebratory motion, confetti, or animated counters on save."
+      "Don't add grab handles to sheets or icon-only navigation labels.",
+      "Don't add motion beyond the three feedback moments or animate them under reduced motion."
     ]
   }
 }

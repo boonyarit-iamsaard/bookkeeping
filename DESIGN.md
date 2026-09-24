@@ -1,6 +1,6 @@
 ---
 name: Bookkeeping
-description: A personal ledger in the clean modern fintech canon; one cobalt, one mono for money, hairlines instead of cards.
+description: A phone-first personal ledger; one cobalt action, one mono for money, hairlines instead of cards.
 colors:
   cobalt: "oklch(0.52 0.2 262)"
   cobalt-foreground: "oklch(0.985 0 0)"
@@ -86,7 +86,7 @@ components:
     typography: "{typography.label}"
     rounded: "{rounded.pill}"
     padding: "0 1rem"
-    height: "2.5rem"
+    height: "{spacing.control}"
   button-primary-hover:
     backgroundColor: "oklch(0.52 0.2 262 / 80%)"
     textColor: "{colors.cobalt-foreground}"
@@ -104,17 +104,17 @@ components:
     typography: "{typography.label}"
     rounded: "{rounded.pill}"
     padding: "0 0.75rem"
-    height: "2.25rem"
-  button-ghost:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink}"
+    height: "{spacing.control}"
+  button-destructive:
+    backgroundColor: "oklch(0.577 0.245 27.325 / 10%)"
+    textColor: "{colors.signal-red}"
     typography: "{typography.label}"
     rounded: "{rounded.pill}"
     padding: "0 0.75rem"
-    height: "2.25rem"
-  button-ghost-hover:
-    backgroundColor: "{colors.mist}"
-    textColor: "{colors.ink}"
+    height: "{spacing.control}"
+  button-destructive-hover:
+    backgroundColor: "oklch(0.577 0.245 27.325 / 20%)"
+    textColor: "{colors.signal-red}"
   input:
     backgroundColor: "oklch(0.922 0 0 / 30%)"
     textColor: "{colors.ink}"
@@ -138,19 +138,11 @@ components:
   nav-link-current:
     backgroundColor: "transparent"
     textColor: "{colors.ink}"
-  nav-link-hover:
-    backgroundColor: "{colors.mist}"
   segmented-track:
     backgroundColor: "{colors.mist}"
     rounded: "{rounded.pill}"
     padding: "0.25rem"
     height: "{spacing.control}"
-  segment:
-    backgroundColor: "transparent"
-    textColor: "{colors.graphite}"
-    typography: "{typography.label}"
-    rounded: "{rounded.pill}"
-    padding: "0 0.5rem"
   segment-selected:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.cobalt}"
@@ -183,227 +175,182 @@ components:
 
 **Creative North Star: "The Statement of Holdings"**
 
-Bookkeeping is a bank statement rendered as a web app: a light, near-white page, near-black Inter for words, JetBrains Mono for every figure, and one cobalt reserved for the thing you can do next. It is the clean modern fintech canon played straight (the standing brand commitment in PRODUCT.md), executed at the craft level of K PLUS, SCB Easy, and Apple Wallet rather than reinvented. Trust comes from exactness: currency symbol and satang are always present, numerals are tabular, and nothing on the page is decorative.
+Bookkeeping is a bank statement rendered as a phone-first web app: Paper behind near-black Inter, JetBrains Mono for every money figure, and one Cobalt action that is easy to reach after paying. It plays the clean modern fintech canon straight. Trust comes from exact money, quiet hierarchy, predictable controls, and motion used only to explain a state change.
 
-Density is calm and columnar. Pages sit in one centred column (672px for reading, 448px for forms) with 32px between blocks. Lists are flat: rows divided by hairlines, never wrapped in cards or tiles, and there is no stat-strip hero. The single display-size figure at the top of a list is the only large element on a screen. Controls are pills; everything that is not a control is a rectangle with a 14px corner or no corner at all.
-
-Motion is feedback, never celebration. The system ships two moments: the segmented indicator slides (200ms ease-out) and a newly created row fades in (500ms). Both collapse under `prefers-reduced-motion`. Confirmed visual rejections from the direction contract and PRODUCT.md: the card grid of icon tiles, the stat-strip hero, green/red as the sole carrier of meaning, celebratory motion, and "account" in place of "wallet".
+Density is calm and columnar. Home answers the daily questions in one pass; deeper screens keep the same flat rows, hairlines, and narrow reading order. Controls are capsules, content is not boxed into cards, and the single display-size figure leads whenever a balance is the subject.
 
 **Key Characteristics:**
 
-- Light-only, near-white ground with near-black type; one cobalt accent for action, focus, selection, caret, and text selection.
-- Two typefaces with hard roles: Inter for words, JetBrains Mono (tabular) for money.
-- Display figures step the currency symbol and satang down to 0.6em so whole baht leads; row figures stay uniform to align.
-- Pill controls (26px radius) on a page of hairlines; no card shells around list content.
-- Lucide pictograms at one stroke weight (1.75) inside a 40px muted disc, always accompanied by a text label.
-- Phone: full-bleed rows and a fixed, safe-area-aware Save bar; desktop: the same order in a centred column.
+- Light-only Paper and achromatic greys with one Cobalt accent and Signal Red for validation or destruction.
+- Inter for language; JetBrains Mono with tabular numerals for THB and only THB.
+- Flat, hairline-divided rows; one display figure; capsules for controls.
+- A phone shell built around the title bar and bottom tab bar, with the desktop header taking over from 640px.
+- Lucide pictograms at stroke 1.75, paired with words except for universally understood, accessibly named controls.
+- Exactly three motion moments: segmented indicator, arriving row, and sheet.
 
 ## Colors
 
-A monochrome page of neutral greys with exactly one chromatic accent for action and one for error; every other colour is a lightness step of the same grey.
+One chromatic action color, one destructive color, and neutral lightness steps keep attention on the ledger rather than its chrome.
 
 ### Primary
 
-- **Cobalt** (`{colors.cobalt}`): the primary button fill, the focus ring (`--ring` is the same value), the selected label in a segmented control, the caret, `accent-color` for native controls, and text selection at 18% (`color-mix(in oklch, var(--primary) 18%, transparent)`). It is never used for figures, headings, or decoration.
-- **Cobalt Foreground** (`{colors.cobalt-foreground}`): text on cobalt.
+- **Cobalt** (`{colors.cobalt}`): the screen's primary action, focus rings, caret, text selection, and selected control states.
+- **Cobalt Foreground** (`{colors.cobalt-foreground}`): text and glyphs on Cobalt.
 
 ### Neutral
 
-- **Paper** (`{colors.paper}`): page, header, card and popover ground; the segmented indicator; the Save bar (at 80–95% with backdrop blur).
-- **Ink** (`{colors.ink}`): body text, headings, wallet names, figures, current nav item.
-- **Mist** (`{colors.mist}`): the segmented control track, the 40px type-icon disc, ghost/nav hover fill. The only filled neutral surface on the page.
-- **Graphite** (`{colors.graphite}`): muted text: type labels, "Opened" dates, field descriptions, unselected segments, inactive nav items, and the stepped-down ฿ and satang in display figures.
-- **Hairline** (`{colors.hairline}`): all borders and dividers (`--border` and `--input` share it). Inputs and the outline button fill with it at 30%; hover lifts to 50%.
+- **Paper** (`{colors.paper}`): page, sheet, dialog, popover, header, and tab-bar ground.
+- **Ink** (`{colors.ink}`): headings, body copy, figures, the current navigation item, and the full first line of a transaction row.
+- **Mist** (`{colors.mist}`): quiet hover states, segmented tracks, and pictogram discs.
+- **Graphite** (`{colors.graphite}`): captions, metadata, placeholders, and inactive navigation.
+- **Hairline** (`{colors.hairline}`): borders and row dividers; inputs and outline controls use it at 30% and 50% opacity.
 
 ### Semantic
 
-- **Signal Red** (`{colors.signal-red}`): validation and destructive only. Invalid fields take a red border with a 3px ring at 20%; their label and error text turn red; the server error bar is red text on red at 5% with a red border at 30%.
+- **Signal Red** (`{colors.signal-red}`): validation and destructive actions. Destructive buttons use 10% Signal Red fill, 20% on hover, Signal Red text, and a 20% focus ring.
 
 ### Named Rules
 
-**The One Cobalt Rule.** Cobalt appears on a screen only as the primary action, the focus ring, or the selected state of a control. Two cobalt fills on one screen means one of them is wrong.
+**The One Cobalt Rule.** A screen has one Cobalt action. Selected states are separate: segment text, the chosen date or month, and a Select check may also be Cobalt. When the phone tab bar is present, its 48px ＋ is the action and page-level creates are outline buttons. When the tab bar is hidden, Save is the action. On desktop, New transaction in the header is the action. An empty state may use its own primary when it is the screen's sole next step.
 
-**The Red Means Wrong Rule.** Signal Red is validation and destruction. Transaction type, direction, or sign is never carried by red or green alone; it is carried by the word and the sign (−, +, →, ↩) with colour permitted only as reinforcement.
+**The Red Means Wrong Rule.** Signal Red means validation or destruction. Transaction type, direction, and sign use words and symbols rather than red or green alone.
 
-**The Grey Steps Rule.** Every neutral is a lightness step of the same achromatic grey (`oklch(L 0 0)`). Do not introduce tinted greys, warm whites, or a second surface tone.
+**The Grey Steps Rule.** Every neutral is an achromatic OKLCH lightness step. Do not introduce tinted greys, warm whites, or a second accent.
 
 ## Typography
 
-**Display Font:** Inter (with ui-sans-serif, system-ui) — used for headings as well; there is no separate display face.
-**Body Font:** Inter
-**Label/Mono Font:** JetBrains Mono (400/500/600/700 loaded) — every money figure, and only money figures.
+**Display Font:** Inter (with `ui-sans-serif`, `system-ui`) for headings and language.
 
-**Character:** A neutral grotesque for language and a mono for arithmetic. Inter carries no personality of its own so the figures can; JetBrains Mono with tabular numerals and −0.01em tracking makes columns of baht line up to the satang. The `money` utility (`font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em`) is the single source for this treatment.
+**Body Font:** Inter.
+
+**Money Font:** JetBrains Mono (with `ui-monospace`, `monospace`).
+
+The neutral grotesque lets the arithmetic lead. JetBrains Mono is reserved for exact THB figures, with tabular numerals and tight tracking so columns reconcile visually.
 
 ### Hierarchy
 
-- **Display Figure** (`{typography.display-figure}`; `{typography.display-figure-desktop}` from 640px): the one total at the top of a list. Line-height 1. In display mode the ฿ symbol and `.xx` satang are set at 0.6em, weight 500, in Graphite, so whole baht leads; the full string is also present visually hidden for screen readers.
-- **Headline** (`{typography.headline}`): the page h1 ("Wallets", "New wallet"), semibold with tight tracking. One per page.
-- **Title** (`{typography.title}`): section titles inside a block, such as the empty-state heading.
-- **Row Figure** (`{typography.row-figure}`): a balance in a list row and the money input's value. Uniform size, no stepping, so right-aligned columns align.
-- **Body** (`{typography.body}`): the primary line of a row (wallet name, weight 500) and native input text on phone. The wordmark "Bookkeeping" is Body at 600 with tight tracking.
-- **Label** (`{typography.label}`): buttons, nav links, field labels, segment labels, the "THB" suffix. Weight 500, sentence case.
-- **Caption** (`{typography.caption}`): muted secondary lines (type · Opened date), field descriptions, count line under the total, errors.
+- **Display Figure** (`{typography.display-figure}`, growing to `{typography.display-figure-desktop}` from 640px): the one balance or total that leads a screen. Its ฿ and satang step down to 0.6em, weight 500, in Graphite.
+- **Headline** (`{typography.headline}`): one screen title in the phone title bar or desktop content row.
+- **Title** (`{typography.title}`): section and sheet titles.
+- **Row Figure** (`{typography.row-figure}`): list balances, report values, and the money input; the whole figure remains one size.
+- **Body** (`{typography.body}`): primary row text and input values.
+- **Label** (`{typography.label}`): buttons, navigation, fields, segments, and compact actions.
+- **Caption** (`{typography.caption}`): metadata, descriptions, empty copy, errors, and wallet type or Archived status.
 
 ### Named Rules
 
-**The Mono Is Money Rule.** JetBrains Mono is applied through the `money` utility and only to THB figures (and the amount input). Dates, counts, IDs, and labels stay in Inter.
+**The Mono Is Money Rule.** The `money` treatment belongs only to THB figures and the amount input. Dates, counts, IDs, and labels remain Inter.
 
-**The Always Satang Rule.** A figure is always `฿12,000.00`: symbol, grouped whole baht, two decimals, true minus sign (−) for negatives. Never round, never drop the symbol, never localise away the decimals.
+**The Always Satang Rule.** A figure is always `฿12,000.00`: symbol, grouped whole baht, two decimals, and a true minus sign for negatives.
 
-**The Step-Down Rule.** Only display-size figures step the symbol and satang to 0.6em Graphite. Row and input figures stay uniform.
+**The Step-Down Rule.** Only display-size figures step down the symbol and satang. Row and input figures remain uniform.
 
 ## Layout
 
-One centred column, full width on phone with 16px side padding, capped at 672px (`max-w-2xl`) for the header and list pages and 448px (`max-w-md`) for forms. Vertical rhythm is 32px (`gap-8`) between page blocks; 28px between fields in a form group; 12px between a label, its control, and its description; 16px inside a row between the icon disc, text, and figure. The app header is 56px tall with a bottom hairline; its content shares the 672px column.
+Content uses one centred column with 16px phone gutters: 672px for Home, lists, wallet detail, and reports; 448px for forms and management. Blocks are separated by 32px. Rows are at least 64px, with 16px between their disc, text, and figure. On phone, row dividers run full bleed while content restores the gutter.
 
-On phone the list runs full-bleed: rows pull out by 16px (`-mx-4`) so hairlines span edge to edge, and each row restores 16px inner padding. From 640px (`sm`) rows sit inside the column with no horizontal padding, the title and primary action share one line, the secondary row line joins type and date with a middle dot, and the display figure grows from 36px to 48px. Each list row is at least 64px tall (`min-h-16`, 12px vertical padding).
+From 640px, the 56px desktop header appears and content begins 32px below it. Below 640px, each screen begins with a sticky title bar that clears the status-area safe inset, gains a bottom hairline only after scroll, and gives every back or title action a 44px target. Form screens reserve space for the fixed safe-area Save bar and hide the tab bar.
 
-Forms on phone reserve 160px bottom padding (`pb-40`) beneath the fields and mount Save in a fixed bar: full width, top hairline, Paper at 80% with backdrop blur (95% without), 12px top padding and `max(12px, env(safe-area-inset-bottom))` below, containing a 48px full-width primary button and a 44px full-width ghost Cancel. From 640px the bar becomes static and transparent, the ghost Cancel moves up beside the h1, and padding drops to 48px.
+The phone tab bar is fixed above the home indicator: 56px plus the bottom safe area, a top hairline, translucent Paper, and backdrop blur. Home and Transactions occupy one equal half, Wallets and Reports the other, with natural-width tabs inside each half and the ＋ exactly centred between them. Current is Ink; inactive is Graphite. There is no selected pill, underline, or accent fill.
 
-Breakpoints in use: `sm` 640px (all layout changes) and `md` 768px (native input text steps from 16px to 14px so phone keyboards do not zoom).
+**The 44px Phone Control Rule.** Phone controls, including title-bar actions and filter chips, use a 44px target; the central ＋ and form Save are 48px. Desktop compact actions may reduce to 40px.
 
 ## Elevation & Depth
 
-The system is flat and tonal. Depth is conveyed by hairlines (dividers, header rule, input strokes) and by a single filled neutral, Mist, for tracks and discs; there are no shadows on buttons, cards, or rows, and no card shells at all. Exactly one shadow exists in the build, on the segmented control's sliding indicator, where the white pill needs to read as sitting on the Mist track. The fixed Save bar separates from scrolling content with a hairline and backdrop blur rather than a shadow.
+The system is flat by default. Hairlines establish structure, while exactly two lifted patterns establish temporary depth: the Paper segmented indicator uses a small close shadow, and floating Select, date/month picker, and account-menu popovers use a soft offset shadow. Sheets and dialogs use a 40% Ink scrim instead of a shadow.
 
 ### Shadow Vocabulary
 
-- **Indicator lift** (`box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 1px 6px rgba(0,0,0,0.06)`): the selected-segment indicator only. A real offset-plus-blur shadow, soft enough to be ambient.
-- **Popover lift** (`box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08)`): the floating list of a Select or dropdown menu, which has no backdrop and must separate from the page it covers. Always paired with a 1px Hairline border.
+- **Indicator lift:** `0 1px 2px rgb(0 0 0 / 8%), 0 1px 6px rgb(0 0 0 / 6%)` for the selected capsule inside a segmented track.
+- **Popover lift:** `0 2px 4px rgb(0 0 0 / 4%), 0 8px 24px rgb(0 0 0 / 8%)` for floating value and account menus.
 
 ### Named Rules
 
-**The Hairline Rule.** Structure is drawn with 1px Hairline strokes, not with shadows, fills, or card shells. A list is rows separated by hairlines; a header is a bar with one hairline beneath.
-
-**The One Lift Rule.** Shadows exist only where something physically sits above its surroundings: the segmented indicator on its track, and a floating popover over the page. Do not add elevation to buttons, rows, inputs, or containers.
+**The Two Lifts Rule.** Only the segmented indicator and floating popovers cast shadows. Sheets use their scrim; buttons, inputs, rows, tab bars, and content containers remain flat.
 
 ## Shapes
 
-Two shape families. Controls are pills: buttons, inputs, nav links, the segmented track, its indicator and its segments all use the 26px radius (`--radius-4xl`, 2.6 × `--radius: 0.625rem`), which on 36–48px-tall controls renders as a full capsule. Non-interactive containers use a 14px corner (`--radius-xl`): the dashed-border empty state and the error bar. Icon discs are circles (40px). Text-only focus targets like the wordmark take a 6px corner (`--radius-sm`) only for the ring. Borders are always 1px Hairline; the empty state is the only dashed border. List rows have no radius, no border of their own, and no background; they are separated by hairlines.
+Controls use a 26px capsule radius or a full circle. Floating surfaces, empty states, sheets, and dialogs use restrained 14px corners; a phone sheet rounds only its top corners. Rows and page regions have no container radius. Structure is a 1px Hairline, and empty states alone use a dashed border.
 
-The shadcn radius scale is present in full (`sm` 6px through `4xl` 26px) but the build reaches for only these four steps; use `xl` for any new box and `pill` for any new control rather than introducing intermediate corners.
+Pictogram discs are 40px circles in Mist. The Home account disc is 32px; the desktop account disc is 28px inside a 36px outline trigger. Lucide glyphs use stroke 1.75.
 
 ## Components
 
-Controls are tactile and quiet: capsules on a flat page and a 3px cobalt halo on focus; a pressed button stays where it is.
-
 ### Buttons
 
-- **Shape:** capsule (`{rounded.pill}`), 1px transparent border with `background-clip: padding-box`, Label typography, icon 16px with 6px gap and reduced padding on the icon side (`data-icon="inline-start"`).
-- **Primary** (`button-primary`): Cobalt fill, Cobalt Foreground text; the list page's Create wallet is size `lg` (40px, 16px side padding). The form Save is 48px tall, full width, Body-size text (`button-primary-save`). Hover: Cobalt at 80%. Disabled: 50% opacity, pointer events off, label reads "Saving…" while in flight.
-- **Outline** (`button-outline`): Hairline stroke, Hairline fill at 30% (50% on hover); used for Sign out in the header. 36px.
-- **Ghost** (`button-ghost`): no fill; Mist on hover; used for Cancel (36px beside the h1 on desktop, 44px full width in the phone Save bar).
-- **Focus:** border becomes Cobalt and a 3px ring of Cobalt at 50% appears; `focus-visible` only.
-- **Destructive / link variants** exist in the primitive (red at 10%/20% fill; cobalt underlined text) but are not yet used on any surface.
+- **Primary:** Cobalt fill, Cobalt Foreground label, capsule shape. Phone actions are 44px; the form Save is full-width and 48px.
+- **Outline:** Hairline border with a 30% Hairline fill, rising to 50% on hover. It carries phone page actions while the tab bar owns Cobalt.
+- **Ghost:** transparent, with Mist on hover; used for quiet alternatives such as Cancel.
+- **Destructive:** 10% Signal Red fill and Signal Red text, becoming 20% on hover. It is used for wallet deletion, category removal, and transaction deletion.
+- **Focus and pending:** a 3px Cobalt-at-50% focus-visible ring; destructive focus uses Signal Red at 20%. Disabled or pending controls are 50% opaque and keep their changing label visible.
 
-### Inputs / Fields
+### Inputs and Pickers
 
-- **Style:** capsule, 1px Hairline stroke, Hairline fill at 30%, Ink text, Graphite placeholder. Height 44px in this build (`h-11`; the primitive default is 36px), Body-size text on phone and Label-size from 768px.
-- **Money input** (`input-money`): 48px tall, `money` utility at Row Figure size, `inputmode="decimal"`, a Graphite ฿ pinned 16px from the left (36px left padding) and a Graphite "THB" in Label weight pinned 16px from the right (64px right padding). Placeholder `0.00`.
-- **Date picker** (`date-picker.tsx` over `ui/calendar.tsx` and `ui/popover.tsx`): the same 44px capsule as a Select, leading with a 16px Graphite calendar pictogram and reading the date in prose ("14 Sep 2026"; Graphite placeholder when empty), with the turning chevron. It opens one month in the floating box: caption "September 2026" in Label between two ghost arrows, weekday initials in Graphite 12px, days as 40px circles in tabular figures, today on a Mist disc, the chosen day the one Cobalt fill, days outside the allowed range at 50%. Today is always Bangkok's, never the device's. Picking closes the calendar and returns focus; arrow keys move the focused day. A filter picker carries "Clear date" beneath a hairline; a form picker cannot be emptied. A Caption description beneath may echo the chosen date in prose.
-- **Month picker** (`month-picker.tsx`): the date picker's sibling for a report month, reading "September 2026"; the box shows a year between two arrows and its twelve months as 40px ghost pills in a 3-column grid, the current month on Mist, the chosen one on Cobalt, months past the limit at 50%.
-- **Select** (shadcn Base UI `Select`, `ui/select.tsx`): the same 44px capsule as an input, with a 16px Graphite chevron that turns while open. The list drops 8px beneath at the trigger's width in a 14px-corner Paper box with a Hairline border and the Popover lift, capped at 26rem and 16px from viewport edges; items are 40px minimum with a 10px inner corner, Mist when highlighted, and a Cobalt check on the selected one. Option content is rich where it helps the choice: wallet options lead with a 32px Mist disc and stack type · balance in Caption beneath the name; category options show the pictogram; filter lists group by tree with children indented behind a › marker. "All …" and "None" are real first items, not placeholders, so a choice can be undone from the same list. Placeholders ("Choose a wallet") are Graphite.
-- **Field anatomy:** Label (Label typography) → control → optional Caption description in Graphite → error. 12px between each.
-- **Focus:** Cobalt border plus 3px Cobalt ring at 50%.
-- **Error:** the field's label turns Signal Red; the control takes a Signal Red border and a 3px Signal Red ring at 20%; the error message is Caption in Signal Red with `role="alert"`, rendered under the description, values preserved.
-- **Server error bar** (`error-bar`): 14px-corner box, Signal Red text on Signal Red at 5%, 1px Signal Red border at 30%, 12px/16px padding, above the fields.
+Inputs are 44px capsules with a Hairline border and 30% Hairline fill. Focus changes the border to Cobalt and adds a 3px Cobalt-at-50% ring. Invalid fields switch the label, border, and message to Signal Red and add a 20% red ring without clearing the entered value.
 
-### Dropdown Menu
+The money input is 48px and pins ฿ at the left and THB at the right. Date and month pickers use the same 44px trigger, a Graphite leading pictogram, and a floating Paper calendar with the Popover lift. Reports applies both month and balance date immediately on selection.
 
-shadcn Base UI `Menu` (`ui/dropdown-menu.tsx`) for actions, never for values. The same floating box as the Select list, aligned to the trigger's end and 8px below, 224px minimum; items 40px with a 10px inner corner and Graphite 16px Lucide icons; group labels in Caption. Used once: the header account menu, whose trigger is an outline capsule holding a 28px Mist initial disc, the email (from 640px) and a chevron, and whose list names the signed-in account above Sign out.
+### Segmented Control
 
-### Segmented Control (signature)
-
-Base UI RadioGroup with radio semantics and arrow-key movement. Track: Mist capsule, 44px tall, 4px inner padding, equal-width grid columns. One indicator: a Paper capsule inset 4px, width `(100% − 8px) / n`, translated by `selectedIndex × 100%` over 200ms ease-out, carrying the Indicator lift shadow. Segments: Label typography, Graphite text, Cobalt text when checked (`data-checked`), colour transition 200ms; focus ring as buttons. Under `prefers-reduced-motion` both transitions are removed. The selected state is expressed by position and by text colour; the indicator is never coloured.
-
-### Wallet Row (list item)
-
-64px minimum, 16px gap, hairline between rows, no background or radius. Left: a 40px Mist circle with a Lucide pictogram (`size-5`, stroke 1.75, Ink) — Banknote for cash, Landmark for bank account, Smartphone for e-wallet. Middle: name in Body 500, truncated; beneath it a Caption line in Graphite with the type label, and from 640px a middle dot and "Opened 1 Sep 2026". Right: the balance as a Row Figure, right-aligned, non-shrinking. A row identified by `?created=<id>` arrives with a 500ms fade-in (`motion-safe` only).
-
-### Display Figure
-
-The total at the top of a list: Display Figure typography with the Step-Down treatment, followed 8px below by a Caption in Graphite ("Total across 3 wallets"). It is a paragraph, not a card, and it is the only large element on the page.
-
-### Empty State
-
-A 14px-corner box with a 1px dashed Hairline border, 24px padding (32px from 640px), items aligned to the start: a 40px Mist disc with the Lucide Wallet pictogram, a Title heading, a Caption paragraph capped at `max-w-prose`, and one primary `lg` button. When the empty state is shown, the header-level primary action is omitted so the page carries exactly one call to action.
+A 44px Mist capsule contains one inset Paper indicator. The indicator slides 200ms ease-out; the checked label is Cobalt and the others Graphite. Base UI radio semantics provide arrow-key movement. Reduced motion removes both transitions.
 
 ### Navigation
 
-A 56px header with a bottom hairline on Paper: the wordmark (Body 600, tight tracking, 6px focus corner), a nav list of capsule links (`nav-link`: Label typography, 12px/6px padding, Graphite; Ink when current via `aria-current="page"`; Mist on hover), and on the right the user's email in Caption Graphite (hidden below 640px) beside the outline Sign out button. No active underline, no icon, no fill on the current item. Below 640px Sign out becomes an icon and the wordmark is omitted, so Wallets, Transactions, and Categories fit a 360px phone.
+On phone, the tab bar exposes Home, Transactions, New, Wallets, and Reports as primary navigation. Every destination icon keeps its word; New is a 48px Cobalt circle over the label. The title bar labels the screen, places actions on the right, and uses an accessibly named ‹ to the logical parent on nested screens.
+
+On desktop, the 56px header contains the Bookkeeping wordmark; Home, Transactions, Wallets, and Reports; the Cobalt New transaction action; and an account trigger showing only the initial. Its floating menu names the signed-in email, then Categories and Sign out.
+
+On phone Home, a 32px initial disc opens the Account sheet with the email, Categories, and Sign out. Categories is not a tab.
+
+### Sheets and Dialogs
+
+A task inside a task opens as a bottom sheet on phone and a centred, content-height dialog from 640px. It is capped at 85dvh, scrolls internally, clears the home indicator, traps focus, closes on Escape or scrim activation, and returns focus to its trigger. The shared header has a title, optional caption or leading action, and a 44px accessibly named ✕. The delete alert deliberately has no sheet header or close button. Sheets do not show a grab handle.
+
+Phone sheets slide 200ms ease-out while the scrim fades; desktop dialogs fade. Reduced motion removes those transitions.
+
+### Home
+
+Home is the signed-in root. With wallets, it shows the total across all wallets as the one display figure with “Across N wallets,” a divided This month block for Income, Net expenses, and Net that links to Reports, then the ten most recent transaction rows and All transactions →. With no wallets, only the create-wallet empty state appears. Loading uses neutral skeletons, never sample money.
+
+### Wallet Row and Wallet Page
+
+A wallet row is a flat 64px minimum line: 40px type disc, name, Caption metadata, and right-aligned Row Figure. The caption begins with the type and adds Archived when needed (`Cash · Archived`); the opened date follows on desktop. The row opens the wallet page.
+
+The wallet page leads with the current balance as its single display figure, repeats the same type/Archived caption, and lists that wallet's transactions. Its title-bar Manage action is outline. An arriving wallet or transaction row fades in for 500ms unless reduced motion is requested.
+
+### Transaction Row and Filters
+
+Transaction rows use the same flat 64px-minimum structure. The Ink first line combines the transaction type and category; the financial date and wallet metadata sit below in Graphite. History rows do not show recording time. Type words, signs, and arrows carry meaning; amount color is not the only signal.
+
+Transactions opens filters in a sheet. Active filters appear as removable 44px outline chips beneath the title, and each chip removes only its own URL value. Apply and Clear are neutral. Invalid URL values stay visible and editable.
+
+### Display Figure and Empty State
+
+The display figure is a paragraph, never a card, followed by an 8px-spaced Caption. It is the only display-size element on its screen.
+
+An empty state is a 14px dashed Hairline box with 24px phone padding, a Mist pictogram disc, Title, Caption, and one primary action. That sole primary is the One Cobalt empty-state exception.
 
 ## Do's and Don'ts
 
 ### Do
 
-- **Do** set every THB figure with the `money` utility and the full `฿12,000.00` form (symbol, grouping, two decimals, true minus sign), right-aligned in lists.
-- **Do** step only display-size figures: ฿ and satang at 0.6em, weight 500, Graphite; keep row and input figures uniform.
-- **Do** use Cobalt for exactly one primary action per screen, plus focus rings and selected states; leave figures and headings in Ink.
-- **Do** build lists as hairline-divided rows at 64px minimum, full-bleed on phone, inside the 672px column from 640px.
-- **Do** make every control a capsule (26px radius) at 44–48px on phone, with the 3px Cobalt-at-50% focus ring.
-- **Do** mount a form's primary action in the fixed safe-area Save bar on phone (48px button, hairline top, blurred Paper) and inline on desktop.
-- **Do** pair every pictogram with a text label and draw it from Lucide at stroke 1.75, `size-5`, inside a 40px Mist disc.
-- **Do** keep motion to feedback (indicator slide 200ms, arrival fade 500ms) and remove it under `prefers-reduced-motion`.
+- **Do** render every THB figure with the `money` treatment and the full `฿12,000.00` form, right-aligned in lists.
+- **Do** keep one Cobalt action per screen, treating selected control states and the sole empty-state action as the documented exceptions.
+- **Do** use 44px phone controls, 48px for the central ＋ and form Save, and the same height for actions sharing a title bar.
+- **Do** build lists as full-bleed phone rows separated by Hairlines, inside the 672px column from 640px.
+- **Do** use the two lifts only for the segmented indicator and floating popovers; use a scrim for sheets.
+- **Do** keep motion to the indicator slide, arrival fade, and sheet slide, and remove all three for reduced motion.
+- **Do** pair pictograms with text; an icon-only control requires an accessible name and a universal glyph such as ‹, ✕, or a calendar arrow.
+- **Do** use the destructive variant for wallet, category, and transaction removal.
 
 ### Don't
 
 - **Don't** wrap list content in cards, tiles, or a card grid; the list is the surface.
 - **Don't** add a stat strip or more than one display-size figure to a screen.
-- **Don't** carry transaction type, sign, or direction by green/red alone; Signal Red is for validation and destructive actions only.
-- **Don't** put shadows on buttons, inputs, rows, or containers; the segmented indicator's lift is the only shadow.
-- **Don't** introduce tinted or warm neutrals, a second accent, or a dark theme; the build is light-only.
+- **Don't** use a second Cobalt page action where the phone ＋, form Save, or desktop New transaction already owns the action.
+- **Don't** carry transaction type, sign, or direction by red or green alone.
+- **Don't** put shadows on buttons, inputs, rows, sheets, tab bars, or content containers.
+- **Don't** introduce tinted neutrals, a second accent, or a dark theme; the shipped product is light-only.
 - **Don't** set dates, counts, or labels in JetBrains Mono, or money in Inter.
-- **Don't** use celebratory motion, confetti, or animated counters on save.
-
-### Wallet management
-
-Wallet names link to `/wallets/[id]`. Management keeps the narrow form column,
-shows the exact current balance and Archived state, and separates opening
-correction, archive/unarchive, and permanent deletion with hairlines. Opening
-correction is the single cobalt action; lifecycle controls are outlined and at
-least 48px tall. Deletion expands an explicit confirmation with a destructive
-button and Cancel. Errors are announced and form values remain intact.
-
-Archived wallets retain their figures in the wallet list and its total. With
-no active wallets, transaction entry offers creation or wallet management for
-unarchiving. Existing transaction wallet labels include Archived in list,
-detail, and edit states.
-
-### Category management
-
-`/categories` shows both trees behind the Expense | Income segmented control,
-as hairline rows in the 672px column: parents lead with the 40px disc and a
-Body 500 name; children sit beneath with a 32px disc, a › marker and an 8px
-indent; a row's current entry count appears in Caption on the right only when
-it has any. Every row is a button to the edit sheet (bottom sheet on phone, a
-content-height dialog from 640px): Name, the icon picker with recommendations
-and browse, one cobalt Save changes, then beneath a hairline the Remove
-section, which states the count and destination in prose before "Remove…"
-expands to a destructive confirm beside "Keep it". A parent with children
-shows why it stays instead of a disabled control; Uncategorized shows a
-read-only name with its reason and no removal. New category opens the same
-create form the transaction picker uses. After any change the sheet closes,
-the list re-reads from the server, and a status line under the title says
-what happened; after a removal that line takes focus.
-
-### History and financial reports
-
-`/transactions` keeps the divided rows and adds inclusive From/To dates,
-wallet, category and type filters. Controls are labeled, 44px tall,
-and stack on phone; date and selection pairs use two columns from 640px.
-Filters sit behind a native keyboard-accessible disclosure, open when filters
-are active so saved rows remain immediately visible in normal history.
-Apply filters and Clear filters are neutral actions. Financial date and
-original Bangkok recording time occupy separate lines. Type words and signs
-carry meaning; refunds have a separate link to the original expense. Long
-amounts may wrap beneath the description instead of squeezing it.
-
-`/dashboard` reviews a chosen month and balance date. Monthly income, gross
-expenses, refunds, net expenses and net use a divided definition list with
-right-aligned tabular THB figures; net has stronger weight. Wallet rows show
-current and selected-date balances, stacked on phone and paired on desktop,
-including an overall row and archived labels. History and wallets link to the
-report, keeping the narrow phone navigation intact. Empty, loading and error
-states use text and neutral skeletons; loading never presents sample money.
-GET filter values remain in the URL and validation retains editable controls.
+- **Don't** add grab handles to sheets or icon-only navigation labels.
+- **Don't** add motion beyond the three feedback moments or animate them under reduced motion.
