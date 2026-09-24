@@ -11,9 +11,9 @@ interface SheetPortalProps {
 /**
  * The one panel shape the app uses for a task inside a task: a bottom
  * sheet on phone, a centred content-height dialog from 640px. Wrap it in a
- * Dialog.Root, which traps focus, closes on Escape and returns focus to the
- * trigger; the popup caps itself at 85% of the viewport and clips its own
- * scroll area.
+ * Dialog.Root or an AlertDialog.Root, which traps focus, closes on Escape
+ * and returns focus to the trigger; the popup caps itself at 85% of the
+ * viewport and clips its own scroll area.
  */
 export function SheetPortal({
   children,

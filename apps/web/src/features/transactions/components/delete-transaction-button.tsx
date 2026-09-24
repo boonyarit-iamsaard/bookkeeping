@@ -22,6 +22,7 @@ import {
   TRANSACTION_TYPE_SIGNS,
 } from "@/features/transactions/transaction-labels";
 import { Button } from "@/shared/components/ui/button";
+import { SheetPortal } from "@/shared/components/ui/sheet";
 
 interface DeleteTransactionButtonProps {
   transaction: {
@@ -178,64 +179,61 @@ export function DeleteTransactionButton({
         Delete {noun}
       </AlertDialog.Trigger>
 
-      <AlertDialog.Portal>
-        <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-foreground/30 transition-opacity duration-200 ease-out data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none" />
-        <AlertDialog.Viewport className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
-          <AlertDialog.Popup className="flex w-full flex-col gap-6 rounded-t-xl bg-background px-6 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-foreground outline-none transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] data-ending-style:translate-y-full data-starting-style:translate-y-full motion-reduce:transition-none sm:max-w-md sm:rounded-xl sm:border sm:pb-6 sm:duration-200 sm:data-ending-style:translate-y-2 sm:data-starting-style:translate-y-2 sm:data-ending-style:scale-[0.98] sm:data-starting-style:scale-[0.98] sm:data-ending-style:opacity-0 sm:data-starting-style:opacity-0">
-            <div className="flex flex-col gap-2">
-              <AlertDialog.Title className="font-semibold text-lg">
-                Delete this {noun}?
-              </AlertDialog.Title>
-              <AlertDialog.Description className="text-muted-foreground text-sm leading-normal">
-                {figure && (
-                  <>
-                    <span className="money font-medium text-foreground">
-                      {figure}
-                    </span>
-                    {walletName && ` · ${walletName}`}
-                    {destinationWalletName && ` → ${destinationWalletName}`} on{" "}
-                    {formatCalendarDate(transaction.transactionDate)}{" "}
-                  </>
-                )}
-                {deletionEffect(transaction.type)} This can't be undone.
-              </AlertDialog.Description>
-            </div>
-            {state.name === "failed" && (
-              <p
-                role="alert"
-                className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive text-sm"
-              >
-                {state.message}
-              </p>
-            )}
-            <div className="flex flex-col gap-3 sm:flex-row-reverse">
+      <SheetPortal>
+        <div className="flex min-h-0 flex-col gap-6 overflow-y-auto px-4 pt-4 pb-2 sm:px-6 sm:pt-6">
+          <div className="flex flex-col gap-2">
+            <AlertDialog.Title className="font-semibold text-lg">
+              Delete this {noun}?
+            </AlertDialog.Title>
+            <AlertDialog.Description className="text-muted-foreground text-sm leading-normal">
+              {figure && (
+                <>
+                  <span className="money font-medium text-foreground">
+                    {figure}
+                  </span>
+                  {walletName && ` · ${walletName}`}
+                  {destinationWalletName && ` → ${destinationWalletName}`} on{" "}
+                  {formatCalendarDate(transaction.transactionDate)}{" "}
+                </>
+              )}
+              {deletionEffect(transaction.type)} This can't be undone.
+            </AlertDialog.Description>
+          </div>
+          {state.name === "failed" && (
+            <p
+              role="alert"
+              className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive text-sm"
+            >
+              {state.message}
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 pb-6 sm:flex-row-reverse sm:px-6">
+          <Button
+            type="button"
+            variant="destructive"
+            size="lg"
+            disabled={deleting}
+            onClick={confirm}
+            className="h-12 w-full text-base sm:h-11 sm:w-auto sm:text-sm"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </Button>
+          <AlertDialog.Close
+            disabled={deleting}
+            render={
               <Button
                 type="button"
-                variant="destructive"
+                variant="ghost"
                 size="lg"
-                disabled={deleting}
-                onClick={confirm}
-                className="h-12 w-full text-base sm:h-11 sm:w-auto sm:text-sm"
-              >
-                {deleting ? "Deleting…" : "Delete"}
-              </Button>
-              <AlertDialog.Close
-                disabled={deleting}
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="lg"
-                    className="h-11 w-full sm:w-auto"
-                  />
-                }
-              >
-                Keep it
-              </AlertDialog.Close>
-            </div>
-          </AlertDialog.Popup>
-        </AlertDialog.Viewport>
-      </AlertDialog.Portal>
+                className="h-11 w-full sm:w-auto"
+              />
+            }
+          >
+            Keep it
+          </AlertDialog.Close>
+        </div>
+      </SheetPortal>
     </AlertDialog.Root>
   );
 }
