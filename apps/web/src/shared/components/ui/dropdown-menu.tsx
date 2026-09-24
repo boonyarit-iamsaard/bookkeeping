@@ -49,9 +49,9 @@ function DropdownMenuContent({
           data-slot="dropdown-menu-content"
           className={cn(
             // The menu is the one floating surface: a 14px-corner Paper box on
-            // a hairline, lifted by a soft offset shadow, entering with a 2px
-            // slide and fade that collapses under prefers-reduced-motion.
-            "data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 data-closed:fade-out-0 data-open:fade-in-0 z-50 max-h-(--available-height) min-w-56 origin-(--transform-origin) overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border bg-popover p-1 text-popover-foreground shadow-[0_2px_4px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.08)] outline-none duration-150 ease-out [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] data-closed:animate-out data-open:animate-in data-closed:overflow-hidden motion-reduce:animate-none motion-reduce:transition-none",
+            // a hairline, lifted by a soft offset shadow. It appears without
+            // animating: motion is kept for the three feedback moments.
+            "z-50 max-h-(--available-height) min-w-56 overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border bg-popover p-1 text-popover-foreground shadow-[0_2px_4px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.08)] outline-none [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] data-closed:overflow-hidden",
             className,
           )}
           {...props}
@@ -150,16 +150,11 @@ function DropdownMenuSubContent({
   alignOffset = -3,
   side = "right",
   sideOffset = 0,
-  className,
   ...props
 }: Readonly<React.ComponentProps<typeof DropdownMenuContent>>) {
   return (
     <DropdownMenuContent
       data-slot="dropdown-menu-sub-content"
-      className={cn(
-        "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:fade-in-0 data-open:zoom-in-95 data-closed:fade-out-0 data-closed:zoom-out-95 w-auto min-w-36 rounded-2xl bg-popover p-1 text-popover-foreground ring-1 ring-foreground/5 duration-100 data-closed:animate-out data-open:animate-in",
-        className,
-      )}
       align={align}
       alignOffset={alignOffset}
       side={side}

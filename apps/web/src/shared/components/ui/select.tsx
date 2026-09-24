@@ -66,7 +66,7 @@ function SelectTrigger({
           <ChevronDown
             aria-hidden="true"
             strokeWidth={1.75}
-            className="text-muted-foreground transition-transform duration-200 ease-out group-data-popup-open/select-trigger:rotate-180 motion-reduce:transition-none"
+            className="text-muted-foreground group-data-popup-open/select-trigger:rotate-180"
           />
         }
       >
@@ -112,12 +112,12 @@ function SelectContent({
           data-align-trigger={alignItemWithTrigger}
           className={cn(
             // The same floating surface as the dropdown menu: a 14px-corner
-            // Paper box on a hairline with one soft offset shadow, entering
-            // with a short slide and fade that collapses under reduced motion.
+            // Paper box on a hairline with one soft offset shadow, appearing
+            // without animating.
             // The popup clips; the List beneath is the scroll container, so
             // Base UI can hide its scrollbar behind the edge arrows and the
             // rounded corners stay closed.
-            "data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 data-closed:fade-out-0 data-open:fade-in-0 relative isolate z-50 flex max-h-[min(var(--available-height),26rem)] w-(--anchor-width) min-w-48 origin-(--transform-origin) flex-col overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-[0_2px_4px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.08)] outline-none duration-150 ease-out data-[align-trigger=true]:animate-none data-closed:animate-out data-open:animate-in motion-reduce:animate-none motion-reduce:transition-none",
+            "relative isolate z-50 flex max-h-[min(var(--available-height),26rem)] w-(--anchor-width) min-w-48 flex-col overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-[0_2px_4px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.08)] outline-none",
             className,
           )}
           {...props}

@@ -93,10 +93,7 @@ export function IconPicker({
         <ChevronDown
           aria-hidden="true"
           strokeWidth={1.75}
-          className={cn(
-            "size-4 transition-transform duration-200 motion-reduce:transition-none",
-            browsing && "rotate-180",
-          )}
+          className={cn("size-4", browsing && "rotate-180")}
         />
       </button>
       {browsing && (

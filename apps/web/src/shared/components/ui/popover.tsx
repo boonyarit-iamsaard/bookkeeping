@@ -45,9 +45,8 @@ function PopoverContent({
           className={cn(
             // The same floating surface as the Select list and the dropdown
             // menu: a 14px-corner Paper box on a hairline with one soft offset
-            // shadow, entering with a short slide and fade that collapses
-            // under reduced motion.
-            "data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 data-closed:fade-out-0 data-open:fade-in-0 z-50 flex origin-(--transform-origin) flex-col rounded-xl border bg-popover text-popover-foreground shadow-[0_2px_4px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.08)] outline-none duration-150 ease-out data-closed:animate-out data-open:animate-in motion-reduce:animate-none motion-reduce:transition-none",
+            // shadow, appearing without animating.
+            "z-50 flex flex-col rounded-xl border bg-popover text-popover-foreground shadow-[0_2px_4px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.08)] outline-none",
             className,
           )}
           {...props}

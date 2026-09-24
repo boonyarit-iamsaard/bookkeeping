@@ -144,7 +144,7 @@ export function DatePicker({
         <ChevronDown
           aria-hidden="true"
           strokeWidth={1.75}
-          className="text-muted-foreground transition-transform duration-200 ease-out group-data-popup-open/date-trigger:rotate-180 motion-reduce:transition-none"
+          className="text-muted-foreground group-data-popup-open/date-trigger:rotate-180"
         />
       </PopoverTrigger>
       <PopoverContent initialFocus={false} aria-label="Choose a date">
