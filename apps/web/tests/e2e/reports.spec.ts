@@ -131,11 +131,11 @@ test("the month picker sits on the Reports title's row", {
     .getByLabel("Report month")
     .locator('[data-slot="month-value"]');
   await expect(monthValue).toHaveText("September 2026");
-  expect(
-    await monthValue.evaluate(
-      (element) => element.scrollWidth <= element.clientWidth,
-    ),
-  ).toBe(true);
+  const { scrollWidth, clientWidth } = await monthValue.evaluate((element) => ({
+    scrollWidth: element.scrollWidth,
+    clientWidth: element.clientWidth,
+  }));
+  expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
 
   const heading = await page
     .getByRole("heading", { name: "Reports", level: 1 })
