@@ -82,7 +82,7 @@ function RefundPage() {
           <Link
             to="/transactions/$transactionId"
             params={{ transactionId: expense.id }}
-            className={buttonVariants({ variant: "ghost", size: "touch" })}
+            className={buttonVariants({ variant: "ghost", size: "lg" })}
           >
             Cancel
           </Link>

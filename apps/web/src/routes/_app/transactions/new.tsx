@@ -79,7 +79,7 @@ function NewTransactionPage() {
                 void router.navigate({ href: returnHref });
               }
             }}
-            className={buttonVariants({ variant: "ghost", size: "touch" })}
+            className={buttonVariants({ variant: "ghost", size: "lg" })}
           >
             Cancel
           </a>

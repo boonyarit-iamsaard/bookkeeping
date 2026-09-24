@@ -40,7 +40,7 @@ import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { FieldErrors } from "@/shared/components/form/field-errors";
-import { Button } from "@/shared/components/ui/button";
+import { Button, linkActionClass } from "@/shared/components/ui/button";
 import {
   Field,
   FieldDescription,
@@ -595,18 +595,19 @@ export function TransactionForm({
                             )}
                           </div>
                           {originalArchived && mode.kind === "refund" && (
-                            <FieldDescription id="walletId-description">
-                              {mode.expense.wallet.name}, the expense’s wallet,
-                              is archived. Choose an active wallet, or{" "}
+                            <>
+                              <FieldDescription id="walletId-description">
+                                {mode.expense.wallet.name}, the expense’s
+                                wallet, is archived. Choose an active wallet.
+                              </FieldDescription>
                               <Link
                                 to="/wallets/$walletId/manage"
                                 params={{ walletId: mode.expense.wallet.id }}
-                                className="underline underline-offset-4"
+                                className={linkActionClass}
                               >
-                                unarchive {mode.expense.wallet.name}
+                                Unarchive {mode.expense.wallet.name}
                               </Link>
-                              .
-                            </FieldDescription>
+                            </>
                           )}
                           <FieldErrors
                             id={`${field.name}-error`}
@@ -677,21 +678,18 @@ export function TransactionForm({
                                 }
                               />
                               <FieldDescription id="transfer-description">
-                                {wallets.length < 2 ? (
-                                  <>
-                                    Transfers need two active wallets.{" "}
-                                    <Link
-                                      to="/wallets/new"
-                                      className="underline underline-offset-4"
-                                    >
-                                      Create another wallet
-                                    </Link>
-                                    .
-                                  </>
-                                ) : (
-                                  "Record any transfer fee as a separate expense."
-                                )}
+                                {wallets.length < 2
+                                  ? "Transfers need two active wallets."
+                                  : "Record any transfer fee as a separate expense."}
                               </FieldDescription>
+                              {wallets.length < 2 && (
+                                <Link
+                                  to="/wallets/new"
+                                  className={linkActionClass}
+                                >
+                                  Create another wallet
+                                </Link>
+                              )}
                               <FieldErrors
                                 id={`${field.name}-error`}
                                 serverError={serverFieldError}

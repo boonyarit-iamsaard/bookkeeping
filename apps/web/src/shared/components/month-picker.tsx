@@ -217,7 +217,7 @@ export function MonthPicker({
                 disabled={!selectable(month)}
                 onClick={() => commit(month)}
                 className={cn(
-                  "h-10 font-normal",
+                  "font-normal",
                   month === thisMonth && "bg-muted",
                   selected &&
                     "bg-primary font-medium text-primary-foreground hover:bg-primary hover:text-primary-foreground",

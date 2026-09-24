@@ -9,6 +9,7 @@ import {
   iconDefinition,
   iconsInGroup,
 } from "@/features/categories/icons";
+import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
 
 interface IconPickerProps {
@@ -81,13 +82,13 @@ export function IconPicker({
           ? `Recommended for “${name.trim()}”; ${iconLabel(selected)} is selected.`
           : `${iconLabel(selected)} is selected. Browse for a better fit.`}
       </p>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         aria-expanded={browsing}
         aria-controls={browseId}
         disabled={disabled}
         onClick={() => setBrowsing((open) => !open)}
-        className="inline-flex h-9 w-fit items-center gap-1.5 rounded-4xl px-3 font-medium text-sm outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
       >
         {browsing ? "Hide all icons" : "Browse all icons"}
         <ChevronDown
@@ -95,7 +96,7 @@ export function IconPicker({
           strokeWidth={1.75}
           className={cn("size-4", browsing && "rotate-180")}
         />
-      </button>
+      </Button>
       {browsing && (
         <div
           id={browseId}

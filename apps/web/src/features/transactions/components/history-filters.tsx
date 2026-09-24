@@ -91,7 +91,7 @@ export function HistoryFilters({
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger render={<Button variant="outline" size="touch" />}>
+      <Dialog.Trigger render={<Button variant="outline" size="lg" />}>
         <SlidersHorizontal data-icon="inline-start" />
         Filter
       </Dialog.Trigger>
@@ -190,13 +190,13 @@ export function HistoryFilters({
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-3 px-4 py-4 sm:px-6 sm:pb-6">
-            <Button type="submit" variant="outline" size="touch">
+            <Button type="submit" variant="outline" size="lg">
               Apply filters
             </Button>
             <Button
               type="button"
               variant="ghost"
-              size="touch"
+              size="lg"
               onClick={() => showFilters({})}
             >
               Clear filters

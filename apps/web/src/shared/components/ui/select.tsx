@@ -155,7 +155,8 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex min-h-10 w-full cursor-default select-none items-center gap-3 rounded-lg py-2 pr-10 pl-3 text-sm outline-hidden focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-highlighted:bg-accent data-selected:font-medium data-highlighted:text-accent-foreground data-disabled:opacity-50 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        // 44px options below 640px; 40px from 640px.
+        "relative flex min-h-11 w-full cursor-default select-none items-center gap-3 rounded-lg py-2 pr-10 pl-3 text-sm outline-hidden focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-highlighted:bg-accent data-selected:font-medium data-highlighted:text-accent-foreground data-disabled:opacity-50 sm:min-h-10 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         className,
       )}
       {...props}
@@ -195,7 +196,8 @@ function SelectScrollUpButton({
     <SelectPrimitive.ScrollUpArrow
       data-slot="select-scroll-up-button"
       className={cn(
-        "top-0 z-10 flex h-7 w-full cursor-default items-center justify-center rounded-t-xl bg-linear-to-b from-55% from-popover to-transparent text-muted-foreground [&_svg:not([class*='size-'])]:size-4",
+        // 44px overflow arrows below 640px; 28px from 640px.
+        "top-0 z-10 flex h-11 w-full cursor-default items-center justify-center rounded-t-xl bg-linear-to-b from-55% from-popover to-transparent text-muted-foreground sm:h-7 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -213,7 +215,7 @@ function SelectScrollDownButton({
     <SelectPrimitive.ScrollDownArrow
       data-slot="select-scroll-down-button"
       className={cn(
-        "bottom-0 z-10 flex h-7 w-full cursor-default items-center justify-center rounded-b-xl bg-linear-to-t from-55% from-popover to-transparent text-muted-foreground [&_svg:not([class*='size-'])]:size-4",
+        "bottom-0 z-10 flex h-11 w-full cursor-default items-center justify-center rounded-b-xl bg-linear-to-t from-55% from-popover to-transparent text-muted-foreground sm:h-7 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}

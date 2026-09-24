@@ -145,7 +145,7 @@ function BalanceRow({
           <Link
             to="/wallets/$walletId"
             params={{ walletId }}
-            className="inline-flex min-h-11 items-center rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+            className="inline-flex min-h-11 min-w-11 items-center rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
           >
             {name}
           </Link>

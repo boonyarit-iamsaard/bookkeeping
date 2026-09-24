@@ -2,7 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import { useSignUpForm } from "@/features/auth/hooks/use-sign-up-form";
-import { Button } from "@/shared/components/ui/button";
+import { Button, linkActionClass } from "@/shared/components/ui/button";
 import {
   Card,
   CardContent,
@@ -129,8 +129,11 @@ export function SignUpForm(props: Readonly<React.ComponentProps<typeof Card>>) {
                     {isSubmitting ? "Creating account…" : "Create Account"}
                   </Button>
                   <FieldDescription className="text-center">
-                    Already have an account? <Link to="/sign-in">Sign in</Link>
+                    Already have an account?
                   </FieldDescription>
+                  <Link to="/sign-in" className={linkActionClass}>
+                    Sign in
+                  </Link>
                 </Field>
               )}
             </form.Subscribe>

@@ -59,7 +59,7 @@ function WalletPage() {
           <Link
             to="/wallets/$walletId/manage"
             params={{ walletId: wallet.id }}
-            className={buttonVariants({ variant: "outline", size: "touch" })}
+            className={buttonVariants({ variant: "outline", size: "lg" })}
           >
             <SlidersHorizontal data-icon="inline-start" strokeWidth={1.75} />
             Manage

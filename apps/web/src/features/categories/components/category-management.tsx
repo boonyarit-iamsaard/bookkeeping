@@ -79,7 +79,7 @@ export function CategoryManagement({
         title="Categories"
         actions={
           <Dialog.Root open={creating} onOpenChange={setCreating}>
-            <Dialog.Trigger render={<Button variant="outline" size="touch" />}>
+            <Dialog.Trigger render={<Button variant="outline" size="lg" />}>
               <Plus data-icon="inline-start" />
               New category
             </Dialog.Trigger>

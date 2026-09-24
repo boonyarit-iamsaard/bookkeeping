@@ -9,10 +9,10 @@ import { DayPicker, getDefaultClassNames } from "react-day-picker";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 
 /**
- * One month of days as a grid of 40px circles: the caption reads
+ * One month of days as a grid of thumb-sized circles: the caption reads
  * "September 2026" between two ghost arrows, today sits on a Mist disc, and
- * the chosen day is the one Cobalt fill. Sized for a thumb on a phone; the
- * same grid on desktop.
+ * the chosen day is the one Cobalt fill. Days are 44px below 640px, with the
+ * horizontal padding narrowed so seven fit the phone column; 40px from 640px.
  */
 function Calendar({
   className,
@@ -27,7 +27,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        "group/calendar w-fit p-3 [--cell-size:--spacing(10)]",
+        "group/calendar w-fit px-2 py-3 [--cell-size:--spacing(11)] sm:p-3 sm:[--cell-size:--spacing(10)]",
         className,
       )}
       classNames={{

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-24T12:00:00+07:00",
+  "generatedAt": "2026-09-24T18:00:00+07:00",
   "title": "Design System: Bookkeeping",
   "extensions": {
     "colorMeta": {
@@ -192,9 +192,9 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The 40px primary used when an empty state supplies the screen's sole next step.",
+      "description": "The empty state's sole primary, 44px on phone and 40px from 640px.",
       "html": "<button class=\"ds-btn-primary\">Create your first wallet</button>",
-      "css": ".ds-btn-primary { height: 40px; padding: 0 16px; border: 1px solid transparent; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-btn-primary:focus-visible { outline: none; border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
+      "css": ".ds-btn-primary { height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-btn-primary:focus-visible { outline: none; border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (min-width: 640px) { .ds-btn-primary { height: 40px; } }"
     },
     {
       "name": "Destructive Button",
@@ -202,23 +202,23 @@
       "refersTo": "button-destructive",
       "description": "Signal Red removal action used for wallets, categories, and transactions.",
       "html": "<button class=\"ds-btn-destructive\">Delete transaction</button>",
-      "css": ".ds-btn-destructive { height: 44px; padding: 0 12px; border: 1px solid transparent; border-radius: 26px; background: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 10%, transparent); color: var(--destructive, oklch(0.577 0.245 27.325)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms, border-color 150ms, box-shadow 150ms; } .ds-btn-destructive:hover { background: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 20%, transparent); } .ds-btn-destructive:focus-visible { outline: none; border-color: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 40%, transparent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 20%, transparent); }"
+      "css": ".ds-btn-destructive { height: 44px; padding: 0 12px; border: 1px solid transparent; border-radius: 26px; background: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 10%, transparent); color: var(--destructive, oklch(0.577 0.245 27.325)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms, border-color 150ms, box-shadow 150ms; } .ds-btn-destructive:hover { background: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 20%, transparent); } .ds-btn-destructive:focus-visible { outline: none; border-color: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 40%, transparent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 20%, transparent); } @media (min-width: 640px) { .ds-btn-destructive { height: 40px; } }"
     },
     {
       "name": "Text Field",
       "kind": "input",
       "refersTo": "input",
-      "description": "A 44px Hairline capsule with the shared Cobalt focus ring.",
+      "description": "A 44px Hairline capsule on phone, 36px from 640px, with the shared Cobalt focus ring.",
       "html": "<label class=\"ds-field\"><span>Name</span><input class=\"ds-input\" placeholder=\"Wallet name\"></label>",
-      "css": ".ds-field { display: flex; flex-direction: column; gap: 8px; color: var(--foreground, oklch(0.145 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-input { height: 44px; padding: 4px 12px; border: 1px solid var(--border, oklch(0.922 0 0)); border-radius: 26px; background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 30%, transparent); color: var(--foreground, oklch(0.145 0 0)); font-size: 16px; outline: none; } .ds-input:hover { background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 50%, transparent); } .ds-input:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 8px; color: var(--foreground, oklch(0.145 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-input { height: 44px; padding: 4px 12px; border: 1px solid var(--border, oklch(0.922 0 0)); border-radius: 26px; background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 30%, transparent); color: var(--foreground, oklch(0.145 0 0)); font-size: 16px; outline: none; } .ds-input:hover { background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 50%, transparent); } .ds-input:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (min-width: 640px) { .ds-input { height: 36px; } }"
     },
     {
       "name": "Segmented Control",
       "kind": "custom",
       "refersTo": "segmented-track",
-      "description": "A Mist track whose Paper indicator is the first of the system's two lifts.",
+      "description": "A Mist track whose Paper indicator is the first of the system's two lifts; 52px on phone keeps every segment a 44px target inside the 4px inset.",
       "html": "<div class=\"ds-seg\" role=\"radiogroup\" aria-label=\"Type\"><span class=\"ds-seg-indicator\" aria-hidden=\"true\"></span><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"true\" data-checked>Expense</button><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"false\">Income</button></div>",
-      "css": ".ds-seg { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); height: 44px; padding: 4px; border-radius: 26px; background: var(--muted, oklch(0.97 0 0)); } .ds-seg-indicator { position: absolute; inset-block: 4px; left: 4px; width: calc((100% - 8px) / 2); border-radius: 26px; background: var(--background, oklch(1 0 0)); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 1px 6px rgba(0,0,0,.06); transition: transform 200ms ease-out; } .ds-seg-item { position: relative; z-index: 1; border: 0; border-radius: 26px; background: transparent; color: var(--muted-foreground, oklch(0.556 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-seg-item[data-checked] { color: var(--primary, oklch(0.52 0.2 262)); } .ds-seg-item:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (prefers-reduced-motion: reduce) { .ds-seg-indicator { transition: none; } }"
+      "css": ".ds-seg { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); height: 52px; padding: 4px; border-radius: 26px; background: var(--muted, oklch(0.97 0 0)); } .ds-seg-indicator { position: absolute; inset-block: 4px; left: 4px; width: calc((100% - 8px) / 2); border-radius: 26px; background: var(--background, oklch(1 0 0)); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 1px 6px rgba(0,0,0,.06); transition: transform 200ms ease-out; } .ds-seg-item { position: relative; z-index: 1; border: 0; border-radius: 26px; background: transparent; color: var(--muted-foreground, oklch(0.556 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-seg-item[data-checked] { color: var(--primary, oklch(0.52 0.2 262)); } .ds-seg-item:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (min-width: 640px) { .ds-seg { height: 44px; } } @media (prefers-reduced-motion: reduce) { .ds-seg-indicator { transition: none; } }"
     },
     {
       "name": "Phone Tab Bar",
@@ -241,7 +241,7 @@
       "refersTo": "wallet-row",
       "description": "A flat, divided row whose caption reads the type then Archived when applicable.",
       "html": "<div class=\"ds-wallet-row\"><span class=\"ds-wallet-disc\">▣</span><div class=\"ds-wallet-copy\"><a href=\"#\">Cash</a><p>Cash · Archived</p></div><span class=\"ds-wallet-money\">฿1,250.00</span></div>",
-      "css": ".ds-wallet-row { display: flex; min-height: 64px; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--border, oklch(0.922 0 0)); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-wallet-disc { display: flex; width: 40px; height: 40px; flex: none; align-items: center; justify-content: center; border-radius: 9999px; background: var(--muted, oklch(0.97 0 0)); } .ds-wallet-copy { min-width: 0; flex: 1; } .ds-wallet-copy a { display: flex; min-height: 44px; align-items: center; color: inherit; font-weight: 500; text-decoration: none; } .ds-wallet-copy a:hover { text-decoration: underline; } .ds-wallet-copy a:focus-visible { outline: 2px solid var(--ring, oklch(0.52 0.2 262)); } .ds-wallet-copy p { margin: -10px 0 0; color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; } .ds-wallet-money { flex: none; font: 400 18px/1.556 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }"
+      "css": ".ds-wallet-row { display: flex; min-height: 64px; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--border, oklch(0.922 0 0)); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-wallet-disc { display: flex; width: 40px; height: 40px; flex: none; align-items: center; justify-content: center; border-radius: 9999px; background: var(--muted, oklch(0.97 0 0)); } .ds-wallet-copy { min-width: 0; flex: 1; } .ds-wallet-copy a { display: flex; min-height: 44px; min-width: 44px; align-items: center; color: inherit; font-weight: 500; text-decoration: none; } .ds-wallet-copy a:hover { text-decoration: underline; } .ds-wallet-copy a:focus-visible { outline: 2px solid var(--ring, oklch(0.52 0.2 262)); } .ds-wallet-copy p { margin: -10px 0 0; color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; } .ds-wallet-money { flex: none; font: 400 18px/1.556 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }"
     },
     {
       "name": "Empty State",
@@ -249,7 +249,7 @@
       "refersTo": "empty-state",
       "description": "The sole Cobalt-action exception: a dashed Hairline box for the screen's one next step.",
       "html": "<section class=\"ds-empty\"><span class=\"ds-empty-disc\">▢</span><h2>No wallets yet</h2><p>Add the cash, bank accounts, and e-wallets you want to track.</p><button class=\"ds-empty-action\">Create your first wallet</button></section>",
-      "css": ".ds-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px; border: 1px dashed var(--border, oklch(0.922 0 0)); border-radius: 14px; background: var(--background, oklch(1 0 0)); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-empty-disc { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--muted, oklch(0.97 0 0)); } .ds-empty h2, .ds-empty p { margin: 0; } .ds-empty h2 { font-size: 18px; } .ds-empty p { color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; } .ds-empty-action { height: 44px; padding: 0 16px; border: 0; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font-weight: 500; } .ds-empty-action:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-empty-action:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
+      "css": ".ds-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px; border: 1px dashed var(--border, oklch(0.922 0 0)); border-radius: 14px; background: var(--background, oklch(1 0 0)); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-empty-disc { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--muted, oklch(0.97 0 0)); } .ds-empty h2, .ds-empty p { margin: 0; } .ds-empty h2 { font-size: 18px; } .ds-empty p { color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; } .ds-empty-action { height: 44px; padding: 0 16px; border: 0; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font-weight: 500; } .ds-empty-action:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-empty-action:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (min-width: 640px) { .ds-empty-action { height: 40px; } }"
     }
   ],
   "narrative": {
@@ -296,7 +296,7 @@
       },
       {
         "name": "The Phone Reach Rule",
-        "body": "High-reach phone controls use a 44px target: back and title-bar actions, filter chips, and the filter sheet's Apply and Clear actions. The central ＋ and form Save are 48px. Other shipped controls range from 36px to 48px.",
+        "body": "Every phone control keeps a tappable area of at least 44 by 44 CSS pixels below 640px, measured in both dimensions: authentication inputs and submit buttons, destructive actions, calendar days and arrows, month choices, picker options, Select options and their overflow arrows, and the entry form's controls. Small icons and the 32px account disc keep their visual sizes inside larger targets, and adjacent targets never overlap. Segmented tracks grow to 52px so their segments stay 44px inside the 4px inset. The central ＋ and form Save are 48px. From 640px, desktop sizing is unchanged.",
         "section": "layout"
       },
       {
@@ -308,7 +308,7 @@
     "dos": [
       "Do render every THB figure with the money treatment and the full ฿12,000.00 form, right-aligned in lists.",
       "Do keep one Cobalt action per screen, treating selected control states and the sole empty-state action as the documented exceptions.",
-      "Do use 44px for high-reach phone controls and every action sharing a title bar; use 48px for the central ＋ and form Save.",
+      "Do give every phone control a tappable area of at least 44 by 44 CSS pixels, sized below the 640px breakpoint with desktop sizing preserved; use 48px for the central ＋ and form Save.",
       "Do build lists as full-bleed phone rows separated by Hairlines, inside the 672px column from 640px.",
       "Do use the two lifts only for the segmented indicator and floating popovers; use a scrim for sheets.",
       "Do keep motion to the indicator slide, arrival fade, and sheet slide, and remove all three for reduced motion.",

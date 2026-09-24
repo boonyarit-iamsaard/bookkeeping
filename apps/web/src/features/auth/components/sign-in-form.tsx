@@ -2,7 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import { useSignInForm } from "@/features/auth/hooks/use-sign-in-form";
-import { Button } from "@/shared/components/ui/button";
+import { Button, linkActionClass } from "@/shared/components/ui/button";
 import {
   Card,
   CardContent,
@@ -84,9 +84,11 @@ export function SignInForm(props: Readonly<React.ComponentProps<typeof Card>>) {
                     {isSubmitting ? "Signing in…" : "Sign in"}
                   </Button>
                   <FieldDescription className="text-center">
-                    Don&apos;t have an account?{" "}
-                    <Link to="/sign-up">Sign up</Link>
+                    Don&apos;t have an account?
                   </FieldDescription>
+                  <Link to="/sign-up" className={linkActionClass}>
+                    Sign up
+                  </Link>
                 </Field>
               )}
             </form.Subscribe>

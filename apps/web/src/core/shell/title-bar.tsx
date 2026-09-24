@@ -41,7 +41,7 @@ interface TitleBarProps {
   title: React.ReactNode;
   /** A `BackLink` on nested screens. */
   back?: React.ReactNode;
-  /** Buttons and links at size `touch`, so every action shares one height. */
+  /** Buttons and links at size `lg`, 44px on phone and 40px from 640px. */
   actions?: React.ReactNode;
 }
 

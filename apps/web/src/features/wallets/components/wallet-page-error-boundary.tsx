@@ -18,7 +18,7 @@ export function WalletPageErrorBoundary({
       actions={
         <Link
           to="/wallets"
-          className={buttonVariants({ variant: "outline", size: "touch" })}
+          className={buttonVariants({ variant: "outline", size: "lg" })}
         >
           Back to Wallets
         </Link>

@@ -20,18 +20,18 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
+        // The app-facing sizes are 44px tappable areas below 640px; desktop
+        // keeps its heights from 640px. `xs`, `sm`, `icon-xs` and `icon-sm`
+        // are unused app sizes and stay small.
         default:
-          "h-9 gap-1.5 px-3 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
+          "h-11 gap-1.5 px-3 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5 sm:h-9",
         xs: "h-6 gap-1 px-2.5 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-8 gap-1 px-3 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        lg: "h-10 gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
-        // `lg` from 640px; the 44px thumb target below it.
-        touch:
-          "h-11 gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3 sm:h-10",
-        icon: "size-9",
+        lg: "h-11 gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3 sm:h-10",
+        icon: "size-11 sm:size-9",
         "icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-8",
-        "icon-lg": "size-10",
+        "icon-lg": "size-11 sm:size-10",
         "icon-touch": "size-11",
       },
     },
@@ -57,4 +57,13 @@ function Button({
   );
 }
 
-export { Button, buttonVariants };
+/**
+ * A quiet action standing alone beneath its explanatory text: the link
+ * variant carrying a 44px target in both dimensions at every width.
+ */
+const linkActionClass = cn(
+  buttonVariants({ variant: "link", size: null }),
+  "h-11 min-w-11",
+);
+
+export { Button, buttonVariants, linkActionClass };

@@ -253,7 +253,7 @@ From 640px, the 56px desktop header appears and content begins 32px below it. Be
 
 The phone tab bar is fixed above the home indicator: 56px plus the bottom safe area, a top hairline, translucent Paper, and backdrop blur. Home and Transactions occupy one equal half, Wallets and Reports the other, with natural-width tabs inside each half and the ＋ exactly centred between them. Current is Ink; inactive is Graphite. There is no selected pill, underline, or accent fill.
 
-**The Phone Reach Rule.** High-reach phone controls use a 44px target: back and title-bar actions, filter chips, and the filter sheet's Apply and Clear actions. The central ＋ and form Save are 48px. Other shipped controls range from 36px to 48px.
+**The Phone Reach Rule.** Every phone control keeps a tappable area of at least 44 by 44 CSS pixels below 640px, measured in both dimensions: authentication inputs and submit buttons, destructive actions, calendar days and arrows, month choices, picker options, Select options and their overflow arrows, and the entry form's controls. Small icons and the 32px account disc keep their visual sizes inside larger targets, and adjacent targets never overlap. Segmented tracks grow to 52px so their segments stay 44px inside the 4px inset. The central ＋ and form Save are 48px. From 640px, desktop sizing is unchanged.
 
 ## Elevation & Depth
 
@@ -278,7 +278,7 @@ Pictogram discs are 40px circles in Mist. The Home account disc is 32px; the des
 
 ### Buttons
 
-- **Primary:** Cobalt fill, Cobalt Foreground label, capsule shape. The empty-state primary is 40px, high-reach phone actions are 44px, and form Save is full-width and 48px.
+- **Primary:** Cobalt fill, Cobalt Foreground label, capsule shape. The empty-state primary and the other `lg` actions are 44px below 640px and 40px from 640px; form Save is full-width and 48px.
 - **Outline:** Hairline border with a 30% Hairline fill, rising to 50% on hover. It carries phone page actions while the tab bar owns Cobalt.
 - **Ghost:** transparent, with Mist on hover; used for quiet alternatives such as Cancel.
 - **Destructive:** 10% Signal Red fill and Signal Red text, becoming 20% on hover. It is used for wallet deletion, category removal, and transaction deletion.
@@ -286,13 +286,13 @@ Pictogram discs are 40px circles in Mist. The Home account disc is 32px; the des
 
 ### Inputs and Pickers
 
-Inputs are 44px capsules with a Hairline border and 30% Hairline fill. Focus changes the border to Cobalt and adds a 3px Cobalt-at-50% ring. Invalid fields switch the label, border, and message to Signal Red and add a 20% red ring without clearing the entered value.
+Inputs are 44px capsules below 640px, 36px from 640px, with a Hairline border and 30% Hairline fill. Focus changes the border to Cobalt and adds a 3px Cobalt-at-50% ring. Invalid fields switch the label, border, and message to Signal Red and add a 20% red ring without clearing the entered value.
 
-The money input is 48px and pins ฿ at the left and THB at the right. Date and month pickers use the same 44px trigger, a Graphite leading pictogram, and a floating Paper calendar with the Popover lift. Reports applies both month and balance date immediately on selection.
+The money input is 48px and pins ฿ at the left and THB at the right. Date and month pickers use the same 44px trigger, a Graphite leading pictogram, and a floating Paper calendar with the Popover lift; its days and arrows are 44px below 640px, 40px from 640px, with the internal horizontal padding narrowed on phone so seven 44px columns fit the 360px viewport. Reports applies both month and balance date immediately on selection.
 
 ### Segmented Control
 
-A 44px Mist capsule contains one inset Paper indicator. The indicator slides 200ms ease-out; the checked label is Cobalt and the others Graphite. Base UI radio semantics provide arrow-key movement. Reduced motion removes both transitions.
+A 52px Mist capsule on phone, 44px from 640px, contains one Paper indicator inset by 4px, so every segment stays a 44px target. The indicator slides 200ms ease-out; the checked label is Cobalt and the others Graphite. Base UI radio semantics provide arrow-key movement. Reduced motion removes both transitions.
 
 ### Navigation
 
@@ -336,7 +336,7 @@ An empty state is a 14px dashed Hairline box with 24px phone padding, a Mist pic
 
 - **Do** render every THB figure with the `money` treatment and the full `฿12,000.00` form, right-aligned in lists.
 - **Do** keep one Cobalt action per screen, treating selected control states and the sole empty-state action as the documented exceptions.
-- **Do** use 44px for high-reach phone controls and every action sharing a title bar; use 48px for the central ＋ and form Save.
+- **Do** give every phone control a tappable area of at least 44 by 44 CSS pixels, sized below the 640px breakpoint with desktop sizing preserved; use 48px for the central ＋ and form Save.
 - **Do** build lists as full-bleed phone rows separated by Hairlines, inside the 672px column from 640px.
 - **Do** use the two lifts only for the segmented indicator and floating popovers; use a scrim for sheets.
 - **Do** keep motion to the indicator slide, arrival fade, and sheet slide, and remove all three for reduced motion.

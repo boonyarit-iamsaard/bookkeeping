@@ -1,5 +1,6 @@
-import type { Locator, Page } from "@playwright/test";
+import type { Locator } from "@playwright/test";
 import { expect } from "@playwright/test";
+import { popup } from "./popup";
 
 const MONTHS = [
   "January",
@@ -16,11 +17,6 @@ const MONTHS = [
   "December",
 ];
 
-function popup(page: Page): Locator {
-  return page.locator("[data-slot=popover-content]").last();
-}
-
-/** "September 2026" → months since year 0. */
 function monthIndexOf(caption: string): number {
   const [name, year] = caption.trim().split(" ");
   return Number(year) * 12 + MONTHS.indexOf(name);

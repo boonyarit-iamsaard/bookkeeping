@@ -41,7 +41,11 @@ export function SegmentedControl<Value extends string>({
       value={value}
       onValueChange={(next) => onValueChange(next)}
       aria-labelledby={ariaLabelledBy}
-      className={cn("relative grid h-11 rounded-4xl bg-muted p-1", className)}
+      // 52px on phone keeps a 4px inset around 44px segments; 44px from 640px.
+      className={cn(
+        "relative grid h-13 rounded-4xl bg-muted p-1 sm:h-11",
+        className,
+      )}
       style={{
         gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
       }}
