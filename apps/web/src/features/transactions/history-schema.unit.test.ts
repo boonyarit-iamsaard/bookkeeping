@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
 import {
   hasHistoryFilters,
-  historyFilterErrors,
   historyFilters,
   historySearchSchema,
+  parseHistoryFilters,
   transactionFiltersSchema,
 } from "./history-schema";
 
@@ -108,30 +108,39 @@ describe("history filters", () => {
   });
 });
 
-describe("history filter errors", () => {
-  test("valid filters have no errors", () => {
+describe("parsed history filters", () => {
+  test("valid filters parse with no errors", () => {
     expect(
-      historyFilterErrors({ from: "2026-09-01", to: "2026-09-30" }),
-    ).toEqual([]);
+      parseHistoryFilters({ from: "2026-09-01", to: "2026-09-30" }),
+    ).toEqual({ ok: true, filters: { from: "2026-09-01", to: "2026-09-30" } });
   });
 
   test("names each malformed field rather than the date order", () => {
     expect(
-      historyFilterErrors({ from: "bogus", walletId: "gone", type: "7" }),
-    ).toEqual([
-      "Choose a valid From date.",
-      "Choose a valid wallet.",
-      "Choose a valid type.",
-    ]);
+      parseHistoryFilters({ from: "bogus", walletId: "gone", type: "7" }),
+    ).toEqual({
+      ok: false,
+      errors: [
+        "Choose a valid From date.",
+        "Choose a valid wallet.",
+        "Choose a valid type.",
+      ],
+    });
   });
 
   test("a reversed range names the date order", () => {
     expect(
-      historyFilterErrors({ from: "2026-09-03", to: "2026-09-01" }),
-    ).toEqual(["From date must be on or before To date."]);
+      parseHistoryFilters({ from: "2026-09-03", to: "2026-09-01" }),
+    ).toEqual({
+      ok: false,
+      errors: ["From date must be on or before To date."],
+    });
   });
 
   test("ignores the page cursor and the saved id", () => {
-    expect(historyFilterErrors({ cursor: "x", created: "y" })).toEqual([]);
+    expect(parseHistoryFilters({ cursor: "x", created: "y" })).toEqual({
+      ok: true,
+      filters: {},
+    });
   });
 });

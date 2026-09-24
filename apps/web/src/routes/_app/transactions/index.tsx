@@ -14,21 +14,22 @@ import {
 } from "@/features/transactions/components/history-filters";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
-import type { HistorySearch } from "@/features/transactions/history-schema";
+import type { ParsedHistoryFilters } from "@/features/transactions/history-schema";
 import {
   hasHistoryFilters,
-  historyFilterErrors,
   historyFilters,
   historySearchSchema,
-  transactionFiltersSchema,
+  parseHistoryFilters,
 } from "@/features/transactions/history-schema";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 /** The page the address names, or null while its filters are invalid. */
-function historyListQuery(search: Readonly<HistorySearch>) {
-  const parsed = transactionFiltersSchema.safeParse(historyFilters(search));
-  return parsed.success
-    ? transactionQueries.list({ ...parsed.data, cursor: search.cursor })
+function historyListQuery(
+  filters: Readonly<ParsedHistoryFilters>,
+  cursor: string | undefined,
+) {
+  return filters.ok
+    ? transactionQueries.list({ ...filters.filters, cursor })
     : null;
 }
 
@@ -37,7 +38,10 @@ export const Route = createFileRoute("/_app/transactions/")({
   validateSearch: historySearchSchema,
   loaderDeps: ({ search }) => ({ search }),
   loader: async ({ context, deps }) => {
-    const listQuery = historyListQuery(deps.search);
+    const listQuery = historyListQuery(
+      parseHistoryFilters(deps.search),
+      deps.search.cursor,
+    );
     await Promise.all([
       listQuery && context.queryClient.ensureQueryData(listQuery),
       context.queryClient.ensureQueryData(walletQueries.list()),
@@ -51,7 +55,8 @@ export const Route = createFileRoute("/_app/transactions/")({
 
 function TransactionsPage() {
   const search = Route.useSearch();
-  const listQuery = historyListQuery(search);
+  const filters = parseHistoryFilters(search);
+  const listQuery = historyListQuery(filters, search.cursor);
   // Invalid filters read nothing; a failed re-read shows the error screen.
   const { data: page } = useQuery({
     ...(listQuery ?? transactionQueries.list()),
@@ -95,7 +100,7 @@ function TransactionsPage() {
       )}
       <TransactionHistory
         transactions={transactions}
-        filterErrors={historyFilterErrors(search)}
+        filterErrors={filters.ok ? [] : filters.errors}
         filtered={filtered}
         savedId={search.created}
       />

@@ -98,13 +98,19 @@ const FILTER_ERROR_MESSAGES = {
   type: "Choose a valid type.",
 } as const;
 
-/** What is wrong with the address's filters, one message per field; empty when valid. */
-export function historyFilterErrors(search: Readonly<HistorySearch>): string[] {
+export type ParsedHistoryFilters =
+  | { ok: true; filters: TransactionFilters }
+  | { ok: false; errors: readonly string[] };
+
+/** The address's filters, or what is wrong with them: one message per field. */
+export function parseHistoryFilters(
+  search: Readonly<HistorySearch>,
+): ParsedHistoryFilters {
   const result = transactionFiltersSchema.safeParse(historyFilters(search));
   if (result.success) {
-    return [];
+    return { ok: true, filters: result.data };
   }
-  return [
+  const errors = [
     ...new Set(
       result.error.issues.map((issue) => {
         switch (issue.path[0]) {
@@ -124,4 +130,5 @@ export function historyFilterErrors(search: Readonly<HistorySearch>): string[] {
       }),
     ),
   ];
+  return { ok: false, errors };
 }

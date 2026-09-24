@@ -12,7 +12,7 @@ import { historyFilterChips } from "@/features/transactions/history-chips";
 import type { HistorySearch } from "@/features/transactions/history-schema";
 import {
   HISTORY_FILTER_KEYS,
-  historyFilterErrors,
+  parseHistoryFilters,
 } from "@/features/transactions/history-schema";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
@@ -76,7 +76,8 @@ export function HistoryFilters({
     return values[key] ?? "";
   }
   const today = todayIn({ timeZone: APP_TIME_ZONE });
-  const errors = historyFilterErrors(values);
+  const parsed = parseHistoryFilters(values);
+  const errors = parsed.ok ? [] : parsed.errors;
 
   function showFilters(search: HistorySearch) {
     setOpen(false);
