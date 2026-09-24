@@ -262,6 +262,9 @@ export function HistoryFilterChips({
           <Link
             to="/transactions"
             search={chip.without}
+            // `without` is a subset of the current search, so the default
+            // match would mark every chip as the current page.
+            activeOptions={{ exact: true, includeSearch: true }}
             aria-label={`Remove filter ${chip.label}`}
             className="flex min-h-9 max-w-full items-center gap-1 rounded-full border px-3 text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >

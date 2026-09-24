@@ -76,6 +76,8 @@ test("filters apply through the address and open the saved record", {
   await page.reload();
   await expect(page.locator("[data-transaction-row]")).toHaveCount(1);
   await expect(chips.getByRole("listitem")).toHaveCount(5);
+  // A chip removes a filter; it is never the current page.
+  await expect(chips.locator("[aria-current], .active")).toHaveCount(0);
   await page.getByRole("link", { name: "Remove filter Expense" }).click();
   await expect(page).not.toHaveURL(/type=/);
   await expect(page).toHaveURL(/walletId=/);
