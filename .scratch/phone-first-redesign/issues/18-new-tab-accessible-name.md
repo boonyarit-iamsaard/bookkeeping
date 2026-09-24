@@ -6,15 +6,23 @@ Read `../spec.md` first.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Out of scope:** the visible word under ＋.
 
-- [ ] The ＋ tab's accessible name is "New transaction" while its visible word stays "New".
-- [ ] The shell spec finds the ＋ tab by the name "New transaction" on phone.
+- [x] The ＋ tab's accessible name is "New transaction" while its visible word stays "New".
+- [x] The shell spec finds the ＋ tab by the name "New transaction" on phone.
 
 ## Comments
 
 From 07's milestone critique (2026-09-24): P3, material (WCAG 2.4.4 link purpose). `apps/web/src/core/shell/tab-bar.tsx:58`. The visible label can stay short; the accessible name should start with it (WCAG 2.5.3).
 
 Triaged (2026-09-24): in scope with the rest of 12–18, after 13.
+
+Closed (2026-09-24):
+
+- Built in 909a747. The ＋ link carries `aria-label="New transaction"`, so its
+  name matches the desktop header's and starts with the visible "New"
+  (WCAG 2.5.3); the visible word is unchanged. The shell spec and the
+  transaction entry spec find the tab by "New transaction"; both pass on
+  `phone-chromium`.
