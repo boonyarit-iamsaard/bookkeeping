@@ -3,9 +3,10 @@ import {
   formatCalendarDate,
   todayIn,
 } from "@bookkeeping/domain/dates";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
+import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
@@ -44,6 +45,133 @@ async function recordExpenseThroughForm(
     .click();
   await expect(page).toHaveURL(/\/transactions\/[0-9a-f-]+$/);
 }
+
+/**
+ * Fails when the element's text is cut short: by its own ellipsis, by an
+ * ancestor inside its row that hides overflow, or by running past the row or
+ * the screen. Half a pixel absorbs subpixel rounding.
+ */
+async function expectUnclipped(locator: Locator) {
+  await expect(locator).toBeVisible();
+  const clipped = await locator.evaluate((element) => {
+    if (element.scrollWidth > element.clientWidth) {
+      return true;
+    }
+    const right = element.getBoundingClientRect().right;
+    const row = element.closest("[data-transaction-row]");
+    if (
+      !row ||
+      right > row.getBoundingClientRect().right + 0.5 ||
+      right > window.innerWidth + 0.5
+    ) {
+      return true;
+    }
+    for (
+      let ancestor = element.parentElement;
+      ancestor && !ancestor.hasAttribute("data-transaction-row");
+      ancestor = ancestor.parentElement
+    ) {
+      if (
+        getComputedStyle(ancestor).overflowX !== "visible" &&
+        right > ancestor.getBoundingClientRect().right + 0.5
+      ) {
+        return true;
+      }
+    }
+    return false;
+  });
+  expect(clipped).toBe(false);
+}
+
+test("history rows show the whole financial date beside long wallets, notes and amounts", async ({
+  page,
+}) => {
+  await signUpFreshUser(page);
+  await createWalletThroughForm(page, {
+    name: "KBank Savings for Household Bills",
+    openingAmount: "5000000",
+    openingDate: "2026-09-01",
+  });
+  const note = "September salary top-up for the condo";
+  await page.goto("/transactions/new");
+  await expect(page.getByLabel("Amount")).toBeFocused({ timeout: 30_000 });
+  await page.getByLabel("Amount").fill("1234567.89");
+  await page.getByLabel("Note", { exact: false }).fill(note);
+  await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-20");
+  await page.getByRole("button", { name: /^Save −/ }).click();
+  await expectSavedRecord(page);
+  await createWalletThroughForm(page, {
+    name: "Pocket",
+    openingAmount: "0",
+    openingDate: "2026-09-01",
+  });
+
+  await page.goto("/wallets");
+  await page
+    .getByRole("link", {
+      name: "KBank Savings for Household Bills",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "KBank Savings for Household Bills",
+      level: 1,
+    }),
+  ).toBeVisible();
+  const walletPage = page.url();
+  await page.goto("/transactions/new");
+  await page.getByLabel("Amount").fill("300");
+  await page.getByRole("radio", { name: "Transfer" }).click();
+  await chooseOption(
+    page.getByLabel("From", { exact: true }),
+    "KBank Savings for Household Bills",
+  );
+  await chooseOption(page.getByLabel("To", { exact: true }), "Pocket");
+  await page
+    .getByRole("button", {
+      name: "Save ฿300.00 KBank Savings for Household Bills → Pocket",
+    })
+    .click();
+  await expectSavedRecord(page);
+
+  const today = formatCalendarDate(todayIn({ timeZone: APP_TIME_ZONE }));
+  for (const url of ["/", "/transactions", walletPage]) {
+    await page.goto(url);
+    const expense = page
+      .locator("[data-transaction-row]")
+      .filter({ hasText: "Expense" });
+    await expectUnclipped(expense.getByText("20 Sep 2026", { exact: true }));
+    await expect(expense.getByText(note)).toBeVisible();
+    const transfer = page
+      .locator("[data-transaction-row]")
+      .filter({ hasText: "Transfer" });
+    await expectUnclipped(transfer.getByText(today, { exact: true }));
+  }
+
+  // The wallet page is already that wallet's; its rows don't repeat the name.
+  const rows = page.locator("[data-transaction-row]");
+  await expect(rows).toHaveCount(2);
+  for (const row of await rows.all()) {
+    await expect(row).not.toContainText("KBank");
+  }
+  await expect(
+    rows
+      .filter({ hasText: "Transfer" })
+      .getByText("To Pocket", { exact: true }),
+  ).toBeVisible();
+  // The receiving wallet's page names where the money came from.
+  await page.goto("/wallets");
+  await page.getByRole("link", { name: "Pocket", exact: true }).click();
+  const pocketRow = page.locator("[data-transaction-row]");
+  await expect(pocketRow).toHaveCount(1);
+  await expect(
+    pocketRow.getByText("From KBank Savings for Household Bills", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(pocketRow).not.toContainText("Pocket");
+});
 
 test("editing loads the saved values, keeps the type fixed, and replaces the balance effect", async ({
   page,

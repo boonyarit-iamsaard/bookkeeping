@@ -72,7 +72,11 @@ function WalletPage() {
         {page.items.length === 0 ? (
           <p className="text-muted-foreground text-sm">No transactions yet</p>
         ) : (
-          <TransactionList transactions={page.items} savedId={created} />
+          <TransactionList
+            transactions={page.items}
+            savedId={created}
+            pageWalletId={wallet.id}
+          />
         )}
       </section>
       {nextCursor && (

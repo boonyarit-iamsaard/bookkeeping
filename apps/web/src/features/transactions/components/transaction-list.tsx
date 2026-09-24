@@ -17,16 +17,45 @@ import { buttonVariants } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
 
 type ApiTransaction = components["schemas"]["Transaction"];
+type ApiTransactionWallet = components["schemas"]["TransactionWallet"];
 
 interface TransactionListProps {
   transactions: readonly ApiTransaction[];
   /** The transaction just saved, if any; it alone arrives with a fade. */
   savedId?: string;
+  /** The wallet whose page lists these rows; they leave its name out. */
+  pageWalletId?: string;
+}
+
+function walletName(wallet: ApiTransactionWallet) {
+  return wallet.archived ? `${wallet.name} (Archived)` : wallet.name;
+}
+
+interface TransferWalletsOptions {
+  source: ApiTransactionWallet;
+  destination: ApiTransactionWallet;
+  pageWalletId: string | undefined;
+}
+
+/** A transfer's wallets, naming only the other side on either wallet's page. */
+function transferWallets({
+  source,
+  destination,
+  pageWalletId,
+}: Readonly<TransferWalletsOptions>) {
+  if (source.id === pageWalletId) {
+    return `To ${walletName(destination)}`;
+  }
+  if (destination.id === pageWalletId) {
+    return `From ${walletName(source)}`;
+  }
+  return `${walletName(source)} → ${walletName(destination)}`;
 }
 
 export function TransactionList({
   transactions,
   savedId,
+  pageWalletId,
 }: Readonly<TransactionListProps>) {
   if (transactions.length === 0) {
     return <EmptyTransactions />;
@@ -75,18 +104,30 @@ export function TransactionList({
               </p>
               {transaction.destinationWallet && (
                 <p className="wrap-break-word text-muted-foreground text-sm">
-                  {transaction.wallet.name}
-                  {transaction.wallet.archived && " (Archived)"} →{" "}
-                  {transaction.destinationWallet.name}
-                  {transaction.destinationWallet.archived && " (Archived)"}
+                  {transferWallets({
+                    source: transaction.wallet,
+                    destination: transaction.destinationWallet,
+                    pageWalletId,
+                  })}
                 </p>
               )}
-              <p className="truncate text-muted-foreground text-sm">
+              {/* The date keeps its width; only the wallet gives way. */}
+              <p className="flex text-muted-foreground text-sm">
+                <span className="shrink-0">
+                  {formatCalendarDate(transaction.transactionDate)}
+                </span>
                 {!transaction.destinationWallet &&
-                  `${transaction.wallet.name}${transaction.wallet.archived ? " (Archived)" : ""} · `}
-                {formatCalendarDate(transaction.transactionDate)}
-                {transaction.note && ` · ${transaction.note}`}
+                  transaction.wallet.id !== pageWalletId && (
+                    <span className="min-w-0 truncate">
+                      &nbsp;· {walletName(transaction.wallet)}
+                    </span>
+                  )}
               </p>
+              {transaction.note && (
+                <p className="wrap-break-word line-clamp-2 text-muted-foreground text-sm">
+                  {transaction.note}
+                </p>
+              )}
               <p className="text-muted-foreground text-xs">
                 Recorded{" "}
                 {formatInstant({
