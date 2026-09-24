@@ -6,7 +6,7 @@ Read `../spec.md` first.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Out of scope:** the sheet's per-field messages, which are already right.
 
@@ -16,3 +16,5 @@ Read `../spec.md` first.
 ## Comments
 
 From 07's milestone critique (2026-09-24): P2, material (WCAG 3.3.1). `apps/web/src/features/transactions/components/transaction-history.tsx:22` hard-codes "Choose valid filters. From date must be on or before To date." for every invalid address. The filter sheet already derives per-field messages (`filterErrors` in `history-filters.tsx`); the page line should share that source.
+
+Triaged (2026-09-24): in scope with the rest of 12–18, after 13.

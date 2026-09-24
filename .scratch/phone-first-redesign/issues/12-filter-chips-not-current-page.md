@@ -6,7 +6,7 @@ Read `../spec.md` first.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Out of scope:** changing what a chip does.
 
@@ -16,3 +16,5 @@ Read `../spec.md` first.
 ## Comments
 
 From 07's milestone critique (2026-09-24): P1, material (WCAG 4.1.2). Verified in the live page: both chips on `/transactions?type=expense&walletId=…` carry `aria-current="page"` because the TanStack `Link` in `apps/web/src/features/transactions/components/history-filters.tsx` matches `/transactions`. Likely fix: `activeOptions={{ exact: true, includeSearch: true }}` or drop the active props on chips.
+
+Triaged (2026-09-24): in scope with the rest of 12–18, after 13.

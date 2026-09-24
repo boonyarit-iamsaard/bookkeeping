@@ -6,7 +6,7 @@ Read `../spec.md` first.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Out of scope:** the three sanctioned moments themselves.
 
@@ -16,3 +16,5 @@ Read `../spec.md` first.
 ## Comments
 
 From 07's milestone critique (2026-09-24): P3, material (breaches the Motion rule amendment: three feedback moments only). Everything listed already stops under `prefers-reduced-motion` except the submenu style.
+
+Triaged (2026-09-24): in scope with the rest of 12–18, after 13.

@@ -6,7 +6,7 @@ Read `../spec.md` first.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Out of scope:** the visible word under ＋.
 
@@ -16,3 +16,5 @@ Read `../spec.md` first.
 ## Comments
 
 From 07's milestone critique (2026-09-24): P3, material (WCAG 2.4.4 link purpose). `apps/web/src/core/shell/tab-bar.tsx:58`. The visible label can stay short; the accessible name should start with it (WCAG 2.5.3).
+
+Triaged (2026-09-24): in scope with the rest of 12–18, after 13.

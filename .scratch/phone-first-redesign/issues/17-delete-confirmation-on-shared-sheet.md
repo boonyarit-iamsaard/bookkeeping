@@ -6,7 +6,7 @@ Read `../spec.md` first.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Out of scope:** the confirmation's copy and behaviour.
 
@@ -16,3 +16,5 @@ Read `../spec.md` first.
 ## Comments
 
 From 07's milestone critique (2026-09-24): P3, material (breaches the spec's Sheet: "one shared primitive"). Found from source; the confirmation was not opened during the critique because it sits one tap from a destructive action.
+
+Triaged (2026-09-24): in scope with the rest of 12–18, after 13.

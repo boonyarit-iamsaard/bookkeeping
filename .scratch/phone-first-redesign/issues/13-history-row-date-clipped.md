@@ -6,7 +6,7 @@ Read `../spec.md` first.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Out of scope:** the row's type words, signs, amounts and refund link, which stay as the spec describes.
 
@@ -16,3 +16,5 @@ Read `../spec.md` first.
 ## Comments
 
 From 07's milestone critique (2026-09-24): P1, material (content clipped at 360px). `apps/web/src/features/transactions/components/transaction-list.tsx:84` renders "Wallet · Date · Note" on one `truncate` line; at 360px the line gets 140–183px, so "KBank Savings · 24 Sep 2026 · September salary" shows as "KBank Savings · 24…" and notes almost never show. Both the design review and the detector's text-overflow rule flagged it. Options: the date on its own line, or wrap instead of truncate.
+
+Triaged (2026-09-24): in scope with the rest of 12–18; 13 goes first.
