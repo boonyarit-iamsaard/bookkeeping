@@ -6,7 +6,8 @@ const baseURL = `http://localhost:${PORT}`;
 // Under CI the runner builds the client with the API origin it allocated and
 // previews that output; locally the dev server reads the origin from its env.
 // Domain flows run on the narrowest phone only; specs tagged `@matrix` cover
-// what differs by engine or viewport, such as layout, guards, and the PWA.
+// what differs by viewport, such as layout, guards, and the PWA. Chromium is
+// the only supported engine (ADR 0007).
 const MATRIX_ONLY = /@matrix/;
 
 const serveCommand = process.env.CI
@@ -36,11 +37,6 @@ export default defineConfig({
       name: "phone-chromium",
       // The narrowest supported phone; the milestone specifies 360px.
       use: { ...devices["Pixel 7"], viewport: { width: 360, height: 780 } },
-    },
-    {
-      name: "phone-webkit",
-      grep: MATRIX_ONLY,
-      use: { ...devices["iPhone 15"] },
     },
     {
       name: "desktop-chromium",

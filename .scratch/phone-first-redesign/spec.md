@@ -365,8 +365,8 @@ These govern the build and are written into `DESIGN.md` at the rewrite.
   Viewport-specific assertions branch on the project's width, as the shell
   spec already does for the wordmark.
 - **Primary seam: the SPA browser suite** (Playwright; projects
-  `phone-chromium` at 360px, `phone-webkit` on iPhone 15, and
-  `desktop-chromium`). Each ticket updates the specs its screens touch and
+  `phone-chromium` at 360px and `desktop-chromium`; ADR 0007 dropped
+  `phone-webkit`). Each ticket updates the specs its screens touch and
   runs them alone on `phone-chromium`. The CLAUDE.md resource limits apply:
   never alongside another browser run, Sonar, a production build or the
   unit and integration suites.

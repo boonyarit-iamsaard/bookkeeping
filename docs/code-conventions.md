@@ -130,8 +130,8 @@ HTTP-level ones that a route integration test already makes, or when another
 browser test asserts a superset of it through the same code path.
 
 Browser specs run on the narrowest phone project. Tag a test `@matrix` only
-when its behavior differs by engine or viewport, such as layout, navigation
-guards, or the service worker; the other two projects run only those tests.
+when its behavior differs by viewport, such as layout, navigation guards, or
+the service worker; the desktop project runs only those tests.
 
 Budget: `pnpm test`, as Turborepo runs it with packages in parallel, completes
 in three minutes or less on the development machine. Check it by hand; it is

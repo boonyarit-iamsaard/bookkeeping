@@ -331,7 +331,7 @@ writes isolated by owner. No local development database is used.
 Browser tests live in `apps/web/tests/e2e/`. Install their browsers once:
 
 ```bash
-pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium webkit
+pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium
 ```
 
 The runner (`apps/web/tests/e2e/run.ts`) creates its own disposable PostgreSQL
@@ -340,7 +340,7 @@ client on available ports with a fresh auth secret. It serves the client with
 Vite locally; under `ci:e2e` it builds a client for `vite preview` with the
 test API origin baked in. It waits for server teardown before stopping the
 database, including when interrupted. Specs run on 360px Chromium; tests tagged
-`@matrix` also run on iPhone WebKit and desktop Chromium. See the
+`@matrix` also run on desktop Chromium. See the
 [test ownership](docs/code-conventions.md#test-ownership) rules and the
 browser test policy in [AGENTS.md](AGENTS.md).
 
@@ -430,7 +430,7 @@ and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
 
 GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
 `main`. Two jobs run side by side, each installing dependencies with a frozen
-lockfile: one runs `pnpm run ci`, and the other installs Chromium plus WebKit
+lockfile: one runs `pnpm run ci`, and the other installs Chromium
 (cached by Playwright version) and runs the SPA browser suite on two workers.
 The browser runner switches the API's sign-up throttle off
 (`AUTH_RATE_LIMIT=off`) so parallel sign-ups never meet it. Testcontainers

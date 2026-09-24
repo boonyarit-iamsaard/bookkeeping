@@ -39,7 +39,7 @@ it makes Hono the sole application backend in practice, not only in intent.
   order; each ported route retires its legacy browser spec, and the legacy app,
   its Better Auth mount, and the frozen suite are deleted with the last route.
 - New browser specs run on 360px Chromium, iPhone WebKit, and desktop
-  Chromium. The phone-first redesign of each screen is a separate effort after
+  Chromium. ADR 0007 later dropped iPhone WebKit. The phone-first redesign of each screen is a separate effort after
   the port; the port is verified against existing behavior.
 
 ## Outcome

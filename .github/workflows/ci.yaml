@@ -65,12 +65,12 @@ jobs:
 
       - name: Install SPA Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium webkit
+        run: pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium
 
       # Cached browsers still need their system libraries on a fresh runner.
       - name: Install SPA Playwright system dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter @bookkeeping/web exec playwright install-deps chromium webkit
+        run: pnpm --filter @bookkeeping/web exec playwright install-deps chromium
 
       - name: Run SPA browser suite
         run: pnpm exec turbo run test:e2e:ci --filter=@bookkeeping/web
