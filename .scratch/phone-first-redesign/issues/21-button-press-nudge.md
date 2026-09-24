@@ -6,12 +6,12 @@ Read `../spec.md` first.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Out of scope:** the three sanctioned moments; hover, focus and pressed colour changes.
 
-- [ ] Pressing any shared `Button` variant leaves its position unchanged, with and without `prefers-reduced-motion`.
-- [ ] The shared button's base style no longer animates `transform`.
+- [x] Pressing any shared `Button` variant leaves its position unchanged, with and without `prefers-reduced-motion`.
+- [x] The shared button's base style no longer animates `transform`.
 
 ## Comments
 
@@ -47,11 +47,11 @@ feedback for hover, focus, press and disabled stay as they are.
 
 **Acceptance criteria:**
 
-- [ ] No `Button` variant carries a pressed-state translate.
-- [ ] The base class does not transition `transform` (e.g. `transition-colors`
+- [x] No `Button` variant carries a pressed-state translate.
+- [x] The base class does not transition `transform` (e.g. `transition-colors`
       or an explicit property list in place of `transition-all`, keeping any
       ring or shadow transitions the design needs).
-- [ ] `pnpm run ci` passes.
+- [x] `pnpm run ci` passes.
 
 **Out of scope:**
 
@@ -59,3 +59,20 @@ feedback for hover, focus, press and disabled stay as they are.
 - Popover, Select and menu motion (closed in 16) and the delete confirmation
   (closed in 17).
 - Touch-target sizes and other polish in 19.
+
+## Closed (2026-09-24)
+
+- Built in 384995d. The shared `Button` base loses
+  `active:not-aria-[haspopup]:translate-y-px`, and `transition-all` becomes
+  `transition-[color,background-color,border-color,box-shadow,opacity]`, so
+  hover, focus ring, invalid ring and disabled feedback still ease but nothing
+  transitions `transform`. With the nudge removed rather than guarded, a
+  pressed button stays put with and without `prefers-reduced-motion`.
+- Also removed the matching `button:active` nudge from the static
+  `public/offline.html`, and the press-down line in `DESIGN.md` and
+  `.impeccable/design.json`, which still described the old behaviour.
+- `pnpm run ci` passes. In the dev app the sign-in button's computed
+  `transition-property` is the five-property list above, and no stylesheet
+  rule applies a transform on `:active`. No browser spec was added; the SPA
+  has no component tests and 16 shipped the same kind of class change
+  without one.
