@@ -1,0 +1,19 @@
+# 20: An aborted chunk import makes the router reload the page on WebKit
+
+**What to build:** A navigation or reload that cuts off an in-flight route
+chunk import proceeds as requested, instead of the router answering the
+aborted import with a page reload of its own.
+
+**Blocked by:** None (can start immediately)
+
+**Status:** needs-triage
+
+**Out of scope:** the intent-preload page errors closed in 11 and spa-client 14.
+
+- [ ] Found in 11's baseline loop (2026-09-24): `history.spec.ts:20` failed once in 8 runs on `phone-webkit` at line 76, `page.reload: Frame load interrupted`. The trace shows the filters applied and the row and "Recorded … Bangkok" visible, then `reload` at +0 ms, WebKit's console error "TypeError: Importing a module script failed." at +99 ms, and two document loads of the same `/transactions?…` address: the test's reload and a second one that interrupted it.
+- [ ] The second reload matches TanStack Router's `lazyRouteComponent`, which reloads the page when a dynamic import fails; spa-client 14 noted it under "Related but not this ticket". Not yet established: which chunk was importing. The aborted import never reaches the trace's network log, and a probe found no link under the test pointer after Apply filters (it rests on a list item), so it is not an intent preload from the pointer.
+- [ ] Real Safari users navigating away inside that window get a reload in place of their navigation, so this is an app question as well as a flake. Decide between an app-side guard, an upstream report, or a test-side wait, then make `history.spec.ts` pass on `phone-webkit` without retries.
+
+**Feedback loop:** `pnpm run test:e2e:ci -- tests/e2e/history.spec.ts --project=phone-webkit --retries=0 --repeat-each=10 --reporter=line` from `apps/web` (browser runs are exclusive on this machine; see `CLAUDE.md`).
+
+## Comments
