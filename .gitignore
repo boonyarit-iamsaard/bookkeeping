@@ -58,3 +58,4 @@ yarn-error.log*
 /apps/web/test-results/
 /apps/web/playwright-report/
 /.impeccable/review/
+/.impeccable/critique/
