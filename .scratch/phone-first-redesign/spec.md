@@ -1,6 +1,6 @@
 # Phone-first redesign of the SPA shell and Home
 
-Status: ready-for-agent
+Status: done
 
 Decisions confirmed on 2026-09-23 by grilling `DESIGN.md`; this spec is the
 full decision record. This is the redesign the SPA port

@@ -86,7 +86,7 @@ components:
     typography: "{typography.label}"
     rounded: "{rounded.pill}"
     padding: "0 1rem"
-    height: "{spacing.control}"
+    height: "2.5rem"
   button-primary-hover:
     backgroundColor: "oklch(0.52 0.2 262 / 80%)"
     textColor: "{colors.cobalt-foreground}"
@@ -253,7 +253,7 @@ From 640px, the 56px desktop header appears and content begins 32px below it. Be
 
 The phone tab bar is fixed above the home indicator: 56px plus the bottom safe area, a top hairline, translucent Paper, and backdrop blur. Home and Transactions occupy one equal half, Wallets and Reports the other, with natural-width tabs inside each half and the ＋ exactly centred between them. Current is Ink; inactive is Graphite. There is no selected pill, underline, or accent fill.
 
-**The 44px Phone Control Rule.** Phone controls, including title-bar actions and filter chips, use a 44px target; the central ＋ and form Save are 48px. Desktop compact actions may reduce to 40px.
+**The Phone Reach Rule.** High-reach phone controls use a 44px target: back and title-bar actions, filter chips, and the filter sheet's Apply and Clear actions. The central ＋ and form Save are 48px. Other shipped controls range from 36px to 48px.
 
 ## Elevation & Depth
 
@@ -278,7 +278,7 @@ Pictogram discs are 40px circles in Mist. The Home account disc is 32px; the des
 
 ### Buttons
 
-- **Primary:** Cobalt fill, Cobalt Foreground label, capsule shape. Phone actions are 44px; the form Save is full-width and 48px.
+- **Primary:** Cobalt fill, Cobalt Foreground label, capsule shape. The empty-state primary is 40px, high-reach phone actions are 44px, and form Save is full-width and 48px.
 - **Outline:** Hairline border with a 30% Hairline fill, rising to 50% on hover. It carries phone page actions while the tab bar owns Cobalt.
 - **Ghost:** transparent, with Mist on hover; used for quiet alternatives such as Cancel.
 - **Destructive:** 10% Signal Red fill and Signal Red text, becoming 20% on hover. It is used for wallet deletion, category removal, and transaction deletion.
@@ -310,7 +310,7 @@ Phone sheets slide 200ms ease-out while the scrim fades; desktop dialogs fade. R
 
 ### Home
 
-Home is the signed-in root. With wallets, it shows the total across all wallets as the one display figure with “Across N wallets,” a divided This month block for Income, Net expenses, and Net that links to Reports, then the ten most recent transaction rows and All transactions →. With no wallets, only the create-wallet empty state appears. Loading uses neutral skeletons, never sample money.
+Home is the signed-in root. With wallets, it shows the total across all wallets as the one display figure with “Across N wallets,” a divided This month block for Income, Net expenses, and Net that links to Reports, then the ten most recent transaction rows and All transactions →. With no wallets, only the create-wallet empty state appears. With wallets but no transactions, Recent transactions says “No transactions yet” and all month figures show `฿0.00`. Loading uses neutral skeletons, never sample money.
 
 ### Wallet Row and Wallet Page
 
@@ -336,7 +336,7 @@ An empty state is a 14px dashed Hairline box with 24px phone padding, a Mist pic
 
 - **Do** render every THB figure with the `money` treatment and the full `฿12,000.00` form, right-aligned in lists.
 - **Do** keep one Cobalt action per screen, treating selected control states and the sole empty-state action as the documented exceptions.
-- **Do** use 44px phone controls, 48px for the central ＋ and form Save, and the same height for actions sharing a title bar.
+- **Do** use 44px for high-reach phone controls and every action sharing a title bar; use 48px for the central ＋ and form Save.
 - **Do** build lists as full-bleed phone rows separated by Hairlines, inside the 672px column from 640px.
 - **Do** use the two lifts only for the segmented indicator and floating popovers; use a scrim for sheets.
 - **Do** keep motion to the indicator slide, arrival fade, and sheet slide, and remove all three for reduced motion.

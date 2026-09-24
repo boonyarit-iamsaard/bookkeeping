@@ -192,9 +192,9 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The screen's one Cobalt action; 44px on phone.",
-      "html": "<button class=\"ds-btn-primary\">New transaction</button>",
-      "css": ".ds-btn-primary { height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-btn-primary:focus-visible { outline: none; border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
+      "description": "The 40px primary used when an empty state supplies the screen's sole next step.",
+      "html": "<button class=\"ds-btn-primary\">Create your first wallet</button>",
+      "css": ".ds-btn-primary { height: 40px; padding: 0 16px; border: 1px solid transparent; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-btn-primary:focus-visible { outline: none; border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
     },
     {
       "name": "Destructive Button",
@@ -295,8 +295,8 @@
         "section": "typography"
       },
       {
-        "name": "The 44px Phone Control Rule",
-        "body": "Phone controls, including title-bar actions and filter chips, use a 44px target; the central ＋ and form Save are 48px. Desktop compact actions may reduce to 40px.",
+        "name": "The Phone Reach Rule",
+        "body": "High-reach phone controls use a 44px target: back and title-bar actions, filter chips, and the filter sheet's Apply and Clear actions. The central ＋ and form Save are 48px. Other shipped controls range from 36px to 48px.",
         "section": "layout"
       },
       {
@@ -308,7 +308,7 @@
     "dos": [
       "Do render every THB figure with the money treatment and the full ฿12,000.00 form, right-aligned in lists.",
       "Do keep one Cobalt action per screen, treating selected control states and the sole empty-state action as the documented exceptions.",
-      "Do use 44px phone controls, 48px for the central ＋ and form Save, and the same height for actions sharing a title bar.",
+      "Do use 44px for high-reach phone controls and every action sharing a title bar; use 48px for the central ＋ and form Save.",
       "Do build lists as full-bleed phone rows separated by Hairlines, inside the 672px column from 640px.",
       "Do use the two lifts only for the segmented indicator and floating popovers; use a scrim for sheets.",
       "Do keep motion to the indicator slide, arrival fade, and sheet slide, and remove all three for reduced motion.",

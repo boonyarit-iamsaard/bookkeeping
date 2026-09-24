@@ -7,18 +7,18 @@ sheet, Home and the amended rules. It records what exists, never the target.
 
 **Blocked by:** 07 (Avatar menu, the Categories entry, and the milestone check)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Out of scope:** any code change; fixing drift the documenter finds (report
 it and file a ticket instead).
 
-- [ ] `impeccable-documenter` updates the existing `DESIGN.md` from the shipped build, given the project root, the web app as the artifact, `PRODUCT.md`, and the spec's Rule amendments section in place of a direction contract.
-- [ ] The rules read as amended: One Cobalt (one cobalt action per screen; selected states separate; ＋ where the tab bar shows, Save where it doesn't; the empty-state exception), two lifts (segmented indicator and floating popovers; sheets use the scrim), three motion moments, pictogram-plus-label with the universal-glyph exception, Destructive in use with its tokens.
-- [ ] The Navigation section describes the tab bar, the title bar, the desktop header and the avatar menu; the old email-and-Sign-out text is gone.
-- [ ] The sheet, Home and the wallet page are documented as components or screens. The wallet row's caption reads the type, then Archived when archived ("Cash · Archived"), as on the wallet page.
-- [ ] The per-screen sections (Wallet management, Category management, History and financial reports) are removed; they live in `../spec.md`.
-- [ ] Every token and rule written is evidenced by the built code.
-- [ ] The spec's Status line reads `done`.
+- [x] `impeccable-documenter` updates the existing `DESIGN.md` from the shipped build, given the project root, the web app as the artifact, `PRODUCT.md`, and the spec's Rule amendments section in place of a direction contract.
+- [x] The rules read as amended: One Cobalt (one cobalt action per screen; selected states separate; ＋ where the tab bar shows, Save where it doesn't; the empty-state exception), two lifts (segmented indicator and floating popovers; sheets use the scrim), three motion moments, pictogram-plus-label with the universal-glyph exception, Destructive in use with its tokens.
+- [x] The Navigation section describes the tab bar, the title bar, the desktop header and the avatar menu; the old email-and-Sign-out text is gone.
+- [x] The sheet, Home and the wallet page are documented as components or screens. The wallet row's caption reads the type, then Archived when archived ("Cash · Archived"), as on the wallet page.
+- [x] The per-screen sections (Wallet management, Category management, History and financial reports) are removed; they live in `../spec.md`.
+- [x] Every token and rule written is evidenced by the built code.
+- [x] The spec's Status line reads `done`.
 
 **Verify:** read `DESIGN.md` against the running app's screens; `pnpm run ci` stays green (formatting of Markdown, if checked).
 
@@ -37,3 +37,10 @@ ship, instead of an edit in 19 itself:
 - History rows show no "Recorded" line; the whole first line is Ink.
 - Reports applies the balance date on pick; there is no "Update report" button.
 - The desktop account trigger shows only the initial (19's note; record what shipped).
+
+### 2026-09-24: closed
+
+Implemented in `f3ed0d0`. The code review narrowed the 44px rule to the
+high-reach controls the shipped build actually uses and restored Home's
+wallets-with-no-transactions state. Remaining sub-44px phone controls are
+reported in 22 rather than changed here. `pnpm run ci` passes.
