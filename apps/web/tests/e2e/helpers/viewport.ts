@@ -9,7 +9,9 @@ export function isDesktop(page: Page): boolean {
 }
 
 /** The page never gains horizontal overflow at the supported width. */
-export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
+export async function expectNoHorizontalOverflow(
+  page: Readonly<Page>,
+): Promise<void> {
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

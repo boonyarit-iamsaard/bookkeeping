@@ -11,11 +11,105 @@ import { expectNoHorizontalOverflow, isDesktop } from "./helpers/viewport";
  * A tappable area is the rendered control itself, never a padded parent: the
  * box must span at least 44 CSS pixels in both dimensions, width included.
  */
-async function expectTouchTarget(control: Locator, minimum = 44) {
+async function expectTouchTarget(control: Readonly<Locator>, minimum = 44) {
   await expect(control).toBeVisible();
   const box = await control.boundingBox();
-  expect(box?.width).toBeGreaterThanOrEqual(minimum);
-  expect(box?.height).toBeGreaterThanOrEqual(minimum);
+  expect(box?.width).toBeGreaterThanOrEqual(minimum - GEOMETRY_EPSILON);
+  expect(box?.height).toBeGreaterThanOrEqual(minimum - GEOMETRY_EPSILON);
+}
+
+const TOUCH_TARGET_SELECTOR = [
+  "a[href]",
+  "button",
+  'input:not([type="hidden"])',
+  "textarea",
+  "select",
+  '[role="combobox"]',
+  '[role="option"]',
+  '[role="radio"]',
+  '[data-slot="select-scroll-up-button"]',
+  '[data-slot="select-scroll-down-button"]',
+].join(", ");
+const GEOMETRY_EPSILON = 0.01;
+
+/** Visible controls inside one surface must have independent hit boxes. */
+async function expectNoOverlappingTouchTargets(surface: Readonly<Locator>) {
+  const boxes = await surface
+    .locator(TOUCH_TARGET_SELECTOR)
+    .evaluateAll((elements) =>
+      elements.flatMap((element) => {
+        const style = window.getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        if (
+          element.closest('[aria-hidden="true"]') !== null ||
+          style.display === "none" ||
+          style.visibility !== "visible" ||
+          style.pointerEvents === "none" ||
+          rect.width === 0 ||
+          rect.height === 0
+        ) {
+          return [];
+        }
+        let left = rect.left;
+        let top = rect.top;
+        let right = rect.right;
+        let bottom = rect.bottom;
+        for (
+          let ancestor = element.parentElement;
+          ancestor;
+          ancestor = ancestor.parentElement
+        ) {
+          const ancestorStyle = window.getComputedStyle(ancestor);
+          const ancestorRect = ancestor.getBoundingClientRect();
+          if (ancestorStyle.overflowX !== "visible") {
+            const clipLeft = ancestorRect.left + ancestor.clientLeft;
+            left = Math.max(left, clipLeft);
+            right = Math.min(right, clipLeft + ancestor.clientWidth);
+          }
+          if (ancestorStyle.overflowY !== "visible") {
+            const clipTop = ancestorRect.top + ancestor.clientTop;
+            top = Math.max(top, clipTop);
+            bottom = Math.min(bottom, clipTop + ancestor.clientHeight);
+          }
+        }
+        left = Math.max(left, 0);
+        top = Math.max(top, 0);
+        right = Math.min(right, window.innerWidth);
+        bottom = Math.min(bottom, window.innerHeight);
+        if (right <= left || bottom <= top) {
+          return [];
+        }
+        return [
+          {
+            label:
+              element.getAttribute("aria-label") ??
+              element.textContent?.trim() ??
+              element.tagName,
+            x: left,
+            y: top,
+            width: right - left,
+            height: bottom - top,
+          },
+        ];
+      }),
+    );
+
+  for (let first = 0; first < boxes.length; first += 1) {
+    const firstBox = boxes[first];
+    for (let second = first + 1; second < boxes.length; second += 1) {
+      const secondBox = boxes[second];
+      const overlapWidth =
+        Math.min(firstBox.x + firstBox.width, secondBox.x + secondBox.width) -
+        Math.max(firstBox.x, secondBox.x);
+      const overlapHeight =
+        Math.min(firstBox.y + firstBox.height, secondBox.y + secondBox.height) -
+        Math.max(firstBox.y, secondBox.y);
+      expect(
+        overlapWidth > 0 && overlapHeight > 0,
+        `Visible touch targets "${firstBox.label}" and "${secondBox.label}" overlap`,
+      ).toBe(false);
+    }
+  }
 }
 
 test("the tab bar navigates on phone and the header from 640px", {
@@ -29,6 +123,8 @@ test("the tab bar navigates on phone and the header from 640px", {
 
   await signUpFreshUser(page);
   const nav = page.getByRole("navigation", { name: "Primary" });
+  await expectNoOverlappingTouchTargets(nav);
+  await expectNoOverlappingTouchTargets(page.locator("main"));
   const home = nav.getByRole("link", { name: "Home", exact: true });
   await expect(home).toHaveAttribute("aria-current", "page");
   if (isDesktop(page)) {
@@ -60,6 +156,7 @@ test("the tab bar navigates on phone and the header from 640px", {
 
   if (isDesktop(page)) {
     const header = page.getByRole("banner");
+    await expectNoOverlappingTouchTargets(header);
     await expect(
       header.getByRole("link", { name: "Bookkeeping" }),
     ).toBeVisible();
@@ -174,6 +271,7 @@ test("phone controls keep a 44px touch target", async ({ page }) => {
   // Reports before any wallet exists: the month picker and the sole action.
   await page.goto("/reports");
   const month = page.getByLabel("Report month");
+  await expectNoOverlappingTouchTargets(page.locator("main"));
   await expectTouchTarget(month);
   await month.click();
   const months = popup(page);
@@ -183,12 +281,14 @@ test("phone controls keep a 44px touch target", async ({ page }) => {
   );
   await expectTouchTarget(months.getByRole("button", { name: "Next year" }));
   await expectTouchTarget(months.getByRole("button", { name: monthLabel }));
+  await expectNoOverlappingTouchTargets(months);
   await page.keyboard.press("Escape");
   await expect(months).toBeHidden();
   await expectTouchTarget(page.getByLabel("Balance date"));
   await expectTouchTarget(page.getByRole("link", { name: "Create wallet" }));
 
   await page.goto("/wallets");
+  await expectNoOverlappingTouchTargets(page.locator("main"));
   await expectTouchTarget(
     page.getByRole("link", { name: "Create your first wallet" }),
   );
@@ -212,6 +312,7 @@ test("phone controls keep a 44px touch target", async ({ page }) => {
   );
 
   await page.goto("/transactions");
+  await expectNoOverlappingTouchTargets(page.locator("main"));
   await expectTouchTarget(
     page.getByRole("link", { name: "Record a transaction" }),
   );
@@ -243,6 +344,7 @@ test("phone controls keep a 44px touch target", async ({ page }) => {
   await expectTouchTarget(sheet.getByRole("button", { name: "Apply filters" }));
   await expectTouchTarget(sheet.getByRole("button", { name: "Clear filters" }));
   await expectTouchTarget(sheet.getByRole("button", { name: "Close" }));
+  await expectNoOverlappingTouchTargets(sheet);
 
   // A date picker: trigger, days, month arrows and Clear date all reach 44px,
   // and the calendar fits the phone column without horizontal overflow.
@@ -258,6 +360,7 @@ test("phone controls keep a 44px touch target", async ({ page }) => {
   await expectTouchTarget(
     calendar.getByRole("button", { name: /next month/i }),
   );
+  await expectNoOverlappingTouchTargets(calendar);
   const calendarWidth = await calendar.evaluate(
     (element) => element.getBoundingClientRect().width,
   );
@@ -269,6 +372,7 @@ test("phone controls keep a 44px touch target", async ({ page }) => {
   await from.click();
   await expect(calendar).toBeVisible();
   await expectTouchTarget(calendar.getByRole("button", { name: "Clear date" }));
+  await expectNoOverlappingTouchTargets(calendar);
   await calendar.getByRole("button", { name: "Clear date" }).click();
   await expect(calendar).toBeHidden();
 
@@ -283,6 +387,7 @@ test("phone controls keep a 44px touch target", async ({ page }) => {
   );
   const allWallets = walletOptions.getByRole("option", { name: "All wallets" });
   await expectTouchTarget(allWallets);
+  await expectNoOverlappingTouchTargets(walletOptions);
   await allWallets.click();
   await expect(wallet).toHaveAttribute("aria-expanded", "false");
 
@@ -297,6 +402,7 @@ test("phone controls keep a 44px touch target", async ({ page }) => {
   await expectTouchTarget(
     page.locator("[data-slot=select-scroll-down-button]"),
   );
+  await expectNoOverlappingTouchTargets(categoryOptions);
   // The menu's last option stays reachable: scrolling brings it fully inside
   // the visible list.
   const lastOption = categoryOptions.getByRole("option").last();
@@ -317,16 +423,33 @@ test("phone controls keep a 44px touch target", async ({ page }) => {
 
 test("auth controls keep a 44px touch target", async ({ page }) => {
   await page.goto("/sign-in");
-  await expectTouchTarget(page.getByLabel("Email"));
-  await expectTouchTarget(page.getByLabel("Password", { exact: true }));
-  await expectTouchTarget(page.getByRole("button", { name: "Sign in" }));
+  const signInForm = page.locator("form");
+  const signInEmail = page.getByLabel("Email");
+  const signInPassword = page.getByLabel("Password", { exact: true });
+  const signInButton = page.getByRole("button", { name: "Sign in" });
+  await expectTouchTarget(signInEmail);
+  await expectTouchTarget(signInPassword);
+  await expectTouchTarget(signInButton);
   // The account switch is a separate action beneath the explanation.
-  await expectTouchTarget(page.getByRole("link", { name: "Sign up" }));
+  const signUpLink = page.getByRole("link", { name: "Sign up" });
+  await expectTouchTarget(signUpLink);
+  await expectNoOverlappingTouchTargets(signInForm);
 
   await page.goto("/sign-up");
+  const signUpForm = page.locator("form");
+  const signUpName = page.getByLabel("Full Name");
+  const signUpEmail = page.getByLabel("Email");
+  const signUpPassword = page.getByLabel("Password", { exact: true });
+  const confirmPassword = page.getByLabel("Confirm Password");
+  await expectTouchTarget(signUpName);
+  await expectTouchTarget(signUpEmail);
+  await expectTouchTarget(signUpPassword);
+  await expectTouchTarget(confirmPassword);
   await expectTouchTarget(page.getByRole("button", { name: "Create Account" }));
-  await expectTouchTarget(page.getByRole("link", { name: "Sign in" }));
-  await page.getByRole("link", { name: "Sign in" }).click();
+  const signInLink = page.getByRole("link", { name: "Sign in" });
+  await expectTouchTarget(signInLink);
+  await expectNoOverlappingTouchTargets(signUpForm);
+  await signInLink.click();
   await expect(page).toHaveURL(/\/sign-in$/);
 
   await signUpFreshUser(page);
@@ -345,12 +468,17 @@ test("phone form controls keep a 44px touch target", async ({ page }) => {
   await expectTouchTarget(page.getByRole("button", { name: /^Save/ }));
   await expectTouchTarget(page.getByRole("button", { name: "Today" }));
   await expectTouchTarget(page.getByRole("button", { name: "Yesterday" }));
-  await expectTouchTarget(page.getByLabel("Note"));
+  const note = page.getByLabel("Note");
+  await expectTouchTarget(note);
+  // The fixed Save bar stays in the thumb zone as the form scrolls beneath it.
+  await note.evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await expectNoOverlappingTouchTargets(page.locator("main"));
 
   // Segmented segments sit in a 52px track with a 4px inset on phone.
   const type = page.getByRole("radiogroup", { name: "Type" });
   await expectTouchTarget(type, 52);
   await expectTouchTarget(type.getByRole("radio", { name: "Expense" }));
+  await expectNoOverlappingTouchTargets(type);
 
   const category = page.getByLabel("Category", { exact: true });
   await expectTouchTarget(category);
@@ -359,9 +487,12 @@ test("phone form controls keep a 44px touch target", async ({ page }) => {
   const newCategory = picker.getByRole("button", { name: "New category" });
   await expectTouchTarget(newCategory);
   await newCategory.click();
-  await expectTouchTarget(
-    page.getByRole("button", { name: "Browse all icons" }),
-  );
+  const browseIcons = page.getByRole("button", { name: "Browse all icons" });
+  await expectTouchTarget(browseIcons);
+  await browseIcons.click();
+  const allIcons = picker.getByRole("radiogroup", { name: "All icons" });
+  await expectTouchTarget(allIcons.getByRole("radio").first());
+  await expectNoOverlappingTouchTargets(picker);
   await page.keyboard.press("Escape");
 
   // With a single wallet, a transfer offers its unblocking action.
