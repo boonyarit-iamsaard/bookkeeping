@@ -16,6 +16,7 @@ const serverEnvSchema = z.object({
   BETTER_AUTH_URL: httpUrlSchema,
   CLIENT_ORIGINS: originListSchema,
   AUTH_RATE_LIMIT: z.enum(["on", "off"]).optional(),
+  AUTH_SIGN_UP: z.enum(["on", "off"]).optional(),
 });
 
 export interface ServerConfig {
@@ -29,6 +30,8 @@ export interface ServerConfig {
   clientOrigins: readonly string[];
   /** Undefined leaves Better Auth's default: on only in production. */
   authRateLimitEnabled: boolean | undefined;
+  /** False refuses new email/password sign-ups; sign-in is unaffected. */
+  authSignUpEnabled: boolean;
 }
 
 export function parseServerEnv(
@@ -46,5 +49,6 @@ export function parseServerEnv(
       parsed.AUTH_RATE_LIMIT === undefined
         ? undefined
         : parsed.AUTH_RATE_LIMIT === "on",
+    authSignUpEnabled: parsed.AUTH_SIGN_UP !== "off",
   };
 }

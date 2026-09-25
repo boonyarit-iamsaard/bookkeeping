@@ -72,6 +72,52 @@ describe("createAuth", () => {
     });
   });
 
+  test("a disabled sign-up refuses new users and creates no rows", async () => {
+    await withRollback(async (db) => {
+      const auth = createAuth({
+        db,
+        secret: TEST_SECRET,
+        baseURL: TEST_BASE_URL,
+        signUpEnabled: false,
+      });
+      const email = uniqueEmail("refused");
+
+      await expect(
+        auth.api.signUpEmail({
+          body: { name: "Refused user", email, password: PASSWORD },
+        }),
+      ).rejects.toMatchObject({
+        body: { code: "EMAIL_PASSWORD_SIGN_UP_DISABLED" },
+      });
+
+      const rows = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, email));
+      expect(rows).toEqual([]);
+    });
+  });
+
+  test("a disabled sign-up still signs in an existing user", async () => {
+    await withRollback(async (db) => {
+      const email = uniqueEmail("existing");
+      const signedUp = await signUp(db, email);
+      const auth = createAuth({
+        db,
+        secret: TEST_SECRET,
+        baseURL: TEST_BASE_URL,
+        signUpEnabled: false,
+      });
+
+      const signedIn = await auth.api.signInEmail({
+        body: { email, password: PASSWORD },
+      });
+
+      expect(signedIn.user.id).toBe(signedUp.user.id);
+      expect(signedIn.token).toEqual(expect.any(String));
+    });
+  });
+
   test("sign-up provisions the complete default category set once the user commits", async () => {
     await withRollback(async (db) => {
       const session = await signUp(db, uniqueEmail("provisioned"));

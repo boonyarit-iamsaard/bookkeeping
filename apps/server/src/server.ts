@@ -14,6 +14,7 @@ const auth = createAuth({
   trustedOrigins: serverConfig.clientOrigins,
   cookiePrefix: API_COOKIE_PREFIX,
   rateLimitEnabled: serverConfig.authRateLimitEnabled,
+  signUpEnabled: serverConfig.authSignUpEnabled,
 });
 const app = createApp({
   auth: createAuthGateway(auth),

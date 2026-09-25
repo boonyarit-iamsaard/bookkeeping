@@ -35,6 +35,8 @@ export interface AuthOptions {
    * Better Auth's default: on only under NODE_ENV=production.
    */
   rateLimitEnabled?: boolean;
+  /** False refuses new email/password sign-ups. Defaults to true. */
+  signUpEnabled?: boolean;
 }
 
 /**
@@ -47,6 +49,7 @@ export function createAuth({
   trustedOrigins,
   cookiePrefix,
   rateLimitEnabled,
+  signUpEnabled,
 }: AuthOptions) {
   return betterAuth({
     database: drizzleAdapter(db, {
@@ -67,6 +70,7 @@ export function createAuth({
     }),
     emailAndPassword: {
       enabled: true,
+      disableSignUp: signUpEnabled === false,
     },
     secret,
     baseURL,

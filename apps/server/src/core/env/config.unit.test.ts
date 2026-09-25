@@ -18,6 +18,7 @@ describe("server env config", () => {
       authBaseUrl: "http://localhost:5000",
       clientOrigins: ["http://localhost:4000"],
       authRateLimitEnabled: undefined,
+      authSignUpEnabled: true,
     });
   });
 
@@ -32,6 +33,18 @@ describe("server env config", () => {
     ).toBe(true);
     expect(() =>
       parseServerEnv({ ...requiredEnv, AUTH_RATE_LIMIT: "false" }),
+    ).toThrow();
+  });
+
+  it("reads an explicit sign-up switch", () => {
+    expect(
+      parseServerEnv({ ...requiredEnv, AUTH_SIGN_UP: "off" }).authSignUpEnabled,
+    ).toBe(false);
+    expect(
+      parseServerEnv({ ...requiredEnv, AUTH_SIGN_UP: "on" }).authSignUpEnabled,
+    ).toBe(true);
+    expect(() =>
+      parseServerEnv({ ...requiredEnv, AUTH_SIGN_UP: "false" }),
     ).toThrow();
   });
 

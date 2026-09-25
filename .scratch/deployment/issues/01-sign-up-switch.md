@@ -4,7 +4,7 @@ Read `../worker-brief.md` first.
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Why:** The trial runs on a public URL for one user. Once the owner has an
 account, production refuses new sign-ups so strangers cannot add load to a
@@ -86,12 +86,12 @@ Nothing else. In particular: no web client change, no change to
 
 ## Acceptance criteria
 
-- [ ] With `AUTH_SIGN_UP` absent or `on`, all existing tests pass unchanged.
-- [ ] With `signUpEnabled: false`, sign-up is refused with `EMAIL_PASSWORD_SIGN_UP_DISABLED` and no user row is written.
-- [ ] With `signUpEnabled: false`, an existing user signs in.
-- [ ] `AUTH_SIGN_UP=false` (or any value other than `on`/`off`) fails `parseServerEnv`.
-- [ ] `apps/server/.env.example` documents the variable exactly as above.
-- [ ] Only the six allowed files changed.
+- [x] With `AUTH_SIGN_UP` absent or `on`, all existing tests pass unchanged.
+- [x] With `signUpEnabled: false`, sign-up is refused with `EMAIL_PASSWORD_SIGN_UP_DISABLED` and no user row is written.
+- [x] With `signUpEnabled: false`, an existing user signs in.
+- [x] `AUTH_SIGN_UP=false` (or any value other than `on`/`off`) fails `parseServerEnv`.
+- [x] `apps/server/.env.example` documents the variable exactly as above.
+- [x] Only the six allowed files changed.
 
 **Verify:**
 
@@ -108,3 +108,14 @@ pnpm run ci
 - Do not change `createIntegrationTestApp` or other test helpers to pass the
   new option; the default keeps them correct.
 - Do not add a client-visible "sign-up disabled" state; the spec rules it out.
+
+## Comments
+
+Landed as written; no deviation from the contract. The sign-in test passed
+before the implementation too (it guards against a regression), while the
+refusal test and the env test failed first.
+
+- `config.unit.test.ts`: `Tests  193 passed (193)`
+- `config.integration.test.ts`: `Tests  8 passed (8)`
+- `pnpm run ci`: exit 0, `Tasks:    13 successful, 13 total`
+- `git status`: only the six allowed files plus this ticket.
