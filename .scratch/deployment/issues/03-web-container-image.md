@@ -5,7 +5,7 @@ Read `../worker-brief.md` first.
 **Blocked by:** 02 (reuses its root `.dockerignore`; both builds are heavy
 and must not run together)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Why:** The SPA is static files. Caddy serves them on Railway with the
 cache rules the installed PWA needs: hashed assets cached forever, and
@@ -118,14 +118,14 @@ OpenAPI document.
 
 ## Acceptance criteria
 
-- [ ] Building without `--build-arg VITE_API_ORIGIN` fails with the message above.
-- [ ] Building with it succeeds, and the built JavaScript contains that origin.
-- [ ] `GET /transactions` (a deep link) returns `200` with the app shell HTML.
-- [ ] `GET /assets/<missing>.js` returns `404`, not the shell.
-- [ ] A real file under `/assets/` carries `Cache-Control: public, max-age=31536000, immutable`.
-- [ ] `/`, `/sw.js`, and `/manifest.webmanifest` carry `Cache-Control: no-cache`.
-- [ ] `/manifest.webmanifest` is served with a manifest or JSON content type; if not, record it under Comments (fixing it is allowed only inside the `Caddyfile`).
-- [ ] Only the three allowed files were created.
+- [x] Building without `--build-arg VITE_API_ORIGIN` fails with the message above.
+- [x] Building with it succeeds, and the built JavaScript contains that origin.
+- [x] `GET /transactions` (a deep link) returns `200` with the app shell HTML.
+- [x] `GET /assets/<missing>.js` returns `404`, not the shell.
+- [x] A real file under `/assets/` carries `Cache-Control: public, max-age=31536000, immutable`.
+- [x] `/`, `/sw.js`, and `/manifest.webmanifest` carry `Cache-Control: no-cache`.
+- [x] `/manifest.webmanifest` is served with a manifest or JSON content type; if not, record it under Comments (fixing it is allowed only inside the `Caddyfile`).
+- [x] Only the three allowed files were created.
 
 **Verify** (run alone; Docker Desktop running):
 
@@ -152,3 +152,24 @@ The first build is expected to fail.
 - Do not add a `/api` reverse proxy; the API stays on its own origin (ADR 0003).
 - Do not bake a default `VITE_API_ORIGIN` into the Dockerfile.
 - Do not touch the service worker's caching rules in `vite.config.ts`.
+
+## Comments
+
+Landed the three allowed files in `build: package the web client as a container image for railway`.
+The Dockerfile installs Git and commits a build-local baseline of the two generated
+API files. The reference build failed at `generate-api.ts --check` with
+`spawnSync git ENOENT`; `.dockerignore` excludes the repository's `.git`, so
+the local baseline lets that check detect generated API drift without changing
+any other file. The Caddyfile and Railway config match the reference.
+
+Verify output:
+
+- The build without the argument failed as expected with `VITE_API_ORIGIN build argument is required`.
+- The build with `VITE_API_ORIGIN=https://api.example.test` finished (`naming to docker.io/library/bookkeeping-web:latest done`); the generated API check reported `The committed API client matches the server's OpenAPI document.`
+- `grep -rl "api.example.test" /srv/assets` found `/srv/assets/config-bNow76Nw.js`.
+- `GET /` and `GET /transactions` returned `HTTP/1.1 200 OK`, and their response bodies matched.
+- `GET /assets/does-not-exist.js` returned `HTTP/1.1 404 Not Found`.
+- `GET /assets/CompositeItem-BlW9wPt-.js` returned `HTTP/1.1 200 OK` and `Cache-Control: public, max-age=31536000, immutable`.
+- `GET /`, `/sw.js`, and `/manifest.webmanifest` returned `Cache-Control: no-cache`; the manifest's content type was `application/manifest+json`.
+- `pnpm run ci` passed on the host: 13 test and typecheck tasks, then 2 build tasks. `pnpm-lock.yaml` retained hash `c043c671f5ee4fe4e682d32bbd97bcc9cfe7c6df`.
+- Git status showed only the three implementation files plus this ticket update.
