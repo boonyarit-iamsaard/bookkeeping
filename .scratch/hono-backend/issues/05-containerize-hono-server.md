@@ -23,3 +23,6 @@ server image and runs it with PostgreSQL without selecting a hosting provider.
   in-process with vitest and testcontainers. Reintroduce the container with the
   cutover initiative, verified by that coverage rather than a standalone smoke
   script.
+
+- Reintroduced on 2026-09-25 by `.scratch/deployment/issues/02-api-container-image.md`
+  after ADR 0008 chose Railway as the hosting provider.
