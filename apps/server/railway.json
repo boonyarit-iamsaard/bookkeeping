@@ -9,11 +9,14 @@
       "/package.json",
       "/pnpm-lock.yaml",
       "/pnpm-workspace.yaml",
+      "/.pnpmfile.cjs",
+      "/tsconfig.base.json",
       "/.dockerignore"
     ]
   },
   "deploy": {
     "healthcheckPath": "/health",
-    "restartPolicyType": "ON_FAILURE"
+    "restartPolicyType": "ON_FAILURE",
+    "drainingSeconds": 10
   }
 }

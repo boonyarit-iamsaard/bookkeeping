@@ -5,8 +5,12 @@ RUN corepack enable
 WORKDIR /repo
 
 FROM base AS build
+# Download packages in a layer keyed only by the lockfile and install inputs,
+# so a source change reinstalls offline instead of refetching every package.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
+RUN pnpm fetch --frozen-lockfile
 COPY . .
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --offline --filter @bookkeeping/server...
 RUN pnpm --filter @bookkeeping/server build
 RUN pnpm --filter @bookkeeping/server deploy --prod --legacy /out
 
@@ -18,4 +22,4 @@ COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /repo/apps/server/dist ./dist
 USER node
 EXPOSE 5000
-CMD ["node", "dist/server.js"]
+CMD ["node", "--enable-source-maps", "dist/server.js"]
