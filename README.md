@@ -82,7 +82,7 @@ apps/web/
     e2e/                  # Playwright browser tests and their runner
 ```
 
-`pnpm --filter @bookkeeping/web generate:api` rewrites
+`pnpm generate:api` rewrites
 `src/core/api/openapi.json` and `openapi.gen.ts` from the server's app factory
 without starting a server; the client build fails when they no longer match.
 Run it after changing an API route. `pnpm --filter @bookkeeping/web
@@ -290,13 +290,28 @@ origin), its `CLIENT_ORIGINS` (the client origin), and the client's
 | Command          | Purpose                                                                       |
 | ---------------- | ----------------------------------------------------------------------------- |
 | `pnpm db:start`  | Start local PostgreSQL and wait for its health check, using root `.env.local` |
-| `pnpm db:stop`   | Stop the local container while retaining its data volume                      |
+| `pnpm db:stop`   | Stop PostgreSQL and the production container, retaining the data volume       |
 | `pnpm db:push`   | Apply schema changes directly for local development                           |
 | `pnpm db:studio` | Open Drizzle Studio                                                           |
 
 These commands need only Docker and `packages/database/.env`; neither app has
 to be running. `db:push` and `db:studio` run the Drizzle CLI from
 `packages/database`, which owns the schema.
+
+## Production container
+
+The API's Railway image runs locally against the Compose database through the
+opt-in `server` profile in `docker-compose.override.yaml`, so `pnpm db:start`
+still starts only PostgreSQL.
+
+| Command                | Purpose                                                                 |
+| ---------------------- | ----------------------------------------------------------------------- |
+| `pnpm container:start` | Build the image and start it on port 5000, waiting for its health check |
+| `pnpm container:stop`  | Stop and remove the API container, leaving PostgreSQL running           |
+| `pnpm container:logs`  | Follow the API container's output                                       |
+
+Building the image is a heavy task; run it alone. Stop `pnpm dev:server`
+first, since both listen on port 5000.
 
 The schema-change policy in [AGENTS.md](AGENTS.md#database-schema-changes)
 requires `db:push` until the user explicitly authorizes switching to migrations.
@@ -427,7 +442,8 @@ heavy task.
 caches and parallelizes per-workspace tasks across `apps/web`, `apps/server`,
 and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
 `pnpm check` applies Biome fixes;
-`pnpm format` formats Markdown, YAML, and HTML files.
+`pnpm format` formats Markdown, YAML, and HTML files; `pnpm fix` runs both and
+the Markdown lint fixes.
 
 GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
 `main`. Two jobs run side by side, each installing dependencies with a frozen
