@@ -181,3 +181,18 @@ Observations for later tickets, not changed here:
 - The server logged Better Auth's warning that rate limiting cannot determine
   a client IP. Behind Railway's proxy the trusted IP header will need
   configuring for per-client rate limits.
+
+Follow-up (2026-09-25): at the owner's request, both observations were acted
+on alongside a local production-like Compose service:
+
+- A root `.pnpmfile.cjs` drops `better-auth`'s unused optional `vitest` and
+  `drizzle-kit` peers. The image's `node_modules` fell from 177 MB to 62 MB
+  and holds no dev tools; the image from 566 MB to 402 MB.
+- Auth rate limiting is off in production (`AUTH_RATE_LIMIT_ENABLED=false`)
+  and per-client limits are deferred in `../spec.md`.
+- The server shuts down gracefully on `SIGTERM` (`docker stop`: 3.8 s to
+  0.7 s, exit 0), and `railway.json` gives it `drainingSeconds: 10`.
+- The image runs with `--enable-source-maps`; the build fetches packages in a
+  lockfile-keyed layer (rebuild after a source change: 70 s to 38 s); esbuild
+  targets `node24`; watch patterns add `/tsconfig.base.json` and
+  `/.pnpmfile.cjs`.

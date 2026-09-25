@@ -101,6 +101,8 @@ COPY --from=build /repo/apps/web/dist /srv
       "/package.json",
       "/pnpm-lock.yaml",
       "/pnpm-workspace.yaml",
+      "/.pnpmfile.cjs",
+      "/tsconfig.base.json",
       "/.dockerignore"
     ]
   },

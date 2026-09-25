@@ -33,7 +33,8 @@ One Railway Hobby project, region Singapore, one environment `production`.
 - api: `DATABASE_URL` references the Postgres service over the private
   network; `BETTER_AUTH_URL=https://api.bookkeeping.boonyarit.me`;
   `CLIENT_ORIGINS=https://bookkeeping.boonyarit.me`; a generated
-  `BETTER_AUTH_SECRET`; `AUTH_SIGN_UP_ENABLED` per the switch below.
+  `BETTER_AUTH_SECRET`; `AUTH_SIGN_UP_ENABLED` per the switch below;
+  `AUTH_RATE_LIMIT_ENABLED=false` (see Out of scope).
 - web: `VITE_API_ORIGIN=https://api.bookkeeping.boonyarit.me`, a build-time
   value baked into the bundle.
 - Caddy: unknown paths fall back to `index.html`; hashed files under
@@ -67,6 +68,11 @@ Real data may not be recorded until both of these exist:
 - Automated backups: direction is a nightly `pg_dump`, encrypted with `age`,
   stored in Cloudflare R2 (off Railway), with retention and a restore drill
   still to be decided.
+
+Deferred: per-client auth rate limiting. Behind Railway's proxy Better Auth
+cannot find the client IP, so its limits would fall back to one bucket shared
+by every caller. The trial sets `AUTH_RATE_LIMIT_ENABLED=false` until the
+proxy's client IP header is configured as trusted.
 
 Also out: staging or preview environments, uptime monitoring, CDN in front of
 either service, and a client-visible sign-up state.

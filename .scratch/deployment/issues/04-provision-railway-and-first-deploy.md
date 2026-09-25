@@ -19,7 +19,7 @@ not enter credentials.
 - [ ] web service variable `VITE_API_ORIGIN` is set before its first build.
 - [ ] GitHub auto-deploy on `main` waits for CI; app sleeping is off for api.
 - [ ] CNAMEs for `bookkeeping.boonyarit.me` and `api.bookkeeping.boonyarit.me` added at Hostinger; both serve over HTTPS; the apex personal site still works.
-- [ ] Variables set per the spec; `BETTER_AUTH_SECRET` generated fresh, never reused from local.
+- [ ] Variables set per the spec, including `AUTH_RATE_LIMIT_ENABLED=false`; `BETTER_AUTH_SECRET` generated fresh, never reused from local.
 - [ ] Schema applied with `pnpm db:push` through a temporary TCP proxy, then the proxy disabled.
 - [ ] On the phone: install the PWA, sign up, record and edit a transaction, sign out and back in.
 - [ ] `AUTH_SIGN_UP_ENABLED=false` set and deployed; a second sign-up attempt is rejected.
