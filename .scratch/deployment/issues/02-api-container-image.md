@@ -4,7 +4,7 @@ Read `../worker-brief.md` first.
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Why:** Railway builds each service from a Dockerfile at the repository
 root (the monorepo is shared, not isolated). The API image must run the
@@ -110,12 +110,12 @@ CMD ["node", "dist/server.js"]
 
 ## Acceptance criteria
 
-- [ ] `docker build -f apps/server/Dockerfile -t bookkeeping-api .` succeeds from the repository root and `pnpm-lock.yaml` is unchanged afterwards.
-- [ ] The running container answers `GET /health` with `200`.
-- [ ] Against the local database, `POST /api/auth/sign-up/email` with `Origin: http://localhost:4000` returns `200` and a `Set-Cookie` header.
-- [ ] `docker run --rm bookkeeping-api ls node_modules` lists no `vitest`, `esbuild`, `tsx`, or `typescript`.
-- [ ] `docker run --rm bookkeeping-api sh -c 'ls -a /app'` shows no `.env` file.
-- [ ] Only the three allowed files were created.
+- [x] `docker build -f apps/server/Dockerfile -t bookkeeping-api .` succeeds from the repository root and `pnpm-lock.yaml` is unchanged afterwards.
+- [x] The running container answers `GET /health` with `200`.
+- [x] Against the local database, `POST /api/auth/sign-up/email` with `Origin: http://localhost:4000` returns `200` and a `Set-Cookie` header.
+- [x] `docker run --rm bookkeeping-api ls node_modules` lists no `vitest`, `esbuild`, `tsx`, or `typescript`.
+- [x] `docker run --rm bookkeeping-api sh -c 'ls -a /app'` shows no `.env` file.
+- [x] Only the three allowed files were created.
 
 **Verify** (run alone; Docker Desktop running):
 
@@ -148,3 +148,36 @@ already exists from an earlier run, use a new address.
 - Do not add `db:push`, migrations, or a pre-deploy command.
 - If `pnpm deploy --legacy` is rejected, that is a stop condition, not a
   reason to hand-copy `node_modules` from the build stage.
+
+## Comments
+
+Landed `.dockerignore`, `apps/server/Dockerfile`, and `apps/server/railway.json`
+exactly as the reference contents; no adaptation was needed.
+
+Verify output:
+
+- `docker build -f apps/server/Dockerfile -t bookkeeping-api .` finished
+  (`naming to docker.io/library/bookkeeping-api:latest done`); `pnpm deploy
+--prod --legacy` was accepted. `git hash-object pnpm-lock.yaml` was
+  `1673365a357c30e55eddb0fa060b7b3f3309500f` before and after.
+- `GET /health` returned `HTTP/1.1 200 OK` with `{"status":"ok"}`.
+- `POST /api/auth/sign-up/email` with `origin: http://localhost:4000` returned
+  `HTTP/1.1 200 OK` and
+  `set-cookie: bookkeeping-api.session_token=…; HttpOnly; SameSite=Lax`.
+- `ls node_modules` listed `@bookkeeping @hono better-auth drizzle-orm hono
+hono-openapi pg zod`.
+- `ls -a /app` listed `dist node_modules package.json` and no `.env`.
+- `pnpm run ci`: exit 0, `Tasks:    13 successful, 13 total`.
+- `git status`: only the three allowed files plus this ticket.
+
+Observations for later tickets, not changed here:
+
+- `node_modules/.pnpm` still holds `vitest`, `drizzle-kit`, `tsx`, and
+  `esbuild`: `better-auth` declares `vitest` and `drizzle-kit` as optional
+  peers, the lockfile resolves them, and `drizzle-kit` brings `tsx` and
+  `esbuild`. They are not top-level and not on the server's import path.
+  Dropping them needs a lockfile or workspace setting change, which is out of
+  scope.
+- The server logged Better Auth's warning that rate limiting cannot determine
+  a client IP. Behind Railway's proxy the trusted IP header will need
+  configuring for per-client rate limits.
