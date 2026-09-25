@@ -1,6 +1,6 @@
-# Production-like API: the Railway image against the local database. Opt-in
+# Production-like API and web images against the local database. Opt in
 # through the server profile so `pnpm db:start` keeps starting only PostgreSQL:
-#   docker compose --env-file .env.local --profile server up -d --build --wait
+#   pnpm container:start
 services:
   server:
     profiles: ["server"]
@@ -29,6 +29,32 @@ services:
           "-e",
           "fetch('http://127.0.0.1:5000/health').then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))",
         ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: on-failure
+    networks:
+      - bookkeeping-network
+
+  web:
+    profiles: ["server"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_ORIGIN: http://localhost:5000
+    image: bookkeeping-web
+    container_name: bookkeeping-web
+    depends_on:
+      server:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+    ports:
+      - "4000:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
       interval: 10s
       timeout: 5s
       retries: 5

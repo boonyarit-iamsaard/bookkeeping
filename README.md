@@ -290,7 +290,7 @@ origin), its `CLIENT_ORIGINS` (the client origin), and the client's
 | Command          | Purpose                                                                       |
 | ---------------- | ----------------------------------------------------------------------------- |
 | `pnpm db:start`  | Start local PostgreSQL and wait for its health check, using root `.env.local` |
-| `pnpm db:stop`   | Stop PostgreSQL and the production container, retaining the data volume       |
+| `pnpm db:stop`   | Stop PostgreSQL and the production containers, retaining the data volume      |
 | `pnpm db:push`   | Apply schema changes directly for local development                           |
 | `pnpm db:studio` | Open Drizzle Studio                                                           |
 
@@ -298,20 +298,21 @@ These commands need only Docker and `packages/database/.env`; neither app has
 to be running. `db:push` and `db:studio` run the Drizzle CLI from
 `packages/database`, which owns the schema.
 
-## Production container
+## Production containers
 
-The API's Railway image runs locally against the Compose database through the
-opt-in `server` profile in `docker-compose.override.yaml`, so `pnpm db:start`
-still starts only PostgreSQL.
+The API and web Railway images run locally through the opt-in `server` profile
+in `docker-compose.override.yaml`. The browser opens the web container at
+`http://localhost:4000` and calls the API at `http://localhost:5000`.
+`pnpm db:start` still starts only PostgreSQL.
 
-| Command                | Purpose                                                                 |
-| ---------------------- | ----------------------------------------------------------------------- |
-| `pnpm container:start` | Build the image and start it on port 5000, waiting for its health check |
-| `pnpm container:stop`  | Stop and remove the API container, leaving PostgreSQL running           |
-| `pnpm container:logs`  | Follow the API container's output                                       |
+| Command                | Purpose                                                                                             |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| `pnpm container:start` | Build the API and web images and start them on ports 5000 and 4000, waiting for their health checks |
+| `pnpm container:stop`  | Stop and remove both app containers, leaving PostgreSQL running                                     |
+| `pnpm container:logs`  | Follow both app containers' output                                                                  |
 
-Building the image is a heavy task; run it alone. Stop `pnpm dev:server`
-first, since both listen on port 5000.
+Building the images is a heavy task; run them one at a time. Stop
+`pnpm dev:server` and `pnpm dev:web` first, since they use the same ports.
 
 The schema-change policy in [AGENTS.md](AGENTS.md#database-schema-changes)
 requires `db:push` until the user explicitly authorizes switching to migrations.
