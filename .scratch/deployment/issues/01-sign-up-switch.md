@@ -119,3 +119,10 @@ refusal test and the env test failed first.
 - `config.integration.test.ts`: `Tests  8 passed (8)`
 - `pnpm run ci`: exit 0, `Tasks:    13 successful, 13 total`
 - `git status`: only the six allowed files plus this ticket.
+
+Follow-up (2026-09-25): at the owner's request, both switches were renamed
+to `AUTH_SIGN_UP_ENABLED` and `AUTH_RATE_LIMIT_ENABLED` with
+`z.enum(["true", "false"])`, after
+[boolean env switch research](../../../docs/research/boolean-env-switch-conventions.md)
+found no first-party tool using `on`/`off` for environment variables. The
+contract above keeps the original names as history.

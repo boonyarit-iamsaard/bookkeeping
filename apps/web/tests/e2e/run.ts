@@ -80,7 +80,7 @@ async function startApiServer({
         CLIENT_ORIGINS: clientOrigin,
         // Every spec signs up a fresh user, so parallel workers would trip
         // the sign-up throttle if a production NODE_ENV ever enabled it.
-        AUTH_RATE_LIMIT: "off",
+        AUTH_RATE_LIMIT_ENABLED: "false",
       },
       stdio: ["ignore", "ignore", "inherit"],
     },

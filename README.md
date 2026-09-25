@@ -239,14 +239,15 @@ loads.
 `apps/server/.env` (copy `apps/server/.env.example`), or the deployed server
 environment:
 
-| Variable             | Purpose                                                              |
-| -------------------- | -------------------------------------------------------------------- |
-| `BETTER_AUTH_SECRET` | Auth secret of at least 32 characters                                |
-| `BETTER_AUTH_URL`    | The API origin, locally `http://localhost:5000`                      |
-| `CLIENT_ORIGINS`     | Comma-separated client origins allowed to send credentialed requests |
-| `DATABASE_URL`       | PostgreSQL connection URL                                            |
-| `HOST`, `PORT`       | Optional; default `0.0.0.0` and `5000`                               |
-| `AUTH_RATE_LIMIT`    | Optional `on` or `off`; unset throttles only in production           |
+| Variable                  | Purpose                                                              |
+| ------------------------- | -------------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET`      | Auth secret of at least 32 characters                                |
+| `BETTER_AUTH_URL`         | The API origin, locally `http://localhost:5000`                      |
+| `CLIENT_ORIGINS`          | Comma-separated client origins allowed to send credentialed requests |
+| `DATABASE_URL`            | PostgreSQL connection URL                                            |
+| `HOST`, `PORT`            | Optional; default `0.0.0.0` and `5000`                               |
+| `AUTH_RATE_LIMIT_ENABLED` | Optional `true` or `false`; unset throttles only in production       |
+| `AUTH_SIGN_UP_ENABLED`    | Optional `true` or `false`, default `true`; `false` refuses sign-ups |
 
 `apps/server/src/core/env/config.ts` validates these at startup.
 `pnpm dev:server` loads `apps/server/.env` when it exists;
@@ -433,7 +434,7 @@ GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
 lockfile: one runs `pnpm run ci`, and the other installs Chromium
 (cached by Playwright version) and runs the SPA browser suite on two workers.
 The browser runner switches the API's sign-up throttle off
-(`AUTH_RATE_LIMIT=off`) so parallel sign-ups never meet it. Testcontainers
+(`AUTH_RATE_LIMIT_ENABLED=false`) so parallel sign-ups never meet it. Testcontainers
 supplies disposable PostgreSQL databases for both operation and browser tests.
 No job needs a checked-in `.env` file.
 

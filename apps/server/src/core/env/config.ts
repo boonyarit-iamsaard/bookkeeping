@@ -15,8 +15,8 @@ const serverEnvSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: httpUrlSchema,
   CLIENT_ORIGINS: originListSchema,
-  AUTH_RATE_LIMIT: z.enum(["on", "off"]).optional(),
-  AUTH_SIGN_UP: z.enum(["on", "off"]).optional(),
+  AUTH_RATE_LIMIT_ENABLED: z.enum(["true", "false"]).optional(),
+  AUTH_SIGN_UP_ENABLED: z.enum(["true", "false"]).optional(),
 });
 
 export interface ServerConfig {
@@ -46,9 +46,9 @@ export function parseServerEnv(
     authBaseUrl: parsed.BETTER_AUTH_URL,
     clientOrigins: parsed.CLIENT_ORIGINS,
     authRateLimitEnabled:
-      parsed.AUTH_RATE_LIMIT === undefined
+      parsed.AUTH_RATE_LIMIT_ENABLED === undefined
         ? undefined
-        : parsed.AUTH_RATE_LIMIT === "on",
-    authSignUpEnabled: parsed.AUTH_SIGN_UP !== "off",
+        : parsed.AUTH_RATE_LIMIT_ENABLED === "true",
+    authSignUpEnabled: parsed.AUTH_SIGN_UP_ENABLED !== "false",
   };
 }

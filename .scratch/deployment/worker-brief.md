@@ -45,7 +45,7 @@ browser test run. Docker Desktop must be running for tickets 02 and 03.
   sites; `interface` for object contracts.
 - Environment variables are parsed once with Zod in
   `apps/server/src/core/env/config.ts` and mapped to a typed `ServerConfig`.
-  `AUTH_RATE_LIMIT` is the pattern for an `on`/`off` switch.
+  `AUTH_RATE_LIMIT_ENABLED` is the pattern for a `true`/`false` switch.
 - Tests are colocated: `*.unit.test.ts` for pure logic,
   `*.integration.test.ts` for tests that need PostgreSQL (testcontainers,
   wrapped in `withRollback`).

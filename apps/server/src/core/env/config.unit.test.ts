@@ -24,27 +24,29 @@ describe("server env config", () => {
 
   it("reads an explicit authentication rate limit switch", () => {
     expect(
-      parseServerEnv({ ...requiredEnv, AUTH_RATE_LIMIT: "off" })
+      parseServerEnv({ ...requiredEnv, AUTH_RATE_LIMIT_ENABLED: "false" })
         .authRateLimitEnabled,
     ).toBe(false);
     expect(
-      parseServerEnv({ ...requiredEnv, AUTH_RATE_LIMIT: "on" })
+      parseServerEnv({ ...requiredEnv, AUTH_RATE_LIMIT_ENABLED: "true" })
         .authRateLimitEnabled,
     ).toBe(true);
     expect(() =>
-      parseServerEnv({ ...requiredEnv, AUTH_RATE_LIMIT: "false" }),
+      parseServerEnv({ ...requiredEnv, AUTH_RATE_LIMIT_ENABLED: "off" }),
     ).toThrow();
   });
 
   it("reads an explicit sign-up switch", () => {
     expect(
-      parseServerEnv({ ...requiredEnv, AUTH_SIGN_UP: "off" }).authSignUpEnabled,
+      parseServerEnv({ ...requiredEnv, AUTH_SIGN_UP_ENABLED: "false" })
+        .authSignUpEnabled,
     ).toBe(false);
     expect(
-      parseServerEnv({ ...requiredEnv, AUTH_SIGN_UP: "on" }).authSignUpEnabled,
+      parseServerEnv({ ...requiredEnv, AUTH_SIGN_UP_ENABLED: "true" })
+        .authSignUpEnabled,
     ).toBe(true);
     expect(() =>
-      parseServerEnv({ ...requiredEnv, AUTH_SIGN_UP: "false" }),
+      parseServerEnv({ ...requiredEnv, AUTH_SIGN_UP_ENABLED: "off" }),
     ).toThrow();
   });
 

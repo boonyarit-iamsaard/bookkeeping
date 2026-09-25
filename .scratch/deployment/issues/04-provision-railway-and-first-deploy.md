@@ -22,5 +22,5 @@ not enter credentials.
 - [ ] Variables set per the spec; `BETTER_AUTH_SECRET` generated fresh, never reused from local.
 - [ ] Schema applied with `pnpm db:push` through a temporary TCP proxy, then the proxy disabled.
 - [ ] On the phone: install the PWA, sign up, record and edit a transaction, sign out and back in.
-- [ ] `AUTH_SIGN_UP=off` set and deployed; a second sign-up attempt is rejected.
+- [ ] `AUTH_SIGN_UP_ENABLED=false` set and deployed; a second sign-up attempt is rejected.
 - [ ] After one week of use, the Railway usage and the first-save-after-idle latency are noted under Comments.

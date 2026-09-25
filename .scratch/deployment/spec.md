@@ -33,7 +33,7 @@ One Railway Hobby project, region Singapore, one environment `production`.
 - api: `DATABASE_URL` references the Postgres service over the private
   network; `BETTER_AUTH_URL=https://api.bookkeeping.boonyarit.me`;
   `CLIENT_ORIGINS=https://bookkeeping.boonyarit.me`; a generated
-  `BETTER_AUTH_SECRET`; `AUTH_SIGN_UP` per the switch below.
+  `BETTER_AUTH_SECRET`; `AUTH_SIGN_UP_ENABLED` per the switch below.
 - web: `VITE_API_ORIGIN=https://api.bookkeeping.boonyarit.me`, a build-time
   value baked into the bundle.
 - Caddy: unknown paths fall back to `index.html`; hashed files under
@@ -43,10 +43,10 @@ One Railway Hobby project, region Singapore, one environment `production`.
 
 ## Sign-up switch
 
-A server environment flag `AUTH_SIGN_UP` (`on`/`off`, default `on`, same
-shape as `AUTH_RATE_LIMIT`) maps to Better Auth's `disableSignUp`. Local
-development and tests keep the default. Production sets `off` after the
-owner's account exists; changing it takes effect on the redeploy Railway
+A server environment flag `AUTH_SIGN_UP_ENABLED` (`true`/`false`, default
+`true`, same shape as `AUTH_RATE_LIMIT_ENABLED`) maps to Better Auth's
+`disableSignUp`. Local development and tests keep the default. Production
+sets `false` after the owner's account exists; changing it takes effect on the redeploy Railway
 performs when a variable changes. The web sign-up screen is unchanged and
 shows the server's rejection.
 
