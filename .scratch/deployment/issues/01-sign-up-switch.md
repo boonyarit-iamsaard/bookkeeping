@@ -24,8 +24,9 @@ Nothing else. In particular: no web client change, no change to
 
 ## Exact contract
 
-1. **Environment** (`config.ts`): add `AUTH_SIGN_UP: z.enum(["on", "off"]).optional()`
-   to `serverEnvSchema`, beside `AUTH_RATE_LIMIT`.
+1. **Environment** (`config.ts`): add
+   `AUTH_SIGN_UP_ENABLED: z.enum(["true", "false"]).optional()` to
+   `serverEnvSchema`, beside `AUTH_RATE_LIMIT_ENABLED`.
 2. **Server config**: add to `ServerConfig`, with a doc comment in the style
    of its neighbours:
 
@@ -34,7 +35,7 @@ Nothing else. In particular: no web client change, no change to
    authSignUpEnabled: boolean;
    ```
 
-   Mapping: absent or `"on"` → `true`; `"off"` → `false`. Unlike the rate
+   Mapping: absent or `"true"` → `true`; `"false"` → `false`. Unlike the rate
    limit, it is never `undefined`.
 
 3. **Auth options** (`packages/auth/src/config.ts`): add to `AuthOptions`:
@@ -53,12 +54,12 @@ Nothing else. In particular: no web client change, no change to
 4. **Wiring** (`server.ts`): pass `signUpEnabled: serverConfig.authSignUpEnabled`
    to `createAuth`, after `rateLimitEnabled`.
 5. **Documentation** (`apps/server/.env.example`): below the
-   `AUTH_RATE_LIMIT` block, add:
+   `AUTH_RATE_LIMIT_ENABLED` block, add:
 
    ```sh
-   # Optional: on or off, default on. Production sets off once the owner's
-   # account exists; sign-in keeps working.
-   # AUTH_SIGN_UP=on
+   # Optional: true or false, default true. Production sets false once the
+   # owner's account exists; sign-in keeps working.
+   # AUTH_SIGN_UP_ENABLED=true
    ```
 
 ## Steps (test first)
@@ -66,8 +67,8 @@ Nothing else. In particular: no web client change, no change to
 1. In `config.unit.test.ts`, extend the existing defaults assertion with
    `authSignUpEnabled: true`, and add a test beside "reads an explicit
    authentication rate limit switch", named
-   `"reads an explicit sign-up switch"`: `"off"` → `false`, `"on"` → `true`,
-   `"false"` throws. Run it and watch it fail.
+   `"reads an explicit sign-up switch"`: `"false"` → `false`, `"true"` → `true`,
+   `"off"` throws. Run it and watch it fail.
 2. In `packages/auth/src/config.integration.test.ts`, add two tests inside
    `describe("createAuth")`, each inside `withRollback`:
    - `"a disabled sign-up refuses new users and creates no rows"`: call
@@ -86,10 +87,10 @@ Nothing else. In particular: no web client change, no change to
 
 ## Acceptance criteria
 
-- [x] With `AUTH_SIGN_UP` absent or `on`, all existing tests pass unchanged.
+- [x] With `AUTH_SIGN_UP_ENABLED` absent or `true`, all existing tests pass unchanged.
 - [x] With `signUpEnabled: false`, sign-up is refused with `EMAIL_PASSWORD_SIGN_UP_DISABLED` and no user row is written.
 - [x] With `signUpEnabled: false`, an existing user signs in.
-- [x] `AUTH_SIGN_UP=false` (or any value other than `on`/`off`) fails `parseServerEnv`.
+- [x] `AUTH_SIGN_UP_ENABLED=off` (or any value other than `true`/`false`) fails `parseServerEnv`.
 - [x] `apps/server/.env.example` documents the variable exactly as above.
 - [x] Only the six allowed files changed.
 
@@ -103,8 +104,8 @@ pnpm run ci
 
 ## Traps
 
-- Do not name the variable `DISABLE_SIGN_UP` or make it a boolean string;
-  `on`/`off` matches `AUTH_RATE_LIMIT`.
+- Do not name the variable `DISABLE_SIGN_UP` or accept loose boolean strings;
+  the strict `true`/`false` enum matches `AUTH_RATE_LIMIT_ENABLED`.
 - Do not change `createIntegrationTestApp` or other test helpers to pass the
   new option; the default keeps them correct.
 - Do not add a client-visible "sign-up disabled" state; the spec rules it out.
@@ -125,4 +126,4 @@ to `AUTH_SIGN_UP_ENABLED` and `AUTH_RATE_LIMIT_ENABLED` with
 `z.enum(["true", "false"])`, after
 [boolean env switch research](../../../docs/research/boolean-env-switch-conventions.md)
 found no first-party tool using `on`/`off` for environment variables. The
-contract above keeps the original names as history.
+contract above now states the final names.
