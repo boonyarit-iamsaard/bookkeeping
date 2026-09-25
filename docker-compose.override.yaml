@@ -1,0 +1,38 @@
+# Production-like API: the Railway image against the local database. Opt-in
+# through the server profile so `pnpm db:start` keeps starting only PostgreSQL:
+#   docker compose --env-file .env.local --profile server up -d --build --wait
+services:
+  server:
+    profiles: ["server"]
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    image: bookkeeping-api
+    container_name: bookkeeping-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/bookkeeping
+      BETTER_AUTH_SECRET: local-compose-secret-with-at-least-32-characters
+      BETTER_AUTH_URL: http://localhost:5000
+      CLIENT_ORIGINS: http://localhost:4000
+      # Deferred: per-client limits need a trusted client IP header (spec).
+      AUTH_RATE_LIMIT_ENABLED: "false"
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:5000/health').then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: on-failure
+    networks:
+      - bookkeeping-network
