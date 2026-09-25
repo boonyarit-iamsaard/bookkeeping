@@ -9,7 +9,12 @@ FROM base AS build
 # so a source change reinstalls offline instead of refetching every package.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 RUN pnpm fetch --frozen-lockfile
-COPY . .
+# Only what the API build reads, so a web-only change keeps these layers
+# cached. The web manifest keeps the lockfile's workspace importers complete.
+COPY tsconfig.base.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY packages packages
+COPY apps/server apps/server
 RUN pnpm install --frozen-lockfile --offline --filter @bookkeeping/server...
 RUN pnpm --filter @bookkeeping/server build
 RUN pnpm --filter @bookkeeping/server deploy --prod --legacy /out

@@ -12,10 +12,6 @@
     "types:check": "tsc --noEmit"
   },
   "dependencies": {
-    "@bookkeeping/application": "workspace:*",
-    "@bookkeeping/auth": "workspace:*",
-    "@bookkeeping/database": "workspace:*",
-    "@bookkeeping/domain": "workspace:*",
     "@hono/node-server": "^2.1.1",
     "better-auth": "^1.7.4",
     "drizzle-orm": "^0.45.2",
@@ -25,6 +21,10 @@
     "zod": "^4.6.2"
   },
   "devDependencies": {
+    "@bookkeeping/application": "workspace:*",
+    "@bookkeeping/auth": "workspace:*",
+    "@bookkeeping/database": "workspace:*",
+    "@bookkeeping/domain": "workspace:*",
     "@seriousme/openapi-schema-validator": "^2.9.1",
     "@types/node": "^20",
     "esbuild": "^0.28.2",

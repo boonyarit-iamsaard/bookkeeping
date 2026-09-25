@@ -43,18 +43,6 @@ importers:
 
   apps/server:
     dependencies:
-      '@bookkeeping/application':
-        specifier: workspace:*
-        version: link:../../packages/application
-      '@bookkeeping/auth':
-        specifier: workspace:*
-        version: link:../../packages/auth
-      '@bookkeeping/database':
-        specifier: workspace:*
-        version: link:../../packages/database
-      '@bookkeeping/domain':
-        specifier: workspace:*
-        version: link:../../packages/domain
       '@hono/node-server':
         specifier: ^2.1.1
         version: 2.1.1(hono@4.13.7)
@@ -77,6 +65,18 @@ importers:
         specifier: ^4.6.2
         version: 4.6.2
     devDependencies:
+      '@bookkeeping/application':
+        specifier: workspace:*
+        version: link:../../packages/application
+      '@bookkeeping/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@bookkeeping/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@bookkeeping/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@seriousme/openapi-schema-validator':
         specifier: ^2.9.1
         version: 2.9.1
