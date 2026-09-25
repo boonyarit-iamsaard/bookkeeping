@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { parseEnv } from "node:util";
 import { describe, expect, it } from "vitest";
 import { parseServerEnv } from "./config.js";
 
@@ -90,5 +92,13 @@ describe("server env config", () => {
     expect(() =>
       parseServerEnv({ ...requiredEnv, DATABASE_URL: undefined }),
     ).toThrow();
+  });
+
+  it("accepts the documented example environment", () => {
+    const example = readFileSync(
+      new URL("../../../.env.example", import.meta.url),
+      "utf8",
+    );
+    expect(() => parseServerEnv(parseEnv(example))).not.toThrow();
   });
 });

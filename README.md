@@ -16,14 +16,12 @@ pnpm install
 cp apps/web/.env.example apps/web/.env
 cp apps/server/.env.example apps/server/.env
 cp packages/database/.env.example packages/database/.env
-cp .env.local.example .env.local
 ```
 
 Set `BETTER_AUTH_SECRET` in `apps/server/.env` to a random secret of at least
-32 characters (generate one with `openssl rand -base64 32`). Set
-`DATABASE_URL` in `apps/server/.env` and `packages/database/.env` to match the
-PostgreSQL credentials in the root `.env.local`, which Docker Compose reads. Then start the
-database and both apps:
+32 characters (generate one with `openssl rand -base64 32`). The example
+`DATABASE_URL` values already match the local PostgreSQL in
+`docker-compose.yaml`. Then start the database and both apps:
 
 ```bash
 pnpm db:start
@@ -256,12 +254,13 @@ with the environment the caller injects. The Drizzle CLI reads `DATABASE_URL`
 from `packages/database/.env` (copy `packages/database/.env.example`) and
 validates it in `drizzle.config.ts`.
 
-The local Docker Compose infrastructure reads the root `.env.local` (see
-`.env.local.example`); its `POSTGRES_PASSWORD` must match the password embedded
-in `DATABASE_URL`.
+Docker Compose reads no environment files. `docker-compose.yaml` holds fixed,
+local-only credentials and binds every port to loopback; the example
+`DATABASE_URL` values match them.
 
 `pnpm build` builds both apps and every package through Turborepo: the Vite
-client build (which first checks the generated API client) and the server's
+client build (which first checks the generated API client, and reruns when
+`apps/web/.env` changes) and the server's
 esbuild bundle. `pnpm start` builds if needed and then serves both production
 outputs, the client through `vite preview`; `pnpm start:web` and
 `pnpm start:server` run one app alone.
@@ -287,12 +286,12 @@ origin), its `CLIENT_ORIGINS` (the client origin), and the client's
 
 ## Database commands
 
-| Command          | Purpose                                                                       |
-| ---------------- | ----------------------------------------------------------------------------- |
-| `pnpm db:start`  | Start local PostgreSQL and wait for its health check, using root `.env.local` |
-| `pnpm db:stop`   | Stop PostgreSQL and the production containers, retaining the data volume      |
-| `pnpm db:push`   | Apply schema changes directly for local development                           |
-| `pnpm db:studio` | Open Drizzle Studio                                                           |
+| Command          | Purpose                                                                  |
+| ---------------- | ------------------------------------------------------------------------ |
+| `pnpm db:start`  | Start local PostgreSQL and wait for its health check                     |
+| `pnpm db:stop`   | Stop PostgreSQL and the production containers, retaining the data volume |
+| `pnpm db:push`   | Apply schema changes directly for local development                      |
+| `pnpm db:studio` | Open Drizzle Studio                                                      |
 
 These commands need only Docker and `packages/database/.env`; neither app has
 to be running. `db:push` and `db:studio` run the Drizzle CLI from
@@ -300,28 +299,28 @@ to be running. `db:push` and `db:studio` run the Drizzle CLI from
 
 ## Production containers
 
-The API and web Railway images run locally through the opt-in `server` profile
-in `docker-compose.override.yaml`. The browser opens the web container at
+The API and web Railway images run locally through the opt-in `stack` profile
+in `docker-compose.yaml`. The browser opens the web container at
 `http://localhost:4000` and calls the API at `http://localhost:5000`.
 `pnpm db:start` still starts only PostgreSQL.
 
-| Command                | Purpose                                                                                             |
-| ---------------------- | --------------------------------------------------------------------------------------------------- |
-| `pnpm container:start` | Build the API and web images and start them on ports 5000 and 4000, waiting for their health checks |
-| `pnpm container:stop`  | Stop and remove both app containers, leaving PostgreSQL running                                     |
-| `pnpm container:logs`  | Follow both app containers' output                                                                  |
+| Command            | Purpose                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------- |
+| `pnpm stack:build` | Build the API image, then the web image                                                  |
+| `pnpm stack:start` | Build both images and start them on ports 5000 and 4000, waiting for their health checks |
+| `pnpm stack:stop`  | Stop and remove both app containers, leaving PostgreSQL running                          |
+| `pnpm stack:logs`  | Follow both app containers' output                                                       |
 
-Building the images is a heavy task; run them one at a time. Stop
+Building an image is a heavy task, so `stack:build` builds one at a time. Stop
 `pnpm dev:server` and `pnpm dev:web` first, since they use the same ports.
 
 The schema-change policy in [AGENTS.md](AGENTS.md#database-schema-changes)
 requires `db:push` until the user explicitly authorizes switching to migrations.
 
-PostgreSQL stores its initialized credentials in the persistent data volume.
-Changing `POSTGRES_PASSWORD` in `.env.local` does not change the password of an
-already initialized database; update the existing database password, `.env.local`,
-and `DATABASE_URL` in `apps/server/.env` and `packages/database/.env` together when
-changing credentials.
+PostgreSQL stores its initialized credentials in the persistent data volume, so
+editing `POSTGRES_PASSWORD` in `docker-compose.yaml` does not change an already
+initialized database. The fixed credentials are safe because the port listens
+only on loopback; keep it that way rather than changing the password.
 
 ## Tests
 

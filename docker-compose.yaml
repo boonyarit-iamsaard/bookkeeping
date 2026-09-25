@@ -1,5 +1,8 @@
 name: bookkeeping
 
+# Local-only infrastructure. Credentials are fixed throwaway values and every
+# port binds to loopback, so nothing here is reachable from another machine.
+# Railway builds the Dockerfiles directly and never reads this file.
 services:
   postgres:
     image: postgres:18-alpine
@@ -7,9 +10,9 @@ services:
     environment:
       POSTGRES_DB: bookkeeping
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - bookkeeping-postgres-data:/var/lib/postgresql
     healthcheck:
@@ -18,6 +21,67 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - bookkeeping-network
+
+  # Production-like API and web images against the local database. Opt in
+  # through the stack profile so `pnpm db:start` starts only PostgreSQL.
+  server:
+    profiles: ["stack"]
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    image: bookkeeping-api
+    container_name: bookkeeping-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/bookkeeping
+      BETTER_AUTH_SECRET: local-compose-secret-with-at-least-32-characters
+      BETTER_AUTH_URL: http://localhost:5000
+      CLIENT_ORIGINS: http://localhost:4000
+      # Deferred: per-client limits need a trusted client IP header (spec).
+      AUTH_RATE_LIMIT_ENABLED: "false"
+    ports:
+      - "127.0.0.1:5000:5000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:5000/health').then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: on-failure
+    networks:
+      - bookkeeping-network
+
+  # Static files only; the browser, not this container, calls the API.
+  web:
+    profiles: ["stack"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_ORIGIN: http://localhost:5000
+    image: bookkeeping-web
+    container_name: bookkeeping-web
+    environment:
+      PORT: "8080"
+    ports:
+      - "127.0.0.1:4000:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: on-failure
     networks:
       - bookkeeping-network
 

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { parseEnv } from "node:util";
 import { describe, expect, test } from "vitest";
 import { parseClientEnv } from "./config";
 
@@ -23,5 +25,13 @@ describe("parseClientEnv", () => {
     expect(() =>
       parseClientEnv({ VITE_API_ORIGIN: "localhost:5000" }),
     ).toThrow();
+  });
+
+  test("accepts the documented example environment", () => {
+    const example = readFileSync(
+      new URL("../../../.env.example", import.meta.url),
+      "utf8",
+    );
+    expect(() => parseClientEnv(parseEnv(example))).not.toThrow();
   });
 });
