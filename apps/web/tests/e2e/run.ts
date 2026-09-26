@@ -1,6 +1,4 @@
-import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -8,14 +6,8 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { startTestDatabase } from "@bookkeeping/database/testing/start-database";
 
 const requireFromRunner = createRequire(import.meta.url);
-const API_READY_TIMEOUT_MS = 60_000;
-const API_POLL_INTERVAL_MS = 250;
-const serverDirectory = fileURLToPath(
-  new URL("../../../server/", import.meta.url),
-);
 const clientDirectory = fileURLToPath(new URL("../../", import.meta.url));
 const viteBin = join(clientDirectory, "node_modules/vite/bin/vite.js");
 
@@ -39,66 +31,6 @@ async function availablePort(): Promise<number> {
       });
     });
   });
-}
-
-async function waitForOrigin(origin: string): Promise<void> {
-  const deadline = Date.now() + API_READY_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    try {
-      await fetch(`${origin}/openapi.json`);
-      return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, API_POLL_INTERVAL_MS));
-    }
-  }
-  throw new Error(`The API server did not answer on ${origin} in time`);
-}
-
-interface ServerOptions {
-  port: number;
-  clientOrigin: string;
-  environment: NodeJS.ProcessEnv;
-}
-
-/** Starts the Hono API from `apps/server` source and resolves once it answers. */
-async function startApiServer({
-  port,
-  clientOrigin,
-  environment,
-}: Readonly<ServerOptions>): Promise<ChildProcess> {
-  const origin = `http://localhost:${port}`;
-  const child = spawn(
-    process.execPath,
-    [requireFromRunner.resolve("tsx/cli"), "src/server.ts"],
-    {
-      cwd: serverDirectory,
-      env: {
-        ...environment,
-        PORT: String(port),
-        BETTER_AUTH_SECRET: randomBytes(32).toString("base64"),
-        BETTER_AUTH_URL: origin,
-        CLIENT_ORIGINS: clientOrigin,
-        // Every spec signs up a fresh user, so parallel workers would trip
-        // the sign-up throttle if a production NODE_ENV ever enabled it.
-        AUTH_RATE_LIMIT_ENABLED: "false",
-      },
-      stdio: ["ignore", "ignore", "inherit"],
-    },
-  );
-  const exited = once(child, "exit").then(() => {
-    throw new Error("The API server exited before answering");
-  });
-  await Promise.race([waitForOrigin(origin), exited]);
-  return child;
-}
-
-async function stopApiServer(child: ChildProcess): Promise<void> {
-  if (child.exitCode !== null) {
-    return;
-  }
-  const exited = once(child, "exit");
-  child.kill("SIGTERM");
-  await exited;
 }
 
 interface BuildOptions {
@@ -132,9 +64,8 @@ async function buildClient({
 
 interface PlaywrightOptions {
   clientPort: number;
-  apiOrigin: string;
+  apiPort: number;
   distDirectory: string | undefined;
-  environment: NodeJS.ProcessEnv;
 }
 
 /** The arguments after the script, without the `--` pnpm forwards before them. */
@@ -148,9 +79,8 @@ function playwrightArguments(): string[] {
 
 function runPlaywright({
   clientPort,
-  apiOrigin,
+  apiPort,
   distDirectory,
-  environment,
 }: Readonly<PlaywrightOptions>): Promise<number> {
   return new Promise<number>((resolve, reject) => {
     const child = spawn(
@@ -162,9 +92,9 @@ function runPlaywright({
       ],
       {
         env: {
-          ...environment,
+          ...process.env,
           TEST_APP_PORT: String(clientPort),
-          VITE_API_ORIGIN: apiOrigin,
+          TEST_API_PORT: String(apiPort),
           ...(distDirectory === undefined
             ? {}
             : { TEST_APP_DIST: distDirectory }),
@@ -205,35 +135,22 @@ async function main() {
     availablePort(),
     availablePort(),
   ]);
-  const clientOrigin = `http://localhost:${clientPort}`;
-  const apiOrigin = `http://localhost:${apiPort}`;
   const distDirectory = process.env.CI
     ? await mkdtemp(join(tmpdir(), "bookkeeping-web-e2e-"))
     : undefined;
   try {
     if (distDirectory !== undefined) {
-      await buildClient({ apiOrigin, distDirectory });
-    }
-    const { container, environment } = await startTestDatabase();
-    try {
-      const apiServer = await startApiServer({
-        port: apiPort,
-        clientOrigin,
-        environment,
+      await buildClient({
+        apiOrigin: `http://localhost:${apiPort}`,
+        distDirectory,
       });
-      try {
-        process.exitCode = await runPlaywright({
-          clientPort,
-          apiOrigin,
-          distDirectory,
-          environment,
-        });
-      } finally {
-        await stopApiServer(apiServer);
-      }
-    } finally {
-      await container.stop();
     }
+    // The Playwright config starts the database, the API, and the client.
+    process.exitCode = await runPlaywright({
+      clientPort,
+      apiPort,
+      distDirectory,
+    });
   } finally {
     if (distDirectory !== undefined) {
       await rm(distDirectory, { recursive: true, force: true });

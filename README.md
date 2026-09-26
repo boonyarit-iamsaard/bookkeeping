@@ -350,12 +350,14 @@ Browser tests live in `apps/web/tests/e2e/`. Install their browsers once:
 pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium
 ```
 
-The runner (`apps/web/tests/e2e/run.ts`) creates its own disposable PostgreSQL
-database, pushes the schema, and starts the Hono API from source and the
-client on available ports with a fresh auth secret. It serves the client with
-Vite locally; under `ci:e2e` it builds a client for `vite preview` with the
-test API origin baked in. It waits for server teardown before stopping the
-database, including when interrupted. Specs run on 360px Chromium; tests tagged
+The Playwright config's web servers create a disposable PostgreSQL database,
+push the schema, and start the Hono API from source with a fresh auth secret
+(`apps/web/tests/e2e/serve-api.ts`), then the client: the Vite dev server
+locally, or a preview of a production build under `ci:e2e`. The runner
+(`apps/web/tests/e2e/run.ts`) picks available ports and, under `ci:e2e`,
+builds that client with the test API origin baked in. Without the runner, as
+in an editor's Playwright extension, the client uses port 4100 and the API
+uses port 5100. Specs run on 360px Chromium; tests tagged
 `@matrix` also run on desktop Chromium. See the
 [test ownership](docs/code-conventions.md#test-ownership) rules and the
 browser test policy in [AGENTS.md](AGENTS.md).

@@ -1,7 +1,17 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = Number(process.env.TEST_APP_PORT ?? 4000);
+// `tests/e2e/run.ts` allocates free ports; a run started without it, such as
+// from an editor, uses these fixed ones, clear of the dev servers' 4000 and
+// 5000.
+const PORT = Number(process.env.TEST_APP_PORT ?? 4100);
+const API_PORT = Number(process.env.TEST_API_PORT ?? 5100);
 const baseURL = `http://localhost:${PORT}`;
+const apiOrigin = `http://localhost:${API_PORT}`;
+
+// The dev server and the specs read the API origin from the environment, and
+// the test API wins over any origin a developer's shell or `.env` sets.
+// Playwright passes this environment to the web servers and the workers.
+process.env.VITE_API_ORIGIN = apiOrigin;
 
 // Under CI the runner builds the client with the API origin it allocated and
 // previews that output; locally the dev server reads the origin from its env.
@@ -18,7 +28,7 @@ export default defineConfig({
   testDir: "tests/e2e",
   timeout: 60_000,
   // One worker keeps a local run within the machine's resource limits; the
-  // runner switches the API's sign-up throttle off, so CI runs in parallel.
+  // test API switches its sign-up throttle off, so CI runs in parallel.
   workers: process.env.CI ? 2 : 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
@@ -44,13 +54,27 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command: `node ./node_modules/vite/bin/vite.js ${serveCommand} --port ${PORT} --strictPort`,
-    url: baseURL,
-    reuseExistingServer: false,
-    gracefulShutdown: { signal: "SIGTERM", timeout: 15_000 },
-    stdout: "ignore",
-    stderr: "pipe",
-    timeout: 120_000,
-  },
+  // Playwright starts these in order, and before any global setup.
+  webServer: [
+    {
+      // A throwaway PostgreSQL container and the Hono API from source.
+      command: "node --import tsx tests/e2e/serve-api.ts",
+      url: `${apiOrigin}/openapi.json`,
+      env: { TEST_API_PORT: String(API_PORT), TEST_CLIENT_ORIGIN: baseURL },
+      reuseExistingServer: false,
+      gracefulShutdown: { signal: "SIGTERM", timeout: 30_000 },
+      stdout: "ignore",
+      stderr: "pipe",
+      timeout: 180_000,
+    },
+    {
+      command: `node ./node_modules/vite/bin/vite.js ${serveCommand} --port ${PORT} --strictPort`,
+      url: baseURL,
+      reuseExistingServer: false,
+      gracefulShutdown: { signal: "SIGTERM", timeout: 15_000 },
+      stdout: "ignore",
+      stderr: "pipe",
+      timeout: 120_000,
+    },
+  ],
 });
