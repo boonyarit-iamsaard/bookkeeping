@@ -3,7 +3,7 @@ import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { SlidersHorizontal, X } from "lucide-react";
-import type { FormEvent } from "react";
+import type { SyntheticEvent } from "react";
 import { useState } from "react";
 import type { components } from "@/core/api/openapi.gen";
 import type { FilterOptionGroup } from "@/features/transactions/components/filter-select";
@@ -84,7 +84,7 @@ export function HistoryFilters({
     void navigate({ to: "/transactions", search });
   }
 
-  function applyFilters(event: FormEvent<HTMLFormElement>) {
+  function applyFilters(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     showFilters(filtersFromForm(event.currentTarget));
   }
