@@ -12,6 +12,7 @@ import {
 } from "../../features/categories/category.routes.js";
 import { healthResponseSchema } from "../../features/health/health.routes.js";
 import { monthlyReportResponseSchema } from "../../features/reports/report.routes.js";
+import { signUpResponseSchema } from "../../features/sign-up/sign-up.routes.js";
 import {
   refundsExistProblemSchema,
   transactionCollectionResponseSchema,
@@ -211,6 +212,14 @@ describe("published API contract", () => {
         path: "/health",
         schema: healthResponseSchema,
         response: await call({ path: "/health", anonymous: true }),
+      });
+
+      record({
+        operationId: "getSignUpStatus",
+        method: "get",
+        path: "/sign-up",
+        schema: signUpResponseSchema,
+        response: await call({ path: "/sign-up", anonymous: true }),
       });
 
       record({

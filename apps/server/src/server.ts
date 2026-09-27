@@ -21,6 +21,7 @@ const app = createApp({
   auth: createAuthGateway(auth),
   db,
   clientOrigins: serverConfig.clientOrigins,
+  signUpEnabled: serverConfig.authSignUpEnabled,
 });
 
 const server = serve(

@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { createCategoryRoutes } from "../features/categories/category.routes.js";
 import { healthRoutes } from "../features/health/health.routes.js";
 import { createReportRoutes } from "../features/reports/report.routes.js";
+import { createSignUpRoutes } from "../features/sign-up/sign-up.routes.js";
 import { createTransactionRoutes } from "../features/transactions/transaction.routes.js";
 import { createWalletRoutes } from "../features/wallets/wallet.routes.js";
 import type { AuthGateway } from "./auth/gateway.js";
@@ -28,12 +29,14 @@ export interface AppOptions {
   auth: AuthGateway;
   db: Database;
   clientOrigins: readonly string[];
+  signUpEnabled: boolean;
 }
 
 export function createApp({
   auth,
   db,
   clientOrigins,
+  signUpEnabled,
 }: AppOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
@@ -46,6 +49,7 @@ export function createApp({
   app.onError(handleRequestError);
 
   app.route("/", healthRoutes);
+  app.route("/", createSignUpRoutes({ signUpEnabled }));
   registerAuthRoutes(app, auth);
   app.use(APPLICATION_ROUTE_PATTERN, requireSession(auth));
   app.route("/v1", createWalletRoutes(db));

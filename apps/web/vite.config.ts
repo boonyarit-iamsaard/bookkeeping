@@ -80,6 +80,10 @@ export default defineConfig({
               url.pathname.startsWith("/api/auth/"),
             handler: "NetworkOnly",
           },
+          {
+            urlPattern: ({ url }) => url.pathname === "/sign-up",
+            handler: "NetworkOnly",
+          },
         ],
       },
     }),

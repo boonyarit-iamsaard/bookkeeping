@@ -28,11 +28,18 @@ const unconnectedDatabase = createDatabase(
 export interface UnitTestAppOptions {
   auth?: AuthGateway;
   db?: Database;
+  signUpEnabled?: boolean;
 }
 
 export function createUnitTestApp({
   auth = anonymousAuthGateway,
   db = unconnectedDatabase,
+  signUpEnabled = true,
 }: Readonly<UnitTestAppOptions> = {}): Hono<AppEnv> {
-  return createApp({ auth, db, clientOrigins: [TEST_CLIENT_ORIGIN] });
+  return createApp({
+    auth,
+    db,
+    clientOrigins: [TEST_CLIENT_ORIGIN],
+    signUpEnabled,
+  });
 }

@@ -28,6 +28,7 @@ operations follow.
 | Sign in (`useSignInForm`)                      | `POST /api/auth/sign-in/email` | Better Auth owned; gateway tests prove the mount and CSRF rejection only  |
 | Sign out (`AccountMenu`)                       | `POST /api/auth/sign-out`      | Better Auth owned; gateway tests prove the mount only                     |
 | Session behind every page                      | `GET /api/auth/get-session`    | `apps/server/src/core/auth/session.unit.test.ts`, gateway tests           |
+| Sign-up availability check (`readSignUp`)      | `GET /sign-up`                 | `sign-up.routes.unit.test.ts`, API contract test                          |
 | Provisioning retry (`retryProvisioningAction`) | `initializeDefaultCategories`  | `apps/server/src/features/categories/category.routes.integration.test.ts` |
 
 Better Auth routes stay outside `/v1`; every `/v1` route requires the API

@@ -94,6 +94,21 @@
           "status"
         ]
       },
+      "SignUpStatus": {
+        "type": "object",
+        "properties": {
+          "signUp": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ]
+          }
+        },
+        "required": [
+          "signUp"
+        ]
+      },
       "CreateWalletRequest": {
         "type": "object",
         "properties": {
@@ -1098,6 +1113,37 @@
         "summary": "Check server health",
         "tags": [
           "Operations"
+        ]
+      }
+    },
+    "/sign-up": {
+      "get": {
+        "operationId": "getSignUpStatus",
+        "responses": {
+          "200": {
+            "description": "Sign-up availability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignUpStatus"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Check Sign-up availability",
+        "tags": [
+          "Authentication"
         ]
       }
     },

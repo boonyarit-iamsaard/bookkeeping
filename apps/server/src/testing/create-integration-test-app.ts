@@ -22,6 +22,7 @@ export function createUniqueTestEmail(label: string): string {
 export interface IntegrationTestAppOptions {
   /** Substitutes the real Better Auth gateway, e.g. the test auth gateway. */
   auth?: AuthGateway;
+  signUpEnabled?: boolean;
 }
 
 /**
@@ -30,7 +31,7 @@ export interface IntegrationTestAppOptions {
  */
 export function createIntegrationTestApp(
   db: Database,
-  { auth }: Readonly<IntegrationTestAppOptions> = {},
+  { auth, signUpEnabled = true }: Readonly<IntegrationTestAppOptions> = {},
 ): Hono<AppEnv> {
   const gateway =
     auth ??
@@ -47,6 +48,7 @@ export function createIntegrationTestApp(
     auth: gateway,
     db,
     clientOrigins: [TEST_CLIENT_ORIGIN],
+    signUpEnabled,
   });
 }
 
