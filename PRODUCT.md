@@ -21,7 +21,10 @@ collaboration.
 A personal finance app covering tracking, budgeting, and forecasting. The
 first milestone is tracking: income, expenses, refunds, and transfers between
 user-owned wallets (cash, bank account, e-wallet), with two-level categories
-and monthly income/expense/net totals.
+and monthly income/expense/net totals. The milestone ends when the deployed
+app can hold the user's real ledger: automated backups stored off the hosting
+provider with a proven restore, a schema migration strategy, and the trial
+data cleared, per `docs/adr/0008`.
 
 Success is a ledger the user trusts enough to keep: every transaction captured
 close to the moment of spend, balances that reconcile with reality, and
