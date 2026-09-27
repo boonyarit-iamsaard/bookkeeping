@@ -175,3 +175,39 @@ being improved; exclude generated files and avoid unrelated style cleanup.
 
 For future DDD assessment, follow the
 [architecture review guidance](agents/domain.md#during-architecture-reviews).
+
+## Database migrations
+
+Schema changes are recorded as forward-only Drizzle migrations in the
+`packages/database/drizzle/` folder. Generate every migration with an explicit
+snake_case name, for example:
+
+```sh
+pnpm --filter @bookkeeping/database exec drizzle-kit generate --name add_wallet_currency
+```
+
+The default four-digit `index` prefix is retained. For one-table changes, use
+Laravel-style slugs:
+
+- `create_<table>_table`, such as `create_wallets_table`
+- `add_<column>_to_<table>_table`, such as `add_archived_at_to_wallets_table`
+- `drop_<column>_from_<table>_table`, such as `drop_image_from_users_table`
+- `alter_<table>_table_<change>`, such as `alter_wallets_table_add_currency_check`
+
+For a change spanning several tables, use a snake_case intent slug instead,
+such as `add_transaction_history`. Keep one intent per migration; generate
+unrelated changes separately. Never commit Drizzle's random names such as
+`wild_hulk`.
+
+If `generate` asks whether a change is a rename, stop without answering the
+prompt and give the owner this exact command to run on the host after reviewing
+the rename:
+
+```sh
+pnpm --filter @bookkeeping/database exec drizzle-kit generate --name <snake_case_name>
+```
+
+Until production begins applying migrations, the committed history may be
+squashed. After production applies a migration, that history is immutable and
+must not be squashed. `db:push` is only for experiments on a throwaway
+database; generate the migration before committing the resulting schema.

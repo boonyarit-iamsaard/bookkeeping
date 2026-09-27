@@ -13,10 +13,12 @@
     "./transactions": "./src/transactions/transaction.schema.ts",
     "./testing": "./src/testing/test-database.ts",
     "./testing/global-setup": "./src/testing/global-setup.ts",
-    "./testing/start-database": "./src/testing/start-database.ts"
+    "./testing/start-database": "./src/testing/start-database.ts",
+    "./migrate": "./src/migrate.ts"
   },
   "scripts": {
     "db:push": "drizzle-kit push",
+    "db:migrate": "tsx --env-file-if-exists=.env src/migrate-cli.ts",
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",
     "test:watch": "vitest",

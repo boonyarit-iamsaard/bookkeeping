@@ -1,21 +1,17 @@
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
-
-const run = promisify(exec);
+import { migrateDatabase } from "../migrate";
 
 export async function startTestDatabase() {
   const container = await new PostgreSqlContainer("postgres:18-alpine")
     .withDatabase("bookkeeping_test")
     .start();
+  const databaseUrl = container.getConnectionUri();
   const environment = {
     ...process.env,
-    DATABASE_URL: container.getConnectionUri(),
+    DATABASE_URL: databaseUrl,
   };
   try {
-    await run("pnpm --filter @bookkeeping/database db:push --force", {
-      env: environment,
-    });
+    await migrateDatabase(databaseUrl);
   } catch (error) {
     await container.stop();
     throw error;

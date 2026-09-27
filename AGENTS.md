@@ -38,10 +38,10 @@ enforcement.
 
 ### Database schema changes
 
-Use `db:push` while the domain model is unsettled, including for test and CI
-databases. Do not generate, commit, or apply database migrations until the user
-explicitly asks to switch from `db:push` to migrations. Treat this as a hard rule;
-an agent deciding that the domain model is settled does not authorize the switch.
+Schema changes ship as committed migrations in every environment except
+production. Applying migrations to production waits for the owner's explicit
+authorization. Follow the naming and workflow rules in
+`docs/code-conventions.md#database-migrations`.
 
 ### Issue tracker
 
