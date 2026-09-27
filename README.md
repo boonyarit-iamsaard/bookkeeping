@@ -254,6 +254,11 @@ with the environment the caller injects. The Drizzle CLI reads `DATABASE_URL`
 from `packages/database/.env` (copy `packages/database/.env.example`) and
 validates it in `drizzle.config.ts`.
 
+When `AUTH_SIGN_UP_ENABLED=false`, the API refuses new sign-ups, the web hides
+the Sign-up link on the sign-in screen, and `/sign-up` redirects to `/sign-in`.
+Existing Accounts can still sign in. Reopening Sign-up requires only changing
+the API variable and redeploying the API; the web does not need to be rebuilt.
+
 Docker Compose reads no environment files. `docker-compose.yaml` holds fixed,
 local-only credentials and binds every port to loopback; the example
 `DATABASE_URL` values match them.

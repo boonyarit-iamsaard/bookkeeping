@@ -96,6 +96,9 @@ test("the guard redirects each way", { tag: "@matrix" }, async ({ page }) => {
     page.getByText("Sign in to your account", { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("navigation")).toHaveCount(0);
+  await page.getByRole("link", { name: "Sign up" }).click();
+  await expect(page).toHaveURL(/\/sign-up$/);
+  await expect(page.locator('form[data-ready="true"]')).toBeVisible();
 
   await signUpFreshUser(page);
   // The URL changes before the guard has read the session; leaving earlier

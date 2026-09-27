@@ -1,6 +1,8 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { signUpQuery } from "@/core/auth/sign-up";
 import { useSignInForm } from "@/features/auth/hooks/use-sign-in-form";
 import { Button, linkActionClass } from "@/shared/components/ui/button";
 import {
@@ -21,6 +23,7 @@ import { Input } from "@/shared/components/ui/input";
 
 export function SignInForm(props: Readonly<React.ComponentProps<typeof Card>>) {
   const { form, serverError } = useSignInForm();
+  const { data: signUpStatus } = useQuery(signUpQuery());
 
   return (
     <Card {...props}>
@@ -83,12 +86,16 @@ export function SignInForm(props: Readonly<React.ComponentProps<typeof Card>>) {
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? "Signing in…" : "Sign in"}
                   </Button>
-                  <FieldDescription className="text-center">
-                    Don&apos;t have an account?
-                  </FieldDescription>
-                  <Link to="/sign-up" className={linkActionClass}>
-                    Sign up
-                  </Link>
+                  {signUpStatus === "open" && (
+                    <>
+                      <FieldDescription className="text-center">
+                        Don&apos;t have an account?
+                      </FieldDescription>
+                      <Link to="/sign-up" className={linkActionClass}>
+                        Sign up
+                      </Link>
+                    </>
+                  )}
                 </Field>
               )}
             </form.Subscribe>

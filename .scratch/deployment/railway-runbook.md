@@ -278,8 +278,9 @@ Now close public sign-up:
 
 1. **api → Variables**: set `AUTH_SIGN_UP_ENABLED=false`, then deploy the
    change.
-2. Once the redeploy is live, try a second sign-up. The web sign-up screen
-   should show the server's rejection. Or check from PowerShell 7:
+2. Once the redeploy is live, open the sign-in screen. It should show neither
+   the "Don't have an account?" text nor a "Sign up" link. Open `/sign-up`; it
+   should land on `/sign-in`. Or check from PowerShell 7:
 
    ```powershell
    curl -sS -o NUL -w '%{http_code}' -X POST https://api.bookkeeping.boonyarit.me/api/auth/sign-up/email -H 'Content-Type: application/json' -H 'Origin: https://bookkeeping.boonyarit.me' --data '{"email":"probe@example.com","password":"probe-password-123","name":"probe"}'
