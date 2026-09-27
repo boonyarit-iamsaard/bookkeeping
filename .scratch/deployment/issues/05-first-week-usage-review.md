@@ -23,5 +23,9 @@ gap, such as the first capture of the morning.
 have its own spec under `.scratch/real-data-readiness/`, written by grilling
 once the hosting choice is confirmed. Agreed scope on 2026-09-27: automated
 backups stored off the hosting provider, a restore drill into a fresh
-database, the switch from `db:push` to migrations, and wiping the trial data
-before the real ledger starts.
+database, applying migrations to production, and wiping the trial data
+before the real ledger starts. The switch from `db:push` to migrations
+outside production is `.scratch/database-migrations/spec.md` and does not
+wait for this ticket; production's share is wiping the trial database,
+squashing to one baseline, deciding where migrations run, and freezing
+committed migrations (ADR 0009).
