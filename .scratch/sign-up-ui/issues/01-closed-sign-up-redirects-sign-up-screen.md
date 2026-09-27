@@ -10,18 +10,18 @@ it is open, `/sign-up` works exactly as today.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A public `GET /sign-up` answers `200` with `{ "signUp": "open" }` or
+- [x] A public `GET /sign-up` answers `200` with `{ "signUp": "open" }` or
       `{ "signUp": "closed" }`, needs no session, and sits outside `/v1` and
       `/api/auth`.
-- [ ] With `AUTH_SIGN_UP_ENABLED` unset, `true` or `false`, the endpoint answers
+- [x] With `AUTH_SIGN_UP_ENABLED` unset, `true` or `false`, the endpoint answers
       `"open"`, `"open"` or `"closed"` respectively. An in-process server test
       covers all three, following the health route test's pattern.
-- [ ] The route is registered in the OpenAPI document. The Hono contract test
+- [x] The route is registered in the OpenAPI document. The Hono contract test
       checks the response against it.
-- [ ] `docs/api-parity.md` has a row for the web's Sign-up check.
-- [ ] The web's Sign-up query, shaped like the session query:
+- [x] `docs/api-parity.md` has a row for the web's Sign-up check.
+- [x] The web's Sign-up query, shaped like the session query:
   - resolves `"open"` or `"closed"`;
   - resolves `"closed"` on a rejected request, a non-2xx response, or a
     malformed body;
@@ -29,11 +29,11 @@ it is open, `/sign-up` works exactly as today.
 
   Its unit test covers each case with the API call mocked.
 
-- [ ] `/sign-up` redirects to `/sign-in` unless the answer is `"open"`.
-- [ ] The service worker treats the new path as network-only, like `/v1` and
+- [x] `/sign-up` redirects to `/sign-in` unless the answer is `"open"`.
+- [x] The service worker treats the new path as network-only, like `/v1` and
       `/api/auth`.
-- [ ] One focused auth browser spec on one project passes with Sign-up open.
-- [ ] Browser check with Sign-up closed:
+- [x] One focused auth browser spec on one project passes with Sign-up open.
+- [x] Browser check with Sign-up closed:
   1. Postgres is up via `pnpm db:start`. If Docker Desktop isn't running, stop
      and report it rather than working around it.
   2. `AUTH_SIGN_UP_ENABLED=false` is set in the local `apps/server/.env`.
@@ -41,6 +41,15 @@ it is open, `/sign-up` works exactly as today.
   4. `GET /sign-up` on the API answers `{"signUp":"closed"}`.
   5. Opening `/sign-up` in the browser ends on `/sign-in`, with a screenshot as
      proof.
-- [ ] `apps/server/.env` is restored to its previous Sign-up setting. After an
+- [x] `apps/server/.env` is restored to its previous Sign-up setting. After an
       `api` restart, `/sign-up` shows the form again.
-- [ ] `pnpm run ci` passes.
+- [x] `pnpm run ci` passes.
+
+## Comments
+
+- Implemented in commit `76e36ff` (`feat: expose sign-up availability to the web`).
+- Verified with `pnpm run ci`, the focused phone-Chromium auth spec with
+  Sign-up open, and a temporary phone-Chromium browser check with
+  `AUTH_SIGN_UP_ENABLED=false`. The closed-state screenshot is at
+  `apps/web/test-results/closed-sign-up.png`; the local server `.env` was not
+  changed.
