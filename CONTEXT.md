@@ -8,6 +8,10 @@ Personal finance covers tracking money, planning budgets, and forecasting future
 The signed-in identity, identified by email, that owns all of a user's wallets, categories and transactions.
 _Avoid_: Wallet, user profile
 
+**Sign-up**:
+Creating a new Account with email and password. Sign-up is either open or closed; when closed, existing Accounts can still sign in.
+_Avoid_: Registration, enabled/disabled sign-up
+
 **Wallet**:
 A money holding owned by one Account, with a type of cash, bank account, or e-wallet.
 _Avoid_: Account when referring to money holdings collectively
