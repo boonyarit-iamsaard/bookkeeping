@@ -17,7 +17,8 @@ ticket's Comments.
 - A GitHub account with access to `boonyarit-iamsaard/bookkeeping`.
 - A login for Hostinger hPanel, which holds DNS for `boonyarit.me`.
 - Your phone, on mobile data rather than Wi-Fi, for stage 11.
-- A terminal at the repo root, with `openssl`, `curl`, and `pnpm` installed.
+- A terminal at the repo root with `curl` and `pnpm`: PowerShell 7 on Windows,
+  or Bash with `openssl` on macOS or Linux.
 - Allow about an hour. Most of it is waiting on builds, DNS, and certificates.
 
 Reference values used throughout:
@@ -40,7 +41,7 @@ The budget is $10 a month. The trial should cost $6–8.
 3. Open billing or plans and choose **Hobby**. **UI may differ:** this is under
    account settings or workspace settings.
 
-- [ ] The Hobby plan is active.
+- [x] The Hobby plan is active.
 
 ## Stage 2: Project and PostgreSQL 18 in Singapore
 
@@ -58,8 +59,8 @@ The budget is $10 a month. The trial should cost $6–8.
 7. Open **Postgres → Settings → Networking**. If there is a **TCP Proxy**,
    delete it. The database should be reachable only over the private network.
 
-- [ ] Postgres 18 is running in Singapore.
-- [ ] Postgres has no TCP proxy.
+- [x] Postgres 18 is running in Singapore.
+- [x] Postgres has no TCP proxy.
 
 ## Stage 3: api service settings
 
@@ -71,20 +72,35 @@ Otherwise Railway builds it straight away, before its variables exist.
    `/apps/server/railway.json`. The path is absolute from the repo root.
 3. **api → Settings → Deploy → Regions**: Southeast Asia (Singapore).
 4. **api → Settings → Deploy → Serverless** (app sleeping): **off**.
+5. Deploy the staged changes. Until you do, the service exists only as a draft
+   and none of these settings are saved. Hold **Alt** while clicking
+   **Deploy** to save without triggering a redeploy. With no repository
+   connected yet, nothing builds.
+6. **api → Settings → Build → Builder** should now show **Dockerfile**. If it
+   still shows Railpack, the config file path was not saved: enter it again
+   and deploy the change. Do not continue until it shows Dockerfile.
 
-- [ ] The api service points at `/apps/server/railway.json`.
-- [ ] App sleeping is off for api.
+- [x] The api service points at `/apps/server/railway.json`.
+- [x] App sleeping is off for api.
 
 ## Stage 4: api service variables
 
 1. Generate a fresh auth secret in your terminal. Never reuse the one in your
-   local `apps/server/.env`.
+   local `apps/server/.env`. In PowerShell 7:
+
+   ```powershell
+   [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)) | Set-Clipboard
+   ```
+
+   On macOS:
 
    ```sh
    openssl rand -base64 32 | pbcopy
    ```
 
-   This puts the secret on your clipboard without printing it.
+   Either one puts the secret on your clipboard without printing it. On
+   Windows, if Clipboard history (**Win+V**) is on, the secret stays in that
+   list: delete the entry once it is pasted.
 
 2. Open **api → Variables → Raw Editor** and paste this block. Replace
    `<paste-secret>` with the secret from your clipboard:
@@ -102,13 +118,16 @@ Otherwise Railway builds it straight away, before its variables exist.
 4. Check that `DATABASE_URL` resolves to a private host ending in
    `.railway.internal`. If it shows an empty or unresolved value, the database
    service isn't named `Postgres`: fix the reference to match its name.
-5. Copy something else to clear the secret from your clipboard.
+5. Clear the secret from your clipboard: `Set-Clipboard -Value ' '` in
+   PowerShell, or copy something else.
+6. Deploy the staged variables before stage 6. A deploy triggered by
+   connecting the repository uses only variables that were already applied.
 
 Do not set `PORT` or `HOST`. Railway sets `PORT` for you, and the server
 already listens on `0.0.0.0`.
 
-- [ ] All six variables are set on api.
-- [ ] `BETTER_AUTH_SECRET` was generated fresh.
+- [x] All six variables are set on api.
+- [x] `BETTER_AUTH_SECRET` was generated fresh.
 
 ## Stage 5: web service settings and build variable
 
@@ -126,8 +145,11 @@ the first build.
    VITE_API_ORIGIN=https://api.bookkeeping.boonyarit.me
    ```
 
-- [ ] The web service points at `/apps/web/railway.json`.
-- [ ] `VITE_API_ORIGIN` is set on web.
+5. Deploy the staged changes, then check that **web → Settings → Build →
+   Builder** shows **Dockerfile**, as in stage 3.
+
+- [x] The web service points at `/apps/web/railway.json`.
+- [x] `VITE_API_ORIGIN` is set on web.
 
 ## Stage 6: Connect GitHub and deploy `main`
 
@@ -144,18 +166,24 @@ Then check the results:
 
 - api is healthy once its deploy passes the `/health` healthcheck.
 - web is healthy once its deploy goes green.
+- If the logs show `turbo run start` or `/mise/installs/`, Railway built with
+  Railpack instead of the Dockerfile: the config file path was not applied.
+  Re-enter it, deploy, and redeploy the service.
+- If the server exits with a `ZodError` naming missing variables, the deploy
+  started before the variables were applied. Deploy any staged changes, then
+  redeploy.
 - If a build fails because it can't find the Dockerfile, fix `dockerfilePath`
   in that service's `railway.json` and note the fix under the ticket's
   Comments.
 
-- [ ] Both services deployed from `main`.
-- [ ] Auto-deploy waits for CI on both services.
+- [x] Both services deployed from `main`.
+- [x] Auto-deploy waits for CI on both services.
 
 ## Stage 7: Custom domains in Railway
 
 1. **api → Settings → Networking → Custom Domain**: enter
    `api.bookkeeping.boonyarit.me`. If it asks for a port, accept the one it
-   detects.
+   detects: the api logs `8080`, the `PORT` Railway assigns it.
 2. Write down the CNAME target Railway shows, something like
    `xxxx.up.railway.app`.
 3. **web → Settings → Networking → Custom Domain**: enter
@@ -163,68 +191,75 @@ Then check the results:
 4. If Railway also lists a **TXT** verification record for either domain,
    write that down too.
 
-| Hostname                       | CNAME target (fill in) | TXT record, if any (fill in) |
-| ------------------------------ | ---------------------- | ---------------------------- |
-| `api.bookkeeping.boonyarit.me` |                        |                              |
-| `bookkeeping.boonyarit.me`     |                        |                              |
+| Hostname                       | Type  | Name                              | Value                                     |
+| ------------------------------ | ----- | --------------------------------- | ----------------------------------------- |
+| `api.bookkeeping.boonyarit.me` | CNAME | `api.bookkeeping`                 | `<api CNAME target from Railway>`         |
+| `api.bookkeeping.boonyarit.me` | TXT   | `_railway-verify.api.bookkeeping` | `railway-verify=<api token from Railway>` |
+| `bookkeeping.boonyarit.me`     | CNAME | `bookkeeping`                     | `<web CNAME target from Railway>`         |
+| `bookkeeping.boonyarit.me`     | TXT   | `_railway-verify.bookkeeping`     | `railway-verify=<web token from Railway>` |
 
 ## Stage 8: DNS at Hostinger
 
 1. Open <https://hpanel.hostinger.com/domain/boonyarit.me/dns>. **UI may
    differ:** otherwise go to **hPanel → Domains → boonyarit.me → DNS /
    Nameservers**.
-2. Add these records. Hostinger fills in the domain, so enter only the
-   subdomain in **Name**:
-
-   | Type  | Name              | Points to                  |
-   | ----- | ----------------- | -------------------------- |
-   | CNAME | `api.bookkeeping` | api CNAME target (stage 7) |
-   | CNAME | `bookkeeping`     | web CNAME target (stage 7) |
-
-3. Add any TXT records Railway listed in stage 7.
-4. **Do not touch** the apex (`@`) or `www` records. The personal site depends
+2. Add each record from the stage 7 table, copying its **Type**, **Name**,
+   and **Value**. Hostinger fills in the domain, so enter the **Name** as
+   written, without `.boonyarit.me`. Paste TXT values in full, including the
+   `railway-verify=` prefix.
+3. **Do not touch** the apex (`@`) or `www` records. The personal site depends
    on them.
 
-- [ ] Both CNAMEs are added at Hostinger.
+- [x] Both CNAMEs are added at Hostinger.
+- [x] Both TXT records are added at Hostinger.
 
 ## Stage 9: HTTPS on both hostnames
 
 DNS and Railway's certificates can take from a few minutes to about an hour.
-Check from the terminal:
+Check from PowerShell 7:
 
-```sh
-curl -sS -o /dev/null -w '%{http_code}\n' https://api.bookkeeping.boonyarit.me/health
-curl -sS -o /dev/null -w '%{http_code}\n' https://bookkeeping.boonyarit.me/
-curl -sS -o /dev/null -w '%{http_code}\n' https://boonyarit.me/
+```powershell
+foreach ($u in 'https://api.bookkeeping.boonyarit.me/health', 'https://bookkeeping.boonyarit.me/', 'https://boonyarit.me/') { "$(curl -sS -o NUL -w '%{http_code}' $u)  $u" }
 ```
+
+On macOS or Linux, run the same `curl` against each URL with `-o /dev/null`
+instead of `-o NUL`.
 
 All three should print `200`. Certificate errors mean Railway hasn't issued the
 certificate yet: wait and try again. The Custom Domain section in Railway
 shows when it has issued the certificate.
 
-- [ ] Both hostnames serve over HTTPS.
-- [ ] The apex personal site still works.
+- [x] Both hostnames serve over HTTPS.
+- [x] The apex personal site still works.
 
 ## Stage 10: Apply the schema through a temporary TCP proxy
 
 1. **Postgres → Settings → Networking → TCP Proxy**: enable it on port `5432`.
 2. **Postgres → Variables**: copy `DATABASE_PUBLIC_URL`.
 3. From the repo root, run `db:push` with that URL. Don't save it to
-   `packages/database/.env`. Reading it with `read -rs` also keeps it out of
-   your shell history:
+   `packages/database/.env`. Reading it at a prompt also keeps it out of your
+   shell history. In PowerShell 7:
+
+   ```powershell
+   $env:DATABASE_URL = Read-Host -MaskInput 'DATABASE_PUBLIC_URL'; pnpm db:push; Remove-Item Env:DATABASE_URL
+   ```
+
+   In Bash:
 
    ```sh
    read -rs DATABASE_URL && DATABASE_URL="$DATABASE_URL" pnpm db:push; unset DATABASE_URL
    ```
 
-   Paste the URL when the cursor waits; it won't be shown. Don't use
+   Paste the URL when the prompt waits; it is masked or hidden. A
+   `DATABASE_URL` already in the environment takes precedence over the local
+   `packages/database/.env`, so the push targets Railway. Don't use
    `--force`. If drizzle-kit asks about anything destructive, stop and check
    first.
 
 4. **Postgres → Settings → Networking**: delete the TCP proxy again.
 
-- [ ] The schema is applied with `pnpm db:push`.
-- [ ] The TCP proxy is gone.
+- [x] The schema is applied with `pnpm db:push`.
+- [x] The TCP proxy is gone.
 
 ## Stage 11: Phone trial, then close sign-up
 
@@ -237,14 +272,20 @@ On your phone, over mobile data:
 4. Record a transaction, then edit it.
 5. Sign out, then sign back in.
 
-- [ ] Every step above worked on the phone.
+- [x] Every step above worked on the phone.
 
 Now close public sign-up:
 
 1. **api → Variables**: set `AUTH_SIGN_UP_ENABLED=false`, then deploy the
    change.
 2. Once the redeploy is live, try a second sign-up. The web sign-up screen
-   should show the server's rejection. Or check from the terminal:
+   should show the server's rejection. Or check from PowerShell 7:
+
+   ```powershell
+   curl -sS -o NUL -w '%{http_code}' -X POST https://api.bookkeeping.boonyarit.me/api/auth/sign-up/email -H 'Content-Type: application/json' -H 'Origin: https://bookkeeping.boonyarit.me' --data '{"email":"probe@example.com","password":"probe-password-123","name":"probe"}'
+   ```
+
+   Or from Bash:
 
    ```sh
    curl -sS -o /dev/null -w '%{http_code}\n' -X POST \
@@ -260,8 +301,8 @@ Now close public sign-up:
 
 3. Sign in again on the phone to confirm your own account still works.
 
-- [ ] `AUTH_SIGN_UP_ENABLED=false` is deployed.
-- [ ] A second sign-up is rejected.
+- [x] `AUTH_SIGN_UP_ENABLED=false` is deployed.
+- [x] A second sign-up is rejected.
 
 ## One week later
 
