@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/turbo/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "start": {
+      "passThroughEnv": [
+        "AUTH_RATE_LIMIT_ENABLED",
+        "AUTH_SIGN_UP_ENABLED",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "CLIENT_ORIGINS",
+        "DATABASE_URL",
+        "HOST",
+        "PORT"
+      ]
+    }
+  }
+}

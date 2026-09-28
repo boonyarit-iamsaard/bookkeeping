@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { parseEnv } from "node:util";
 import { describe, expect, it } from "vitest";
-import { parseServerEnv } from "./config.js";
+import * as z from "zod";
+import { parseServerEnv, SERVER_ENV_NAMES } from "./config.js";
 
 const requiredEnv = {
   BETTER_AUTH_SECRET: "server-owned-secret-that-is-at-least-32-chars",
@@ -100,5 +101,22 @@ describe("server env config", () => {
       "utf8",
     );
     expect(() => parseServerEnv(parseEnv(example))).not.toThrow();
+  });
+
+  it("passes every server variable through the Turborepo start task", () => {
+    const turboConfig = z
+      .object({
+        tasks: z.object({
+          start: z.object({ passThroughEnv: z.array(z.string()) }),
+        }),
+      })
+      .parse(
+        JSON.parse(
+          readFileSync(new URL("../../../turbo.json", import.meta.url), "utf8"),
+        ),
+      );
+    expect(turboConfig.tasks.start.passThroughEnv.toSorted()).toEqual(
+      SERVER_ENV_NAMES.toSorted(),
+    );
   });
 });

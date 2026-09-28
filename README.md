@@ -249,8 +249,8 @@ environment:
 
 `apps/server/src/core/env/config.ts` validates these at startup.
 `pnpm dev:server` loads `apps/server/.env` when it exists;
-`pnpm --filter @bookkeeping/server start` runs the compiled production output
-with the environment the caller injects. The Drizzle CLI reads `DATABASE_URL`
+`pnpm start:server` runs the compiled production output with the environment
+the caller injects, which `apps/server/turbo.json` passes through Turborepo. The Drizzle CLI reads `DATABASE_URL`
 from `packages/database/.env` (copy `packages/database/.env.example`) and
 validates it in `drizzle.config.ts`.
 

@@ -19,6 +19,9 @@ const serverEnvSchema = z.object({
   AUTH_SIGN_UP_ENABLED: z.enum(["true", "false"]).optional(),
 });
 
+/** Every variable the server reads; its `start` task passes them through. */
+export const SERVER_ENV_NAMES = serverEnvSchema.keyof().options;
+
 export interface ServerConfig {
   port: number;
   hostname: string;
