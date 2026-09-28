@@ -5,6 +5,6 @@ const databaseUrlSchema = z.url({
     "DATABASE_URL must be a PostgreSQL URL; set it in packages/database/.env",
 });
 
-export function requiredDatabaseUrl(): string {
+export function parseDatabaseUrl(): string {
   return databaseUrlSchema.parse(process.env.DATABASE_URL);
 }

@@ -1,5 +1,5 @@
 import { defineConfig } from "drizzle-kit";
-import * as z from "zod";
+import { parseDatabaseUrl } from "./src/database-url";
 
 // drizzle-kit loads `.env` from this directory before reading the config, and
 // never overrides a DATABASE_URL already present in the environment (as the
@@ -9,12 +9,7 @@ const connectingCommands = new Set(["push", "migrate", "studio"]);
 const command = process.argv[2];
 const url =
   command !== undefined && connectingCommands.has(command)
-    ? z
-        .url({
-          error:
-            "DATABASE_URL must be a PostgreSQL URL; set it in packages/database/.env",
-        })
-        .parse(process.env.DATABASE_URL)
+    ? parseDatabaseUrl()
     : undefined;
 
 export default defineConfig({

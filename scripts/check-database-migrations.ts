@@ -4,10 +4,11 @@ import { basename, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryDirectory = fileURLToPath(new URL("../", import.meta.url));
-const migrationsDirectory = fileURLToPath(
-  new URL("../packages/database/drizzle", import.meta.url),
-);
 const migrationsDirectoryRelative = "packages/database/drizzle";
+const migrationsDirectory = join(
+  repositoryDirectory,
+  migrationsDirectoryRelative,
+);
 const migrationFilePattern = /^\d{4}_[a-z0-9_]+\.sql$/;
 
 function findSqlFiles(rootDirectory: string): string[] {
@@ -30,9 +31,7 @@ function findSqlFiles(rootDirectory: string): string[] {
   return files.sort();
 }
 
-function runDrizzleKit(command: "generate" | "check"): void {
-  const commandArguments =
-    command === "generate" ? [command, "--name", "ci_drift_check"] : [command];
+function runDrizzleKit(commandArguments: readonly string[]): void {
   execFileSync(
     "pnpm",
     [
@@ -60,7 +59,7 @@ function readMigrationStatus(): string {
   ).trim();
 }
 
-runDrizzleKit("generate");
+runDrizzleKit(["generate", "--name", "ci_drift_check"]);
 
 const invalidMigrationFiles = findSqlFiles(migrationsDirectory).filter(
   (filePath) => !migrationFilePattern.test(basename(filePath)),
@@ -68,12 +67,9 @@ const invalidMigrationFiles = findSqlFiles(migrationsDirectory).filter(
 if (invalidMigrationFiles.length > 0) {
   console.error(
     [
-      "Migration SQL filenames must match ^\\d{4}_[a-z0-9_]+\\.sql$:",
-      ...invalidMigrationFiles.map((filePath) =>
-        join(
-          "  packages/database/drizzle",
-          relative(migrationsDirectory, filePath),
-        ),
+      `Migration SQL filenames must match ${migrationFilePattern.source}:`,
+      ...invalidMigrationFiles.map(
+        (filePath) => `  ${relative(repositoryDirectory, filePath)}`,
       ),
     ].join("\n"),
   );
@@ -92,7 +88,7 @@ if (migrationStatus.length > 0) {
   process.exit(1);
 }
 
-runDrizzleKit("check");
+runDrizzleKit(["check"]);
 console.log(
   "Database migrations are generated, consistent, and correctly named.",
 );
