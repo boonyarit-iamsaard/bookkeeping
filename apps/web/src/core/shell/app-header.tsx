@@ -29,14 +29,14 @@ export function AppHeader({
 }: Readonly<AppHeaderProps>) {
   return (
     <header className="border-b bg-background max-sm:hidden">
-      <div className="mx-auto flex h-14 w-full max-w-2xl items-center gap-3 px-4 md:gap-6">
+      <div className="mx-auto flex h-14 w-full max-w-2xl items-center gap-3 px-4 md:gap-5">
         <WordmarkLink
           to="/"
           className="font-semibold tracking-tight outline-none focus-visible:rounded-sm focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           Bookkeeping
         </WordmarkLink>
-        <nav aria-label="Primary" className="flex items-center gap-1">
+        <nav aria-label="Primary" className="flex items-center">
           {DESTINATIONS.map((destination) => (
             <NavLink key={destination.to} to={destination.to}>
               {destination.label}

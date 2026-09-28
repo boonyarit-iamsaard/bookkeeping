@@ -51,7 +51,7 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
               <Link
                 to="/wallets/$walletId"
                 params={{ walletId: wallet.id }}
-                className="flex min-h-11 items-center font-medium underline-offset-4 outline-none after:absolute after:inset-0 hover:underline focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50 focus-visible:after:ring-inset"
+                className="flex items-center font-medium leading-snug underline-offset-4 outline-none after:absolute after:inset-0 hover:underline focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50 focus-visible:after:ring-inset"
               >
                 <span className="truncate">{wallet.name}</span>
               </Link>

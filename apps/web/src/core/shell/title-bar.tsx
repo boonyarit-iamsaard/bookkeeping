@@ -41,7 +41,11 @@ interface TitleBarProps {
   title: React.ReactNode;
   /** A `BackLink` on nested screens. */
   back?: React.ReactNode;
-  /** Buttons and links at size `lg`, 44px on phone and 40px from 640px. */
+  /**
+   * Buttons and links at size `lg`, 44px on phone and 40px from 640px. A
+   * ghost action pulls right by `-mr-3` so its word, not its invisible
+   * padding, meets the column's edge.
+   */
   actions?: React.ReactNode;
 }
 

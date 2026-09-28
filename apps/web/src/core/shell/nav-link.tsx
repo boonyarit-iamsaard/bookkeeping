@@ -11,7 +11,7 @@ export function NavLink({ to, children }: Readonly<NavLinkProps>) {
   return (
     <Link
       to={to}
-      className="rounded-4xl px-2 py-1.5 font-medium text-muted-foreground text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[status=active]:text-foreground md:px-3"
+      className="rounded-4xl px-2 py-1.5 font-medium text-muted-foreground text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[status=active]:text-foreground md:px-2.5"
     >
       {children}
     </Link>

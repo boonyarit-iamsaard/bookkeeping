@@ -19,7 +19,11 @@ function NewWalletPage() {
         actions={
           <Link
             to="/wallets"
-            className={buttonVariants({ variant: "ghost", size: "lg" })}
+            className={buttonVariants({
+              variant: "ghost",
+              size: "lg",
+              className: "-mr-3",
+            })}
           >
             Cancel
           </Link>

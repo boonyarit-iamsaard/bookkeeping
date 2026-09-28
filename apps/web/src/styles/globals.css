@@ -128,6 +128,8 @@
     @apply font-sans;
     /* An installed app neither rubber-bands nor pulls to refresh. */
     overscroll-behavior-y: none;
+    /* Short and long screens keep one column position; nothing jumps sideways between them. */
+    scrollbar-gutter: stable;
     accent-color: var(--primary);
     caret-color: var(--primary);
   }

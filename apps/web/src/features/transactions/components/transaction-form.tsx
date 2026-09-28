@@ -471,7 +471,7 @@ export function TransactionForm({
                               ? "amount-description amount-error"
                               : "amount-description"
                           }
-                          className="money h-16 pr-16 pl-11 text-3xl text-foreground md:text-3xl"
+                          className="money h-16 pr-16 pl-11 text-3xl text-foreground sm:h-16 md:text-3xl"
                         />
                         <span
                           aria-hidden="true"
