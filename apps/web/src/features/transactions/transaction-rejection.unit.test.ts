@@ -116,7 +116,8 @@ const REJECTIONS: readonly {
     pointer: "#/transactionDate",
     facts: { expenseDate: "2026-09-02" },
     field: "transactionDate",
-    message: "The expense is dated 2 Sep 2026; a refund cannot come before it",
+    message:
+      "The expense is dated 2 Sep 2026; its refund cannot come before it",
   },
   {
     code: "exceeds-refundable",

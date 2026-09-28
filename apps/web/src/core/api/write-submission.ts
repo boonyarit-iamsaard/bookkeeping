@@ -125,7 +125,7 @@ interface RejectionMapping {
 }
 
 function toApiRejection(
-  problem: ApiProblem,
+  problem: Readonly<ApiProblem>,
   { describe, fieldOf }: Readonly<RejectionMapping>,
 ): ApiRejection {
   const errors = (problem.errors ?? []).map((fieldError) => ({

@@ -49,7 +49,7 @@ export function refundAllowanceMessage(refundAllowance: bigint): string {
 }
 
 export function beforeExpenseMessage(expenseDate: CalendarDate): string {
-  return `The expense is dated ${formatCalendarDate(expenseDate)}; a refund cannot come before it`;
+  return `The expense is dated ${formatCalendarDate(expenseDate)}; its refund cannot come before it`;
 }
 
 export function beforeOpeningMessage(openingDate: CalendarDate): string {
