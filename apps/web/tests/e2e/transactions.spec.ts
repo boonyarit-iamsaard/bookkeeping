@@ -272,7 +272,7 @@ test("an invalid edit keeps the values and names the field; deleting removes the
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-08-31");
   await page.getByRole("button", { name: "Save −฿80.00 · Cash" }).click();
   await expect(
-    page.getByRole("alert").filter({ hasText: "opened on 1 Sep 2026" }),
+    page.getByRole("alert").filter({ hasText: "history starts on 1 Sep 2026" }),
   ).toBeVisible();
   await expect(page.locator("input[name=transactionDate]")).toHaveValue(
     "2026-08-31",

@@ -265,7 +265,7 @@ test("validation keeps values, rejects a date before opening, and shows server e
   await chooseDate(date, beforeOpening);
   await page.getByRole("button", { name: "Save −฿50.00 · Cash" }).click();
   await expect(page.locator("#transactionDate-error")).toContainText(
-    `opened on ${formatCalendarDate(openingDate)}`,
+    `history starts on ${formatCalendarDate(openingDate)}`,
   );
   await expect(page.locator("input[name=transactionDate]")).toHaveValue(
     beforeOpening,

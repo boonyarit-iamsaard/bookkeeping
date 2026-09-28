@@ -133,7 +133,7 @@ test("a linked refund starts from the expense, falls back when the original wall
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-02");
   await page.getByRole("button", { name: "Save +฿50.00 · Bank" }).click();
   await expect(page.locator("#transactionDate-error")).toContainText(
-    "opened on 3 Sep 2026",
+    "history starts on 3 Sep 2026",
   );
   await chooseDate(page.getByLabel("Date", { exact: true }), "2026-09-03");
   await page.getByRole("button", { name: "Save +฿50.00 · Bank" }).click();

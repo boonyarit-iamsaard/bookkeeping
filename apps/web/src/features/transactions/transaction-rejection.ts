@@ -74,7 +74,7 @@ export function beforeExpenseMessage(expenseDate: CalendarDate): string {
 }
 
 export function beforeOpeningMessage(openingDate: CalendarDate): string {
-  return `This wallet opened on ${formatCalendarDate(openingDate)}; earlier dates are not tracked`;
+  return `This wallet's history starts on ${formatCalendarDate(openingDate)}; choose that date or later`;
 }
 
 const moneySchema = z.object({ value: z.string(), currency: z.literal("THB") });

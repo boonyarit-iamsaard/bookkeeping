@@ -87,7 +87,8 @@ const REJECTIONS: Record<TransactionRejectionCode, ExpectedRejection> = {
     pointer: "#/transactionDate",
     facts: { openingDate: "2026-09-01" },
     field: "transactionDate",
-    message: "This wallet opened on 1 Sep 2026; earlier dates are not tracked",
+    message:
+      "This wallet's history starts on 1 Sep 2026; choose that date or later",
   },
   "invalid-refund": {
     pointer: "#/type",
