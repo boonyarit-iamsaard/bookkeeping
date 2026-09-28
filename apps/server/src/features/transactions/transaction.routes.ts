@@ -305,9 +305,39 @@ const openingDateFieldErrorSchema = problemFieldErrorSchema
   })
   .meta({ id: "OpeningDateFieldError" });
 
-const transactionRuleFieldErrorSchema = problemFieldErrorSchema
+const plainRuleFieldErrorSchema = problemFieldErrorSchema
   .extend({ code: z.enum(PLAIN_REJECTION_CODES) })
+  .meta({ id: "PlainRuleFieldError" });
+
+/** A rule rejection keyed by its code, carrying exactly the facts that code names. */
+const transactionRuleFieldErrorSchema = z
+  .discriminatedUnion("code", [
+    refundAllowanceFieldErrorSchema,
+    refundedTotalFieldErrorSchema,
+    refundDateFieldErrorSchema,
+    expenseDateFieldErrorSchema,
+    openingDateFieldErrorSchema,
+    plainRuleFieldErrorSchema,
+  ])
   .meta({ id: "TransactionRuleFieldError" });
+
+const FACTUAL_REJECTION_CODES: { [Code in FactualRejectionCode]: Code } = {
+  "exceeds-refundable": "exceeds-refundable",
+  "below-refunded": "below-refunded",
+  "after-refund": "after-refund",
+  "before-expense": "before-expense",
+  "before-opening": "before-opening",
+};
+
+const RULE_REJECTION_CODES: ReadonlySet<string> = new Set([
+  ...Object.values(PLAIN_REJECTION_CODES),
+  ...Object.values(FACTUAL_REJECTION_CODES),
+]);
+
+/** A request validation error; a rule code never passes as one, so its facts cannot go missing. */
+const transactionValidationFieldErrorSchema = problemFieldErrorSchema
+  .refine((fieldError) => !RULE_REJECTION_CODES.has(fieldError.code))
+  .meta({ id: "TransactionValidationFieldError" });
 
 /**
  * A field error in a rejected transaction command: a rule rejection, with the
@@ -315,13 +345,8 @@ const transactionRuleFieldErrorSchema = problemFieldErrorSchema
  */
 export const transactionFieldErrorSchema = z
   .union([
-    refundAllowanceFieldErrorSchema,
-    refundedTotalFieldErrorSchema,
-    refundDateFieldErrorSchema,
-    expenseDateFieldErrorSchema,
-    openingDateFieldErrorSchema,
     transactionRuleFieldErrorSchema,
-    problemFieldErrorSchema,
+    transactionValidationFieldErrorSchema,
   ])
   .meta({ id: "TransactionFieldError" });
 

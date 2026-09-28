@@ -16,136 +16,125 @@ function fieldError(
 // Every code the API publishes, at the pointer a create request addresses it
 // to, with where it shows and what it says. Kept by hand from the server's
 // pointer table and the agreed wording.
-const REJECTIONS: readonly {
-  code: TransactionRejectionCode;
+interface ExpectedRejection {
   pointer: string;
   facts?: Record<string, unknown>;
   field: string | undefined;
   message: string;
-}[] = [
-  {
-    code: "wallet-not-found",
+}
+
+// Keyed by every published code, so leaving one out fails to compile.
+const REJECTIONS: Record<TransactionRejectionCode, ExpectedRejection> = {
+  "wallet-not-found": {
     pointer: "#/walletId",
     field: "walletId",
     message: "That wallet is not available. Choose another wallet.",
   },
-  {
-    code: "destination-wallet-not-found",
+  "destination-wallet-not-found": {
     pointer: "#/destinationWalletId",
     field: "destinationWalletId",
     message: "That destination wallet is not available. Choose another wallet.",
   },
-  {
-    code: "same-wallet",
+  "same-wallet": {
     pointer: "#/destinationWalletId",
     field: "destinationWalletId",
     message:
       "Choose two different available wallets. Transfers have no category.",
   },
-  {
-    code: "wallet-archived",
+  "wallet-archived": {
     pointer: "#/walletId",
     field: "walletId",
     message:
       "That wallet is archived. Choose an active wallet or retain this transaction’s existing wallets.",
   },
-  {
-    code: "invalid-transfer",
+  "invalid-transfer": {
     pointer: "#/type",
     field: undefined,
     message:
       "Choose two different available wallets. Transfers have no category.",
   },
-  {
-    code: "category-not-found",
+  "category-not-found": {
     pointer: "#/categoryId",
     field: "categoryId",
     message: "That category is not available for this type. Choose another.",
   },
-  {
-    code: "category-kind-mismatch",
+  "category-kind-mismatch": {
     pointer: "#/categoryId",
     field: "categoryId",
     message: "That category is not available for this type. Choose another.",
   },
-  {
-    code: "amount-out-of-range",
+  "amount-out-of-range": {
     pointer: "#/amount/value",
     field: "amount",
     message: "The amount must be between ฿0.01 and ฿99,999,999.99",
   },
-  {
-    code: "note-too-long",
+  "note-too-long": {
     pointer: "#/note",
     field: "note",
     message: "Notes can be at most 200 characters",
   },
-  {
-    code: "invalid-date",
+  "invalid-date": {
     pointer: "#/transactionDate",
     field: "transactionDate",
     message: "Enter a real calendar date",
   },
-  {
-    code: "future-date",
+  "future-date": {
     pointer: "#/transactionDate",
     field: "transactionDate",
     message: "The date cannot be in the future",
   },
-  {
-    code: "before-opening",
+  "before-opening": {
     pointer: "#/transactionDate",
     facts: { openingDate: "2026-09-01" },
     field: "transactionDate",
     message: "This wallet opened on 1 Sep 2026; earlier dates are not tracked",
   },
-  {
-    code: "invalid-refund",
+  "invalid-refund": {
     pointer: "#/type",
     field: undefined,
     message: "Only a current expense can be refunded",
   },
-  {
-    code: "expense-not-found",
+  "expense-not-found": {
     pointer: "#/refundOfTransactionId",
     field: undefined,
     message: "This expense no longer exists, so it can't be refunded",
   },
-  {
-    code: "before-expense",
+  "before-expense": {
     pointer: "#/transactionDate",
     facts: { expenseDate: "2026-09-02" },
     field: "transactionDate",
     message:
       "The expense is dated 2 Sep 2026; its refund cannot come before it",
   },
-  {
-    code: "exceeds-refundable",
+  "exceeds-refundable": {
     pointer: "#/amount/value",
     facts: { refundAllowance: { value: "300.00", currency: "THB" } },
     field: "amount",
     message: "Only ฿300.00 of this expense is left to refund",
   },
-  {
-    code: "below-refunded",
+  "below-refunded": {
     pointer: "#/amount/value",
     facts: { refundedTotal: { value: "150.00", currency: "THB" } },
     field: "amount",
     message:
       "฿150.00 of this expense has been refunded; the amount cannot go below that",
   },
-  {
-    code: "after-refund",
+  "after-refund": {
     pointer: "#/transactionDate",
     facts: { refundDate: "2026-09-03" },
     field: "transactionDate",
     message:
       "A linked refund is dated 3 Sep 2026; the expense cannot come after it",
   },
-];
+};
 
 describe("transaction rejections", () => {
-  test.each(REJECTIONS)(
+  test.each(
+    Object.entries(REJECTIONS).map(([code, expected]) => ({
+      code,
+      ...expected,
+    })),
+  )(
     "$code shows in $field with its own message",
     ({ code, pointer, facts, field, message }) => {
       expect(transactionFieldOf(pointer)).toBe(field);

@@ -935,6 +935,16 @@
       "TransactionFieldError": {
         "anyOf": [
           {
+            "$ref": "#/components/schemas/TransactionRuleFieldError"
+          },
+          {
+            "$ref": "#/components/schemas/TransactionValidationFieldError"
+          }
+        ]
+      },
+      "TransactionRuleFieldError": {
+        "oneOf": [
+          {
             "$ref": "#/components/schemas/RefundAllowanceFieldError"
           },
           {
@@ -950,10 +960,7 @@
             "$ref": "#/components/schemas/OpeningDateFieldError"
           },
           {
-            "$ref": "#/components/schemas/TransactionRuleFieldError"
-          },
-          {
-            "$ref": "#/components/schemas/ProblemFieldError"
+            "$ref": "#/components/schemas/PlainRuleFieldError"
           }
         ]
       },
@@ -1078,7 +1085,7 @@
           "openingDate"
         ]
       },
-      "TransactionRuleFieldError": {
+      "PlainRuleFieldError": {
         "type": "object",
         "properties": {
           "pointer": {
@@ -1110,6 +1117,9 @@
           "pointer",
           "code"
         ]
+      },
+      "TransactionValidationFieldError": {
+        "$ref": "#/components/schemas/ProblemFieldError"
       },
       "TransactionCollection": {
         "type": "object",

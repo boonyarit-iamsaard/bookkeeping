@@ -7,16 +7,37 @@ import type { components } from "@/core/api/openapi.gen";
 import type { ApiFieldError } from "@/core/api/write-submission";
 import { createFieldOf } from "@/core/api/write-submission";
 
-type Schemas = components["schemas"];
+/** A rule rejection as the API publishes it, keyed by code. */
+type RuleFieldError = components["schemas"]["TransactionRuleFieldError"];
 
 /** Every reason the API refuses a transaction command, as it publishes them. */
-export type TransactionRejectionCode =
-  | Schemas["TransactionRuleFieldError"]["code"]
-  | Schemas["RefundAllowanceFieldError"]["code"]
-  | Schemas["RefundedTotalFieldError"]["code"]
-  | Schemas["RefundDateFieldError"]["code"]
-  | Schemas["ExpenseDateFieldError"]["code"]
-  | Schemas["OpeningDateFieldError"]["code"];
+export type TransactionRejectionCode = RuleFieldError["code"];
+
+/** The published variant a code belongs to; several plain codes share one. */
+type RuleVariant<Code extends TransactionRejectionCode> =
+  RuleFieldError extends infer Variant
+    ? Variant extends { code: infer Codes }
+      ? Code extends Codes
+        ? Variant
+        : never
+      : never
+    : never;
+
+/** The code and the facts its message names. */
+type FactsOf<Code extends TransactionRejectionCode> = Omit<
+  RuleVariant<Code>,
+  "pointer" | "detail"
+>;
+
+/** The codes whose published variant carries a fact beside the code. */
+type FactualCode = {
+  [Code in TransactionRejectionCode]: Exclude<
+    keyof FactsOf<Code>,
+    "code"
+  > extends never
+    ? never
+    : Code;
+}[TransactionRejectionCode];
 
 export type TransactionFormField =
   | "amount"
@@ -58,39 +79,76 @@ export function beforeOpeningMessage(openingDate: CalendarDate): string {
 
 const moneySchema = z.object({ value: z.string(), currency: z.literal("THB") });
 
-// Facts arrive in an API response, so they are parsed rather than trusted;
-// a missing or malformed fact falls back to the code's plain message.
-const factsSchema = z.discriminatedUnion("code", [
-  z.object({
-    code: z.literal("exceeds-refundable"),
-    refundAllowance: moneySchema,
-  }),
-  z.object({ code: z.literal("below-refunded"), refundedTotal: moneySchema }),
-  z.object({ code: z.literal("after-refund"), refundDate: z.iso.date() }),
-  z.object({ code: z.literal("before-expense"), expenseDate: z.iso.date() }),
-  z.object({ code: z.literal("before-opening"), openingDate: z.iso.date() }),
-]);
+interface FactDescriber<Code extends FactualCode> {
+  /** Typed by the published variant, so a renamed fact fails to compile. */
+  schema: z.ZodType<FactsOf<Code>>;
+  describe: (facts: Readonly<FactsOf<Code>>) => string;
+}
 
+// Keyed by every code whose published variant carries facts, so a new one
+// fails to compile until it is described here. Facts arrive in an API
+// response, so they are parsed rather than trusted.
+const FACT_DESCRIBERS: { [Code in FactualCode]: FactDescriber<Code> } = {
+  "exceeds-refundable": {
+    schema: z.object({
+      code: z.literal("exceeds-refundable"),
+      refundAllowance: moneySchema,
+    }),
+    describe: ({ refundAllowance }) =>
+      refundAllowanceMessage(parseApiMoney(refundAllowance)),
+  },
+  "below-refunded": {
+    schema: z.object({
+      code: z.literal("below-refunded"),
+      refundedTotal: moneySchema,
+    }),
+    describe: ({ refundedTotal }) =>
+      `${formatBaht(parseApiMoney(refundedTotal))} of this expense has been refunded; the amount cannot go below that`,
+  },
+  "after-refund": {
+    schema: z.object({
+      code: z.literal("after-refund"),
+      refundDate: z.iso.date(),
+    }),
+    describe: ({ refundDate }) =>
+      `A linked refund is dated ${formatCalendarDate(refundDate)}; the expense cannot come after it`,
+  },
+  "before-expense": {
+    schema: z.object({
+      code: z.literal("before-expense"),
+      expenseDate: z.iso.date(),
+    }),
+    describe: ({ expenseDate }) => beforeExpenseMessage(expenseDate),
+  },
+  "before-opening": {
+    schema: z.object({
+      code: z.literal("before-opening"),
+      openingDate: z.iso.date(),
+    }),
+    describe: ({ openingDate }) => beforeOpeningMessage(openingDate),
+  },
+};
+
+function isFactualCode(code: string): code is FactualCode {
+  return Object.hasOwn(FACT_DESCRIBERS, code);
+}
+
+function describeFactsOf<Code extends FactualCode>(
+  code: Code,
+  fieldError: Readonly<ApiFieldError>,
+): string | undefined {
+  const describer: FactDescriber<Code> = FACT_DESCRIBERS[code];
+  const parsed = describer.schema.safeParse(fieldError);
+  return parsed.success ? describer.describe(parsed.data) : undefined;
+}
+
+/** The message its facts word, or `undefined` when the code names none or they are missing. */
 function describeFacts(
   fieldError: Readonly<ApiFieldError>,
 ): string | undefined {
-  const parsed = factsSchema.safeParse(fieldError);
-  if (!parsed.success) {
-    return undefined;
-  }
-  const facts = parsed.data;
-  switch (facts.code) {
-    case "exceeds-refundable":
-      return refundAllowanceMessage(parseApiMoney(facts.refundAllowance));
-    case "below-refunded":
-      return `${formatBaht(parseApiMoney(facts.refundedTotal))} of this expense has been refunded; the amount cannot go below that`;
-    case "after-refund":
-      return `A linked refund is dated ${formatCalendarDate(facts.refundDate)}; the expense cannot come after it`;
-    case "before-expense":
-      return beforeExpenseMessage(facts.expenseDate);
-    case "before-opening":
-      return beforeOpeningMessage(facts.openingDate);
-  }
+  return isFactualCode(fieldError.code)
+    ? describeFactsOf(fieldError.code, fieldError)
+    : undefined;
 }
 
 // Keyed by every published code, so a new rejection fails to compile until
@@ -144,5 +202,5 @@ export function describeTransactionFieldError(
 
 /** Whether the rejection named a figure or date the page may have loaded stale. */
 export function carriesFacts(fieldError: Readonly<ApiFieldError>): boolean {
-  return factsSchema.safeParse(fieldError).success;
+  return describeFacts(fieldError) !== undefined;
 }

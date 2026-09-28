@@ -483,6 +483,12 @@ export interface components {
         Page: {
             nextCursor: string | null;
         };
+        PlainRuleFieldError: {
+            /** @enum {string} */
+            code: "wallet-not-found" | "destination-wallet-not-found" | "same-wallet" | "wallet-archived" | "invalid-transfer" | "category-not-found" | "category-kind-mismatch" | "amount-out-of-range" | "note-too-long" | "invalid-date" | "future-date" | "invalid-refund" | "expense-not-found";
+            detail?: string;
+            pointer: string;
+        };
         ProblemDetails: {
             /** @enum {string} */
             code: "bad-request" | "conflict" | "forbidden" | "has-children" | "history-remains" | "idempotency-conflict" | "idempotency-key-required" | "in-use" | "internal-error" | "invalid-command" | "method-not-allowed" | "not-found" | "protected" | "rate-limited" | "refunds-exist" | "service-unavailable" | "unauthenticated";
@@ -577,7 +583,7 @@ export interface components {
         TransactionEntryDefaults: {
             lastUsedWalletId: string | null;
         };
-        TransactionFieldError: components["schemas"]["RefundAllowanceFieldError"] | components["schemas"]["RefundedTotalFieldError"] | components["schemas"]["RefundDateFieldError"] | components["schemas"]["ExpenseDateFieldError"] | components["schemas"]["OpeningDateFieldError"] | components["schemas"]["TransactionRuleFieldError"] | components["schemas"]["ProblemFieldError"];
+        TransactionFieldError: components["schemas"]["TransactionRuleFieldError"] | components["schemas"]["TransactionValidationFieldError"];
         TransactionRefund: {
             amount: components["schemas"]["Money"];
             /** Format: uuid */
@@ -603,12 +609,8 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        TransactionRuleFieldError: {
-            /** @enum {string} */
-            code: "wallet-not-found" | "destination-wallet-not-found" | "same-wallet" | "wallet-archived" | "invalid-transfer" | "category-not-found" | "category-kind-mismatch" | "amount-out-of-range" | "note-too-long" | "invalid-date" | "future-date" | "invalid-refund" | "expense-not-found";
-            detail?: string;
-            pointer: string;
-        };
+        TransactionRuleFieldError: components["schemas"]["RefundAllowanceFieldError"] | components["schemas"]["RefundedTotalFieldError"] | components["schemas"]["RefundDateFieldError"] | components["schemas"]["ExpenseDateFieldError"] | components["schemas"]["OpeningDateFieldError"] | components["schemas"]["PlainRuleFieldError"];
+        TransactionValidationFieldError: components["schemas"]["ProblemFieldError"];
         TransactionWallet: {
             archived: boolean;
             /** Format: uuid */

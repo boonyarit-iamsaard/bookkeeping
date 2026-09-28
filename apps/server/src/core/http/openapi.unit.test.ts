@@ -2,6 +2,7 @@ import { Validator } from "@seriousme/openapi-schema-validator";
 import { describe, expect, it } from "vitest";
 import type * as z from "zod";
 import { healthResponseSchema } from "../../features/health/health.routes.js";
+import { transactionFieldErrorSchema } from "../../features/transactions/transaction.routes.js";
 import { createUnitTestApp } from "../../testing/create-unit-test-app.js";
 import type {
   DocumentedOperation,
@@ -549,6 +550,20 @@ describe("OpenAPI document", () => {
         required: expect.arrayContaining(["code", "refundAllowance"]),
       }),
     );
+    // Rule rejections are keyed by code, so each code's facts are exact.
+    const ruleBranches = documentedSchema(
+      document,
+      "TransactionRuleFieldError",
+    ).oneOf?.map((branch) => JSON.stringify(branch));
+    expect(ruleBranches).toContain(
+      '{"$ref":"#/components/schemas/RefundAllowanceFieldError"}',
+    );
+    expect(
+      transactionFieldErrorSchema.safeParse({
+        pointer: "#/amount/value",
+        code: "exceeds-refundable",
+      }).success,
+    ).toBe(false);
 
     const requestSchema = documentedSchema(
       document,
