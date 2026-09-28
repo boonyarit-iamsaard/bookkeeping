@@ -7,23 +7,23 @@ survived triage, settled one decision each (see the triage comment below).
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Category:** enhancement
 
 **Out of scope:** the material findings, filed as 12–18; editing `DESIGN.md`
 (08 records these decisions); draggable sheets.
 
-- [ ] Phone touch targets are 44px: back ‹ (`apps/web/src/core/shell/title-bar.tsx:16`), Manage, Filter, New wallet, the filter chips, Apply filters and Clear filters. Title-bar actions share one height.
-- [ ] Reports applies the balance date on pick, like the month; the "Update report" button and its form are gone.
-- [ ] Home and Wallets both caption the total "Across 4 wallets".
-- [ ] The category sheets' header (title plus 44px ✕ `Dialog.Close`) is a shared `SheetHeader`, used by the category, account and filter sheets. The account sheet shows a visible "Account" title with the email beneath. The delete confirmation keeps no ✕. `SheetPortal` no longer draws the grab handle.
-- [ ] The phone tab bar splits into two equal halves around ＋, tabs at natural width within each half, so ＋ sits at the bar's exact centre.
-- [ ] The filter sheet labels read "Wallet" and "Category".
-- [ ] Reports' wallet rows label the dated balance with the balance date itself ("14 Sep 2026"), not "Selected date".
-- [ ] History rows drop the "Recorded … · Bangkok" line (the detail page keeps it), and the whole first line is Ink.
-- [ ] On desktop Home only the Home link carries `aria-current`, not the wordmark.
-- [ ] A wallet page's document title is the wallet's name.
+- [x] Phone touch targets are 44px: back ‹ (`apps/web/src/core/shell/title-bar.tsx:16`), Manage, Filter, New wallet, the filter chips, Apply filters and Clear filters. Title-bar actions share one height.
+- [x] Reports applies the balance date on pick, like the month; the "Update report" button and its form are gone.
+- [x] Home and Wallets both caption the total "Across 4 wallets".
+- [x] The category sheets' header (title plus 44px ✕ `Dialog.Close`) is a shared `SheetHeader`, used by the category, account and filter sheets. The account sheet shows a visible "Account" title with the email beneath. The delete confirmation keeps no ✕. `SheetPortal` no longer draws the grab handle.
+- [x] The phone tab bar splits into two equal halves around ＋, tabs at natural width within each half, so ＋ sits at the bar's exact centre.
+- [x] The filter sheet labels read "Wallet" and "Category".
+- [x] Reports' wallet rows label the dated balance with the balance date itself ("14 Sep 2026"), not "Selected date".
+- [x] History rows drop the "Recorded … · Bangkok" line (the detail page keeps it), and the whole first line is Ink.
+- [x] On desktop Home only the Home link carries `aria-current`, not the wordmark.
+- [x] A wallet page's document title is the wallet's name.
 
 ## Comments
 
@@ -50,3 +50,15 @@ Decisions that shape the build:
   and put one on the delete alert, so the existing header is shared instead.
 - Tab bar: equal-width tabs leave ~70px each at 360px, too narrow for
   "Transactions" at 14px; equal halves keep natural widths and still centre ＋.
+
+### 2026-09-28: done
+
+Implemented in `91add3b`, the commit that recorded this triage; the ticket
+was left open. Checked note by note against the code on 2026-09-28: every
+item stands. Browser coverage asserts them: `shell.spec.ts` (44px targets,
+equal tab halves centring ＋, a wallet page titled by its name, "Across N
+wallets"), `history.spec.ts` (sheet labels, chips, no "Recorded" line in
+rows) and `reports.spec.ts` (balance date applied on pick and named in the
+wallet rows); the wordmark-never-current check runs in the `@matrix` test on
+the desktop project. Verified: web typecheck, web unit tests, and those
+three specs on `phone-chromium`.
