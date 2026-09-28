@@ -100,6 +100,10 @@ export const categoryQueries = {
   },
 };
 
+interface RefundsQuery {
+  excluding?: string;
+}
+
 export const transactionQueries = {
   list(query?: TransactionListQuery) {
     return createReadQuery({
@@ -125,10 +129,14 @@ export const transactionQueries = {
         apiClient.GET("/v1/transactions/{transactionId}", { params, signal }),
     });
   },
-  refunds(transactionId: string) {
+  /** Naming a refund in `excluding` sizes the allowance for correcting it. */
+  refunds(transactionId: string, { excluding }: Readonly<RefundsQuery> = {}) {
     return createReadQuery({
       path: "/v1/transactions/{transactionId}/refunds",
-      params: { path: { transactionId } },
+      params: {
+        path: { transactionId },
+        ...(excluding === undefined ? {} : { query: { excluding } }),
+      },
       read: (params, signal) =>
         apiClient.GET("/v1/transactions/{transactionId}/refunds", {
           params,

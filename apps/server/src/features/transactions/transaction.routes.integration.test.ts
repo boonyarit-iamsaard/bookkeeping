@@ -150,11 +150,19 @@ function getTransaction(
   });
 }
 
+interface RefundsRequest extends ReadRequest {
+  excluding?: string;
+}
+
 function getTransactionRefunds(
   app: Hono<AppEnv>,
-  { id, cookie }: Readonly<ReadRequest>,
+  { id, cookie, excluding }: Readonly<RefundsRequest>,
 ) {
-  return app.request(`${TRANSACTIONS_URL}/${id}/refunds`, {
+  const query =
+    excluding === undefined
+      ? ""
+      : `?${new URLSearchParams({ excluding }).toString()}`;
+  return app.request(`${TRANSACTIONS_URL}/${id}/refunds${query}`, {
     headers: { origin: TEST_CLIENT_ORIGIN, ...(cookie ? { cookie } : {}) },
   });
 }
@@ -1829,6 +1837,55 @@ describe("GET /v1/transactions/{transactionId}/refunds", () => {
         refundedTotal: { value: "25.00", currency: "THB" },
         refundAllowance: { value: "25.00", currency: "THB" },
       });
+    });
+  });
+
+  test("leaves a refund under correction out of the allowance", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
+      const expenseId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        amount: 5_000n,
+        transactionDate: "2026-09-02",
+      });
+      const editedId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "refund",
+        walletId: owner.bankId,
+        refundOfTransactionId: expenseId,
+        amount: 2_000n,
+        transactionDate: "2026-09-03",
+      });
+
+      const response = await getTransactionRefunds(app, {
+        id: expenseId,
+        cookie: owner.cookie,
+        excluding: editedId,
+      });
+      const body = transactionRefundsResponseSchema.parse(
+        await response.json(),
+      );
+
+      expect(response.status).toBe(200);
+      expect(body).toEqual({
+        refunds: [],
+        refundedTotal: { value: "0.00", currency: "THB" },
+        refundAllowance: { value: "50.00", currency: "THB" },
+      });
+      await expectProblem(
+        await getTransactionRefunds(app, {
+          id: expenseId,
+          cookie: owner.cookie,
+          excluding: "not-a-uuid",
+        }),
+        { status: 400, code: "bad-request" },
+      );
     });
   });
 

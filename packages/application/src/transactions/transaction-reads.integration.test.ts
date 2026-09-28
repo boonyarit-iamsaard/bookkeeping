@@ -293,6 +293,45 @@ describe("findExpenseRefunds", () => {
     });
   });
 
+  test("a refund under correction can be left out of its expense's allowance", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const expenseId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        amount: 5_000n,
+        transactionDate: "2026-09-02",
+      });
+      const editedId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "refund",
+        walletId: owner.bankId,
+        refundOfTransactionId: expenseId,
+        amount: 2_000n,
+        transactionDate: "2026-09-03",
+      });
+      const otherId = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "refund",
+        walletId: owner.bankId,
+        refundOfTransactionId: expenseId,
+        amount: 500n,
+        transactionDate: "2026-09-04",
+      });
+
+      const summary = await findExpenseRefunds(db, {
+        ownerId: owner.ownerId,
+        id: expenseId,
+        excluding: editedId,
+      });
+      expect(summary?.refunds.map((refund) => refund.id)).toEqual([otherId]);
+      expect(summary?.refundedTotal).toBe(500n);
+      expect(summary?.refundAllowance).toBe(4_500n);
+    });
+  });
+
   test("only a current owned expense has an allowance", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);

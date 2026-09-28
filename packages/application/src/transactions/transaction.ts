@@ -485,6 +485,14 @@ async function currentRefundsOf(
   }));
 }
 
+export interface ExpenseRefundsQuery extends TransactionRef {
+  /**
+   * A refund under correction, left out so the allowance is what that refund
+   * may take, as the correction rule counts it.
+   */
+  excluding?: string;
+}
+
 /**
  * The current refunds linked to one of the owner's expenses, oldest date
  * first, with what they add up to and what is left to refund. `null` unless
@@ -493,7 +501,7 @@ async function currentRefundsOf(
  */
 export async function findExpenseRefunds(
   db: Database,
-  { ownerId, id }: Readonly<TransactionRef>,
+  { ownerId, id, excluding }: Readonly<ExpenseRefundsQuery>,
 ): Promise<ExpenseRefunds | null> {
   if (!isUuid(id)) {
     return null;
@@ -511,7 +519,9 @@ export async function findExpenseRefunds(
   if (expense?.type !== "expense") {
     return null;
   }
-  const refunds = await currentRefundsOf(db, id);
+  const refunds = (await currentRefundsOf(db, id)).filter(
+    (refund) => refund.id !== excluding,
+  );
   const refundedTotal = sumOf(refunds);
   const refundAllowance = expense.amount - refundedTotal;
   return {

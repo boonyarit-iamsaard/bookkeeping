@@ -46,14 +46,4 @@ describe("linkedExpenseView", () => {
       refundAllowanceLabel: "฿400.00",
     });
   });
-
-  test("adds the refund being edited back to the allowance", () => {
-    const view = linkedExpenseView({
-      expense,
-      refunds,
-      editingRefund: { amount: { value: "100.00", currency: "THB" } },
-    });
-    expect(view.refundAllowanceText).toBe("500.00");
-    expect(view.refundAllowanceLabel).toBe("฿500.00");
-  });
 });

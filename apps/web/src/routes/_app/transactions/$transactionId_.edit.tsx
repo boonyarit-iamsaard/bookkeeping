@@ -46,9 +46,16 @@ export const Route = createFileRoute("/_app/transactions/$transactionId_/edit")(
               transactionQueries.detail(refundedExpenseId),
             )
           : undefined,
-        transaction.type === "expense" || transaction.refundOf
+        transaction.refundOf
           ? context.queryClient.ensureQueryData(
-              transactionQueries.refunds(refundedExpenseId),
+              transactionQueries.refunds(refundedExpenseId, {
+                excluding: transaction.id,
+              }),
+            )
+          : undefined,
+        transaction.type === "expense"
+          ? context.queryClient.ensureQueryData(
+              transactionQueries.refunds(transaction.id),
             )
           : undefined,
       ]);
@@ -141,20 +148,13 @@ function EditRefundForm({
     transactionQueries.detail(expenseId),
   );
   const { data: refunds } = useSuspenseQuery(
-    transactionQueries.refunds(expenseId),
+    transactionQueries.refunds(expenseId, { excluding: props.transaction.id }),
   );
   if (!expense || !refunds) {
     throw new Error("The refunded expense queries returned no data");
   }
   return (
-    <EditForm
-      {...props}
-      refundOf={linkedExpenseView({
-        expense,
-        refunds,
-        editingRefund: props.transaction,
-      })}
-    />
+    <EditForm {...props} refundOf={linkedExpenseView({ expense, refunds })} />
   );
 }
 

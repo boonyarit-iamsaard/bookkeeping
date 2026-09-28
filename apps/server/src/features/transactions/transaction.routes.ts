@@ -514,6 +514,14 @@ const transactionListQueryMiddleware = createQueryMiddleware(
   transactionListQuerySchema,
 );
 
+const transactionRefundsQuerySchema = z.strictObject({
+  excluding: z.uuid().optional(),
+});
+
+const transactionRefundsQueryMiddleware = createQueryMiddleware(
+  transactionRefundsQuerySchema,
+);
+
 const transactionParamsSchema = z.object({ transactionId: z.uuid() });
 const transactionParamMiddleware = createResourceParamMiddleware(
   transactionParamsSchema,
@@ -871,17 +879,20 @@ export function createTransactionRoutes(db: Database) {
           "oldest transaction date first, with what they add up to and what " +
           "is left to refund. Only a current expense has a refund allowance: " +
           "a missing, deleted, foreign, malformed, or non-expense identifier " +
-          "is not found alike.",
+          "is not found alike. Naming a refund in `excluding` leaves it " +
+          "out, so the allowance is what that refund may take when corrected.",
         tags: ["Transactions"],
         responses: { 401: describeProblemResponse(401) },
       }),
       transactionParamMiddleware,
+      transactionRefundsQueryMiddleware,
       describeResponse<
         AuthenticatedEnv,
         typeof REFUNDS_PATH,
-        Input,
+        QueryValidatedInput<typeof transactionRefundsQuerySchema>,
         {
           200: typeof transactionRefundsResponseSchema;
+          400: typeof problemDetailsSchema;
           404: typeof problemDetailsSchema;
         }
       >(
@@ -889,16 +900,20 @@ export function createTransactionRoutes(db: Database) {
           const refunds = await findExpenseRefunds(db, {
             ownerId: c.get("session").user.id,
             id: c.req.param("transactionId"),
+            excluding: c.req.valid("query").excluding,
           });
           return answerRead(c, {
             value: refunds,
             present: presentTransactionRefunds,
           });
         },
-        describeRead(
-          "The expense's refunds and refund allowance",
-          transactionRefundsResponseSchema,
-        ),
+        {
+          ...describeRead(
+            "The expense's refunds and refund allowance",
+            transactionRefundsResponseSchema,
+          ),
+          400: describeProblem(getProblemOptionsForStatus(400)),
+        },
       ),
     );
 }

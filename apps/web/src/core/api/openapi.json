@@ -2872,6 +2872,16 @@
               }
             }
           },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Authentication required",
             "content": {
@@ -2904,7 +2914,7 @@
           }
         },
         "summary": "Get an expense's refunds",
-        "description": "The current refunds linked to one of the owner's expenses, oldest transaction date first, with what they add up to and what is left to refund. Only a current expense has a refund allowance: a missing, deleted, foreign, malformed, or non-expense identifier is not found alike.",
+        "description": "The current refunds linked to one of the owner's expenses, oldest transaction date first, with what they add up to and what is left to refund. Only a current expense has a refund allowance: a missing, deleted, foreign, malformed, or non-expense identifier is not found alike. Naming a refund in `excluding` leaves it out, so the allowance is what that refund may take when corrected.",
         "tags": [
           "Transactions"
         ],
@@ -2918,6 +2928,15 @@
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "excluding",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
           }
         ]
       }

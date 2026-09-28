@@ -229,7 +229,7 @@ export interface paths {
         };
         /**
          * Get an expense's refunds
-         * @description The current refunds linked to one of the owner's expenses, oldest transaction date first, with what they add up to and what is left to refund. Only a current expense has a refund allowance: a missing, deleted, foreign, malformed, or non-expense identifier is not found alike.
+         * @description The current refunds linked to one of the owner's expenses, oldest transaction date first, with what they add up to and what is left to refund. Only a current expense has a refund allowance: a missing, deleted, foreign, malformed, or non-expense identifier is not found alike. Naming a refund in `excluding` leaves it out, so the allowance is what that refund may take when corrected.
          */
         get: operations["getTransactionRefunds"];
         put?: never;
@@ -1493,7 +1493,9 @@ export interface operations {
     };
     getTransactionRefunds: {
         parameters: {
-            query?: never;
+            query?: {
+                excluding?: string;
+            };
             header?: never;
             path: {
                 transactionId: string;
@@ -1509,6 +1511,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionRefunds"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Authentication required */
