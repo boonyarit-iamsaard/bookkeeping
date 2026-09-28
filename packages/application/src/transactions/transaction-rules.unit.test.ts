@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { TransactionCommand, TransactionFacts } from "./transaction-rules";
 import {
   acceptTransaction,
+  refundAllowanceOf,
   sameSnapshot,
   snapshotOf,
 } from "./transaction-rules";
@@ -294,5 +295,34 @@ describe("snapshots", () => {
     ).toBe(false);
     expect(snapshotOf(transfer)).not.toHaveProperty("refundOfTransactionId");
     expect(snapshotOf(expense)).not.toHaveProperty("destinationWalletId");
+  });
+});
+
+describe("refundAllowanceOf", () => {
+  const Other = "0192f7a0-0000-7000-8000-000000000102";
+
+  test("is the expense amount less its refunds", () => {
+    expect(
+      refundAllowanceOf({
+        expenseAmount: 50_000n,
+        refunds: [refund(10_000n), { ...refund(5_000n), id: Other }],
+      }),
+    ).toBe(35_000n);
+  });
+
+  test("leaves out a refund under correction", () => {
+    expect(
+      refundAllowanceOf({
+        expenseAmount: 50_000n,
+        refunds: [refund(10_000n), { ...refund(5_000n), id: Other }],
+        excluding: REFUND,
+      }),
+    ).toBe(45_000n);
+  });
+
+  test("never reads below zero", () => {
+    expect(
+      refundAllowanceOf({ expenseAmount: 5_000n, refunds: [refund(6_000n)] }),
+    ).toBe(0n);
   });
 });

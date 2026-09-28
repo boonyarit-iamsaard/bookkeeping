@@ -50,6 +50,7 @@ import type {
 } from "./transaction-rules";
 import {
   acceptTransaction,
+  refundAllowanceOf,
   sameSnapshot,
   snapshotOf,
   sumOf,
@@ -522,12 +523,13 @@ export async function findExpenseRefunds(
   const refunds = (await currentRefundsOf(db, id)).filter(
     (refund) => refund.id !== excluding,
   );
-  const refundedTotal = sumOf(refunds);
-  const refundAllowance = expense.amount - refundedTotal;
   return {
     refunds,
-    refundedTotal,
-    refundAllowance: refundAllowance > 0n ? refundAllowance : 0n,
+    refundedTotal: sumOf(refunds),
+    refundAllowance: refundAllowanceOf({
+      expenseAmount: expense.amount,
+      refunds,
+    }),
   };
 }
 

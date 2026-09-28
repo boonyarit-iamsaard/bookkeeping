@@ -285,6 +285,28 @@ function rejectDate(
   return undefined;
 }
 
+export function sumOf(refunds: readonly RefundSummary[]): bigint {
+  return refunds.reduce((total, refund) => total + refund.amount, 0n);
+}
+
+export interface RefundAllowanceInput {
+  expenseAmount: bigint;
+  refunds: readonly RefundSummary[];
+  /** A refund under correction, which does not count its own old amount. */
+  excluding?: string;
+}
+
+/** What an expense has left to refund once its refunds count against it; never negative. */
+export function refundAllowanceOf({
+  expenseAmount,
+  refunds,
+  excluding,
+}: Readonly<RefundAllowanceInput>): bigint {
+  const counted = refunds.filter((refund) => refund.id !== excluding);
+  const refundAllowance = expenseAmount - sumOf(counted);
+  return refundAllowance > 0n ? refundAllowance : 0n;
+}
+
 /** A refund under correction does not count its own old amount against the allowance. */
 function rejectRefundAgainstExpense(
   command: Readonly<TransactionCommand>,
@@ -300,10 +322,11 @@ function rejectRefundAgainstExpense(
       expenseDate: facts.expense.transactionDate,
     };
   }
-  const others = facts.expense.refunds.filter(
-    (refund) => refund.id !== facts.current?.id,
-  );
-  const refundAllowance = facts.expense.amount - sumOf(others);
+  const refundAllowance = refundAllowanceOf({
+    expenseAmount: facts.expense.amount,
+    refunds: facts.expense.refunds,
+    excluding: facts.current?.id,
+  });
   if (command.amount > refundAllowance) {
     return { field: "amount", code: "exceeds-refundable", refundAllowance };
   }
@@ -334,10 +357,6 @@ function rejectExpenseAgainstRefunds(
     };
   }
   return undefined;
-}
-
-export function sumOf(refunds: readonly RefundSummary[]): bigint {
-  return refunds.reduce((total, refund) => total + refund.amount, 0n);
 }
 
 /** What a snapshot is taken from: a command, or a stored row with the same fields. */
