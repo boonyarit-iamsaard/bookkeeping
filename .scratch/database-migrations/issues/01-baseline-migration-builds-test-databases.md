@@ -14,26 +14,26 @@ migrations.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The Drizzle config writes migrations into a folder inside the database
+- [x] The Drizzle config writes migrations into a folder inside the database
       package with the default `index` prefix, and validates `DATABASE_URL`
       only for commands that connect (`push`, `migrate`, `studio`), so
       `generate` and `check` run without it.
-- [ ] `0000_baseline` is generated with `--name baseline` and holds the full
+- [x] `0000_baseline` is generated with `--name baseline` and holds the full
       current schema: enums, `uuidv7()` defaults, partial and expression
       unique indexes, and CHECK constraints. Its SQL is reviewed, not edited.
-- [ ] `@bookkeeping/database` exports `migrateDatabase(url)`, which opens its
+- [x] `@bookkeeping/database` exports `migrateDatabase(url)`, which opens its
       own connection, applies pending migrations from the committed folder with
       drizzle-orm's node-postgres migrator, and closes the connection even on
       failure.
-- [ ] `startTestDatabase()` calls `migrateDatabase` directly instead of
+- [x] `startTestDatabase()` calls `migrateDatabase` directly instead of
       starting a `pnpm` child process. Its consumers are unchanged.
-- [ ] Root `db:migrate` delegates to the database package, as `db:push` does.
-- [ ] A new database-package integration test, beside the test-database
+- [x] Root `db:migrate` delegates to the database package, as `db:push` does.
+- [x] A new database-package integration test, beside the test-database
       fixture test, shows that a second `migrateDatabase` run on a migrated
       database succeeds and leaves the schema usable.
-- [ ] `docs/code-conventions.md` gains a `## Database migrations` section:
+- [x] `docs/code-conventions.md` gains a `## Database migrations` section:
       generate with `--name` in snake_case; Laravel-style slugs for one table
       (`create_<table>_table`, `add_<column>_to_<table>_table`,
       `drop_<column>_from_<table>_table`, `alter_<table>_table_<change>`),
@@ -43,12 +43,25 @@ migrations.
       host; forward-only; squashing allowed until production applies
       migrations, forbidden after; `db:push` only for experiments on a
       throwaway database, with the migration generated before committing.
-- [ ] The `CLAUDE.md` "Database schema changes" section says schema changes
+- [x] The `CLAUDE.md` "Database schema changes" section says schema changes
       ship as migrations everywhere except production, that applying them to
       production waits for the owner's authorization, and points at the new
       conventions section.
-- [ ] The package and server suites pass, `pnpm run ci` passes, and one
+- [x] The package and server suites pass, `pnpm run ci` passes, and one
       focused SPA spec passes on one project (the browser suite's API
       database changed source). Respect the local resource limits.
 
 ## Comments
+
+Implemented in commit `98f7ac1`; closed after the code review of the migration
+work.
+
+The review fixes moved the migration integration test from
+`src/testing/migrate.integration.test.ts` to `src/migrate.integration.test.ts`,
+merged with the `db:fresh` test, because the code conventions match a test's
+stem to its source module and keep `src/testing/` for shared helpers. The test
+now also asserts that a second `migrateDatabase` run records no new migration,
+as the spec asks.
+
+Verification: the database package suite passed (3 files, 9 tests), `pnpm run
+ci` passed, and `tests/e2e/home.spec.ts` passed on `phone-chromium` (3 tests).
