@@ -216,5 +216,6 @@ must not be squashed. `db:push` is only for experiments on a throwaway
 database; generate the migration before committing the resulting schema.
 `db:fresh` drops the `public` and `drizzle` schemas, recreates `public`, and
 reapplies every committed migration. It is destructive and only works when
-`DATABASE_URL` points to `localhost` or `127.0.0.1`; it has no override for a
+`DATABASE_URL` points to `localhost` or `127.0.0.1`, judged by the host `pg`
+connects to, so a `?host=` query parameter counts; it has no override for a
 remote database.
