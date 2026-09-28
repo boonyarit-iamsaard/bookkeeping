@@ -16,6 +16,8 @@ export interface ApiProblemFieldError {
   pointer: string;
   code: string;
   detail?: string;
+  /** Extension members, such as the facts a rejection names beside its code. */
+  [member: string]: unknown;
 }
 
 const apiProblemSchema = z.looseObject({
@@ -25,7 +27,7 @@ const apiProblemSchema = z.looseObject({
   detail: z.string().optional(),
   errors: z
     .array(
-      z.object({
+      z.looseObject({
         pointer: z.string(),
         code: z.string(),
         detail: z.string().optional(),

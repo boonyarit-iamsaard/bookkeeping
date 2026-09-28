@@ -212,6 +212,37 @@ describe("createWriteSubmission", () => {
     });
   });
 
+  test("keeps the facts a field error carries beside its code", async () => {
+    const send = vi.fn(async () =>
+      rejected(422, {
+        ...invalidCommand,
+        errors: [
+          {
+            pointer: "#/amount/value",
+            code: "exceeds-refundable",
+            refundAllowance: { value: "300.00", currency: "THB" },
+          },
+        ],
+      }),
+    );
+    const submission = createWriteSubmission<unknown, Wallet>({
+      generateKey: keySequence("key-1"),
+    });
+
+    const result = await submission.submit({}, { send });
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        errors: [
+          expect.objectContaining({
+            refundAllowance: { value: "300.00", currency: "THB" },
+          }),
+        ],
+      },
+    });
+  });
+
   test("a form's field list claims pointers by their first segment", async () => {
     const send = vi.fn(async () =>
       rejected(422, {
