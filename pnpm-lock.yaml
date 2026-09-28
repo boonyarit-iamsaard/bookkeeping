@@ -256,6 +256,9 @@ importers:
       '@bookkeeping/database':
         specifier: workspace:*
         version: link:../database
+      '@bookkeeping/domain':
+        specifier: workspace:*
+        version: link:../domain
       better-auth:
         specifier: ^1.7.4
         version: 1.7.4(drizzle-orm@0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)

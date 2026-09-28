@@ -7,16 +7,11 @@ import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
 import { createAuth } from "./config";
 import { resolveSession } from "./session";
+import { TEST_BASE_URL, TEST_SECRET, uniqueEmail } from "./testing/test-auth";
 
 const { withRollback } = setupTestDatabase();
 
-const TEST_SECRET = "integration-test-secret-with-at-least-32-chars";
-const TEST_BASE_URL = "http://localhost:4000";
 const PASSWORD = "correct horse battery";
-
-function uniqueEmail(label: string): string {
-  return `${label}-${process.pid}-${Date.now()}@test.local`;
-}
 
 async function signUp(db: Database, email: string) {
   const auth = createAuth({ db, secret: TEST_SECRET, baseURL: TEST_BASE_URL });

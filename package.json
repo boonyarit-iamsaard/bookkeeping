@@ -24,6 +24,7 @@
     "lint": "biome check --no-errors-on-unmatched --files-ignore-unknown=true",
     "lint:md": "markdownlint \"**/*.md\" --ignore-path .gitignore",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" --ignore-path .gitignore",
+    "password:reset": "pnpm --filter @bookkeeping/server password:reset",
     "prepare": "husky || true",
     "sonar:clean": "tsx scripts/sonar-clean.ts",
     "sonar:scan": "tsx scripts/sonar-scan.ts",

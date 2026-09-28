@@ -7,6 +7,7 @@
     "build": "tsx scripts/build.ts",
     "dev": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx watch src/server.ts",
     "start": "node --enable-source-maps dist/server.js",
+    "password:reset": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/reset-password-cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "types:check": "tsc --noEmit"

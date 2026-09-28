@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./config": "./src/config.ts",
+    "./password-reset": "./src/password-reset.ts",
     "./session": "./src/session.ts"
   },
   "scripts": {
@@ -15,6 +16,7 @@
   "dependencies": {
     "@bookkeeping/application": "workspace:*",
     "@bookkeeping/database": "workspace:*",
+    "@bookkeeping/domain": "workspace:*",
     "better-auth": "^1.7.4",
     "drizzle-orm": "^0.45.2"
   },

@@ -2,11 +2,9 @@ import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { describe, expect, test } from "vitest";
 import { createAuth } from "./config";
 import { resolveSession } from "./session";
+import { TEST_BASE_URL, TEST_SECRET, uniqueEmail } from "./testing/test-auth";
 
 const { withRollback } = setupTestDatabase();
-
-const TEST_SECRET = "integration-test-secret-with-at-least-32-chars";
-const TEST_BASE_URL = "http://localhost:4000";
 
 describe("resolveSession", () => {
   test("a signed-up user's cookie resolves to their session", async () => {
@@ -16,7 +14,7 @@ describe("resolveSession", () => {
         secret: TEST_SECRET,
         baseURL: TEST_BASE_URL,
       });
-      const email = `session-${process.pid}-${Date.now()}@test.local`;
+      const email = uniqueEmail("session");
       const { headers } = await auth.api.signUpEmail({
         body: {
           name: "Session user",

@@ -102,6 +102,7 @@ apps/server/
       reports/            # /v1/reports/monthly: server-calculated monthly totals
       transactions/       # /v1/transactions: list with cursors, get, create, update, delete, refunds, entry defaults
       wallets/            # /v1/wallets: list with as-of balances, get, create, replace opening balances, archive, and delete
+    reset-password-cli.ts # Owner-run lockout recovery: sets an Account's password
     server.ts             # Node entrypoint: parses env and serves the app
     testing/              # Unit and integration app factories and problem assertions
   scripts/build.ts        # esbuild bundle of the entrypoint and workspace packages
@@ -197,6 +198,7 @@ mounts the configuration; the API origin keeps its own host-only cookie:
 packages/auth/
   src/
     config.ts             # @bookkeeping/auth/config: createAuth, Auth, AuthOptions
+    password-reset.ts     # @bookkeeping/auth/password-reset: resetPassword
     session.ts            # @bookkeeping/auth/session: Session, SessionUser, resolveSession
 ```
 
@@ -332,6 +334,31 @@ PostgreSQL stores its initialized credentials in the persistent data volume, so
 editing `POSTGRES_PASSWORD` in `docker-compose.yaml` does not change an already
 initialized database. The fixed credentials are safe because the port listens
 only on loopback; keep it that way rather than changing the password.
+
+## Recovering a locked-out Account
+
+The app has no emailed password reset. The owner sets a new password with a
+script that runs where the server runs, with the server environment. It asks
+for the password twice without echoing it, refuses one that sign-in would
+reject, and ends every session the Account held, so every device signs in
+again.
+
+Locally, with `apps/server/.env` in place:
+
+```sh
+pnpm password:reset owner@example.com
+```
+
+In production, open a shell in the deployed API container, whose environment
+already holds the server variables, and run the compiled script there:
+
+```sh
+railway ssh --service <api-service>
+node --enable-source-maps dist/reset-password-cli.js owner@example.com
+```
+
+The script needs an interactive terminal and refuses piped input, so a
+password never passes through shell history or logs.
 
 ## Tests
 
