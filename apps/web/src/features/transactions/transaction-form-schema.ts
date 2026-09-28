@@ -1,7 +1,6 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import {
   APP_TIME_ZONE,
-  formatCalendarDate,
   parseCalendarDate,
   todayIn,
 } from "@bookkeeping/domain/dates";
@@ -14,6 +13,11 @@ import {
   TRANSACTION_TYPES,
 } from "@bookkeeping/domain/transactions";
 import * as z from "zod";
+import {
+  beforeExpenseMessage,
+  beforeOpeningMessage,
+  refundAllowanceMessage,
+} from "@/features/transactions/transaction-rejection";
 
 const AMOUNT_MESSAGES: Record<MoneyParseError, string> = {
   empty: "Enter an amount, for example 120 or 85.50",
@@ -45,13 +49,6 @@ export interface LinkedExpenseLimits {
   transactionDate: CalendarDate;
   /** What is left to refund, excluding the refund being edited. */
   refundAllowance: bigint;
-}
-
-/** What an expense's current refunds hold it to, as the API reports them. */
-export interface ExpenseRefundLimits {
-  refundedTotal: bigint;
-  /** The earliest linked refund's date; the expense cannot come after it. */
-  earliestRefundDate?: CalendarDate;
 }
 
 function transactionFields() {
@@ -137,17 +134,14 @@ function checkRefundFields({
     ctx.addIssue({
       code: "custom",
       path: ["amount"],
-      message:
-        linkedExpense.refundAllowance > 0n
-          ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.refundAllowance, currency: "THB" })} of this expense is left to refund`
-          : "This expense is already fully refunded",
+      message: refundAllowanceMessage(linkedExpense.refundAllowance),
     });
   }
   if (linkedExpense && value.transactionDate < linkedExpense.transactionDate) {
     ctx.addIssue({
       code: "custom",
       path: ["transactionDate"],
-      message: `The expense is dated ${formatCalendarDate(linkedExpense.transactionDate)}; a refund cannot come before it`,
+      message: beforeExpenseMessage(linkedExpense.transactionDate),
     });
   }
 }
@@ -187,7 +181,7 @@ function transactionFieldCheck({
         ctx.addIssue({
           code: "custom",
           path: ["transactionDate"],
-          message: `This wallet opened on ${formatCalendarDate(openingDate)}; earlier dates are not tracked`,
+          message: beforeOpeningMessage(openingDate),
         });
         break;
       }

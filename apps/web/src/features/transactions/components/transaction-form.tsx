@@ -28,7 +28,6 @@ import {
 } from "@/features/transactions/hooks/use-transaction-form";
 import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
 import type {
-  ExpenseRefundLimits,
   LinkedExpenseLimits,
   TransactionFormInput,
 } from "@/features/transactions/transaction-form-schema";
@@ -80,8 +79,6 @@ export interface EditableTransaction {
   refundOf?: LinkedExpenseView;
   /** For an expense: what its linked refunds add up to, if any. */
   refundedLabel?: string;
-  /** For an expense with refunds: the limits the API's rejections name. */
-  expenseRefunds?: ExpenseRefundLimits;
 }
 
 export type TransactionFormMode =
@@ -403,7 +400,6 @@ export function TransactionForm({
       today: initialToday,
     }),
     linkedExpense,
-    expenseRefunds: editing?.expenseRefunds,
     editingId: editing?.id,
     captureOrigin: mode.kind === "create" ? mode.captureOrigin : undefined,
   });

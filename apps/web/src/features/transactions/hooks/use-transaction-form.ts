@@ -1,7 +1,6 @@
 import type { CategorySummary } from "@bookkeeping/domain/categories";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import { formatCalendarDate } from "@bookkeeping/domain/dates";
-import { formatMoney, formatMoneyInput } from "@bookkeeping/domain/money";
+import { formatMoneyInput } from "@bookkeeping/domain/money";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useQueryClient } from "@tanstack/react-query";
@@ -10,18 +9,23 @@ import { useMemo, useState } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useApiMutation } from "@/core/api/use-api-mutation";
-import type { ApiFieldError } from "@/core/api/write-submission";
-import { createFieldOf, pickFieldErrors } from "@/core/api/write-submission";
+import { pickFieldErrors } from "@/core/api/write-submission";
 import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { CaptureOrigin } from "@/features/transactions/capture-origin";
 import { captureReturnHref } from "@/features/transactions/capture-origin";
 import type {
-  ExpenseRefundLimits,
   LinkedExpenseLimits,
   TransactionFormInput,
   TransactionFormValues,
 } from "@/features/transactions/transaction-form-schema";
 import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
+import type { TransactionFormField } from "@/features/transactions/transaction-rejection";
+import {
+  carriesFacts,
+  describeTransactionFieldError,
+  TRANSACTION_FORM_FIELDS,
+  transactionFieldOf,
+} from "@/features/transactions/transaction-rejection";
 
 export interface WalletOption {
   id: string;
@@ -35,22 +39,12 @@ export interface WalletOption {
 
 export type CategoryOption = CategorySummary;
 
-export type TransactionFormField =
-  | "amount"
-  | "walletId"
-  | "destinationWalletId"
-  | "categoryId"
-  | "transactionDate"
-  | "note";
-
 interface UseTransactionFormOptions {
   wallets: readonly WalletOption[];
   categories: readonly CategoryOption[];
   initialValues: TransactionFormInput;
   /** Set when the form records or corrects a refund of one expense. */
   linkedExpense?: LinkedExpenseLimits;
-  /** Set when the form corrects an expense that has linked refunds. */
-  expenseRefunds?: ExpenseRefundLimits;
   /** Set when the form corrects an existing transaction instead of recording one. */
   editingId?: string;
   /** Set only for a new entry that returns to its opening screen. */
@@ -62,70 +56,6 @@ type CreateTransactionRequest =
 type UpdateTransactionRequest =
   components["schemas"]["UpdateTransactionRequest"];
 type Transaction = components["schemas"]["Transaction"];
-
-const TRANSACTION_FORM_FIELDS: readonly TransactionFormField[] = [
-  "amount",
-  "walletId",
-  "destinationWalletId",
-  "categoryId",
-  "transactionDate",
-  "note",
-];
-
-const transactionFieldOf = createFieldOf(TRANSACTION_FORM_FIELDS);
-
-const FIELD_ERROR_MESSAGES: Record<string, string> = {
-  "wallet-not-found": "That wallet is not available. Choose another wallet.",
-  "destination-wallet-not-found":
-    "That destination wallet is not available. Choose another wallet.",
-  "wallet-archived":
-    "That wallet is archived. Choose an active wallet or retain this transaction’s existing wallets.",
-  "same-wallet":
-    "Choose two different available wallets. Transfers have no category.",
-  "invalid-transfer":
-    "Choose two different available wallets. Transfers have no category.",
-  "category-not-found":
-    "That category is not available for this type. Choose another.",
-  "category-kind-mismatch":
-    "That category is not available for this type. Choose another.",
-  "amount-out-of-range": "The amount must be between ฿0.01 and ฿99,999,999.99",
-  "note-too-long": "Notes can be at most 200 characters",
-  "invalid-date": "Enter a real calendar date",
-  "future-date": "The date cannot be in the future",
-  "before-opening":
-    "This wallet opened before the chosen date; earlier dates are not tracked",
-  "below-refunded":
-    "Part of this expense has been refunded; the amount cannot go below that",
-  "after-refund":
-    "This expense has a linked refund; the expense cannot come after it",
-};
-
-interface TransactionFieldErrorLimits {
-  linkedExpense: LinkedExpenseLimits | undefined;
-  expenseRefunds: ExpenseRefundLimits | undefined;
-}
-
-/**
- * The 422 carries only a code; the figures its message names come from the
- * allowance loaded with the page, never recomputed here.
- */
-function describeTransactionFieldError(
-  { code, detail }: Readonly<ApiFieldError>,
-  { linkedExpense, expenseRefunds }: Readonly<TransactionFieldErrorLimits>,
-): string {
-  if (code === "exceeds-refundable" && linkedExpense) {
-    return linkedExpense.refundAllowance > 0n
-      ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.refundAllowance, currency: "THB" })} of this expense is left to refund`
-      : "This expense is already fully refunded";
-  }
-  if (code === "below-refunded" && expenseRefunds) {
-    return `${formatMoney({ amountInMinorUnits: expenseRefunds.refundedTotal, currency: "THB" })} of this expense has been refunded; the amount cannot go below that`;
-  }
-  if (code === "after-refund" && expenseRefunds?.earliestRefundDate) {
-    return `A linked refund is dated ${formatCalendarDate(expenseRefunds.earliestRefundDate)}; the expense cannot come after it`;
-  }
-  return detail ?? FIELD_ERROR_MESSAGES[code] ?? "This value was not accepted.";
-}
 
 function toCreateTransactionRequest(
   values: Readonly<TransactionFormValues>,
@@ -214,7 +144,6 @@ export function useTransactionForm({
   categories,
   initialValues,
   linkedExpense,
-  expenseRefunds,
   editingId,
   captureOrigin,
 }: Readonly<UseTransactionFormOptions>) {
@@ -234,12 +163,6 @@ export function useTransactionForm({
       }),
     [wallets, linkedExpense],
   );
-  function describeFieldError(fieldError: Readonly<ApiFieldError>) {
-    return describeTransactionFieldError(fieldError, {
-      linkedExpense,
-      expenseRefunds,
-    });
-  }
   const createTransaction = useApiMutation<
     CreateTransactionRequest,
     Transaction
@@ -249,7 +172,7 @@ export function useTransactionForm({
         params: { header: attempt.header },
         body: input,
       }),
-    describeFieldError,
+    describeFieldError: describeTransactionFieldError,
     fieldOf: transactionFieldOf,
   });
   // An update that changes nothing succeeds without effect, so the helper's
@@ -263,7 +186,7 @@ export function useTransactionForm({
         params: { path: { transactionId: editingId ?? "" } },
         body: input,
       }),
-    describeFieldError,
+    describeFieldError: describeTransactionFieldError,
     fieldOf: transactionFieldOf,
   });
 
@@ -303,6 +226,11 @@ export function useTransactionForm({
           pickFieldErrors(result.error.fieldErrors, TRANSACTION_FORM_FIELDS),
         );
         setServerError(result.error.message);
+        // A figure or date the rejection names may be newer than the page's,
+        // so the page re-reads and its hints agree with the message.
+        if (result.error.errors.some(carriesFacts)) {
+          await refreshAfterWrite(queryClient);
+        }
         return;
       }
 

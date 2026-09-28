@@ -1,9 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { components } from "@/core/api/openapi.gen";
-import {
-  editableTransaction,
-  expenseRefundLimits,
-} from "@/features/transactions/editable-transaction";
+import { editableTransaction } from "@/features/transactions/editable-transaction";
 
 const wallet: components["schemas"]["TransactionWallet"] = {
   id: "wallet-1",
@@ -49,25 +46,6 @@ const refunds: components["schemas"]["TransactionRefunds"] = {
   refundAllowance: { value: "350.00", currency: "THB" },
 };
 
-describe("expenseRefundLimits", () => {
-  test("names the refunded total and the earliest refund's date", () => {
-    expect(expenseRefundLimits(refunds)).toEqual({
-      refundedTotal: 15_000n,
-      earliestRefundDate: "2026-09-03",
-    });
-  });
-
-  test("is absent without refunds", () => {
-    expect(
-      expenseRefundLimits({
-        refunds: [],
-        refundedTotal: { value: "0.00", currency: "THB" },
-        refundAllowance: { value: "500.00", currency: "THB" },
-      }),
-    ).toBeUndefined();
-  });
-});
-
 describe("editableTransaction", () => {
   test("loads an expense with its category, amount text, and refund footer", () => {
     expect(editableTransaction({ transaction: expense, refunds })).toEqual({
@@ -82,10 +60,6 @@ describe("editableTransaction", () => {
       recordedLabel: "2 Sep 2026, 12:04",
       refundOf: undefined,
       refundedLabel: "฿150.00",
-      expenseRefunds: {
-        refundedTotal: 15_000n,
-        earliestRefundDate: "2026-09-03",
-      },
     });
   });
 
@@ -117,6 +91,5 @@ describe("editableTransaction", () => {
     expect(editable.categoryId).toBe("");
     expect(editable.refundOf).toBe(refundOf);
     expect(editable.refundedLabel).toBeUndefined();
-    expect(editable.expenseRefunds).toBeUndefined();
   });
 });
