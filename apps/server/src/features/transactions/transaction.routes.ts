@@ -129,7 +129,7 @@ export const transactionRefundsResponseSchema = z
   .object({
     refunds: z.array(transactionRefundSchema),
     refundedTotal: moneySchema,
-    remaining: moneySchema,
+    refundAllowance: moneySchema,
   })
   .meta({ id: "TransactionRefunds" });
 
@@ -318,8 +318,8 @@ export function presentTransactionRefunds(
       amountInMinorUnits: refunds.refundedTotal,
       currency: "THB",
     }),
-    remaining: presentMoney({
-      amountInMinorUnits: refunds.remaining,
+    refundAllowance: presentMoney({
+      amountInMinorUnits: refunds.refundAllowance,
       currency: "THB",
     }),
   };
@@ -748,7 +748,7 @@ export function createTransactionRoutes(db: Database) {
           });
         },
         describeRead(
-          "The expense's refunds and refundable remainder",
+          "The expense's refunds and refund allowance",
           transactionRefundsResponseSchema,
         ),
       ),

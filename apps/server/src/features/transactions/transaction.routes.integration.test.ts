@@ -1726,7 +1726,7 @@ describe("GET /v1/transactions/{transactionId}", () => {
 });
 
 describe("GET /v1/transactions/{transactionId}/refunds", () => {
-  test("totals an expense's refunds with the refundable remainder, oldest date first", async () => {
+  test("totals an expense's refunds with the refund allowance, oldest date first", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -1792,7 +1792,7 @@ describe("GET /v1/transactions/{transactionId}/refunds", () => {
           },
         ],
         refundedTotal: { value: "25.00", currency: "THB" },
-        remaining: { value: "25.00", currency: "THB" },
+        refundAllowance: { value: "25.00", currency: "THB" },
       });
     });
   });

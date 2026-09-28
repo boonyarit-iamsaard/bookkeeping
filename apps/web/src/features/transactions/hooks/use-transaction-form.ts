@@ -111,8 +111,8 @@ function describeTransactionFieldError(
   { linkedExpense, expenseRefunds }: Readonly<TransactionFieldErrorLimits>,
 ): string {
   if (code === "exceeds-refundable" && linkedExpense) {
-    return linkedExpense.remaining > 0n
-      ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.remaining, currency: "THB" })} of this expense is left to refund`
+    return linkedExpense.refundAllowance > 0n
+      ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.refundAllowance, currency: "THB" })} of this expense is left to refund`
       : "This expense is already fully refunded";
   }
   if (code === "below-refunded" && expenseRefunds) {

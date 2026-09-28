@@ -19,7 +19,7 @@ export function ExpenseRefundsView({
   expense,
   refunds,
 }: Readonly<ExpenseRefundsViewProps>) {
-  const canRecordRefund = parseApiMoney(refunds.remaining) > 0n;
+  const canRecordRefund = parseApiMoney(refunds.refundAllowance) > 0n;
   return (
     <section
       aria-labelledby="expense-refunds-heading"
@@ -36,7 +36,7 @@ export function ExpenseRefundsView({
             ) : (
               <>
                 <Money amount={refunds.refundedTotal} /> refunded ·{" "}
-                <Money amount={refunds.remaining} /> left
+                <Money amount={refunds.refundAllowance} /> left
               </>
             )}
           </p>

@@ -250,7 +250,7 @@ describe("findExpenseRefunds", () => {
         },
       });
       expect(summary?.refundedTotal).toBe(2_500n);
-      expect(summary?.remaining).toBe(2_500n);
+      expect(summary?.refundAllowance).toBe(2_500n);
     });
   });
 
@@ -289,7 +289,7 @@ describe("findExpenseRefunds", () => {
       });
       expect(summary?.refunds.map((refund) => refund.id)).toEqual([countedId]);
       expect(summary?.refundedTotal).toBe(2_000n);
-      expect(summary?.remaining).toBe(3_000n);
+      expect(summary?.refundAllowance).toBe(3_000n);
     });
   });
 

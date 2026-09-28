@@ -46,7 +46,7 @@ const refunds: components["schemas"]["TransactionRefunds"] = {
     },
   ],
   refundedTotal: { value: "150.00", currency: "THB" },
-  remaining: { value: "350.00", currency: "THB" },
+  refundAllowance: { value: "350.00", currency: "THB" },
 };
 
 describe("expenseRefundLimits", () => {
@@ -62,7 +62,7 @@ describe("expenseRefundLimits", () => {
       expenseRefundLimits({
         refunds: [],
         refundedTotal: { value: "0.00", currency: "THB" },
-        remaining: { value: "500.00", currency: "THB" },
+        refundAllowance: { value: "500.00", currency: "THB" },
       }),
     ).toBeUndefined();
   });
@@ -97,8 +97,8 @@ describe("editableTransaction", () => {
       categoryLabel: "Food & Drink › Groceries",
       categoryIconId: "shopping-cart",
       wallet: { id: "wallet-1", name: "Cash", archived: false },
-      remainingText: "450.00",
-      remainingLabel: "฿450.00",
+      refundAllowanceText: "450.00",
+      refundAllowanceLabel: "฿450.00",
     };
     const editable = editableTransaction({
       transaction: {

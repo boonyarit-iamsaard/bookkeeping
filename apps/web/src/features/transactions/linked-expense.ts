@@ -20,8 +20,8 @@ export function linkedExpenseView({
   refunds,
   editingRefund,
 }: Readonly<LinkedExpenseViewOptions>): LinkedExpenseView {
-  const remaining =
-    parseApiMoney(refunds.remaining) +
+  const refundAllowance =
+    parseApiMoney(refunds.refundAllowance) +
     (editingRefund ? parseApiMoney(editingRefund.amount) : 0n);
   return {
     id: expense.id,
@@ -39,13 +39,13 @@ export function linkedExpenseView({
       name: expense.wallet.name,
       archived: expense.wallet.archived,
     },
-    remainingText: formatMoneyInput({
-      amountInMinorUnits: remaining,
-      currency: refunds.remaining.currency,
+    refundAllowanceText: formatMoneyInput({
+      amountInMinorUnits: refundAllowance,
+      currency: refunds.refundAllowance.currency,
     }),
-    remainingLabel: formatMoney({
-      amountInMinorUnits: remaining,
-      currency: refunds.remaining.currency,
+    refundAllowanceLabel: formatMoney({
+      amountInMinorUnits: refundAllowance,
+      currency: refunds.refundAllowance.currency,
     }),
   };
 }

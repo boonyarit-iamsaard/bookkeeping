@@ -44,7 +44,7 @@ interface TransactionFormSchemaOptions {
 export interface LinkedExpenseLimits {
   transactionDate: CalendarDate;
   /** What is left to refund, excluding the refund being edited. */
-  remaining: bigint;
+  refundAllowance: bigint;
 }
 
 /** What an expense's current refunds hold it to, as the API reports them. */
@@ -133,13 +133,13 @@ function checkRefundFields({
       message: "A refund must be recorded from its expense",
     });
   }
-  if (linkedExpense && value.amount > linkedExpense.remaining) {
+  if (linkedExpense && value.amount > linkedExpense.refundAllowance) {
     ctx.addIssue({
       code: "custom",
       path: ["amount"],
       message:
-        linkedExpense.remaining > 0n
-          ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.remaining, currency: "THB" })} of this expense is left to refund`
+        linkedExpense.refundAllowance > 0n
+          ? `Only ${formatMoney({ amountInMinorUnits: linkedExpense.refundAllowance, currency: "THB" })} of this expense is left to refund`
           : "This expense is already fully refunded",
     });
   }

@@ -513,11 +513,11 @@ export async function findExpenseRefunds(
   }
   const refunds = await currentRefundsOf(db, id);
   const refundedTotal = sumOf(refunds);
-  const remaining = expense.amount - refundedTotal;
+  const refundAllowance = expense.amount - refundedTotal;
   return {
     refunds,
     refundedTotal,
-    remaining: remaining > 0n ? remaining : 0n,
+    refundAllowance: refundAllowance > 0n ? refundAllowance : 0n,
   };
 }
 

@@ -135,7 +135,7 @@ function initialValuesFor({
       refundOfTransactionId: mode.expense.id,
       walletId: mode.defaultWalletId,
       categoryId: "",
-      amount: mode.expense.remainingText,
+      amount: mode.expense.refundAllowanceText,
       transactionDate: today,
       note: "",
     };
@@ -160,13 +160,13 @@ function limitsOf(
   if (!linked) {
     return undefined;
   }
-  const remaining = parseMoneyInput({
-    text: linked.remainingText,
+  const refundAllowance = parseMoneyInput({
+    text: linked.refundAllowanceText,
     currency: "THB",
   });
   return {
     transactionDate: linked.transactionDate,
-    remaining: remaining.ok ? remaining.value : 0n,
+    refundAllowance: refundAllowance.ok ? refundAllowance.value : 0n,
   };
 }
 
@@ -244,7 +244,7 @@ function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
     <Link
       to="/transactions/$transactionId"
       params={{ transactionId: expense.id }}
-      aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${expense.remainingLabel} left to refund. Open the expense.`}
+      aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${expense.refundAllowanceLabel} left to refund. Open the expense.`}
       className="flex min-h-14 min-w-0 items-center gap-3 rounded-xl border px-3 py-2 outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -262,7 +262,7 @@ function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
           · {formatCalendarDate(expense.transactionDate)} ·{" "}
           <span className="whitespace-nowrap">
             <span className="money" translate="no">
-              {expense.remainingLabel}
+              {expense.refundAllowanceLabel}
             </span>{" "}
             left
           </span>
@@ -489,7 +489,7 @@ export function TransactionForm({
                           <>
                             Up to{" "}
                             <span className="money" translate="no">
-                              {linked.remainingLabel}
+                              {linked.refundAllowanceLabel}
                             </span>{" "}
                             left to refund on this expense.
                           </>

@@ -211,7 +211,7 @@ describe("deleteTransaction", () => {
           ownerId: owner.ownerId,
           id: expense.id,
         }),
-      ).toEqual({ refunds: [], refundedTotal: 0n, remaining: 50_000n });
+      ).toEqual({ refunds: [], refundedTotal: 0n, refundAllowance: 50_000n });
       expect(
         await balanceOf({ db, ownerId: owner.ownerId, walletId: owner.bankId }),
       ).toBe(0n);
@@ -444,7 +444,10 @@ describe("deleteTransaction", () => {
           id: expense.id,
         }),
       ).toEqual(
-        expect.objectContaining({ refundedTotal: 20_000n, remaining: 30_000n }),
+        expect.objectContaining({
+          refundedTotal: 20_000n,
+          refundAllowance: 30_000n,
+        }),
       );
       expect(
         (await listWallets(db, { ownerId: owner.ownerId })).map(
@@ -561,7 +564,10 @@ describe("deleteTransaction", () => {
           id: expense.id,
         }),
       ).toEqual(
-        expect.objectContaining({ refundedTotal: 10_000n, remaining: 40_000n }),
+        expect.objectContaining({
+          refundedTotal: 10_000n,
+          refundAllowance: 40_000n,
+        }),
       );
     }
   });

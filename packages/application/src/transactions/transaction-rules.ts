@@ -58,7 +58,7 @@ export type TransactionRejection =
       code: "before-expense";
       expenseDate: CalendarDate;
     }
-  | { field: "amount"; code: "exceeds-refundable"; remaining: bigint }
+  | { field: "amount"; code: "exceeds-refundable"; refundAllowance: bigint }
   | { field: "amount"; code: "below-refunded"; refundedTotal: bigint }
   /** The earliest linked refund's date; the expense cannot move past it. */
   | {
@@ -303,9 +303,9 @@ function rejectRefundAgainstExpense(
   const others = facts.expense.refunds.filter(
     (refund) => refund.id !== facts.current?.id,
   );
-  const remaining = facts.expense.amount - sumOf(others);
-  if (command.amount > remaining) {
-    return { field: "amount", code: "exceeds-refundable", remaining };
+  const refundAllowance = facts.expense.amount - sumOf(others);
+  if (command.amount > refundAllowance) {
+    return { field: "amount", code: "exceeds-refundable", refundAllowance };
   }
   return undefined;
 }

@@ -415,7 +415,7 @@ describe("updateTransaction", () => {
           error: {
             field: "amount",
             code: "exceeds-refundable",
-            remaining: 40_000n,
+            refundAllowance: 40_000n,
           },
         });
         expect(
@@ -573,7 +573,10 @@ describe("updateTransaction", () => {
         expect(
           await findExpenseRefunds(db, { ownerId, id: expense.id }),
         ).toEqual(
-          expect.objectContaining({ refundedTotal: 15_000n, remaining: 0n }),
+          expect.objectContaining({
+            refundedTotal: 15_000n,
+            refundAllowance: 0n,
+          }),
         );
         expect(
           await listTransactionChanges(db, { ownerId, id: expense.id }),
@@ -630,7 +633,7 @@ describe("updateTransaction", () => {
           error: {
             field: "amount",
             code: "exceeds-refundable",
-            remaining: 40_000n,
+            refundAllowance: 40_000n,
           },
         });
         expect(
@@ -711,7 +714,7 @@ describe("updateTransaction", () => {
         ).toEqual(
           expect.objectContaining({
             refundedTotal: 10_000n,
-            remaining: 40_000n,
+            refundAllowance: 40_000n,
           }),
         );
         expect(
@@ -906,7 +909,7 @@ describe("updateTransaction", () => {
         ).toEqual(
           expect.objectContaining({
             refundedTotal: 20_000n,
-            remaining: 30_000n,
+            refundAllowance: 30_000n,
           }),
         );
         expect(
@@ -1011,7 +1014,7 @@ describe("updateTransaction", () => {
     expect(refunds).toEqual(
       expect.objectContaining({
         refundedTotal: 25_000n,
-        remaining: 5_000n,
+        refundAllowance: 5_000n,
         refunds: [
           expect.objectContaining({
             id: refund.value.transaction.id,

@@ -1034,14 +1034,14 @@
           "refundedTotal": {
             "$ref": "#/components/schemas/Money"
           },
-          "remaining": {
+          "refundAllowance": {
             "$ref": "#/components/schemas/Money"
           }
         },
         "required": [
           "refunds",
           "refundedTotal",
-          "remaining"
+          "refundAllowance"
         ]
       },
       "MonthlyReport": {
@@ -2627,7 +2627,7 @@
         "operationId": "getTransactionRefunds",
         "responses": {
           "200": {
-            "description": "The expense's refunds and refundable remainder",
+            "description": "The expense's refunds and refund allowance",
             "content": {
               "application/json": {
                 "schema": {

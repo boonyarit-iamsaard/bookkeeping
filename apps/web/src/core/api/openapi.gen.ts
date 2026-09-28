@@ -548,9 +548,9 @@ export interface components {
             wallet: components["schemas"]["TransactionWallet"];
         };
         TransactionRefunds: {
+            refundAllowance: components["schemas"]["Money"];
             refundedTotal: components["schemas"]["Money"];
             refunds: components["schemas"]["TransactionRefund"][];
-            remaining: components["schemas"]["Money"];
         };
         TransactionWallet: {
             archived: boolean;
@@ -1445,7 +1445,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The expense's refunds and refundable remainder */
+            /** @description The expense's refunds and refund allowance */
             200: {
                 headers: {
                     [name: string]: unknown;

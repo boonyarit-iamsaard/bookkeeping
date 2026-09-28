@@ -229,7 +229,7 @@ describe("acceptTransaction", () => {
     ).toEqual({
       field: "amount",
       code: "exceeds-refundable",
-      remaining: 20_000n,
+      refundAllowance: 20_000n,
     });
   });
 
@@ -244,7 +244,7 @@ describe("acceptTransaction", () => {
     expect(rejection({ ...refundCommand, amount: 50_001n }, editing)).toEqual({
       field: "amount",
       code: "exceeds-refundable",
-      remaining: 50_000n,
+      refundAllowance: 50_000n,
     });
   });
 

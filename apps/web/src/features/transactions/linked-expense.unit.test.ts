@@ -30,7 +30,7 @@ const refunds: components["schemas"]["TransactionRefunds"] = {
     },
   ],
   refundedTotal: { value: "100.00", currency: "THB" },
-  remaining: { value: "400.00", currency: "THB" },
+  refundAllowance: { value: "400.00", currency: "THB" },
 };
 
 describe("linkedExpenseView", () => {
@@ -42,8 +42,8 @@ describe("linkedExpenseView", () => {
       categoryLabel: "Food & Drink › Groceries",
       categoryIconId: "shopping-cart",
       wallet: { id: "wallet-1", name: "Cash", archived: false },
-      remainingText: "400.00",
-      remainingLabel: "฿400.00",
+      refundAllowanceText: "400.00",
+      refundAllowanceLabel: "฿400.00",
     });
   });
 
@@ -53,7 +53,7 @@ describe("linkedExpenseView", () => {
       refunds,
       editingRefund: { amount: { value: "100.00", currency: "THB" } },
     });
-    expect(view.remainingText).toBe("500.00");
-    expect(view.remainingLabel).toBe("฿500.00");
+    expect(view.refundAllowanceText).toBe("500.00");
+    expect(view.refundAllowanceLabel).toBe("฿500.00");
   });
 });

@@ -13,7 +13,7 @@ export interface LinkedExpenseView {
   categoryIconId: string;
   wallet: { id: string; name: string; archived: boolean };
   /** What is left to refund, excluding the refund being edited: "300.00". */
-  remainingText: string;
+  refundAllowanceText: string;
   /** The same figure for reading: "฿300.00". */
-  remainingLabel: string;
+  refundAllowanceLabel: string;
 }

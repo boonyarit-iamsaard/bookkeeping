@@ -58,7 +58,7 @@ export interface LinkedExpense {
   transactionDate: CalendarDate;
 }
 
-/** A refund as it counts against its expense's refundable amount. */
+/** A refund as it counts against its expense's refund allowance. */
 export interface RefundSummary {
   id: string;
   amount: bigint;
@@ -71,7 +71,7 @@ export interface ExpenseRefunds {
   /** Nondeleted refunds combined. */
   refundedTotal: bigint;
   /** The expense amount less the refunded total; never negative. */
-  remaining: bigint;
+  refundAllowance: bigint;
 }
 
 export const TRANSACTION_CHANGE_ACTIONS = ["edit", "delete"] as const;

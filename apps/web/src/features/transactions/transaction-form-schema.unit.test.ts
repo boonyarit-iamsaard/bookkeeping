@@ -128,7 +128,7 @@ describe("linked refund form schema", () => {
     refundOfTransactionId: "expense-1",
   };
   const schema = createTransactionFormSchema({
-    linkedExpense: { transactionDate: "2026-09-10", remaining: 30_000n },
+    linkedExpense: { transactionDate: "2026-09-10", refundAllowance: 30_000n },
   });
 
   test("accepts a refund up to what is left, dated on or after the expense", () => {
@@ -167,7 +167,7 @@ describe("linked refund form schema", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
     const full = createTransactionFormSchema({
-      linkedExpense: { transactionDate: "2026-09-10", remaining: 0n },
+      linkedExpense: { transactionDate: "2026-09-10", refundAllowance: 0n },
     });
     expect(
       full.safeParse({ ...refund, amount: "0.01" }).error?.issues[0]?.message,

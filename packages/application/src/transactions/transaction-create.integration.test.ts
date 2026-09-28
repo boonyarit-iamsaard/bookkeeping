@@ -560,7 +560,7 @@ describe("createTransaction", () => {
         id: expense.value.transaction.id,
       });
       expect(refunds?.refundedTotal).toBe(2_000n);
-      expect(refunds?.remaining).toBe(0n);
+      expect(refunds?.refundAllowance).toBe(0n);
     });
   });
 
@@ -620,7 +620,7 @@ describe("createTransaction", () => {
         id: expenseId,
       });
       expect(refunds?.refundedTotal).toBe(3_700n);
-      expect(refunds?.remaining).toBe(1_300n);
+      expect(refunds?.refundAllowance).toBe(1_300n);
     });
   });
 
@@ -662,7 +662,7 @@ describe("createTransaction", () => {
         error: {
           field: "amount",
           code: "exceeds-refundable",
-          remaining: 2_000n,
+          refundAllowance: 2_000n,
         },
       });
       expect(
@@ -982,8 +982,8 @@ describe("createTransaction", () => {
     expect(
       outcomes.filter((outcome) => !outcome.ok).map((outcome) => outcome.error),
     ).toEqual([
-      { field: "amount", code: "exceeds-refundable", remaining: 0n },
-      { field: "amount", code: "exceeds-refundable", remaining: 0n },
+      { field: "amount", code: "exceeds-refundable", refundAllowance: 0n },
+      { field: "amount", code: "exceeds-refundable", refundAllowance: 0n },
     ]);
     expect(
       (await listTransactions(db, { ownerId: owner.ownerId })).filter(
