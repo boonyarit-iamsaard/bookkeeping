@@ -875,6 +875,242 @@
           "archived"
         ]
       },
+      "TransactionRejectionProblem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "bad-request",
+              "conflict",
+              "forbidden",
+              "has-children",
+              "history-remains",
+              "idempotency-conflict",
+              "idempotency-key-required",
+              "in-use",
+              "internal-error",
+              "invalid-command",
+              "method-not-allowed",
+              "not-found",
+              "protected",
+              "rate-limited",
+              "refunds-exist",
+              "service-unavailable",
+              "unauthenticated"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionFieldError"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": {}
+      },
+      "TransactionFieldError": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/RefundAllowanceFieldError"
+          },
+          {
+            "$ref": "#/components/schemas/RefundedTotalFieldError"
+          },
+          {
+            "$ref": "#/components/schemas/RefundDateFieldError"
+          },
+          {
+            "$ref": "#/components/schemas/ExpenseDateFieldError"
+          },
+          {
+            "$ref": "#/components/schemas/OpeningDateFieldError"
+          },
+          {
+            "$ref": "#/components/schemas/TransactionRuleFieldError"
+          },
+          {
+            "$ref": "#/components/schemas/ProblemFieldError"
+          }
+        ]
+      },
+      "RefundAllowanceFieldError": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "const": "exceeds-refundable"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "refundAllowance": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "pointer",
+          "code",
+          "refundAllowance"
+        ]
+      },
+      "RefundedTotalFieldError": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "const": "below-refunded"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "refundedTotal": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "pointer",
+          "code",
+          "refundedTotal"
+        ]
+      },
+      "RefundDateFieldError": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "const": "after-refund"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "refundDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          }
+        },
+        "required": [
+          "pointer",
+          "code",
+          "refundDate"
+        ]
+      },
+      "ExpenseDateFieldError": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "const": "before-expense"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "expenseDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          }
+        },
+        "required": [
+          "pointer",
+          "code",
+          "expenseDate"
+        ]
+      },
+      "OpeningDateFieldError": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "const": "before-opening"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "openingDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          }
+        },
+        "required": [
+          "pointer",
+          "code",
+          "openingDate"
+        ]
+      },
+      "TransactionRuleFieldError": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "wallet-not-found",
+              "destination-wallet-not-found",
+              "same-wallet",
+              "wallet-archived",
+              "invalid-transfer",
+              "category-not-found",
+              "category-kind-mismatch",
+              "amount-out-of-range",
+              "note-too-long",
+              "invalid-date",
+              "future-date",
+              "invalid-refund",
+              "expense-not-found"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pointer",
+          "code"
+        ]
+      },
       "TransactionCollection": {
         "type": "object",
         "properties": {
@@ -2196,7 +2432,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/TransactionRejectionProblem"
                 }
               }
             }
@@ -2512,7 +2748,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/TransactionRejectionProblem"
                 }
               }
             }

@@ -23,6 +23,7 @@ import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { expectProblem } from "../../testing/expect-problem.js";
 import type {
   createTransactionRequestSchema,
+  transactionFieldErrorSchema,
   updateTransactionRequestSchema,
 } from "./transaction.routes.js";
 import {
@@ -30,6 +31,7 @@ import {
   transactionCollectionResponseSchema,
   transactionEntryDefaultsResponseSchema,
   transactionRefundsResponseSchema,
+  transactionRejectionProblemSchema,
   transactionResponseSchema,
 } from "./transaction.routes.js";
 
@@ -116,6 +118,15 @@ async function createOwner({
     childId: child.id,
     incomeId: income.id,
   };
+}
+
+/** Asserts a rejected transaction command and returns its field errors with their facts. */
+async function expectRejection(response: Response) {
+  await expectProblem(response.clone(), {
+    status: 422,
+    code: "invalid-command",
+  });
+  return transactionRejectionProblemSchema.parse(await response.json()).errors;
 }
 
 async function softDelete(db: Database, id: string): Promise<void> {
@@ -667,16 +678,19 @@ describe("POST /v1/transactions", () => {
       expect(future.errors).toEqual([
         { pointer: "#/transactionDate", code: "future-date" },
       ]);
-      const beforeOpening = await expectProblem(
+      const beforeOpening = await expectRejection(
         await postTransaction(app, {
           cookie: owner.cookie,
           idempotencyKey: "before-opening",
           body: { ...base, transactionDate: "2026-08-31" },
         }),
-        { status: 422, code: "invalid-command" },
       );
-      expect(beforeOpening.errors).toEqual([
-        { pointer: "#/transactionDate", code: "before-opening" },
+      expect(beforeOpening).toEqual([
+        {
+          pointer: "#/transactionDate",
+          code: "before-opening",
+          openingDate: "2026-09-01",
+        },
       ]);
     });
   });
@@ -861,27 +875,33 @@ describe("POST /v1/transactions", () => {
         { pointer: "#/", code: "unrecognized-keys" },
       ]);
 
-      const overLimit = await expectProblem(
+      const overLimit = await expectRejection(
         await postTransaction(app, {
           cookie: owner.cookie,
           idempotencyKey: "refund-over-limit",
           body: { ...body, amount: { value: "20.01", currency: "THB" } },
         }),
-        { status: 422, code: "invalid-command" },
       );
-      expect(overLimit.errors).toEqual([
-        { pointer: "#/amount/value", code: "exceeds-refundable" },
+      expect(overLimit).toEqual([
+        {
+          pointer: "#/amount/value",
+          code: "exceeds-refundable",
+          refundAllowance: { value: "20.00", currency: "THB" },
+        },
       ]);
-      const beforeExpense = await expectProblem(
+      const beforeExpense = await expectRejection(
         await postTransaction(app, {
           cookie: owner.cookie,
           idempotencyKey: "refund-before-expense",
           body: { ...body, transactionDate: "2026-09-01" },
         }),
-        { status: 422, code: "invalid-command" },
       );
-      expect(beforeExpense.errors).toEqual([
-        { pointer: "#/transactionDate", code: "before-expense" },
+      expect(beforeExpense).toEqual([
+        {
+          pointer: "#/transactionDate",
+          code: "before-expense",
+          expenseDate: "2026-09-02",
+        },
       ]);
 
       const foreignExpenseLink = await expectProblem(
@@ -995,7 +1015,7 @@ describe("PUT /v1/transactions/{transactionId}", () => {
       });
 
       // The other refund holds ฿100.00, so the edited one may take ฿400.00.
-      const overLimit = await expectProblem(
+      const overLimit = await expectRejection(
         await putTransaction(app, {
           id: first.id,
           cookie: owner.cookie,
@@ -1006,12 +1026,15 @@ describe("PUT /v1/transactions/{transactionId}", () => {
             note: "Returned",
           },
         }),
-        { status: 422, code: "invalid-command" },
       );
-      expect(overLimit.errors).toEqual([
-        { pointer: "#/amount/value", code: "exceeds-refundable" },
+      expect(overLimit).toEqual([
+        {
+          pointer: "#/amount/value",
+          code: "exceeds-refundable",
+          refundAllowance: { value: "400.00", currency: "THB" },
+        },
       ]);
-      const beforeExpense = await expectProblem(
+      const beforeExpense = await expectRejection(
         await putTransaction(app, {
           id: first.id,
           cookie: owner.cookie,
@@ -1022,10 +1045,13 @@ describe("PUT /v1/transactions/{transactionId}", () => {
             note: "Returned",
           },
         }),
-        { status: 422, code: "invalid-command" },
       );
-      expect(beforeExpense.errors).toEqual([
-        { pointer: "#/transactionDate", code: "before-expense" },
+      expect(beforeExpense).toEqual([
+        {
+          pointer: "#/transactionDate",
+          code: "before-expense",
+          expenseDate: "2026-09-02",
+        },
       ]);
       const withCategory = await expectProblem(
         await putTransaction(app, {
@@ -1123,7 +1149,7 @@ describe("PUT /v1/transactions/{transactionId}", () => {
         },
       });
 
-      const belowRefunded = await expectProblem(
+      const belowRefunded = await expectRejection(
         await putTransaction(app, {
           id: expense.id,
           cookie: owner.cookie,
@@ -1132,12 +1158,15 @@ describe("PUT /v1/transactions/{transactionId}", () => {
             amount: { value: "149.99", currency: "THB" },
           },
         }),
-        { status: 422, code: "invalid-command" },
       );
-      expect(belowRefunded.errors).toEqual([
-        { pointer: "#/amount/value", code: "below-refunded" },
+      expect(belowRefunded).toEqual([
+        {
+          pointer: "#/amount/value",
+          code: "below-refunded",
+          refundedTotal: { value: "150.00", currency: "THB" },
+        },
       ]);
-      const afterRefund = await expectProblem(
+      const afterRefund = await expectRejection(
         await putTransaction(app, {
           id: expense.id,
           cookie: owner.cookie,
@@ -1147,10 +1176,13 @@ describe("PUT /v1/transactions/{transactionId}", () => {
             transactionDate: "2026-09-04",
           },
         }),
-        { status: 422, code: "invalid-command" },
       );
-      expect(afterRefund.errors).toEqual([
-        { pointer: "#/transactionDate", code: "after-refund" },
+      expect(afterRefund).toEqual([
+        {
+          pointer: "#/transactionDate",
+          code: "after-refund",
+          refundDate: "2026-09-03",
+        },
       ]);
     });
   });
@@ -1174,17 +1206,16 @@ describe("PUT /v1/transactions/{transactionId}", () => {
       const base = updateExpenseBody(owner);
       const attempt = async (
         body: Readonly<Partial<TransactionUpdateBody>>,
-        expected: Readonly<{ pointer: string; code: string }>,
+        expected: Readonly<z.infer<typeof transactionFieldErrorSchema>>,
       ) => {
-        const problem = await expectProblem(
+        const errors = await expectRejection(
           await putTransaction(app, {
             id: expense.id,
             cookie: owner.cookie,
             body: { ...base, ...body },
           }),
-          { status: 422, code: "invalid-command" },
         );
-        expect(problem.errors).toEqual([expected]);
+        expect(errors).toEqual([expected]);
       };
 
       await attempt(
@@ -1205,7 +1236,11 @@ describe("PUT /v1/transactions/{transactionId}", () => {
       );
       await attempt(
         { transactionDate: "2026-08-31" },
-        { pointer: "#/transactionDate", code: "before-opening" },
+        {
+          pointer: "#/transactionDate",
+          code: "before-opening",
+          openingDate: "2026-09-01",
+        },
       );
       await attempt(
         { transactionDate: "2999-01-01" },

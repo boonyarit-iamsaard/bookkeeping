@@ -539,7 +539,16 @@ describe("OpenAPI document", () => {
       }),
     ).toBe("#/components/schemas/Transaction");
     expect(create.responses["201"].headers).toHaveProperty("Location");
-    expectProblemResponses(create, ["400", "401", "409", "422", "500"]);
+    expectProblemResponses(create, ["400", "401", "409", "500"]);
+    expectProblemVariant(create, {
+      status: "422",
+      schemaId: "TransactionRejectionProblem",
+    });
+    expect(documentedSchema(document, "RefundAllowanceFieldError")).toEqual(
+      expect.objectContaining({
+        required: expect.arrayContaining(["code", "refundAllowance"]),
+      }),
+    );
 
     const requestSchema = documentedSchema(
       document,
@@ -659,7 +668,11 @@ describe("OpenAPI document", () => {
         mediaType: "application/json",
       }),
     ).toBe("#/components/schemas/Transaction");
-    expectProblemResponses(update, ["400", "401", "404", "422", "500"]);
+    expectProblemResponses(update, ["400", "401", "404", "500"]);
+    expectProblemVariant(update, {
+      status: "422",
+      schemaId: "TransactionRejectionProblem",
+    });
     const updateSchema = documentedSchema(document, "UpdateTransactionRequest");
     expect(updateSchema.additionalProperties).toBe(false);
     expect(updateSchema.required).toEqual([

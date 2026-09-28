@@ -45,12 +45,23 @@ export function describeProblemVariant(
   };
 }
 
-/** The `describeResponse` entry for one problem a validated handler returns. */
-export function describeProblem(problem: Readonly<ProblemOptions>) {
+/**
+ * The `describeResponse` entry for a problem a validated handler returns,
+ * documented by the schema variant that names its extension members.
+ */
+export function describeProblemAs<Schema>(
+  problem: Readonly<ProblemOptions>,
+  schema: Schema,
+) {
   return {
     description: problem.title,
-    content: { [PROBLEM_MEDIA_TYPE]: { vSchema: problemDetailsSchema } },
+    content: { [PROBLEM_MEDIA_TYPE]: { vSchema: schema } },
   };
+}
+
+/** The `describeResponse` entry for one problem a validated handler returns. */
+export function describeProblem(problem: Readonly<ProblemOptions>) {
+  return describeProblemAs(problem, problemDetailsSchema);
 }
 
 const openApiSpecOptions = {

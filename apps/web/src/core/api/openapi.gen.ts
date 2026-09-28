@@ -431,6 +431,14 @@ export interface components {
         };
         /** @enum {string} */
         Currency: "THB";
+        ExpenseDateFieldError: {
+            /** @constant */
+            code: "before-expense";
+            detail?: string;
+            /** Format: date */
+            expenseDate: string;
+            pointer: string;
+        };
         HealthResponse: {
             /** @constant */
             status: "ok";
@@ -464,6 +472,14 @@ export interface components {
             refunds: components["schemas"]["Money"];
             transactionCount: number;
         };
+        OpeningDateFieldError: {
+            /** @constant */
+            code: "before-opening";
+            detail?: string;
+            /** Format: date */
+            openingDate: string;
+            pointer: string;
+        };
         Page: {
             nextCursor: string | null;
         };
@@ -486,6 +502,28 @@ export interface components {
         };
         ProvisioningOutcome: {
             seededKinds: ("income" | "expense")[];
+        };
+        RefundAllowanceFieldError: {
+            /** @constant */
+            code: "exceeds-refundable";
+            detail?: string;
+            pointer: string;
+            refundAllowance: components["schemas"]["Money"];
+        };
+        RefundDateFieldError: {
+            /** @constant */
+            code: "after-refund";
+            detail?: string;
+            pointer: string;
+            /** Format: date */
+            refundDate: string;
+        };
+        RefundedTotalFieldError: {
+            /** @constant */
+            code: "below-refunded";
+            detail?: string;
+            pointer: string;
+            refundedTotal: components["schemas"]["Money"];
         };
         RefundsExistProblem: {
             /** @constant */
@@ -539,6 +577,7 @@ export interface components {
         TransactionEntryDefaults: {
             lastUsedWalletId: string | null;
         };
+        TransactionFieldError: components["schemas"]["RefundAllowanceFieldError"] | components["schemas"]["RefundedTotalFieldError"] | components["schemas"]["RefundDateFieldError"] | components["schemas"]["ExpenseDateFieldError"] | components["schemas"]["OpeningDateFieldError"] | components["schemas"]["TransactionRuleFieldError"] | components["schemas"]["ProblemFieldError"];
         TransactionRefund: {
             amount: components["schemas"]["Money"];
             /** Format: uuid */
@@ -551,6 +590,24 @@ export interface components {
             refundAllowance: components["schemas"]["Money"];
             refundedTotal: components["schemas"]["Money"];
             refunds: components["schemas"]["TransactionRefund"][];
+        };
+        TransactionRejectionProblem: {
+            /** @enum {string} */
+            code: "bad-request" | "conflict" | "forbidden" | "has-children" | "history-remains" | "idempotency-conflict" | "idempotency-key-required" | "in-use" | "internal-error" | "invalid-command" | "method-not-allowed" | "not-found" | "protected" | "rate-limited" | "refunds-exist" | "service-unavailable" | "unauthenticated";
+            detail?: string;
+            errors?: components["schemas"]["TransactionFieldError"][];
+            instance?: string;
+            status: number;
+            title: string;
+            type: string;
+        } & {
+            [key: string]: unknown;
+        };
+        TransactionRuleFieldError: {
+            /** @enum {string} */
+            code: "wallet-not-found" | "destination-wallet-not-found" | "same-wallet" | "wallet-archived" | "invalid-transfer" | "category-not-found" | "category-kind-mismatch" | "amount-out-of-range" | "note-too-long" | "invalid-date" | "future-date" | "invalid-refund" | "expense-not-found";
+            detail?: string;
+            pointer: string;
         };
         TransactionWallet: {
             archived: boolean;
@@ -1244,7 +1301,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/problem+json": components["schemas"]["TransactionRejectionProblem"];
                 };
             };
             /** @description Internal server error */
@@ -1364,7 +1421,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/problem+json": components["schemas"]["TransactionRejectionProblem"];
                 };
             };
             /** @description Internal server error */

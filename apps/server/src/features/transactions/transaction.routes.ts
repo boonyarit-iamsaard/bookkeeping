@@ -35,17 +35,16 @@ import {
 } from "../../core/http/money.js";
 import {
   describeProblem,
+  describeProblemAs,
   describeProblemResponse,
   describeProblemVariant,
 } from "../../core/http/openapi.js";
-import type {
-  ProblemFieldError,
-  ProblemOptions,
-} from "../../core/http/problem-details.js";
+import type { ProblemOptions } from "../../core/http/problem-details.js";
 import {
   createProblemResponse,
   getProblemOptionsForStatus,
   problemDetailsSchema,
+  problemFieldErrorSchema,
 } from "../../core/http/problem-details.js";
 
 import type {
@@ -235,11 +234,154 @@ const UPDATE_FIELD_POINTERS: Record<TransactionField, string> = {
   refundOfTransactionId: "#/",
 };
 
+/** The rejections whose message names a figure or date: each carries that fact. */
+type FactualRejectionCode =
+  | "exceeds-refundable"
+  | "below-refunded"
+  | "after-refund"
+  | "before-expense"
+  | "before-opening";
+
+type PlainRejectionCode = Exclude<
+  TransactionRejection["code"],
+  FactualRejectionCode
+>;
+
+// Keyed by every plain code, so a new rejection fails to compile until it is
+// published here or given its facts.
+const PLAIN_REJECTION_CODES: { [Code in PlainRejectionCode]: Code } = {
+  "wallet-not-found": "wallet-not-found",
+  "destination-wallet-not-found": "destination-wallet-not-found",
+  "same-wallet": "same-wallet",
+  "wallet-archived": "wallet-archived",
+  "invalid-transfer": "invalid-transfer",
+  "category-not-found": "category-not-found",
+  "category-kind-mismatch": "category-kind-mismatch",
+  "amount-out-of-range": "amount-out-of-range",
+  "note-too-long": "note-too-long",
+  "invalid-date": "invalid-date",
+  "future-date": "future-date",
+  "invalid-refund": "invalid-refund",
+  "expense-not-found": "expense-not-found",
+};
+
+const refundAllowanceFieldErrorSchema = problemFieldErrorSchema
+  .extend({
+    code: z.literal("exceeds-refundable"),
+    /** What the expense has left to refund, not counting the refund being corrected. */
+    refundAllowance: moneySchema,
+  })
+  .meta({ id: "RefundAllowanceFieldError" });
+
+const refundedTotalFieldErrorSchema = problemFieldErrorSchema
+  .extend({
+    code: z.literal("below-refunded"),
+    /** What the expense's current refunds add up to. */
+    refundedTotal: moneySchema,
+  })
+  .meta({ id: "RefundedTotalFieldError" });
+
+const refundDateFieldErrorSchema = problemFieldErrorSchema
+  .extend({
+    code: z.literal("after-refund"),
+    /** The earliest linked refund's date. */
+    refundDate: z.iso.date(),
+  })
+  .meta({ id: "RefundDateFieldError" });
+
+const expenseDateFieldErrorSchema = problemFieldErrorSchema
+  .extend({
+    code: z.literal("before-expense"),
+    /** The refunded expense's date. */
+    expenseDate: z.iso.date(),
+  })
+  .meta({ id: "ExpenseDateFieldError" });
+
+const openingDateFieldErrorSchema = problemFieldErrorSchema
+  .extend({
+    code: z.literal("before-opening"),
+    /** The date the rejected wallet's tracked history begins. */
+    openingDate: z.iso.date(),
+  })
+  .meta({ id: "OpeningDateFieldError" });
+
+const transactionRuleFieldErrorSchema = problemFieldErrorSchema
+  .extend({ code: z.enum(PLAIN_REJECTION_CODES) })
+  .meta({ id: "TransactionRuleFieldError" });
+
+/**
+ * A field error in a rejected transaction command: a rule rejection, with the
+ * facts its message names, or a request validation error.
+ */
+export const transactionFieldErrorSchema = z
+  .union([
+    refundAllowanceFieldErrorSchema,
+    refundedTotalFieldErrorSchema,
+    refundDateFieldErrorSchema,
+    expenseDateFieldErrorSchema,
+    openingDateFieldErrorSchema,
+    transactionRuleFieldErrorSchema,
+    problemFieldErrorSchema,
+  ])
+  .meta({ id: "TransactionFieldError" });
+
+export const transactionRejectionProblemSchema = problemDetailsSchema
+  .extend({ errors: z.array(transactionFieldErrorSchema).optional() })
+  .meta({ id: "TransactionRejectionProblem" });
+
+type TransactionFieldError = z.infer<typeof transactionFieldErrorSchema>;
+
+/** The documented 422 a rejected create or update answers. */
+function describeTransactionRejection() {
+  return describeProblemAs(
+    getProblemOptionsForStatus(422),
+    transactionRejectionProblemSchema,
+  );
+}
+
 function toFieldErrors(
   rejection: Readonly<TransactionRejection>,
   pointers: Readonly<Record<TransactionField, string>>,
-): ProblemFieldError[] {
-  return [{ pointer: pointers[rejection.field], code: rejection.code }];
+): TransactionFieldError[] {
+  const pointer = pointers[rejection.field];
+  switch (rejection.code) {
+    case "exceeds-refundable":
+      return [
+        {
+          pointer,
+          code: rejection.code,
+          refundAllowance: presentMoney({
+            amountInMinorUnits: rejection.refundAllowance,
+            currency: "THB",
+          }),
+        },
+      ];
+    case "below-refunded":
+      return [
+        {
+          pointer,
+          code: rejection.code,
+          refundedTotal: presentMoney({
+            amountInMinorUnits: rejection.refundedTotal,
+            currency: "THB",
+          }),
+        },
+      ];
+    case "after-refund":
+      return [
+        { pointer, code: rejection.code, refundDate: rejection.refundDate },
+      ];
+    case "before-expense":
+      return [
+        { pointer, code: rejection.code, expenseDate: rejection.expenseDate },
+      ];
+    case "before-opening":
+      return [
+        { pointer, code: rejection.code, openingDate: rejection.openingDate },
+      ];
+    default:
+      return [{ pointer, code: PLAIN_REJECTION_CODES[rejection.code] }];
+  }
 }
 
 export type TransactionWalletResponse = z.infer<typeof transactionWalletSchema>;
@@ -416,7 +558,7 @@ export function createTransactionRoutes(db: Database) {
         {
           201: typeof transactionResponseSchema;
           409: typeof problemDetailsSchema;
-          422: typeof problemDetailsSchema;
+          422: typeof transactionRejectionProblemSchema;
         }
       >(
         async (c) => {
@@ -445,7 +587,10 @@ export function createTransactionRoutes(db: Database) {
               toFieldErrors(rejection, CREATE_FIELD_POINTERS),
           });
         },
-        describeCreation("transaction", transactionResponseSchema),
+        {
+          ...describeCreation("transaction", transactionResponseSchema),
+          422: describeTransactionRejection(),
+        },
       ),
     )
     .get(
@@ -638,7 +783,7 @@ export function createTransactionRoutes(db: Database) {
         {
           200: typeof transactionResponseSchema;
           404: typeof problemDetailsSchema;
-          422: typeof problemDetailsSchema;
+          422: typeof transactionRejectionProblemSchema;
         }
       >(
         async (c) => {
@@ -662,10 +807,13 @@ export function createTransactionRoutes(db: Database) {
                 : toFieldErrors(error, UPDATE_FIELD_POINTERS),
           });
         },
-        describeCorrection(
-          "The updated transaction",
-          transactionResponseSchema,
-        ),
+        {
+          ...describeCorrection(
+            "The updated transaction",
+            transactionResponseSchema,
+          ),
+          422: describeTransactionRejection(),
+        },
       ),
     )
     .delete(
