@@ -190,8 +190,9 @@ function transactionFieldCheck({
 }
 
 /**
- * Parses the create-transaction form. Amounts arrive as the typed string and
- * leave as integer satang; the same fields are parsed again in the API.
+ * Parses the transaction form, for a new entry or a correction. Amounts
+ * arrive as the typed string and leave as integer satang; the same fields
+ * are parsed again in the API.
  */
 export function createTransactionFormSchema(
   options: Readonly<TransactionFormSchemaOptions> = {},
@@ -199,25 +200,6 @@ export function createTransactionFormSchema(
   return z
     .object(transactionFields())
     .superRefine(transactionFieldCheck(options));
-}
-
-/** What the client actually sends: the form values plus the submission key. */
-export function createTransactionSubmissionSchema() {
-  return z
-    .object({
-      ...transactionFields(),
-      submissionKey: z.string().min(1),
-    })
-    .superRefine(transactionFieldCheck({}));
-}
-
-/**
- * An edit carries the record's id and every field but the type, which is
- * fixed once saved; a `type` in the payload is dropped, never applied.
- */
-export function updateTransactionSubmissionSchema() {
-  const { type: _fixed, ...editable } = transactionFields();
-  return z.object({ ...editable, id: z.string().min(1) });
 }
 
 export type TransactionFormInput = z.input<

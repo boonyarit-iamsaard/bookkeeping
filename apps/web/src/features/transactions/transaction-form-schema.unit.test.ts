@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import {
-  createTransactionFormSchema,
-  createTransactionSubmissionSchema,
-} from "@/features/transactions/transaction-form-schema";
+import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
 
 const base = {
   type: "expense",
@@ -74,16 +71,6 @@ describe("transaction form schema", () => {
     expect(early.error?.issues[0]?.message).toContain("1 Sep 2026");
   });
 
-  test("the submission schema additionally requires the key", () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
-    const schema = createTransactionSubmissionSchema();
-    expect(schema.safeParse(base).success).toBe(false);
-    expect(schema.safeParse({ ...base, submissionKey: "key-1" }).success).toBe(
-      true,
-    );
-  });
-
   test("rejects a note over 200 characters", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
@@ -97,14 +84,13 @@ describe("transaction form schema", () => {
   });
 });
 
-test("transfer submissions require explicit THB and a distinct destination, with no category selection", () => {
-  const schema = createTransactionSubmissionSchema();
+test("transfers require explicit THB and a distinct destination, with no category selection", () => {
+  const schema = createTransactionFormSchema();
   const input = {
     ...base,
     type: "transfer",
     destinationWalletId: "wallet-2",
     categoryId: "",
-    submissionKey: "transfer-key",
   };
   expect(schema.safeParse(input).success).toBe(true);
   for (const currency of [undefined, "USD", ""]) {
