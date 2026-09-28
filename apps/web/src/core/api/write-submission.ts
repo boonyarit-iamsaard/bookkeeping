@@ -33,7 +33,7 @@ export interface ApiRejection {
   errors: readonly ApiFieldError[];
   /** Message per request field, in the shape the `FieldErrors` component reads. */
   fieldErrors: Readonly<Record<string, string>>;
-  /** The error-bar message when the problem is not addressed to a field. */
+  /** The error-bar message: the problem itself, or a field error no form field shows. */
   message: string | undefined;
 }
 
@@ -54,7 +54,15 @@ export interface WriteOptions<Input, Output> {
    * table; the default falls back to the problem's own prose.
    */
   describeFieldError?: DescribeFieldError;
+  /**
+   * The form field a pointer addresses, or `undefined` when the form shows
+   * no field for it. The default takes the pointer's first segment. An
+   * error no field claims becomes the message, so none goes unseen.
+   */
+  fieldOf?: FieldOf;
 }
+
+export type FieldOf = (pointer: string) => string | undefined;
 
 export interface WriteSubmissionOptions {
   generateKey?: () => string;
@@ -84,29 +92,65 @@ function toRequestField(pointer: string): string {
   return segment.replaceAll("~1", "/").replaceAll("~0", "~");
 }
 
+function defaultFieldOf(pointer: string): string | undefined {
+  return toRequestField(pointer) || undefined;
+}
+
+/** Claims a pointer for the form field its first segment names, if the form shows it. */
+export function createFieldOf(fields: readonly string[]): FieldOf {
+  return (pointer) => {
+    const field = toRequestField(pointer);
+    return fields.includes(field) ? field : undefined;
+  };
+}
+
+/** The messages for the fields a form shows, typed by those fields. */
+export function pickFieldErrors<Field extends string>(
+  fieldErrors: Readonly<Record<string, string>>,
+  fields: readonly Field[],
+): Partial<Record<Field, string>> {
+  const picked: Partial<Record<Field, string>> = {};
+  for (const field of fields) {
+    const message = fieldErrors[field];
+    if (message !== undefined) {
+      picked[field] = message;
+    }
+  }
+  return picked;
+}
+
+interface RejectionMapping {
+  describe: DescribeFieldError;
+  fieldOf: FieldOf;
+}
+
 function toApiRejection(
   problem: ApiProblem,
-  describe: DescribeFieldError,
+  { describe, fieldOf }: Readonly<RejectionMapping>,
 ): ApiRejection {
   const errors = (problem.errors ?? []).map((fieldError) => ({
     ...fieldError,
     field: toRequestField(fieldError.pointer),
   }));
   const fieldErrors: Record<string, string> = {};
+  let unplaced: ApiFieldError | undefined;
   for (const fieldError of errors) {
-    if (fieldError.field !== "" && !(fieldError.field in fieldErrors)) {
-      fieldErrors[fieldError.field] = describe(fieldError);
+    const field = fieldOf(fieldError.pointer);
+    if (field === undefined) {
+      unplaced ??= fieldError;
+    } else if (!(field in fieldErrors)) {
+      fieldErrors[field] = describe(fieldError);
     }
   }
-  const addressed = Object.keys(fieldErrors).length > 0;
 
-  return {
-    status: problem.status,
-    problem,
-    errors,
-    fieldErrors,
-    message: addressed ? undefined : (problem.detail ?? problem.title),
-  };
+  let message: string | undefined;
+  if (unplaced) {
+    message = describe(unplaced);
+  } else if (errors.length === 0) {
+    message = problem.detail ?? problem.title;
+  }
+
+  return { status: problem.status, problem, errors, fieldErrors, message };
 }
 
 /** `fetch` rejects with a `TypeError` when the request never left or its answer never arrived. */
@@ -142,7 +186,12 @@ export function createWriteSubmission<Input, Output>({
       return outcome;
     }
     const describe = options.describeFieldError ?? defaultDescribeFieldError;
-    return err(toApiRejection(outcome.error, describe));
+    return err(
+      toApiRejection(outcome.error, {
+        describe,
+        fieldOf: options.fieldOf ?? defaultFieldOf,
+      }),
+    );
   }
 
   return {

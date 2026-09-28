@@ -6,6 +6,7 @@ import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
+import { createFieldOf, pickFieldErrors } from "@/core/api/write-submission";
 import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { EditCategoryFormInput } from "@/features/categories/category-form-schema";
 import { editCategoryFormSchema } from "@/features/categories/category-form-schema";
@@ -22,6 +23,8 @@ interface UseEditCategoryFormOptions {
 }
 
 type EditField = keyof EditCategoryFormInput;
+
+const EDIT_FIELDS: readonly EditField[] = ["name", "iconId"];
 
 const CONNECTION_MESSAGE =
   "The change could not be confirmed. Your values are kept; try again.";
@@ -79,6 +82,7 @@ export function useEditCategoryForm({
         body: input,
       }),
     describeFieldError: describeCategoryFieldError,
+    fieldOf: createFieldOf(EDIT_FIELDS),
   });
   const removeCategory = useApiMutation<undefined, unknown>({
     send: () =>
@@ -110,7 +114,7 @@ export function useEditCategoryForm({
       return;
     }
     if (!result.ok) {
-      setFieldErrors(result.error.fieldErrors);
+      setFieldErrors(pickFieldErrors(result.error.fieldErrors, EDIT_FIELDS));
       setServerError(describeCategoryRejection(result.error));
       return;
     }

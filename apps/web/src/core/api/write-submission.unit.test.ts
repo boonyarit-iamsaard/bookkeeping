@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import type { ApiResponse } from "./problem";
 import type { WriteAttempt } from "./write-submission";
-import { createWriteSubmission } from "./write-submission";
+import { createFieldOf, createWriteSubmission } from "./write-submission";
 
 interface Wallet {
   id: string;
@@ -175,6 +175,99 @@ describe("createWriteSubmission", () => {
           name: "name: blank-name",
           openingAmount: "openingAmount: invalid-format",
         },
+      },
+    });
+  });
+
+  test("places only the fields the form shows; any other error becomes the message", async () => {
+    const send = vi.fn(async () =>
+      rejected(422, {
+        ...invalidCommand,
+        errors: [
+          { pointer: "#/type", code: "invalid-transfer" },
+          { pointer: "#/amount/value", code: "amount-out-of-range" },
+        ],
+      }),
+    );
+    const submission = createWriteSubmission<unknown, Wallet>({
+      generateKey: keySequence("key-1"),
+    });
+
+    const result = await submission.submit(
+      {},
+      {
+        send,
+        describeFieldError: ({ code }) => `described ${code}`,
+        fieldOf: (pointer) =>
+          pointer === "#/amount/value" ? "amount" : undefined,
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        fieldErrors: { amount: "described amount-out-of-range" },
+        message: "described invalid-transfer",
+      },
+    });
+  });
+
+  test("a form's field list claims pointers by their first segment", async () => {
+    const send = vi.fn(async () =>
+      rejected(422, {
+        ...invalidCommand,
+        errors: [
+          { pointer: "#/openingAmount/value", code: "invalid-format" },
+          { pointer: "#/currency", code: "invalid-value" },
+        ],
+      }),
+    );
+    const submission = createWriteSubmission<unknown, Wallet>({
+      generateKey: keySequence("key-1"),
+    });
+
+    const result = await submission.submit(
+      {},
+      {
+        send,
+        describeFieldError: ({ code }) => `described ${code}`,
+        fieldOf: createFieldOf(["name", "openingAmount"]),
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        fieldErrors: { openingAmount: "described invalid-format" },
+        message: "described invalid-value",
+      },
+    });
+  });
+
+  test("an error addressed to the whole request becomes the message beside field errors", async () => {
+    const send = vi.fn(async () =>
+      rejected(422, {
+        ...invalidCommand,
+        errors: [
+          { pointer: "#/name", code: "blank-name" },
+          { pointer: "#/", code: "unrecognized-keys" },
+        ],
+      }),
+    );
+    const submission = createWriteSubmission<unknown, Wallet>({
+      generateKey: keySequence("key-1"),
+    });
+
+    const result = await submission.submit(
+      {},
+      { send, describeFieldError: ({ code }) => `described ${code}` },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        fieldErrors: { name: "described blank-name" },
+        message: "described unrecognized-keys",
       },
     });
   });

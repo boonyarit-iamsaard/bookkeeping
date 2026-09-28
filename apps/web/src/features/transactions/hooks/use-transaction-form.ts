@@ -11,6 +11,7 @@ import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError } from "@/core/api/write-submission";
+import { createFieldOf, pickFieldErrors } from "@/core/api/write-submission";
 import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { CaptureOrigin } from "@/features/transactions/capture-origin";
 import { captureReturnHref } from "@/features/transactions/capture-origin";
@@ -71,6 +72,8 @@ const TRANSACTION_FORM_FIELDS: readonly TransactionFormField[] = [
   "note",
 ];
 
+const transactionFieldOf = createFieldOf(TRANSACTION_FORM_FIELDS);
+
 const FIELD_ERROR_MESSAGES: Record<string, string> = {
   "wallet-not-found": "That wallet is not available. Choose another wallet.",
   "destination-wallet-not-found":
@@ -122,19 +125,6 @@ function describeTransactionFieldError(
     return `A linked refund is dated ${formatCalendarDate(expenseRefunds.earliestRefundDate)}; the expense cannot come after it`;
   }
   return detail ?? FIELD_ERROR_MESSAGES[code] ?? "This value was not accepted.";
-}
-
-function formFieldErrors(
-  errors: Readonly<Record<string, string>>,
-): Partial<Record<TransactionFormField, string>> {
-  const fieldErrors: Partial<Record<TransactionFormField, string>> = {};
-  for (const field of TRANSACTION_FORM_FIELDS) {
-    const message = errors[field];
-    if (message) {
-      fieldErrors[field] = message;
-    }
-  }
-  return fieldErrors;
 }
 
 function toCreateTransactionRequest(
@@ -260,6 +250,7 @@ export function useTransactionForm({
         body: input,
       }),
     describeFieldError,
+    fieldOf: transactionFieldOf,
   });
   // An update that changes nothing succeeds without effect, so the helper's
   // same-request replay is safe here without the creation key.
@@ -273,6 +264,7 @@ export function useTransactionForm({
         body: input,
       }),
     describeFieldError,
+    fieldOf: transactionFieldOf,
   });
 
   const form = useForm({
@@ -307,7 +299,9 @@ export function useTransactionForm({
       }
 
       if (!result.ok) {
-        setFieldErrors(formFieldErrors(result.error.fieldErrors));
+        setFieldErrors(
+          pickFieldErrors(result.error.fieldErrors, TRANSACTION_FORM_FIELDS),
+        );
         setServerError(result.error.message);
         return;
       }

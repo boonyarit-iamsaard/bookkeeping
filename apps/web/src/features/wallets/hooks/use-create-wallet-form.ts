@@ -8,12 +8,20 @@ import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError } from "@/core/api/write-submission";
+import { createFieldOf } from "@/core/api/write-submission";
 import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { WalletFormInput } from "@/features/wallets/wallet-form-schema";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
 
 type CreateWalletRequest = components["schemas"]["CreateWalletRequest"];
 type Wallet = components["schemas"]["Wallet"];
+
+const WALLET_FORM_FIELDS: readonly (keyof WalletFormInput)[] = [
+  "name",
+  "type",
+  "openingAmount",
+  "openingDate",
+];
 
 interface UseCreateWalletFormOptions {
   defaultOpeningDate: CalendarDate;
@@ -50,6 +58,7 @@ export function useCreateWalletForm({
         body: input,
       }),
     describeFieldError: describeWalletFieldError,
+    fieldOf: createFieldOf(WALLET_FORM_FIELDS),
   });
 
   const defaultValues: WalletFormInput = {

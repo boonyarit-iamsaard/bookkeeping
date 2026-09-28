@@ -11,6 +11,7 @@ import type { components } from "@/core/api/openapi.gen";
 import { categoryQueries } from "@/core/api/queries";
 import { useApiMutation } from "@/core/api/use-api-mutation";
 import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
+import { pickFieldErrors } from "@/core/api/write-submission";
 import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { CategoryFormInput } from "@/features/categories/category-form-schema";
 import {
@@ -85,20 +86,13 @@ function fieldFromPointer(pointer: string): CategoryFormField | undefined {
   }
 }
 
-function categoryFieldErrors(
-  rejection: Readonly<ApiRejection>,
-): Partial<Record<CategoryFormField, string>> {
-  const fieldErrors: Partial<Record<CategoryFormField, string>> = {
-    ...rejection.fieldErrors,
-  };
-  for (const fieldError of rejection.errors) {
-    const field = fieldFromPointer(fieldError.pointer);
-    if (field && !fieldErrors[field]) {
-      fieldErrors[field] = describeCategoryFieldError(fieldError);
-    }
-  }
-  return fieldErrors;
-}
+const CATEGORY_FORM_FIELDS: readonly CategoryFormField[] = [
+  "name",
+  "iconId",
+  "parent",
+  "parentName",
+  "parentIconId",
+];
 
 function describeCategoryRejection(
   rejection: Readonly<ApiRejection>,
@@ -132,6 +126,7 @@ export function useCreateCategoryForm({
         body: input,
       }),
     describeFieldError: describeCategoryFieldError,
+    fieldOf: fieldFromPointer,
   });
 
   const defaultValues: CategoryFormInput = {
@@ -170,7 +165,9 @@ export function useCreateCategoryForm({
       }
 
       if (!result.ok) {
-        setFieldErrors(categoryFieldErrors(result.error));
+        setFieldErrors(
+          pickFieldErrors(result.error.fieldErrors, CATEGORY_FORM_FIELDS),
+        );
         setServerError(describeCategoryRejection(result.error));
         return;
       }
