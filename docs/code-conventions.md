@@ -199,6 +199,9 @@ such as `add_transaction_history`. Keep one intent per migration; generate
 unrelated changes separately. Never commit Drizzle's random names such as
 `wild_hulk`.
 
+CI enforces schema drift and the migration file-name shape mechanically; the
+meaning of a slug remains a review concern.
+
 If `generate` asks whether a change is a rename, stop without answering the
 prompt and give the owner this exact command to run on the host after reviewing
 the rename:

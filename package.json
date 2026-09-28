@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-    "ci": "biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && turbo run types:check types:check:scripts test && turbo run build",
+    "ci": "pnpm check:database-migrations && biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && turbo run types:check types:check:scripts test && turbo run build",
     "ci:e2e": "turbo run test:e2e:ci",
     "db:push": "pnpm --filter @bookkeeping/database db:push",
     "db:migrate": "pnpm --filter @bookkeeping/database db:migrate",
@@ -13,6 +13,7 @@
     "db:start": "docker compose up -d --wait",
     "db:stop": "docker compose --profile stack down",
     "db:studio": "pnpm --filter @bookkeeping/database db:studio",
+    "check:database-migrations": "tsx scripts/check-database-migrations.ts",
     "dev": "turbo run dev",
     "dev:server": "turbo run dev --filter=@bookkeeping/server",
     "dev:web": "turbo run dev --filter=@bookkeeping/web",
