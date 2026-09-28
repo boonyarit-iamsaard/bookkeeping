@@ -4,6 +4,11 @@ import { basename, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryDirectory = fileURLToPath(new URL("../", import.meta.url));
+const databaseDirectory = join(repositoryDirectory, "packages/database");
+const drizzleKitBin = join(
+  databaseDirectory,
+  "node_modules/drizzle-kit/bin.cjs",
+);
 const migrationsDirectoryRelative = "packages/database/drizzle";
 const migrationsDirectory = join(
   repositoryDirectory,
@@ -31,18 +36,13 @@ function findSqlFiles(rootDirectory: string): string[] {
   return files.sort();
 }
 
+// Runs the bin through Node rather than the `pnpm` shim, which Windows cannot
+// spawn without a shell.
 function runDrizzleKit(commandArguments: readonly string[]): void {
-  execFileSync(
-    "pnpm",
-    [
-      "--filter",
-      "@bookkeeping/database",
-      "exec",
-      "drizzle-kit",
-      ...commandArguments,
-    ],
-    { cwd: repositoryDirectory, stdio: "inherit" },
-  );
+  execFileSync(process.execPath, [drizzleKitBin, ...commandArguments], {
+    cwd: databaseDirectory,
+    stdio: "inherit",
+  });
 }
 
 function readMigrationStatus(): string {
