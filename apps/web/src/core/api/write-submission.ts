@@ -56,8 +56,8 @@ export interface WriteOptions<Input, Output> {
   describeFieldError?: DescribeFieldError;
   /**
    * The form field a pointer addresses, or `undefined` when the form shows
-   * no field for it. The default takes the pointer's first segment. An
-   * error no field claims becomes the message, so none goes unseen.
+   * no field for it. The default claims none, for a write with no fields. An
+   * error no field claims joins the message, so none goes unseen.
    */
   fieldOf?: FieldOf;
 }
@@ -92,8 +92,18 @@ function toRequestField(pointer: string): string {
   return segment.replaceAll("~1", "/").replaceAll("~0", "~");
 }
 
-function defaultFieldOf(pointer: string): string | undefined {
-  return toRequestField(pointer) || undefined;
+function noFields(): undefined {
+  return undefined;
+}
+
+/** One message reads as it is; several read as sentences in turn. */
+function joinMessages(messages: readonly string[]): string {
+  if (messages.length === 1) {
+    return messages[0];
+  }
+  return messages
+    .map((message) => (/[.!?]$/.test(message) ? message : `${message}.`))
+    .join(" ");
 }
 
 /** Claims a pointer for the form field its first segment names, if the form shows it. */
@@ -133,19 +143,19 @@ function toApiRejection(
     field: toRequestField(fieldError.pointer),
   }));
   const fieldErrors: Record<string, string> = {};
-  let unplaced: ApiFieldError | undefined;
+  const unplaced = new Set<string>();
   for (const fieldError of errors) {
     const field = fieldOf(fieldError.pointer);
     if (field === undefined) {
-      unplaced ??= fieldError;
+      unplaced.add(describe(fieldError));
     } else if (!(field in fieldErrors)) {
       fieldErrors[field] = describe(fieldError);
     }
   }
 
   let message: string | undefined;
-  if (unplaced) {
-    message = describe(unplaced);
+  if (unplaced.size > 0) {
+    message = joinMessages([...unplaced]);
   } else if (errors.length === 0) {
     message = problem.detail ?? problem.title;
   }
@@ -189,7 +199,7 @@ export function createWriteSubmission<Input, Output>({
     return err(
       toApiRejection(outcome.error, {
         describe,
-        fieldOf: options.fieldOf ?? defaultFieldOf,
+        fieldOf: options.fieldOf ?? noFields,
       }),
     );
   }

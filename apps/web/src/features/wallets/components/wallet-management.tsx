@@ -59,10 +59,9 @@ function describeWalletFieldError({
   );
 }
 
+// These writes show no fields, so a field error arrives as the message.
 function describeWalletRejection(rejection: Readonly<ApiRejection>): string {
-  const fieldError = Object.values(rejection.fieldErrors)[0];
   return (
-    fieldError ??
     ERROR_MESSAGES[rejection.problem.code] ??
     rejection.message ??
     "The change could not be confirmed. Your values are kept; try again."

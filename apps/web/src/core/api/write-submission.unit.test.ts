@@ -163,6 +163,7 @@ describe("createWriteSubmission", () => {
       {
         send,
         describeFieldError: ({ field, code }) => `${field}: ${code}`,
+        fieldOf: createFieldOf(["name", "openingAmount"]),
       },
     );
 
@@ -291,7 +292,11 @@ describe("createWriteSubmission", () => {
 
     const result = await submission.submit(
       {},
-      { send, describeFieldError: ({ code }) => `described ${code}` },
+      {
+        send,
+        describeFieldError: ({ code }) => `described ${code}`,
+        fieldOf: createFieldOf(["name"]),
+      },
     );
 
     expect(result).toMatchObject({
@@ -300,6 +305,59 @@ describe("createWriteSubmission", () => {
         fieldErrors: { name: "described blank-name" },
         message: "described unrecognized-keys",
       },
+    });
+  });
+
+  test("a write that shows no fields puts every field error in the message", async () => {
+    const send = vi.fn(async () =>
+      rejected(422, {
+        ...invalidCommand,
+        errors: [
+          { pointer: "#/openingDate", code: "in-future" },
+          { pointer: "#/openingAmount/value", code: "invalid-format" },
+        ],
+      }),
+    );
+    const submission = createWriteSubmission<unknown, Wallet>({
+      generateKey: keySequence("key-1"),
+    });
+
+    const result = await submission.submit(
+      {},
+      { send, describeFieldError: ({ code }) => `Described ${code}` },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: {
+        fieldErrors: {},
+        message: "Described in-future. Described invalid-format.",
+      },
+    });
+  });
+
+  test("names a message shared by several unplaced errors once", async () => {
+    const send = vi.fn(async () =>
+      rejected(422, {
+        ...invalidCommand,
+        errors: [
+          { pointer: "#/type", code: "same" },
+          { pointer: "#/", code: "same" },
+        ],
+      }),
+    );
+    const submission = createWriteSubmission<unknown, Wallet>({
+      generateKey: keySequence("key-1"),
+    });
+
+    const result = await submission.submit(
+      {},
+      { send, describeFieldError: () => "Check the entry." },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { message: "Check the entry." },
     });
   });
 
@@ -316,7 +374,10 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1"),
     });
 
-    const result = await submission.submit({}, { send });
+    const result = await submission.submit(
+      {},
+      { send, fieldOf: createFieldOf(["name"]) },
+    );
 
     expect(result).toMatchObject({
       ok: false,
