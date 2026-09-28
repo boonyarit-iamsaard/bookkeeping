@@ -1,7 +1,9 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { setTimeout } from "node:timers/promises";
 
 import { z } from "zod";
+
+import type { SonarServer } from "./server";
 
 const keyedSchema = z.looseObject({ key: z.string() });
 const issueSchema = z.looseObject({
@@ -74,39 +76,21 @@ interface Report {
   exportedAt: string;
   analysisId: string;
   taskId: string;
-  dashboardUrl: string;
+  /** Set only when the server is kept running after the scan. */
+  dashboardUrl?: string;
   issues: z.infer<typeof issueSchema>[];
   rules: z.infer<typeof keyedSchema>[];
   components: z.infer<typeof keyedSchema>[];
   hotspots: z.infer<typeof hotspotSchema>[];
 }
 
-const serverUrl = "http://localhost:9000";
-const reportDirectory = new URL("../.sonar-reports/", import.meta.url);
+const reportDirectory = new URL("../../.sonar-reports/", import.meta.url);
 
-async function request(path: string): Promise<unknown> {
-  const login = process.env.SONAR_ADMIN_LOGIN;
-  const password = process.env.SONAR_ADMIN_PASSWORD;
-  if (!login || !password) {
-    throw new Error("Missing export credentials. Run pnpm sonar:setup first.");
-  }
-  const response = await fetch(`${serverUrl}/api/${path}`, {
-    headers: {
-      authorization: `Basic ${Buffer.from(`${login}:${password}`).toString("base64")}`,
-    },
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!response.ok) {
-    throw new Error(`SonarQube ${path} failed (HTTP ${response.status}).`);
-  }
-  return response.json();
-}
-
-async function waitForAnalysis(taskId: string) {
+async function waitForAnalysis(server: Readonly<SonarServer>, taskId: string) {
   console.log("Waiting for SonarQube to process the submitted analysis...");
   for (let attempt = 0; attempt < 150; attempt++) {
     const { task } = taskSchema.parse(
-      await request(`ce/task?id=${encodeURIComponent(taskId)}`),
+      await server.request(`ce/task?id=${encodeURIComponent(taskId)}`),
     );
     if (task.status === "SUCCESS") {
       if (!task.analysisId) {
@@ -121,18 +105,19 @@ async function waitForAnalysis(taskId: string) {
     }
     await setTimeout(2_000);
   }
-  throw new Error(
-    "Analysis processing timed out. Retry with pnpm sonar:export.",
-  );
+  throw new Error("Analysis processing timed out.");
 }
 
-async function fetchPages<T>(options: Readonly<PageOptions<T>>) {
+async function fetchPages<T>(
+  server: Readonly<SonarServer>,
+  options: Readonly<PageOptions<T>>,
+) {
   const items: T[] = [];
   const components = new Map<string, z.infer<typeof keyedSchema>>();
   const rules = new Map<string, z.infer<typeof keyedSchema>>();
   for (let page = 1; ; page++) {
     const result = pageSchema.parse(
-      await request(`${options.path}&ps=500&p=${page}`),
+      await server.request(`${options.path}&ps=500&p=${page}`),
     );
     const batch = z.array(options.schema).parse(result[options.field]);
     items.push(...batch);
@@ -161,6 +146,20 @@ function text(value: unknown) {
     .replace(/\r?\n/g, " ");
 }
 
+interface DashboardLink {
+  label: string;
+  path: string;
+}
+
+function link(
+  report: Readonly<Report>,
+  { label, path }: Readonly<DashboardLink>,
+) {
+  return report.dashboardUrl === undefined
+    ? []
+    : [`- [${label}](${new URL(path, report.dashboardUrl)})`];
+}
+
 function markdown(report: Readonly<Report>) {
   const lines = [
     "# Bookkeeping SonarQube report",
@@ -171,7 +170,7 @@ function markdown(report: Readonly<Report>) {
     "",
     `Issues: ${report.issues.length}. Security hotspots: ${report.hotspots.length}.`,
     "",
-    "This snapshot includes all current project issues, including resolved issues. Security hotspots require review and are listed separately.",
+    "This snapshot lists the issues in the scanned code. Security hotspots require review and are listed separately.",
     "",
     "## Issues",
     "",
@@ -188,7 +187,10 @@ function markdown(report: Readonly<Report>) {
       `- Severity: ${text(issue.severity ?? "See impacts")}`,
       `- Type: ${text(issue.type ?? "See impacts")}`,
       `- Effort: ${text(issue.effort ?? "Unspecified")}`,
-      `- [View issue](${serverUrl}/project/issues?id=bookkeeping&issues=${encodeURIComponent(issue.key)})`,
+      ...link(report, {
+        label: "View issue",
+        path: `/project/issues?id=bookkeeping&issues=${encodeURIComponent(issue.key)}`,
+      }),
     );
     for (const impact of issue.impacts ?? []) {
       lines.push(
@@ -217,7 +219,10 @@ function markdown(report: Readonly<Report>) {
       `- Rule: ${text(hotspot.rule?.key)}`,
       `- Status: ${text(hotspot.status)}`,
       `- Review priority: ${text(hotspot.rule?.vulnerabilityProbability)}`,
-      `- [View hotspot](${serverUrl}/security_hotspots?id=bookkeeping&hotspots=${encodeURIComponent(hotspot.key)})`,
+      ...link(report, {
+        label: "View hotspot",
+        path: `/security_hotspots?id=bookkeeping&hotspots=${encodeURIComponent(hotspot.key)}`,
+      }),
       "",
     );
   }
@@ -227,22 +232,26 @@ function markdown(report: Readonly<Report>) {
   return lines.join("\n");
 }
 
-async function exportReport() {
-  const metadata = await readFile(
-    new URL("report-task.txt", reportDirectory),
-    "utf8",
-  );
-  const taskId = metadata.match(/^ceTaskId=(.+)$/m)?.[1]?.trim();
-  if (!taskId) {
-    throw new Error("Missing scan task ID. Run pnpm sonar:scan first.");
-  }
-  const task = await waitForAnalysis(taskId);
-  const issues = await fetchPages({
+export interface ExportOptions {
+  server: SonarServer;
+  taskId: string;
+  /** Link issues to the dashboard, for a server kept running after the scan. */
+  linkDashboard: boolean;
+}
+
+/** Waits for the scan's processing, then writes `.sonar-reports/issues.*`. */
+export async function exportReport({
+  server,
+  taskId,
+  linkDashboard,
+}: Readonly<ExportOptions>): Promise<void> {
+  const task = await waitForAnalysis(server, taskId);
+  const issues = await fetchPages(server, {
     path: "issues/search?components=bookkeeping&additionalFields=_all",
     field: "issues",
     schema: issueSchema,
   });
-  const hotspots = await fetchPages({
+  const hotspots = await fetchPages(server, {
     path: "hotspots/search?project=bookkeeping",
     field: "hotspots",
     schema: keyedSchema,
@@ -251,7 +260,7 @@ async function exportReport() {
   for (const hotspot of hotspots.items) {
     hotspotDetails.push(
       hotspotSchema.parse(
-        await request(
+        await server.request(
           `hotspots/show?hotspot=${encodeURIComponent(hotspot.key)}`,
         ),
       ),
@@ -262,7 +271,9 @@ async function exportReport() {
     exportedAt: new Date().toISOString(),
     analysisId: task.analysisId,
     taskId,
-    dashboardUrl: `${serverUrl}/dashboard?id=bookkeeping`,
+    ...(linkDashboard
+      ? { dashboardUrl: `${server.url}/dashboard?id=bookkeeping` }
+      : {}),
     issues: issues.items,
     rules: issues.rules,
     components: issues.components,
@@ -278,8 +289,3 @@ async function exportReport() {
     `Exported ${report.issues.length} issues and ${report.hotspots.length} security hotspots to .sonar-reports/issues.json and .sonar-reports/issues.md.`,
   );
 }
-
-exportReport().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});

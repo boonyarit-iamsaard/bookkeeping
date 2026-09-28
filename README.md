@@ -381,33 +381,37 @@ not required for local development, commits, pull requests, or completing projec
 work. SonarQube is not part of `pnpm run ci`, GitHub Actions, or commit hooks;
 its quality gate does not block this project's workflow.
 
-Set up the separate SonarQube Community Build stack:
+Run one scan:
 
 ```bash
-pnpm sonar:setup
 pnpm sonar:scan
 ```
 
-Setup starts the containers, waits for readiness, replaces the default admin
-password with a random password, creates the private `bookkeeping` project, and
-generates a project analysis token. It saves credentials in the Git-ignored
-`.env.sonar` with owner-only file permissions. The scan command loads the token
-automatically. Rerunning setup reuses a valid token.
+Each scan is one-off. It removes anything an earlier scan left behind, starts a
+SonarQube Community Build container on a free loopback port, replaces the
+default admin password with a random one, creates the private `bookkeeping`
+project and an analysis token, runs the scanner, and waits for the server to
+process the analysis. It then writes the issues and detailed security hotspots
+to `.sonar-reports/issues.json` and `.sonar-reports/issues.md`, and removes
+every container, volume, and network it created, also when the scan fails or
+you interrupt it. No credentials are saved; nothing but the reports outlives
+the run. Run one scan at a time: a new scan first removes any other scan's
+stack, including one still running. The run needs no environment file.
 
-After each successful scan, the command waits for that scan's server processing
-and exports all current project issues (including resolved issues) and detailed
-security hotspots to `.sonar-reports/issues.json` and `.sonar-reports/issues.md`.
-JSON preserves issue fields, related locations, rules, and hotspot details;
-Markdown provides a readable list with links to the dashboard. Reports are
-Git-ignored and overwritten on the next successful export. They describe current
-project state, rather than an immutable historical analysis. Avoid simultaneous
-scans of the same project while exporting. Use `pnpm sonar:export` to retry an
-export without rescanning; it uses the last saved scan task ID.
+Reports are Git-ignored and overwritten by the next scan. Because every scan
+starts from an empty server, they list the issues in the scanned code only:
+there is no history, new-code period, or dashboard triage between scans. JSON
+preserves issue fields, related locations, rules, and hotspot details; Markdown
+provides a readable list.
 
-Open [localhost:9000](http://localhost:9000) and use the admin credentials from
-`.env.sonar`. If you previously changed the admin password, supply your existing
-`SONAR_ADMIN_PASSWORD` (and `SONAR_ADMIN_LOGIN` if needed) in the shell environment
-before running setup. Do not commit or share `.env.sonar`.
+| Flag             | Effect                                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| `--keep`         | Leave SonarQube running after the export and print its URL and admin password; the reports link to it |
+| `--purge-images` | Also remove the SonarQube and scanner images, which the next scan downloads again                     |
+
+Pass a flag after the script name, as in `pnpm sonar:scan --keep`.
+`pnpm sonar:clean` removes a kept or abandoned stack without scanning, and
+also accepts `--purge-images`.
 
 The scanner analyzes
 `apps/web/src/`, `apps/server/src/`, `packages/domain/src/`,
@@ -416,18 +420,11 @@ and classifies colocated Vitest tests and `apps/web/tests/` as test code; it
 skips the generated route tree. It does
 not run tests or generate coverage; coverage reporting is not configured.
 
-`pnpm sonar:stop` stops this stack and retains its database and analysis data.
-For later on-demand scans, run `pnpm sonar:start`, then `pnpm sonar:scan`.
-Stop the stack when you finish to free its resources.
-The stack uses its own PostgreSQL database and exposes the dashboard only on
-localhost. It disables Elasticsearch bootstrap checks for local development.
-Both database stacks use `postgres:18-alpine`, sharing the downloaded image.
-The SonarQube stack follows the app's Compose conventions with explicit
-container, volume, and network names. Its PostgreSQL data mounts at
-`/var/lib/postgresql`, as required by the PostgreSQL 18 image layout.
-The images use moving tags; pin versions before relying on this setup in CI or
-running a shared server. If port 9000 is already occupied by a trial SonarQube
-container, stop that container before starting this stack.
+The stack uses SonarQube's embedded database, which is meant for evaluation
+only and suits a server that never outlives one scan. It disables
+Elasticsearch bootstrap checks for local development. The images use moving
+tags; pin versions before relying on this setup in CI or running a shared
+server.
 
 See the official [Docker setup](https://docs.sonarsource.com/sonarqube-community-build/server-installation/from-docker-image/set-up-and-start-container)
 and [scanner guide](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/sonarscanner).

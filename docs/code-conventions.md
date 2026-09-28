@@ -239,9 +239,9 @@ Anything a shell would otherwise do goes through one of three tools:
   `process.execPath`, adding `--import tsx` when the child is TypeScript.
 
 Each workspace owns its `.env` and `.env.example`, and only that workspace's
-scripts load its `.env`. The root holds only tool environment files, such as
-`.env.sonar`. A value two workspaces need, such as the local `DATABASE_URL`, is
-repeated in each workspace's file rather than shared.
+scripts load its `.env`. The root has no environment file. A value two
+workspaces need, such as the local `DATABASE_URL`, is repeated in each
+workspace's file rather than shared.
 
 Each workspace declares every tool its own scripts run as a dev dependency,
 instead of relying on the root install to provide it.
