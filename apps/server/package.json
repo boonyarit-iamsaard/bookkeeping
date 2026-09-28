@@ -26,7 +26,7 @@
     "@bookkeeping/database": "workspace:*",
     "@bookkeeping/domain": "workspace:*",
     "@seriousme/openapi-schema-validator": "^2.9.1",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "esbuild": "^0.28.2",
     "tsx": "^4.23.13",
     "typescript": "^5",
