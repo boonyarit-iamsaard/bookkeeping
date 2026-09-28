@@ -44,3 +44,10 @@ and both production builds.
 Owner follow-up: reset the existing push-built local database once with
 `pnpm db:fresh`; otherwise `0000_baseline` will fail there with "already
 exists".
+
+Follow-up: a review found that the host check read only the URL authority,
+while `pg` lets a `?host=` query parameter override it, so a localhost URL
+could still reach a remote database. Commit `35a36ee` resolves the host with
+`pg-connection-string`, as `pg` does, and the check now lives in
+`src/local-database-url.ts` with its own unit tests for the accepted and
+refused hosts.

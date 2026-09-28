@@ -56,12 +56,12 @@ migrations.
 Implemented in commit `98f7ac1`; closed after the code review of the migration
 work.
 
-The review fixes moved the migration integration test from
+Review fixes in commit `b7c14be` moved the migration integration test from
 `src/testing/migrate.integration.test.ts` to `src/migrate.integration.test.ts`,
 merged with the `db:fresh` test, because the code conventions match a test's
 stem to its source module and keep `src/testing/` for shared helpers. The test
 now also asserts that a second `migrateDatabase` run records no new migration,
 as the spec asks.
 
-Verification: the database package suite passed (3 files, 9 tests), `pnpm run
+Verification: the database package suite passed (4 files, 12 tests), `pnpm run
 ci` passed, and `tests/e2e/home.spec.ts` passed on `phone-chromium` (3 tests).
