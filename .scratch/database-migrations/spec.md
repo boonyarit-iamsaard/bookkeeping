@@ -1,6 +1,6 @@
 # Database migrations outside production
 
-Status: ready-for-agent
+Status: done
 
 Decided on 2026-09-27 by grilling. The owner authorized the switch from
 `db:push` to migrations for every environment except production, as the

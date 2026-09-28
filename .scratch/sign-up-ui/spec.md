@@ -1,6 +1,6 @@
 # Sign-up screens follow the sign-up switch
 
-Status: ready-for-agent
+Status: done
 
 Decided on 2026-09-27 by grilling. This reopens the "client-visible sign-up
 state" left out of scope by `.scratch/deployment/spec.md`.
