@@ -19,6 +19,7 @@
   "scripts": {
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx --env-file-if-exists=.env src/migrate-cli.ts",
+    "db:fresh": "tsx --env-file-if-exists=.env src/fresh-cli.ts",
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",
     "test:watch": "vitest",

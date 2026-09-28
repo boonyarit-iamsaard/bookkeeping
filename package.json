@@ -9,6 +9,7 @@
     "ci:e2e": "turbo run test:e2e:ci",
     "db:push": "pnpm --filter @bookkeeping/database db:push",
     "db:migrate": "pnpm --filter @bookkeeping/database db:migrate",
+    "db:fresh": "pnpm --filter @bookkeeping/database db:fresh",
     "db:start": "docker compose up -d --wait",
     "db:stop": "docker compose --profile stack down",
     "db:studio": "pnpm --filter @bookkeeping/database db:studio",

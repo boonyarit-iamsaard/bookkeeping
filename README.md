@@ -291,16 +291,19 @@ origin), its `CLIENT_ORIGINS` (the client origin), and the client's
 
 ## Database commands
 
-| Command          | Purpose                                                                  |
-| ---------------- | ------------------------------------------------------------------------ |
-| `pnpm db:start`  | Start local PostgreSQL and wait for its health check                     |
-| `pnpm db:stop`   | Stop PostgreSQL and the production containers, retaining the data volume |
-| `pnpm db:push`   | Apply schema changes directly for local development                      |
-| `pnpm db:studio` | Open Drizzle Studio                                                      |
+| Command           | Purpose                                                                  |
+| ----------------- | ------------------------------------------------------------------------ |
+| `pnpm db:start`   | Start local PostgreSQL and wait for its health check                     |
+| `pnpm db:stop`    | Stop PostgreSQL and the production containers, retaining the data volume |
+| `pnpm db:push`    | Apply schema changes directly on a throwaway database                    |
+| `pnpm db:migrate` | Apply pending committed migrations                                       |
+| `pnpm db:fresh`   | Reset a local database and rebuild it from committed migrations          |
+| `pnpm db:studio`  | Open Drizzle Studio                                                      |
 
 These commands need only Docker and `packages/database/.env`; neither app has
-to be running. `db:push` and `db:studio` run the Drizzle CLI from
-`packages/database`, which owns the schema.
+to be running. The database commands run from `packages/database`, which owns
+the schema. `db:fresh` is destructive and refuses any host other than
+`localhost` or `127.0.0.1`.
 
 ## Production containers
 
@@ -320,7 +323,8 @@ Building an image is a heavy task, so `stack:build` builds one at a time. Stop
 `pnpm dev:server` and `pnpm dev:web` first, since they use the same ports.
 
 The schema-change policy in [AGENTS.md](AGENTS.md#database-schema-changes)
-requires `db:push` until the user explicitly authorizes switching to migrations.
+uses committed migrations outside production; use `db:push` only for experiments
+on a throwaway database.
 
 PostgreSQL stores its initialized credentials in the persistent data volume, so
 editing `POSTGRES_PASSWORD` in `docker-compose.yaml` does not change an already

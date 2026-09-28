@@ -1,8 +1,8 @@
 import { requiredDatabaseUrl } from "./database-url";
-import { migrateDatabase } from "./migrate";
+import { freshDatabase } from "./migrate";
 
 async function main(): Promise<void> {
-  await migrateDatabase(requiredDatabaseUrl());
+  await freshDatabase(requiredDatabaseUrl());
 }
 
 main().catch((error: unknown) => {
