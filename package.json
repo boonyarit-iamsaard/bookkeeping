@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-    "ci": "pnpm check:database-migrations && biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && turbo run types:check types:check:scripts test && turbo run build",
+    "ci": "pnpm check:database-migrations && biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && turbo run types:check types:check:scripts test test:scripts && turbo run build",
     "ci:e2e": "turbo run test:e2e:ci",
     "db:push": "pnpm --filter @bookkeeping/database db:push",
     "db:migrate": "pnpm --filter @bookkeeping/database db:migrate",
@@ -39,12 +39,16 @@
     "start:web": "turbo run start --filter=@bookkeeping/web",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",
+    "test:scripts": "vitest run",
     "test:watch": "turbo run test:watch",
     "types:check": "turbo run types:check types:check:scripts",
     "types:check:scripts": "tsc --noEmit"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@commitlint/types": "^21.2.3",
     "@types/node": "^20",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
@@ -53,6 +57,7 @@
     "tsx": "^4.23.13",
     "turbo": "^2",
     "typescript": "^5",
+    "vitest": "^5.0.0",
     "zod": "^4.6.2"
   },
   "packageManager": "pnpm@10.27.0",

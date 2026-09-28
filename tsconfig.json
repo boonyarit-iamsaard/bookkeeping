@@ -3,6 +3,6 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["scripts/**/*.ts"],
+  "include": ["scripts/**/*.ts", "commitlint.config.ts", "vitest.config.mts"],
   "exclude": ["node_modules"]
 }

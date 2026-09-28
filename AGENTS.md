@@ -30,6 +30,14 @@ such flow or the request is rejected, give the user one exact command or short
 command sequence to run on the host. Verify the test outcome or Git state before
 claiming completion. Follow the browser resource limits above for `ci:e2e`.
 
+### Commit messages
+
+A commit message is one lowercase conventional subject of at most 72
+characters, plus any trailers; there is no body. A commit whose staged code
+touches exactly one domain feature carries that feature's scope, and any other
+commit has none. `commitlint.config.ts` is the authority and the commit-msg
+hook enforces it; read its scope list before writing a message.
+
 ### Code conventions
 
 Before writing, refactoring, or reviewing application code, read
