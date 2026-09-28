@@ -219,3 +219,29 @@ reapplies every committed migration. It is destructive and only works when
 `DATABASE_URL` points to `localhost` or `127.0.0.1`, judged by the host `pg`
 connects to, so a `?host=` query parameter counts; it has no override for a
 remote database.
+
+## Scripts and environment
+
+Every script runs the same way on Windows (PowerShell 7), macOS, and Linux.
+pnpm runs a script string with `cmd.exe` on Windows even from PowerShell, and
+with `sh` elsewhere, so a script string holds only commands chained with `&&`.
+Anything a shell would otherwise do goes through one of three tools:
+
+- dotenvx owns every environment input a script receives: an env file with
+  `-f`, named explicitly, and an inline value with `--env`. An inline
+  `NAME=value` prefix fails under `cmd.exe`, which is why dotenvx stays even
+  where Node's own `--env-file` would load the file. Add
+  `--ignore=MISSING_ENV_FILE` when the file is optional and `--strict` when it
+  is required. A variable already set in the environment always wins.
+- tsx runs TypeScript source, including scripts and development servers.
+- node runs built output with the environment its caller supplies; it loads no
+  file. A child process started from a TypeScript script uses
+  `process.execPath`, adding `--import tsx` when the child is TypeScript.
+
+Each workspace owns its `.env` and `.env.example`, and only that workspace's
+scripts load its `.env`. The root holds only tool environment files, such as
+`.env.sonar`. A value two workspaces need, such as the local `DATABASE_URL`, is
+repeated in each workspace's file rather than shared.
+
+Each workspace declares every tool its own scripts run as a dev dependency,
+instead of relying on the root install to provide it.

@@ -250,9 +250,11 @@ environment:
 `apps/server/src/core/env/config.ts` validates these at startup.
 `pnpm dev:server` loads `apps/server/.env` when it exists;
 `pnpm start:server` runs the compiled production output with the environment
-the caller injects, which `apps/server/turbo.json` passes through Turborepo. The Drizzle CLI reads `DATABASE_URL`
-from `packages/database/.env` (copy `packages/database/.env.example`) and
-validates it in `drizzle.config.ts`.
+the caller injects, which `apps/server/turbo.json` passes through Turborepo.
+The database commands load `DATABASE_URL` from `packages/database/.env` (copy
+`packages/database/.env.example`), and `drizzle.config.ts` validates it. Each
+workspace's scripts load only its own `.env`, through dotenvx; see
+[Scripts and environment](docs/code-conventions.md#scripts-and-environment).
 
 When `AUTH_SIGN_UP_ENABLED=false`, the API refuses new sign-ups, the web hides
 the Sign-up link on the sign-in screen, and `/sign-up` redirects to `/sign-in`.

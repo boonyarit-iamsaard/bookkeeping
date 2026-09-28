@@ -22,9 +22,10 @@ tests, `.env`) live with the app.
 
 ## Consequences
 
-- Docker Compose stays at the repo root as shared local infrastructure; its
-  credentials come from root `.env.local`, which must stay in sync with
-  `DATABASE_URL` in `apps/web/.env`.
+- Docker Compose stays at the repo root as shared local infrastructure. Its
+  credentials first came from root `.env.local`; since 2026-09-28 Compose
+  holds fixed local-only credentials and reads no environment file, and each
+  workspace owns its own `.env`.
 - `next dev`/`next build` manage `AGENTS.md`/`CLAUDE.md` per app root, so
   `apps/web` gets its own managed blocks alongside the repo-root copies.
 - Sonar scans `apps/web/src` only.
