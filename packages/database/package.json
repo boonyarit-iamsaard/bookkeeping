@@ -17,10 +17,10 @@
     "./migrate": "./src/migrate.ts"
   },
   "scripts": {
-    "db:push": "drizzle-kit push",
-    "db:migrate": "tsx --env-file-if-exists=.env src/migrate-cli.ts",
-    "db:fresh": "tsx --env-file-if-exists=.env src/fresh-cli.ts",
-    "db:studio": "drizzle-kit studio",
+    "db:push": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- drizzle-kit push",
+    "db:migrate": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/migrate-cli.ts",
+    "db:fresh": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/fresh-cli.ts",
+    "db:studio": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- drizzle-kit studio",
     "test": "vitest run",
     "test:watch": "vitest",
     "types:check": "tsc --noEmit"
@@ -32,6 +32,7 @@
     "pg-connection-string": "^2.14.0"
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "^2.28.0",
     "@testcontainers/postgresql": "^12.1.0",
     "@types/node": "^24",
     "@types/pg": "^8.23.1",

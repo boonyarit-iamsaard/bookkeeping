@@ -1,7 +1,7 @@
 import { defineConfig } from "drizzle-kit";
 import { parseDatabaseUrl } from "./src/database-url";
 
-// drizzle-kit loads `.env` from this directory before reading the config, and
+// The `db:*` scripts load `.env` from this directory through dotenvx, which
 // never overrides a DATABASE_URL already present in the environment (as the
 // test harness supplies it). Only commands that connect to a database need it;
 // generation and consistency checks work without a local database.

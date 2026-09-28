@@ -11,7 +11,7 @@
     "start": "vite preview --port 4000 --strictPort",
     "test": "vitest run",
     "test:e2e": "tsx tests/e2e/run.ts",
-    "test:e2e:ci": "dotenvx run --env CI=1 --ignore=MISSING_ENV_FILE -- tsx tests/e2e/run.ts",
+    "test:e2e:ci": "dotenvx run -f .env --ignore=MISSING_ENV_FILE --env CI=1 -- tsx tests/e2e/run.ts",
     "test:watch": "vitest",
     "types:check": "tsc --noEmit"
   },

@@ -12,8 +12,6 @@ try {
       "docker",
       [
         "compose",
-        "--env-file",
-        ".env.sonar",
         "-f",
         "docker-compose.sonar.yaml",
         "run",
