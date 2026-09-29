@@ -8,3 +8,20 @@ allowBuilds:
   sharp: false
   ssh2: false
   unrs-resolver: false
+
+dangerouslyAllowAllBuilds: false
+# Makes a skipped build a hard failure, not a silent one.
+strictDepBuilds: true
+
+# 3 days. For an urgent advisory, exempt the one fixed package through
+# minimumReleaseAgeExclude instead of lowering this.
+minimumReleaseAge: 4320
+
+# Judge only the last 30 days: pre-2023 releases predate provenance and trip
+# this constantly.
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 43200
+
+engineStrict: true
+verifyDepsBeforeRun: "error"
+verifyStoreIntegrity: true

@@ -7,7 +7,7 @@ WORKDIR /repo
 FROM base AS build
 # Download packages in a layer keyed only by the lockfile and install inputs,
 # so a source change reinstalls offline instead of refetching every package.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs .npmrc ./
 RUN pnpm fetch --frozen-lockfile
 # Only what the API build reads, so a web-only change keeps these layers
 # cached. The web manifest keeps the lockfile's workspace importers complete.

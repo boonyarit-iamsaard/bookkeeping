@@ -6,7 +6,7 @@ RUN corepack enable
 WORKDIR /repo
 # Download packages in a layer keyed only by the lockfile and install inputs,
 # so a source change reinstalls offline instead of refetching every package.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs .npmrc ./
 RUN pnpm fetch --frozen-lockfile
 COPY . .
 # The build checks the generated API client against the server source, so the
