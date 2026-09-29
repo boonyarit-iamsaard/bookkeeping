@@ -8,8 +8,9 @@ with Base UI.
 
 ## Local setup
 
-Install Node.js 24, pnpm 10.27.0, and Docker with Docker Compose support. Start Docker
-before starting the database.
+Install Node.js 24, pnpm 11, and Docker with Docker Compose support. The exact
+pnpm version and integrity hash are pinned in `packageManager`, and Corepack
+(`corepack enable`) selects them. Start Docker before starting the database.
 
 ```bash
 pnpm install
@@ -484,12 +485,38 @@ the Markdown lint fixes.
 
 GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
 `main`. Two jobs run side by side, each installing dependencies with a frozen
-lockfile: one runs `pnpm run ci`, and the other installs Chromium
-(cached by Playwright version) and runs the SPA browser suite on two workers.
-The browser runner switches the API's sign-up throttle off
+lockfile: `CI` audits advisories (`pnpm audit --audit-level moderate`) and
+registry signatures (`pnpm audit signatures`), then runs `pnpm run ci`, and
+`SPA browser suite` installs Chromium (cached by Playwright version) and runs
+the SPA browser suite on two workers. A third job, `Dependency Review`, runs on
+pull requests only and fails on a moderate or worse vulnerability. The browser
+runner switches the API's sign-up throttle off
 (`AUTH_RATE_LIMIT_ENABLED=false`) so parallel sign-ups never meet it. Testcontainers
 supplies disposable PostgreSQL databases for both operation and browser tests.
 No job needs a checked-in `.env` file.
+
+Every Action in the workflow is pinned to a full commit SHA with a version
+comment, and checkout does not persist credentials. `main` is protected by a
+ruleset that requires a pull request and these three checks, and Railway
+deploys it only after CI passes; the reasons and the GitHub settings the owner
+applies by hand are in
+[ADR 0010](docs/adr/0010-protected-main-and-gated-deploys.md).
+
+## Dependency updates
+
+Dependabot proposes npm, GitHub Actions, and Docker base-image updates weekly,
+after a three-day cooldown, with minor and patch npm updates grouped
+(`.github/dependabot.yml`). The Node and toolchain majors are ignored, so they
+move when the owner decides. Both Dockerfiles pin their base images by digest
+beside the tag, and Dependabot updates the pair.
+
+`pnpm-workspace.yaml` holds the install-time gates. A release younger than three
+days is not installed (`minimumReleaseAge`), a drop in a package's publish
+trust fails the install (`trustPolicy`), and a dependency build script fails
+the install unless `allowBuilds` lists it. `.npmrc` pins the registry. For an
+urgent advisory, exempt the one fixed package with `minimumReleaseAgeExclude`
+instead of lowering the age, and remove the exemption afterwards. Do not use
+`--trust-lockfile`; CI relies on the full lockfile verification.
 
 To run the workflow locally, install `act`, start Docker, and run:
 
