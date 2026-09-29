@@ -1,8 +1,33 @@
 packages:
   - apps/*
   - packages/*
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
-onlyBuiltDependencies:
-  - esbuild
+allowBuilds:
+  cpu-features: false
+  esbuild: true
+  protobufjs: false
+  sharp: false
+  ssh2: false
+  unrs-resolver: false
+
+dangerouslyAllowAllBuilds: false
+# Makes a skipped build a hard failure, not a silent one.
+strictDepBuilds: true
+
+# 3 days. For an urgent advisory, exempt the one fixed package through
+# minimumReleaseAgeExclude instead of lowering this.
+minimumReleaseAge: 4320
+
+# Judge only the last 30 days: pre-2023 releases predate provenance and trip
+# this constantly.
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 43200
+
+engineStrict: true
+verifyDepsBeforeRun: "error"
+verifyStoreIntegrity: true
+
+# drizzle-kit's deprecated @esbuild-kit loader bundles esbuild 0.18.20
+# (GHSA-67mh-4wv8-2f99). Point it at the 0.25 that drizzle-kit itself uses.
+# Drop this once drizzle-kit drops @esbuild-kit.
+overrides:
+  "@esbuild-kit/core-utils>esbuild": 0.25.12
