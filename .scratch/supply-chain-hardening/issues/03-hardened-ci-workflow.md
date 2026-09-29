@@ -11,12 +11,18 @@ is left pending.
 
 **Blocked by:** 02.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Every `uses:` reference is a full SHA with a version comment.
-- [ ] Checkout steps set `persist-credentials: false`, and workflow permissions remain `contents: read`.
-- [ ] `CI` runs the audit and signature audit and fails on a moderate advisory.
-- [ ] `Dependency Review` runs only on pull requests and is skipped, not failed, on pushes to `main`.
-- [ ] `CI`, `SPA browser suite` and `Dependency Review` each run green on GitHub at least once (so they become selectable in the ruleset).
-- [ ] The browser suite is not run locally as part of this ticket.
-- [ ] One commit, staged by the agent for the owner to run.
+- [x] Every `uses:` reference is a full SHA with a version comment.
+- [x] Checkout steps set `persist-credentials: false`, and workflow permissions remain `contents: read`.
+- [x] `CI` runs the audit and signature audit and fails on a moderate advisory.
+- [x] `Dependency Review` runs only on pull requests and is skipped, not failed, on pushes to `main`.
+- [x] `CI`, `SPA browser suite` and `Dependency Review` each run green on GitHub at least once (so they become selectable in the ruleset).
+- [x] The browser suite is not run locally as part of this ticket.
+- [x] One commit, staged by the agent for the owner to run.
+
+## Closing note
+
+Built in `9479f3f`. Verified on PR #1: `CI`, `SPA browser suite` and
+`Dependency Review` all passed. An esbuild override in `pnpm-workspace.yaml`
+clears the moderate advisory that the new audit step otherwise failed on.
