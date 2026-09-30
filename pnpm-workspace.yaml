@@ -31,3 +31,5 @@ verifyStoreIntegrity: true
 # Drop this once drizzle-kit drops @esbuild-kit.
 overrides:
   "@esbuild-kit/core-utils>esbuild": 0.25.12
+  # GHSA-r3ph-w7gj-g6xm. Remove once markdownlint-cli accepts a patched js-yaml.
+  "markdownlint-cli>js-yaml": 5.4.2
