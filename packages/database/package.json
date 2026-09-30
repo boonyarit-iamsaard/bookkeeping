@@ -32,14 +32,14 @@
     "pg-connection-string": "^2.14.0"
   },
   "devDependencies": {
-    "@dotenvx/dotenvx": "^2.28.0",
+    "@dotenvx/dotenvx": "^2.30.0",
     "@testcontainers/postgresql": "^12.1.0",
     "@types/node": "^24",
     "@types/pg": "^8.23.1",
-    "drizzle-kit": "0.31.10",
-    "tsx": "^4.23.13",
+    "drizzle-kit": "0.31.11",
+    "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^5.0.0",
+    "vitest": "^5.0.2",
     "zod": "^4.6.2"
   }
 }
