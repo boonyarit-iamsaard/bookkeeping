@@ -99,7 +99,7 @@ domain vocabulary lives in `CONTEXT.md`. Summary:
 - Direct edit and delete of transactions, with an internal change history
   that is not part of the user's normal view.
 - Layouts must work on phone and desktop; the phone is the primary device.
-- Debt as cash movements (`docs/adr/0011`, proposed): a debt payment is one
+- Debt as cash movements (`docs/adr/0011`): a debt payment is one
   Expense from the paying wallet on the payment date, covering principal,
   interest, and fees, under a "Debt payments" parent category with a child
   per card or debt (e.g. a mortgage). A card cash advance is Income into the
@@ -142,7 +142,7 @@ native wrappers are not planned.
 - Implementation notes for the icon catalog:
   `.scratch/tracking/technical-design.md`.
 - Domain glossary: `CONTEXT.md`.
-- Debt decision: `docs/adr/0011-debt-cash-movements.md` (proposed).
+- Debt decision: `docs/adr/0011-debt-cash-movements.md`.
 - Real data exists only in the production database on Railway. It is the
   user's actual finances and must never be copied into design work,
   screenshots, or fixtures. No testimonials or usage metrics exist. Sample
