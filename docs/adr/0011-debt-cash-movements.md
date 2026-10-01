@@ -1,7 +1,3 @@
----
-status: proposed
----
-
 # Track debt payments and card cash advances as cash movements
 
 The owner's existing spreadsheet tracks money entering and leaving cash and bank holdings, including borrowing and debt repayment. Preserve that workflow: record a debt payment as one Expense from the paying Wallet on the payment date, including principal, interest, and fees, under the Debt payments parent category with children for cards or other debts such as a mortgage; record a card cash advance as Income into the receiving Wallet when the money is received. This uses the existing Wallet, transaction, and category model without tracking card or loan balances or purchases charged to a card, at the cost of losing purchase-level categories and dates and including borrowed money in Income totals.
