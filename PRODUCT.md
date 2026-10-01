@@ -4,7 +4,7 @@
 
 ## Platform
 
-web (phone-first, installable as a PWA)
+web
 
 ## Users
 
@@ -25,6 +25,16 @@ and monthly income/expense/net totals. The milestone ends when the deployed
 app can hold the user's real ledger: automated backups stored off the hosting
 provider with a proven restore, a schema migration strategy, and the trial
 data cleared, per `docs/adr/0008`.
+
+Status (2026-10-01): the user has kept their real ledger in the deployed app
+since September 2026, but milestone one is not closed. Off-provider automated
+backups, a proven restore, and the first-week usage review
+(`.scratch/deployment/issues/05-first-week-usage-review.md`) are still open.
+
+Current focus is a redesign that replaces the whole visual world. Product
+truth, flows, and domain vocabulary carry over. The trigger is that the
+previous look no longer fits the user; no usability failure was reported. A
+milestone after tracking (budgeting or forecasting) has not been chosen.
 
 Success is a ledger the user trusts enough to keep: every transaction captured
 close to the moment of spend, balances that reconcile with reality, and
@@ -56,6 +66,12 @@ confirmed spec does encode where those apps fell short for this user:
   and must not create duplicate transactions (idempotency key per create).
 - **Locale:** Thailand. Currency is THB only; dates and times display in
   Bangkok time; the interface is English-only for the first milestone.
+- **Devices and browsers:** installed as a PWA and used in Chrome or Edge on
+  Android and on desktop. Chromium is the only supported engine
+  (`docs/adr/0007`); revisit if the app is used on iPhone, iPad, or Safari.
+- **Origin workflow:** before the app, the user tracked money in a
+  spreadsheet of cash movements in and out of cash and bank holdings,
+  including borrowing and debt repayment. The app preserves that model.
 
 ## Capabilities and Constraints
 
@@ -83,17 +99,25 @@ domain vocabulary lives in `CONTEXT.md`. Summary:
 - Direct edit and delete of transactions, with an internal change history
   that is not part of the user's normal view.
 - Layouts must work on phone and desktop; the phone is the primary device.
+- Debt as cash movements (`docs/adr/0011`, proposed): a debt payment is one
+  Expense from the paying wallet on the payment date, covering principal,
+  interest, and fees, under a "Debt payments" parent category with a child
+  per card or debt (e.g. a mortgage). A card cash advance is Income into the
+  receiving cash or bank-account wallet when the money arrives. Card and
+  loan balances, and purchases charged to a card, are not tracked. As a
+  result, Income totals include borrowed money.
 
-Out of scope for milestone one: credit cards, statement import, bank sync,
+Out of scope for milestone one: credit cards as tracked balances or card
+purchases, statement import, bank sync,
 recurring transactions, attachments, split categories, reconciliation,
 multi-currency, sharing, Thai translation, export/import.
 
 Stack: Hono on Node.js as the sole backend (`docs/adr/0003`), a Vite +
 TanStack Router single-page web client installable as a PWA, which replaced
 the Next.js app (`docs/adr/0006`), React, TypeScript, PostgreSQL with Drizzle,
-Better Auth (email/password), Tailwind CSS v4, shadcn with Base UI, Lucide
-icons, Inter and JetBrains Mono. React Native and native wrappers are not
-planned.
+Better Auth (email/password), Tailwind CSS v4, shadcn with Base UI, and Lucide
+icons. Fonts and other visual choices belong to `DESIGN.md`. React Native and
+native wrappers are not planned.
 
 ## Brand Commitments
 
@@ -102,13 +126,14 @@ planned.
 - Domain terminology in `CONTEXT.md` is binding in UI copy: "wallet", not
   "account", for money holdings; "Uncategorized" as the fallback category
   name.
-- Visual direction (standing preference, chosen 2026-09-12 after two rounds
-  of distinctive alternatives): the clean modern fintech standard, played
-  straight and executed at full craft. Benchmarks whose craft level sets the
-  bar: Thai bank apps (K PLUS, SCB Easy, Krungthai NEXT) for trust and
-  confirm flows; Apple Wallet/Cash for numeral scale, restraint, and motion
-  as feedback; Money Lover, Spendee, and Copilot for category pictograms and
-  quick entry.
+- Visual direction (standing preference, restated 2026-10-01): clean modern
+  fintech, played straight at full craft. Concretely, the user confirmed four
+  moves away from the 2026-09 "statement" rendition: cards and surfaces,
+  sans-serif money figures, dark mode alongside light, and category color
+  with charts. Benchmark whose craft level sets the bar: MAKE by KBank and
+  K PLUS. The goal is to sit beside them, not imitate them; no bank brand
+  colors, marks, or layouts are borrowed. The incumbent look in `DESIGN.md`
+  is evidence of what is being replaced, not a constraint.
 
 ## Evidence on Hand
 
@@ -117,9 +142,12 @@ planned.
 - Implementation notes for the icon catalog:
   `.scratch/tracking/technical-design.md`.
 - Domain glossary: `CONTEXT.md`.
-- No real transaction data, screenshots, testimonials, or usage metrics
-  exist yet. Any sample data in the UI must be clearly placeholder; do not
-  fabricate financial figures as if they were the user's.
+- Debt decision: `docs/adr/0011-debt-cash-movements.md` (proposed).
+- Real data exists only in the production database on Railway. It is the
+  user's actual finances and must never be copied into design work,
+  screenshots, or fixtures. No testimonials or usage metrics exist. Sample
+  data in the UI must be clearly placeholder; do not fabricate financial
+  figures as if they were the user's.
 
 ## Product Principles
 
