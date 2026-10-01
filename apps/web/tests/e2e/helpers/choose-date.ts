@@ -22,11 +22,14 @@ function monthIndexOf(caption: string): number {
   return Number(year) * 12 + MONTHS.indexOf(name);
 }
 
-/** Picks a day in the app's date picker; `date` is YYYY-MM-DD. */
-export async function chooseDate(
+/**
+ * Opens the app's date picker and pages it to the month holding `date`
+ * (YYYY-MM-DD), whatever month today puts it on; resolves to the calendar.
+ */
+export async function openCalendarAt(
   trigger: Locator,
   date: string,
-): Promise<void> {
+): Promise<Locator> {
   const page = trigger.page();
   await trigger.click();
   const calendar = popup(page);
@@ -45,6 +48,15 @@ export async function chooseDate(
       })
       .click();
   }
+  return calendar;
+}
+
+/** Picks a day in the app's date picker; `date` is YYYY-MM-DD. */
+export async function chooseDate(
+  trigger: Locator,
+  date: string,
+): Promise<void> {
+  const calendar = await openCalendarAt(trigger, date);
   await calendar.locator(`[data-date="${date}"]`).click();
   await expect(calendar).toBeHidden();
 }
