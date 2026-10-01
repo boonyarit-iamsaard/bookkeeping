@@ -25,11 +25,21 @@ The date a money movement occurred, used to determine its effect on wallet balan
 **Recording time**:
 The time a transaction was originally entered into the app, distinct from its transaction date.
 
+**Cash movement**:
+Money entering or leaving a cash, bank-account, or e-wallet Wallet, dated when that holding receives or pays the money.
+
 **Income**:
-Money received by a user from an external source.
+Money received by a user from an external source, including borrowed money.
+_Avoid_: Earned income when referring to all cash receipts
 
 **Expense**:
-Money spent by a user on an external recipient.
+Money paid by a user to an external recipient, including debt repayments and any interest or fees included in the payment.
+
+**Debt payment**:
+Money paid to a lender to settle a debt obligation, including the principal, interest, and fees in that payment. Debt payments include credit card bill and mortgage payments.
+
+**Card cash advance**:
+Borrowed money received from a credit card provider into a user's cash or bank-account Wallet.
 
 **Refund**:
 Money returned for an expense, reducing expenses and increasing the balance of the receiving wallet.
