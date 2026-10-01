@@ -18,7 +18,7 @@ They need new server-calculated reads and run as a separate feature.
 
 - [ ] One chart component built on 01's chart color tokens, legible in light and dark, at 360px and from 640px, with values available as text for assistive technology.
 - [ ] Level 1 on Reports: this month's Income against Net expenses, from the monthly report.
-- [ ] Level 1 on Reports: each wallet's share of the total, from wallet as-of balances; negative balances and archived wallets are shown honestly, not hidden.
+- [ ] Level 1 on Reports: each wallet's share of the total, from wallet as-of balances, drawn as horizontal bars from a zero line rather than a pie or ring (a ring cannot show a negative slice). Negative wallets extend left of zero and are labeled with their signed amount; archived wallets keep their Archived label; the total is stated as text.
 - [ ] Level 2 on Reports: the six-month Income and Net expenses trend, built from six `/v1/reports/monthly` calls and nothing else.
 - [ ] Home gains the level 1 chart named in 01's direction contract, using the same component.
 - [ ] Series are distinguished by label, pattern, or position as well as color; red and green are never the only signal.

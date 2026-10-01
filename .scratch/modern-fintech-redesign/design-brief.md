@@ -53,7 +53,8 @@ and dialogs, sign-in and sign-up, and every empty, loading, and error state.
 Charts use current API data only:
 
 - Level 1: this month's Income against Net expenses; each wallet's share of
-  the total.
+  the total as horizontal bars from a zero line, so negative balances extend
+  left and stay visible (a pie or ring cannot show them).
 - Level 2: a six-month Income and Net expenses trend built from six
   `/v1/reports/monthly` calls.
 
