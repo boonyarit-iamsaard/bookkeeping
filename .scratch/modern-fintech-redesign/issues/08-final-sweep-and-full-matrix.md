@@ -1,0 +1,28 @@
+# 08: Final sweep and full matrix
+
+Read `../design-brief.md` first (Outcome), then the current `DESIGN.md`.
+
+**What to build:** The redesign's definition of done: every screen and state
+is on the new system and `DESIGN.md` documents what shipped. This ticket
+covers what no area ticket owns, catches drift between tickets that were
+built separately, and runs the full browser matrix.
+
+**Blocked by:** 02, 03, 04, 05, 06, 07
+
+**Status:** ready-for-agent
+
+- [ ] The static offline page is on the new system, in light and dark.
+- [ ] A cross-screen `/impeccable` audit finds no remaining screen, sheet, dialog, empty, loading, or error state on the old system, and its material drift fixes are applied.
+- [ ] `DESIGN.md` and `.impeccable/design.json` match the shipped product, including every stated system change from 02–07.
+- [ ] `pnpm run ci` passes.
+- [ ] The full two-project SPA matrix passes.
+- [ ] `pnpm run ci:e2e` passes against the production build.
+
+## Constraints
+
+- Visual only: no API, schema, or backend change. Charts use only `/v1/reports/monthly` and wallet as-of balances. Level 3 (spending by category, balance over time) is out of scope; never fake it with client-side sums.
+- Behavior, routes, copy, domain vocabulary (`CONTEXT.md`), and accessible names stay as they are. Existing unit and browser tests keep passing without their assertions being rewritten to fit.
+- Every phone control keeps a 44 by 44 CSS pixel target; transaction type, sign, and direction never rely on red or green alone; motion is removed under reduced motion. Check at 360px and from 640px, in light and dark.
+- Never use production data in screenshots, comps, or fixtures; sample money is clearly placeholder.
+
+**Verify:** the full matrix and `ci:e2e` are exclusive runs under the local resource limits in `CLAUDE.md`: nothing else heavy runs alongside either, and they never run together. `ci:e2e` may need host execution.
