@@ -10,6 +10,10 @@ import { EmptyWallets } from "@/features/wallets/components/wallet-list";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
 import { walletCountLabel } from "@/features/wallets/wallet-labels";
 
+/** From 1024px the figures hold the left column and the rows the right. */
+export const HOME_COLUMNS_CLASS =
+  "flex flex-col gap-6 sm:gap-8 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start";
+
 interface HomeProps {
   /** The phone account control the route supplies; the header has its own from 640px. */
   accountControl: React.ReactNode;
@@ -34,7 +38,7 @@ export function Home({
   const wallets = walletCollection.items;
 
   return (
-    <Page layout="wide">
+    <Page layout="dashboard">
       <TitleBar
         title="Home"
         actions={<div className="sm:hidden">{accountControl}</div>}
@@ -42,14 +46,16 @@ export function Home({
       {wallets.length === 0 ? (
         <EmptyWallets />
       ) : (
-        <>
-          <WalletsTotal
-            wallets={wallets}
-            caption={`Across ${walletCountLabel(wallets.length)}`}
-          />
-          <ThisMonth report={report} />
+        <div className={HOME_COLUMNS_CLASS}>
+          <div className="flex flex-col gap-6 sm:gap-8 lg:sticky lg:top-24">
+            <WalletsTotal
+              wallets={wallets}
+              caption={`Across ${walletCountLabel(wallets.length)}`}
+            />
+            <ThisMonth report={report} />
+          </div>
           <RecentTransactions transactions={recent.items} savedId={savedId} />
-        </>
+        </div>
       )}
     </Page>
   );

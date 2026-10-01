@@ -16,7 +16,10 @@ interface AccountSheetProps {
 }
 
 const ROW_CLASS =
-  "flex min-h-12 w-full items-center gap-3 px-4 text-left outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset disabled:opacity-50";
+  "flex min-h-14 w-full items-center gap-3.5 px-4 text-left font-semibold outline-none hover:bg-accent/70 focus-visible:ring-[3px] focus-visible:ring-ring/45 focus-visible:ring-inset disabled:opacity-50";
+
+const ROW_TILE_CLASS =
+  "flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-[1.125rem]";
 
 /**
  * The phone account control in Home's title bar: the initial disc opens a
@@ -37,18 +40,16 @@ export function AccountSheet({ email }: Readonly<AccountSheetProps>) {
       </Dialog.Trigger>
       <SheetPortal>
         <SheetHeader subtitle={email}>Account</SheetHeader>
-        <ul className="divide-y border-t pb-2">
+        <ul className="mx-4 mb-4 divide-y divide-border/70 overflow-hidden rounded-2xl bg-background sm:mx-6 sm:mb-6">
           <li>
             <Link
               to="/categories"
               onClick={() => setOpen(false)}
               className={ROW_CLASS}
             >
-              <Tags
-                aria-hidden="true"
-                strokeWidth={1.75}
-                className="size-4 text-muted-foreground"
-              />
+              <span className={ROW_TILE_CLASS}>
+                <Tags aria-hidden="true" strokeWidth={2} />
+              </span>
               Categories
             </Link>
           </li>
@@ -59,11 +60,9 @@ export function AccountSheet({ email }: Readonly<AccountSheetProps>) {
               onClick={signOut}
               className={ROW_CLASS}
             >
-              <LogOut
-                aria-hidden="true"
-                strokeWidth={1.75}
-                className="size-4 text-muted-foreground"
-              />
+              <span className={ROW_TILE_CLASS}>
+                <LogOut aria-hidden="true" strokeWidth={2} />
+              </span>
               {isPending ? "Signing out…" : "Sign out"}
             </button>
           </li>

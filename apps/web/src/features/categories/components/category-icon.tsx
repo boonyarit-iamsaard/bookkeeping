@@ -1,4 +1,5 @@
 import type { LucideProps } from "lucide-react";
+import type { CategoryColor } from "@/features/categories/category-color";
 import { iconById } from "@/features/categories/icons";
 import { cn } from "@/shared/helpers/cn";
 
@@ -40,6 +41,35 @@ export function CategoryDisc({
         iconId={iconId}
         className={size === "parent" ? "size-5" : "size-4"}
       />
+    </span>
+  );
+}
+
+interface CategoryTileProps {
+  color: CategoryColor;
+  children: React.ReactNode;
+  className?: string;
+}
+
+/**
+ * A row's leading pictogram on a rounded tile tinted with its category's
+ * color; neutral for Uncategorized and transfers. Decorative: the row names
+ * the category in text.
+ */
+export function CategoryTile({
+  color,
+  children,
+  className,
+}: Readonly<CategoryTileProps>) {
+  return (
+    <span
+      data-hue={color}
+      className={cn(
+        "hue-tile flex size-11 shrink-0 items-center justify-center rounded-lg [&_svg]:size-5",
+        className,
+      )}
+    >
+      {children}
     </span>
   );
 }

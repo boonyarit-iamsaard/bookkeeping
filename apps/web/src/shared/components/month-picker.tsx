@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/shared/components/ui/button";
+import { fieldControlClass } from "@/shared/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -73,7 +74,7 @@ interface MonthPickerProps {
   value?: string;
   defaultValue?: string;
   onChange?: (month: string) => void;
-  /** The current month in Asia/Bangkok; it carries the Mist "now" marker. */
+  /** The current month in Asia/Bangkok; it carries the tonal "now" marker. */
   thisMonth: string;
   /** Earliest and latest selectable months, inclusive. */
   min?: string;
@@ -89,8 +90,8 @@ interface MonthPickerProps {
 /**
  * The date picker's sibling for a whole month: the same capsule trigger
  * reading "September 2026", opening a year with its twelve months as pills.
- * Arrows step the year; the current month sits on Mist, the chosen one on
- * Cobalt.
+ * Arrows step the year; the current month sits on tonal Iris, the chosen
+ * one on Iris.
  */
 export function MonthPicker({
   id,
@@ -145,7 +146,8 @@ export function MonthPicker({
         aria-labelledby={aria["aria-labelledby"]}
         aria-describedby={aria["aria-describedby"]}
         className={cn(
-          "group/month-trigger flex h-11 w-full min-w-0 items-center gap-2 rounded-4xl border border-input bg-input/30 py-1 pr-4 pl-4 text-left text-base text-foreground outline-none transition-colors hover:bg-input/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20 data-popup-open:bg-input/50 md:text-sm [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+          fieldControlClass,
+          "group/month-trigger flex items-center gap-2 py-1 pr-3.5 pl-3.5 text-left [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
           className,
         )}
       >
@@ -184,7 +186,7 @@ export function MonthPicker({
           </Button>
           <span
             aria-live="polite"
-            className="select-none font-medium text-sm tabular-nums"
+            className="select-none font-semibold text-sm tabular-nums"
           >
             {viewYear}
           </span>
@@ -218,9 +220,10 @@ export function MonthPicker({
                 onClick={() => commit(month)}
                 className={cn(
                   "font-normal",
-                  month === thisMonth && "bg-muted",
+                  month === thisMonth &&
+                    "bg-secondary text-secondary-foreground",
                   selected &&
-                    "bg-primary font-medium text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                    "bg-primary font-semibold text-primary-foreground hover:bg-primary hover:text-primary-foreground",
                 )}
               >
                 {label}

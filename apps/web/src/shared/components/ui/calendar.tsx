@@ -10,8 +10,8 @@ import { Button, buttonVariants } from "@/shared/components/ui/button";
 
 /**
  * One month of days as a grid of thumb-sized circles: the caption reads
- * "September 2026" between two ghost arrows, today sits on a Mist disc, and
- * the chosen day is the one Cobalt fill. Days are 44px below 640px, with the
+ * "September 2026" between two ghost arrows, today sits on a tonal Iris
+ * disc, and the chosen day is the one Iris fill. Days are 44px below 640px, with the
  * horizontal padding narrowed so seven fit the phone column; 40px from 640px.
  */
 function Calendar({
@@ -53,13 +53,13 @@ function Calendar({
           defaultClassNames.month_caption,
         ),
         caption_label: cn(
-          "select-none font-medium text-sm",
+          "select-none font-semibold text-sm",
           defaultClassNames.caption_label,
         ),
         month_grid: cn("w-full border-collapse", defaultClassNames.month_grid),
         weekdays: cn("flex", defaultClassNames.weekdays),
         weekday: cn(
-          "flex-1 select-none font-normal text-muted-foreground text-xs",
+          "flex-1 select-none font-medium text-muted-foreground text-xs",
           defaultClassNames.weekday,
         ),
         week: cn("mt-1 flex w-full", defaultClassNames.week),
@@ -68,7 +68,7 @@ function Calendar({
           defaultClassNames.day,
         ),
         today: cn(
-          "rounded-full bg-muted text-foreground",
+          "rounded-full bg-secondary font-semibold text-secondary-foreground",
           defaultClassNames.today,
         ),
         outside: cn(
@@ -145,7 +145,7 @@ function CalendarDayButton({
       data-day={day.date.toLocaleDateString()}
       data-selected={modifiers.selected}
       className={cn(
-        "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) rounded-full border-0 font-normal text-sm tabular-nums leading-none data-[selected=true]:bg-primary data-[selected=true]:font-medium data-[selected=true]:text-primary-foreground data-[selected=true]:hover:bg-primary data-[selected=true]:hover:text-primary-foreground group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50",
+        "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) rounded-full border-0 font-normal text-sm tabular-nums leading-none data-[selected=true]:bg-primary data-[selected=true]:font-semibold data-[selected=true]:text-primary-foreground data-[selected=true]:hover:bg-primary data-[selected=true]:hover:text-primary-foreground group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50",
         defaultClassNames.day,
         className,
       )}

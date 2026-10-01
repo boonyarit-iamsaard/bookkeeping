@@ -1,5 +1,6 @@
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { useRouter } from "@tanstack/react-router";
+import { CloudOff } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
 interface LoadErrorProps extends Pick<ErrorComponentProps, "reset"> {
@@ -26,16 +27,23 @@ export function LoadError({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col items-start gap-4 px-4 py-8">
-      <h1 className="font-semibold text-2xl tracking-tight">{title}</h1>
-      <p role="alert" className="text-muted-foreground text-sm">
-        {message}
-      </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={retry} size="lg">
-          Try again
-        </Button>
-        {actions}
+    <main className="mx-auto flex w-full max-w-2xl flex-col px-4 py-6 sm:py-8">
+      <div className="flex flex-col items-start gap-4 rounded-2xl bg-card p-5 shadow-card sm:p-7">
+        <span className="flex size-12 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+          <CloudOff aria-hidden="true" strokeWidth={2} className="size-6" />
+        </span>
+        <div className="flex flex-col gap-1.5">
+          <h1 className="font-bold text-2xl tracking-tight">{title}</h1>
+          <p role="alert" className="max-w-prose text-muted-foreground text-sm">
+            {message}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={retry} size="lg">
+            Try again
+          </Button>
+          {actions}
+        </div>
       </div>
     </main>
   );

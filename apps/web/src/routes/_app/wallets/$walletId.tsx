@@ -2,7 +2,11 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SlidersHorizontal } from "lucide-react";
-import { transactionQueries, walletQueries } from "@/core/api/queries";
+import {
+  categoryQueries,
+  transactionQueries,
+  walletQueries,
+} from "@/core/api/queries";
 import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
@@ -28,6 +32,8 @@ export const Route = createFileRoute("/_app/wallets/$walletId")({
       context.queryClient.ensureQueryData(
         walletHistoryQuery(params.walletId, deps.cursor),
       ),
+      // Rows take their category color from this read.
+      context.queryClient.ensureQueryData(categoryQueries.list()),
     ]);
     return { walletName: wallet?.name };
   },

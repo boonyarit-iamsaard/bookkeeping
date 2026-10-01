@@ -43,7 +43,7 @@ export function SegmentedControl<Value extends string>({
       aria-labelledby={ariaLabelledBy}
       // 52px on phone keeps a 4px inset around 44px segments; 44px from 640px.
       className={cn(
-        "relative grid h-13 rounded-4xl bg-muted p-1 sm:h-11",
+        "relative grid h-13 rounded-lg bg-muted p-1 sm:h-11",
         className,
       )}
       style={{
@@ -52,7 +52,7 @@ export function SegmentedControl<Value extends string>({
     >
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-1 left-1 rounded-4xl bg-background shadow-[0_1px_2px_rgba(0,0,0,0.08),0_1px_6px_rgba(0,0,0,0.06)] transition-transform duration-200 ease-out motion-reduce:transition-none"
+        className="pointer-events-none absolute inset-y-1 left-1 rounded-[0.625rem] bg-card shadow-card transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none dark:bg-popover"
         style={{
           width: `calc((100% - 0.5rem) / ${options.length})`,
           transform: `translateX(${selectedIndex * 100}%)`,
@@ -62,7 +62,7 @@ export function SegmentedControl<Value extends string>({
         <Radio.Root
           key={option.value}
           value={option.value}
-          className="relative z-10 flex items-center justify-center rounded-4xl px-2 font-medium text-muted-foreground text-sm outline-none transition-colors duration-200 focus-visible:ring-[3px] focus-visible:ring-ring/50 data-checked:text-primary motion-reduce:transition-none"
+          className="relative z-10 flex items-center justify-center rounded-[0.625rem] px-2 font-semibold text-muted-foreground text-sm outline-none transition-colors duration-200 focus-visible:ring-[3px] focus-visible:ring-ring/45 data-checked:text-foreground motion-reduce:transition-none"
         >
           {option.label}
         </Radio.Root>

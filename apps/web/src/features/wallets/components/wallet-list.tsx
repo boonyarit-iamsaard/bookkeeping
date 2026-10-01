@@ -8,6 +8,7 @@ import {
   walletCaption,
   walletCountLabel,
 } from "@/features/wallets/wallet-labels";
+import { EmptyState } from "@/shared/components/empty-state";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
@@ -18,6 +19,24 @@ interface WalletListProps {
   wallets: readonly WalletSummary[];
   /** The wallet just created, if any; it alone arrives with a fade. */
   createdId?: string;
+}
+
+/** A new account holder's first step: create a wallet. */
+export function EmptyWallets() {
+  return (
+    <EmptyState
+      icon={Wallet}
+      headingId="empty-wallets-heading"
+      title="No wallets yet"
+      description="Add the cash, bank accounts, and e-wallets you want to track. Each one starts from an opening balance on the date its history begins."
+      action={
+        <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
+          <Plus data-icon="inline-start" />
+          Create your first wallet
+        </Link>
+      }
+    />
+  );
 }
 
 export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
@@ -68,32 +87,5 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
         ))}
       </ul>
     </div>
-  );
-}
-
-/** A new account holder's first step: create a wallet. */
-export function EmptyWallets() {
-  return (
-    <section
-      aria-labelledby="empty-wallets-heading"
-      className="flex flex-col items-start gap-4 rounded-xl border border-dashed p-6 sm:p-8"
-    >
-      <span className="flex size-10 items-center justify-center rounded-full bg-muted">
-        <Wallet aria-hidden="true" strokeWidth={1.75} className="size-5" />
-      </span>
-      <div className="flex flex-col gap-1">
-        <h2 id="empty-wallets-heading" className="font-semibold text-lg">
-          No wallets yet
-        </h2>
-        <p className="max-w-prose text-muted-foreground text-sm leading-normal">
-          Add the cash, bank accounts, and e-wallets you want to track. Each one
-          starts from an opening balance on the date its history begins.
-        </p>
-      </div>
-      <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
-        <Plus data-icon="inline-start" />
-        Create your first wallet
-      </Link>
-    </section>
   );
 }

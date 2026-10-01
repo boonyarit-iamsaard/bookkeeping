@@ -1,330 +1,1130 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-24T18:00:00+07:00",
+  "generatedAt": "2026-10-01T12:00:00+07:00",
   "title": "Design System: Bookkeeping",
   "extensions": {
     "colorMeta": {
-      "cobalt": {
+      "iris": {
         "role": "primary",
-        "displayName": "Cobalt",
-        "canonical": "oklch(0.52 0.2 262)",
+        "displayName": "Iris",
+        "canonical": "oklch(0.54 0.21 285)",
         "tonalRamp": [
-          "oklch(0.15 0.2 262)",
-          "oklch(0.27 0.2 262)",
-          "oklch(0.39 0.2 262)",
-          "oklch(0.52 0.2 262)",
-          "oklch(0.63 0.2 262)",
-          "oklch(0.74 0.2 262)",
-          "oklch(0.85 0.2 262)",
-          "oklch(0.95 0.2 262)"
+          "oklch(0.15 0.21 285)",
+          "oklch(0.264 0.21 285)",
+          "oklch(0.379 0.21 285)",
+          "oklch(0.493 0.21 285)",
+          "oklch(0.607 0.21 285)",
+          "oklch(0.721 0.21 285)",
+          "oklch(0.836 0.21 285)",
+          "oklch(0.95 0.21 285)"
         ]
       },
-      "cobalt-foreground": {
-        "role": "neutral",
-        "displayName": "Cobalt Foreground",
-        "canonical": "oklch(0.985 0 0)",
+      "iris-dark": {
+        "role": "primary",
+        "displayName": "Iris (dark)",
+        "canonical": "oklch(0.56 0.2 285)",
         "tonalRamp": [
-          "oklch(0.15 0 0)",
-          "oklch(0.27 0 0)",
-          "oklch(0.39 0 0)",
-          "oklch(0.52 0 0)",
-          "oklch(0.63 0 0)",
-          "oklch(0.74 0 0)",
-          "oklch(0.85 0 0)",
-          "oklch(0.985 0 0)"
+          "oklch(0.15 0.2 285)",
+          "oklch(0.264 0.2 285)",
+          "oklch(0.379 0.2 285)",
+          "oklch(0.493 0.2 285)",
+          "oklch(0.607 0.2 285)",
+          "oklch(0.721 0.2 285)",
+          "oklch(0.836 0.2 285)",
+          "oklch(0.95 0.2 285)"
         ]
       },
-      "paper": {
-        "role": "neutral",
-        "displayName": "Paper",
+      "iris-foreground": {
+        "role": "primary",
+        "displayName": "On Iris",
         "canonical": "oklch(1 0 0)",
         "tonalRamp": [
           "oklch(0.15 0 0)",
-          "oklch(0.27 0 0)",
-          "oklch(0.39 0 0)",
-          "oklch(0.52 0 0)",
-          "oklch(0.63 0 0)",
-          "oklch(0.74 0 0)",
-          "oklch(0.85 0 0)",
-          "oklch(1 0 0)"
+          "oklch(0.264 0 0)",
+          "oklch(0.379 0 0)",
+          "oklch(0.493 0 0)",
+          "oklch(0.607 0 0)",
+          "oklch(0.721 0 0)",
+          "oklch(0.836 0 0)",
+          "oklch(0.95 0 0)"
+        ]
+      },
+      "iris-text": {
+        "role": "primary",
+        "displayName": "Iris Text",
+        "canonical": "oklch(0.52 0.21 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.21 285)",
+          "oklch(0.264 0.21 285)",
+          "oklch(0.379 0.21 285)",
+          "oklch(0.493 0.21 285)",
+          "oklch(0.607 0.21 285)",
+          "oklch(0.721 0.21 285)",
+          "oklch(0.836 0.21 285)",
+          "oklch(0.95 0.21 285)"
+        ]
+      },
+      "iris-text-dark": {
+        "role": "primary",
+        "displayName": "Iris Text (dark)",
+        "canonical": "oklch(0.74 0.14 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.14 285)",
+          "oklch(0.264 0.14 285)",
+          "oklch(0.379 0.14 285)",
+          "oklch(0.493 0.14 285)",
+          "oklch(0.607 0.14 285)",
+          "oklch(0.721 0.14 285)",
+          "oklch(0.836 0.14 285)",
+          "oklch(0.95 0.14 285)"
+        ]
+      },
+      "iris-tonal": {
+        "role": "primary",
+        "displayName": "Iris Tonal",
+        "canonical": "oklch(0.945 0.03 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.03 285)",
+          "oklch(0.264 0.03 285)",
+          "oklch(0.379 0.03 285)",
+          "oklch(0.493 0.03 285)",
+          "oklch(0.607 0.03 285)",
+          "oklch(0.721 0.03 285)",
+          "oklch(0.836 0.03 285)",
+          "oklch(0.95 0.03 285)"
+        ]
+      },
+      "iris-tonal-dark": {
+        "role": "primary",
+        "displayName": "Iris Tonal (dark)",
+        "canonical": "oklch(0.29 0.06 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.06 285)",
+          "oklch(0.264 0.06 285)",
+          "oklch(0.379 0.06 285)",
+          "oklch(0.493 0.06 285)",
+          "oklch(0.607 0.06 285)",
+          "oklch(0.721 0.06 285)",
+          "oklch(0.836 0.06 285)",
+          "oklch(0.95 0.06 285)"
+        ]
+      },
+      "iris-tonal-ink": {
+        "role": "primary",
+        "displayName": "Iris Tonal Ink",
+        "canonical": "oklch(0.44 0.19 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.19 285)",
+          "oklch(0.264 0.19 285)",
+          "oklch(0.379 0.19 285)",
+          "oklch(0.493 0.19 285)",
+          "oklch(0.607 0.19 285)",
+          "oklch(0.721 0.19 285)",
+          "oklch(0.836 0.19 285)",
+          "oklch(0.95 0.19 285)"
+        ]
+      },
+      "iris-tonal-ink-dark": {
+        "role": "primary",
+        "displayName": "Iris Tonal Ink (dark)",
+        "canonical": "oklch(0.86 0.08 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.08 285)",
+          "oklch(0.264 0.08 285)",
+          "oklch(0.379 0.08 285)",
+          "oklch(0.493 0.08 285)",
+          "oklch(0.607 0.08 285)",
+          "oklch(0.721 0.08 285)",
+          "oklch(0.836 0.08 285)",
+          "oklch(0.95 0.08 285)"
+        ]
+      },
+      "ring-dark": {
+        "role": "primary",
+        "displayName": "Dark Ring",
+        "canonical": "oklch(0.7 0.15 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.15 285)",
+          "oklch(0.264 0.15 285)",
+          "oklch(0.379 0.15 285)",
+          "oklch(0.493 0.15 285)",
+          "oklch(0.607 0.15 285)",
+          "oklch(0.721 0.15 285)",
+          "oklch(0.836 0.15 285)",
+          "oklch(0.95 0.15 285)"
+        ]
+      },
+      "midnight": {
+        "role": "secondary",
+        "displayName": "Midnight",
+        "canonical": "oklch(0.27 0.07 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.07 285)",
+          "oklch(0.264 0.07 285)",
+          "oklch(0.379 0.07 285)",
+          "oklch(0.493 0.07 285)",
+          "oklch(0.607 0.07 285)",
+          "oklch(0.721 0.07 285)",
+          "oklch(0.836 0.07 285)",
+          "oklch(0.95 0.07 285)"
+        ]
+      },
+      "midnight-dark": {
+        "role": "secondary",
+        "displayName": "Midnight (dark)",
+        "canonical": "oklch(0.28 0.09 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.09 285)",
+          "oklch(0.264 0.09 285)",
+          "oklch(0.379 0.09 285)",
+          "oklch(0.493 0.09 285)",
+          "oklch(0.607 0.09 285)",
+          "oklch(0.721 0.09 285)",
+          "oklch(0.836 0.09 285)",
+          "oklch(0.95 0.09 285)"
+        ]
+      },
+      "midnight-ink": {
+        "role": "secondary",
+        "displayName": "Midnight Ink",
+        "canonical": "oklch(0.99 0.004 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.004 285)",
+          "oklch(0.264 0.004 285)",
+          "oklch(0.379 0.004 285)",
+          "oklch(0.493 0.004 285)",
+          "oklch(0.607 0.004 285)",
+          "oklch(0.721 0.004 285)",
+          "oklch(0.836 0.004 285)",
+          "oklch(0.95 0.004 285)"
+        ]
+      },
+      "midnight-muted": {
+        "role": "secondary",
+        "displayName": "Midnight Muted",
+        "canonical": "oklch(0.8 0.045 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.045 285)",
+          "oklch(0.264 0.045 285)",
+          "oklch(0.379 0.045 285)",
+          "oklch(0.493 0.045 285)",
+          "oklch(0.607 0.045 285)",
+          "oklch(0.721 0.045 285)",
+          "oklch(0.836 0.045 285)",
+          "oklch(0.95 0.045 285)"
+        ]
+      },
+      "midnight-muted-dark": {
+        "role": "secondary",
+        "displayName": "Midnight Muted (dark)",
+        "canonical": "oklch(0.85 0.05 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.05 285)",
+          "oklch(0.264 0.05 285)",
+          "oklch(0.379 0.05 285)",
+          "oklch(0.493 0.05 285)",
+          "oklch(0.607 0.05 285)",
+          "oklch(0.721 0.05 285)",
+          "oklch(0.836 0.05 285)",
+          "oklch(0.95 0.05 285)"
+        ]
+      },
+      "mark-midnight": {
+        "role": "secondary",
+        "displayName": "Mark Midnight",
+        "canonical": "#242047",
+        "tonalRamp": [
+          "oklch(0.15 0.07 285.347)",
+          "oklch(0.264 0.07 285.347)",
+          "oklch(0.379 0.07 285.347)",
+          "oklch(0.493 0.07 285.347)",
+          "oklch(0.607 0.07 285.347)",
+          "oklch(0.721 0.07 285.347)",
+          "oklch(0.836 0.07 285.347)",
+          "oklch(0.95 0.07 285.347)"
+        ]
+      },
+      "mark-coin": {
+        "role": "secondary",
+        "displayName": "Mark Coin",
+        "canonical": "#9d8cff",
+        "tonalRamp": [
+          "oklch(0.15 0.164 288.229)",
+          "oklch(0.264 0.164 288.229)",
+          "oklch(0.379 0.164 288.229)",
+          "oklch(0.493 0.164 288.229)",
+          "oklch(0.607 0.164 288.229)",
+          "oklch(0.721 0.164 288.229)",
+          "oklch(0.836 0.164 288.229)",
+          "oklch(0.95 0.164 288.229)"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Ground",
+        "canonical": "oklch(0.968 0.008 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 285)",
+          "oklch(0.264 0.008 285)",
+          "oklch(0.379 0.008 285)",
+          "oklch(0.493 0.008 285)",
+          "oklch(0.607 0.008 285)",
+          "oklch(0.721 0.008 285)",
+          "oklch(0.836 0.008 285)",
+          "oklch(0.95 0.008 285)"
+        ]
+      },
+      "ground-dark": {
+        "role": "neutral",
+        "displayName": "Ground (dark)",
+        "canonical": "oklch(0.165 0.014 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.014 285)",
+          "oklch(0.264 0.014 285)",
+          "oklch(0.379 0.014 285)",
+          "oklch(0.493 0.014 285)",
+          "oklch(0.607 0.014 285)",
+          "oklch(0.721 0.014 285)",
+          "oklch(0.836 0.014 285)",
+          "oklch(0.95 0.014 285)"
+        ]
+      },
+      "chrome": {
+        "role": "neutral",
+        "displayName": "Chrome",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.264 0 0)",
+          "oklch(0.379 0 0)",
+          "oklch(0.493 0 0)",
+          "oklch(0.607 0 0)",
+          "oklch(0.721 0 0)",
+          "oklch(0.836 0 0)",
+          "oklch(0.95 0 0)"
+        ]
+      },
+      "chrome-dark": {
+        "role": "neutral",
+        "displayName": "Chrome (dark)",
+        "canonical": "oklch(0.195 0.016 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.016 285)",
+          "oklch(0.264 0.016 285)",
+          "oklch(0.379 0.016 285)",
+          "oklch(0.493 0.016 285)",
+          "oklch(0.607 0.016 285)",
+          "oklch(0.721 0.016 285)",
+          "oklch(0.836 0.016 285)",
+          "oklch(0.95 0.016 285)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.264 0 0)",
+          "oklch(0.379 0 0)",
+          "oklch(0.493 0 0)",
+          "oklch(0.607 0 0)",
+          "oklch(0.721 0 0)",
+          "oklch(0.836 0 0)",
+          "oklch(0.95 0 0)"
+        ]
+      },
+      "card-dark": {
+        "role": "neutral",
+        "displayName": "Card (dark)",
+        "canonical": "oklch(0.215 0.018 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.018 285)",
+          "oklch(0.264 0.018 285)",
+          "oklch(0.379 0.018 285)",
+          "oklch(0.493 0.018 285)",
+          "oklch(0.607 0.018 285)",
+          "oklch(0.721 0.018 285)",
+          "oklch(0.836 0.018 285)",
+          "oklch(0.95 0.018 285)"
+        ]
+      },
+      "popover-dark": {
+        "role": "neutral",
+        "displayName": "Popover (dark)",
+        "canonical": "oklch(0.245 0.02 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 285)",
+          "oklch(0.264 0.02 285)",
+          "oklch(0.379 0.02 285)",
+          "oklch(0.493 0.02 285)",
+          "oklch(0.607 0.02 285)",
+          "oklch(0.721 0.02 285)",
+          "oklch(0.836 0.02 285)",
+          "oklch(0.95 0.02 285)"
         ]
       },
       "ink": {
         "role": "neutral",
         "displayName": "Ink",
-        "canonical": "oklch(0.145 0 0)",
+        "canonical": "oklch(0.21 0.025 285)",
         "tonalRamp": [
-          "oklch(0.145 0 0)",
-          "oklch(0.27 0 0)",
-          "oklch(0.39 0 0)",
-          "oklch(0.52 0 0)",
-          "oklch(0.63 0 0)",
-          "oklch(0.74 0 0)",
-          "oklch(0.85 0 0)",
-          "oklch(0.95 0 0)"
+          "oklch(0.15 0.025 285)",
+          "oklch(0.264 0.025 285)",
+          "oklch(0.379 0.025 285)",
+          "oklch(0.493 0.025 285)",
+          "oklch(0.607 0.025 285)",
+          "oklch(0.721 0.025 285)",
+          "oklch(0.836 0.025 285)",
+          "oklch(0.95 0.025 285)"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ink (dark)",
+        "canonical": "oklch(0.965 0.006 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.006 285)",
+          "oklch(0.264 0.006 285)",
+          "oklch(0.379 0.006 285)",
+          "oklch(0.493 0.006 285)",
+          "oklch(0.607 0.006 285)",
+          "oklch(0.721 0.006 285)",
+          "oklch(0.836 0.006 285)",
+          "oklch(0.95 0.006 285)"
+        ]
+      },
+      "slate": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "canonical": "oklch(0.5 0.022 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.022 285)",
+          "oklch(0.264 0.022 285)",
+          "oklch(0.379 0.022 285)",
+          "oklch(0.493 0.022 285)",
+          "oklch(0.607 0.022 285)",
+          "oklch(0.721 0.022 285)",
+          "oklch(0.836 0.022 285)",
+          "oklch(0.95 0.022 285)"
+        ]
+      },
+      "slate-dark": {
+        "role": "neutral",
+        "displayName": "Slate (dark)",
+        "canonical": "oklch(0.73 0.02 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 285)",
+          "oklch(0.264 0.02 285)",
+          "oklch(0.379 0.02 285)",
+          "oklch(0.493 0.02 285)",
+          "oklch(0.607 0.02 285)",
+          "oklch(0.721 0.02 285)",
+          "oklch(0.836 0.02 285)",
+          "oklch(0.95 0.02 285)"
         ]
       },
       "mist": {
         "role": "neutral",
         "displayName": "Mist",
-        "canonical": "oklch(0.97 0 0)",
+        "canonical": "oklch(0.952 0.01 285)",
         "tonalRamp": [
-          "oklch(0.15 0 0)",
-          "oklch(0.27 0 0)",
-          "oklch(0.39 0 0)",
-          "oklch(0.52 0 0)",
-          "oklch(0.63 0 0)",
-          "oklch(0.74 0 0)",
-          "oklch(0.85 0 0)",
-          "oklch(0.97 0 0)"
+          "oklch(0.15 0.01 285)",
+          "oklch(0.264 0.01 285)",
+          "oklch(0.379 0.01 285)",
+          "oklch(0.493 0.01 285)",
+          "oklch(0.607 0.01 285)",
+          "oklch(0.721 0.01 285)",
+          "oklch(0.836 0.01 285)",
+          "oklch(0.95 0.01 285)"
         ]
       },
-      "graphite": {
+      "mist-dark": {
         "role": "neutral",
-        "displayName": "Graphite",
-        "canonical": "oklch(0.556 0 0)",
+        "displayName": "Mist (dark)",
+        "canonical": "oklch(0.265 0.02 285)",
         "tonalRamp": [
-          "oklch(0.15 0 0)",
-          "oklch(0.27 0 0)",
-          "oklch(0.39 0 0)",
-          "oklch(0.556 0 0)",
-          "oklch(0.63 0 0)",
-          "oklch(0.74 0 0)",
-          "oklch(0.85 0 0)",
-          "oklch(0.95 0 0)"
+          "oklch(0.15 0.02 285)",
+          "oklch(0.264 0.02 285)",
+          "oklch(0.379 0.02 285)",
+          "oklch(0.493 0.02 285)",
+          "oklch(0.607 0.02 285)",
+          "oklch(0.721 0.02 285)",
+          "oklch(0.836 0.02 285)",
+          "oklch(0.95 0.02 285)"
+        ]
+      },
+      "wash": {
+        "role": "neutral",
+        "displayName": "Wash",
+        "canonical": "oklch(0.955 0.012 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.012 285)",
+          "oklch(0.264 0.012 285)",
+          "oklch(0.379 0.012 285)",
+          "oklch(0.493 0.012 285)",
+          "oklch(0.607 0.012 285)",
+          "oklch(0.721 0.012 285)",
+          "oklch(0.836 0.012 285)",
+          "oklch(0.95 0.012 285)"
+        ]
+      },
+      "wash-dark": {
+        "role": "neutral",
+        "displayName": "Wash (dark)",
+        "canonical": "oklch(0.27 0.022 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.022 285)",
+          "oklch(0.264 0.022 285)",
+          "oklch(0.379 0.022 285)",
+          "oklch(0.493 0.022 285)",
+          "oklch(0.607 0.022 285)",
+          "oklch(0.721 0.022 285)",
+          "oklch(0.836 0.022 285)",
+          "oklch(0.95 0.022 285)"
         ]
       },
       "hairline": {
         "role": "neutral",
         "displayName": "Hairline",
-        "canonical": "oklch(0.922 0 0)",
+        "canonical": "oklch(0.915 0.012 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.012 285)",
+          "oklch(0.264 0.012 285)",
+          "oklch(0.379 0.012 285)",
+          "oklch(0.493 0.012 285)",
+          "oklch(0.607 0.012 285)",
+          "oklch(0.721 0.012 285)",
+          "oklch(0.836 0.012 285)",
+          "oklch(0.95 0.012 285)"
+        ]
+      },
+      "hairline-dark": {
+        "role": "neutral",
+        "displayName": "Hairline (dark)",
+        "canonical": "oklch(1 0 0 / 9%)",
         "tonalRamp": [
           "oklch(0.15 0 0)",
-          "oklch(0.27 0 0)",
-          "oklch(0.39 0 0)",
-          "oklch(0.52 0 0)",
-          "oklch(0.63 0 0)",
-          "oklch(0.74 0 0)",
-          "oklch(0.85 0 0)",
-          "oklch(0.922 0 0)"
+          "oklch(0.264 0 0)",
+          "oklch(0.379 0 0)",
+          "oklch(0.493 0 0)",
+          "oklch(0.607 0 0)",
+          "oklch(0.721 0 0)",
+          "oklch(0.836 0 0)",
+          "oklch(0.95 0 0)"
+        ]
+      },
+      "field-fill-dark": {
+        "role": "neutral",
+        "displayName": "Field Fill (dark)",
+        "canonical": "oklch(1 0 0 / 6%)",
+        "tonalRamp": [
+          "oklch(0.15 0 0)",
+          "oklch(0.264 0 0)",
+          "oklch(0.379 0 0)",
+          "oklch(0.493 0 0)",
+          "oklch(0.607 0 0)",
+          "oklch(0.721 0 0)",
+          "oklch(0.836 0 0)",
+          "oklch(0.95 0 0)"
+        ]
+      },
+      "scrim": {
+        "role": "neutral",
+        "displayName": "Scrim",
+        "canonical": "oklch(0.18 0.04 285 / 45%)",
+        "tonalRamp": [
+          "oklch(0.15 0.04 285)",
+          "oklch(0.264 0.04 285)",
+          "oklch(0.379 0.04 285)",
+          "oklch(0.493 0.04 285)",
+          "oklch(0.607 0.04 285)",
+          "oklch(0.721 0.04 285)",
+          "oklch(0.836 0.04 285)",
+          "oklch(0.95 0.04 285)"
         ]
       },
       "signal-red": {
-        "role": "tertiary",
+        "role": "error",
         "displayName": "Signal Red",
-        "canonical": "oklch(0.577 0.245 27.325)",
+        "canonical": "oklch(0.55 0.21 25)",
         "tonalRamp": [
-          "oklch(0.15 0.245 27.325)",
-          "oklch(0.27 0.245 27.325)",
-          "oklch(0.39 0.245 27.325)",
-          "oklch(0.577 0.245 27.325)",
-          "oklch(0.68 0.245 27.325)",
-          "oklch(0.77 0.245 27.325)",
-          "oklch(0.86 0.245 27.325)",
-          "oklch(0.95 0.245 27.325)"
+          "oklch(0.15 0.21 25)",
+          "oklch(0.264 0.21 25)",
+          "oklch(0.379 0.21 25)",
+          "oklch(0.493 0.21 25)",
+          "oklch(0.607 0.21 25)",
+          "oklch(0.721 0.21 25)",
+          "oklch(0.836 0.21 25)",
+          "oklch(0.95 0.21 25)"
+        ]
+      },
+      "signal-red-dark": {
+        "role": "error",
+        "displayName": "Signal Red (dark)",
+        "canonical": "oklch(0.7 0.18 25)",
+        "tonalRamp": [
+          "oklch(0.15 0.18 25)",
+          "oklch(0.264 0.18 25)",
+          "oklch(0.379 0.18 25)",
+          "oklch(0.493 0.18 25)",
+          "oklch(0.607 0.18 25)",
+          "oklch(0.721 0.18 25)",
+          "oklch(0.836 0.18 25)",
+          "oklch(0.95 0.18 25)"
+        ]
+      },
+      "category-iris": {
+        "role": "tertiary",
+        "displayName": "Category Iris",
+        "canonical": "#5b5bd6",
+        "tonalRamp": [
+          "oklch(0.15 0.184 278.285)",
+          "oklch(0.264 0.184 278.285)",
+          "oklch(0.379 0.184 278.285)",
+          "oklch(0.493 0.184 278.285)",
+          "oklch(0.607 0.184 278.285)",
+          "oklch(0.721 0.184 278.285)",
+          "oklch(0.836 0.184 278.285)",
+          "oklch(0.95 0.184 278.285)"
+        ]
+      },
+      "category-amber": {
+        "role": "tertiary",
+        "displayName": "Category Amber",
+        "canonical": "#c77c02",
+        "tonalRamp": [
+          "oklch(0.15 0.142 68.116)",
+          "oklch(0.264 0.142 68.116)",
+          "oklch(0.379 0.142 68.116)",
+          "oklch(0.493 0.142 68.116)",
+          "oklch(0.607 0.142 68.116)",
+          "oklch(0.721 0.142 68.116)",
+          "oklch(0.836 0.142 68.116)",
+          "oklch(0.95 0.142 68.116)"
+        ]
+      },
+      "category-sky": {
+        "role": "tertiary",
+        "displayName": "Category Sky",
+        "canonical": "#0b84d8",
+        "tonalRamp": [
+          "oklch(0.15 0.158 247.934)",
+          "oklch(0.264 0.158 247.934)",
+          "oklch(0.379 0.158 247.934)",
+          "oklch(0.493 0.158 247.934)",
+          "oklch(0.607 0.158 247.934)",
+          "oklch(0.721 0.158 247.934)",
+          "oklch(0.836 0.158 247.934)",
+          "oklch(0.95 0.158 247.934)"
+        ]
+      },
+      "category-coral": {
+        "role": "tertiary",
+        "displayName": "Category Coral",
+        "canonical": "#e5532f",
+        "tonalRamp": [
+          "oklch(0.15 0.188 34.881)",
+          "oklch(0.264 0.188 34.881)",
+          "oklch(0.379 0.188 34.881)",
+          "oklch(0.493 0.188 34.881)",
+          "oklch(0.607 0.188 34.881)",
+          "oklch(0.721 0.188 34.881)",
+          "oklch(0.836 0.188 34.881)",
+          "oklch(0.95 0.188 34.881)"
+        ]
+      },
+      "category-teal": {
+        "role": "tertiary",
+        "displayName": "Category Teal",
+        "canonical": "#0f9488",
+        "tonalRamp": [
+          "oklch(0.15 0.103 184.679)",
+          "oklch(0.264 0.103 184.679)",
+          "oklch(0.379 0.103 184.679)",
+          "oklch(0.493 0.103 184.679)",
+          "oklch(0.607 0.103 184.679)",
+          "oklch(0.721 0.103 184.679)",
+          "oklch(0.836 0.103 184.679)",
+          "oklch(0.95 0.103 184.679)"
+        ]
+      },
+      "category-plum": {
+        "role": "tertiary",
+        "displayName": "Category Plum",
+        "canonical": "#9b3fbf",
+        "tonalRamp": [
+          "oklch(0.15 0.201 314.944)",
+          "oklch(0.264 0.201 314.944)",
+          "oklch(0.379 0.201 314.944)",
+          "oklch(0.493 0.201 314.944)",
+          "oklch(0.607 0.201 314.944)",
+          "oklch(0.721 0.201 314.944)",
+          "oklch(0.836 0.201 314.944)",
+          "oklch(0.95 0.201 314.944)"
+        ]
+      },
+      "category-lime": {
+        "role": "tertiary",
+        "displayName": "Category Lime",
+        "canonical": "#5a9a16",
+        "tonalRamp": [
+          "oklch(0.15 0.168 133.36)",
+          "oklch(0.264 0.168 133.36)",
+          "oklch(0.379 0.168 133.36)",
+          "oklch(0.493 0.168 133.36)",
+          "oklch(0.607 0.168 133.36)",
+          "oklch(0.721 0.168 133.36)",
+          "oklch(0.836 0.168 133.36)",
+          "oklch(0.95 0.168 133.36)"
+        ]
+      },
+      "category-rose": {
+        "role": "tertiary",
+        "displayName": "Category Rose",
+        "canonical": "#d6336c",
+        "tonalRamp": [
+          "oklch(0.15 0.201 5.248)",
+          "oklch(0.264 0.201 5.248)",
+          "oklch(0.379 0.201 5.248)",
+          "oklch(0.493 0.201 5.248)",
+          "oklch(0.607 0.201 5.248)",
+          "oklch(0.721 0.201 5.248)",
+          "oklch(0.836 0.201 5.248)",
+          "oklch(0.95 0.201 5.248)"
+        ]
+      },
+      "category-neutral": {
+        "role": "tertiary",
+        "displayName": "Category Neutral",
+        "canonical": "oklch(0.5 0.022 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.022 285)",
+          "oklch(0.264 0.022 285)",
+          "oklch(0.379 0.022 285)",
+          "oklch(0.493 0.022 285)",
+          "oklch(0.607 0.022 285)",
+          "oklch(0.721 0.022 285)",
+          "oklch(0.836 0.022 285)",
+          "oklch(0.95 0.022 285)"
+        ]
+      },
+      "category-iris-dark": {
+        "role": "tertiary",
+        "displayName": "Category Iris (dark)",
+        "canonical": "#7c7cf0",
+        "tonalRamp": [
+          "oklch(0.15 0.17 280.504)",
+          "oklch(0.264 0.17 280.504)",
+          "oklch(0.379 0.17 280.504)",
+          "oklch(0.493 0.17 280.504)",
+          "oklch(0.607 0.17 280.504)",
+          "oklch(0.721 0.17 280.504)",
+          "oklch(0.836 0.17 280.504)",
+          "oklch(0.95 0.17 280.504)"
+        ]
+      },
+      "category-amber-dark": {
+        "role": "tertiary",
+        "displayName": "Category Amber (dark)",
+        "canonical": "#c0820e",
+        "tonalRamp": [
+          "oklch(0.15 0.135 74.573)",
+          "oklch(0.264 0.135 74.573)",
+          "oklch(0.379 0.135 74.573)",
+          "oklch(0.493 0.135 74.573)",
+          "oklch(0.607 0.135 74.573)",
+          "oklch(0.721 0.135 74.573)",
+          "oklch(0.836 0.135 74.573)",
+          "oklch(0.95 0.135 74.573)"
+        ]
+      },
+      "category-sky-dark": {
+        "role": "tertiary",
+        "displayName": "Category Sky (dark)",
+        "canonical": "#2f93d4",
+        "tonalRamp": [
+          "oklch(0.15 0.132 242.225)",
+          "oklch(0.264 0.132 242.225)",
+          "oklch(0.379 0.132 242.225)",
+          "oklch(0.493 0.132 242.225)",
+          "oklch(0.607 0.132 242.225)",
+          "oklch(0.721 0.132 242.225)",
+          "oklch(0.836 0.132 242.225)",
+          "oklch(0.95 0.132 242.225)"
+        ]
+      },
+      "category-coral-dark": {
+        "role": "tertiary",
+        "displayName": "Category Coral (dark)",
+        "canonical": "#e0603c",
+        "tonalRamp": [
+          "oklch(0.15 0.168 36.461)",
+          "oklch(0.264 0.168 36.461)",
+          "oklch(0.379 0.168 36.461)",
+          "oklch(0.493 0.168 36.461)",
+          "oklch(0.607 0.168 36.461)",
+          "oklch(0.721 0.168 36.461)",
+          "oklch(0.836 0.168 36.461)",
+          "oklch(0.95 0.168 36.461)"
+        ]
+      },
+      "category-teal-dark": {
+        "role": "tertiary",
+        "displayName": "Category Teal (dark)",
+        "canonical": "#1a9d8e",
+        "tonalRamp": [
+          "oklch(0.15 0.107 182.718)",
+          "oklch(0.264 0.107 182.718)",
+          "oklch(0.379 0.107 182.718)",
+          "oklch(0.493 0.107 182.718)",
+          "oklch(0.607 0.107 182.718)",
+          "oklch(0.721 0.107 182.718)",
+          "oklch(0.836 0.107 182.718)",
+          "oklch(0.95 0.107 182.718)"
+        ]
+      },
+      "category-plum-dark": {
+        "role": "tertiary",
+        "displayName": "Category Plum (dark)",
+        "canonical": "#b066d4",
+        "tonalRamp": [
+          "oklch(0.15 0.173 313.551)",
+          "oklch(0.264 0.173 313.551)",
+          "oklch(0.379 0.173 313.551)",
+          "oklch(0.493 0.173 313.551)",
+          "oklch(0.607 0.173 313.551)",
+          "oklch(0.721 0.173 313.551)",
+          "oklch(0.836 0.173 313.551)",
+          "oklch(0.95 0.173 313.551)"
+        ]
+      },
+      "category-lime-dark": {
+        "role": "tertiary",
+        "displayName": "Category Lime (dark)",
+        "canonical": "#6aa326",
+        "tonalRamp": [
+          "oklch(0.15 0.163 131.495)",
+          "oklch(0.264 0.163 131.495)",
+          "oklch(0.379 0.163 131.495)",
+          "oklch(0.493 0.163 131.495)",
+          "oklch(0.607 0.163 131.495)",
+          "oklch(0.721 0.163 131.495)",
+          "oklch(0.836 0.163 131.495)",
+          "oklch(0.95 0.163 131.495)"
+        ]
+      },
+      "category-rose-dark": {
+        "role": "tertiary",
+        "displayName": "Category Rose (dark)",
+        "canonical": "#e8547f",
+        "tonalRamp": [
+          "oklch(0.15 0.185 5.993)",
+          "oklch(0.264 0.185 5.993)",
+          "oklch(0.379 0.185 5.993)",
+          "oklch(0.493 0.185 5.993)",
+          "oklch(0.607 0.185 5.993)",
+          "oklch(0.721 0.185 5.993)",
+          "oklch(0.836 0.185 5.993)",
+          "oklch(0.95 0.185 5.993)"
+        ]
+      },
+      "category-neutral-dark": {
+        "role": "tertiary",
+        "displayName": "Category Neutral (dark)",
+        "canonical": "oklch(0.73 0.02 285)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 285)",
+          "oklch(0.264 0.02 285)",
+          "oklch(0.379 0.02 285)",
+          "oklch(0.493 0.02 285)",
+          "oklch(0.607 0.02 285)",
+          "oklch(0.721 0.02 285)",
+          "oklch(0.836 0.02 285)",
+          "oklch(0.95 0.02 285)"
         ]
       }
     },
     "typographyMeta": {
       "display-figure": {
         "displayName": "Display Figure",
-        "purpose": "The single leading balance or total on a screen."
+        "purpose": "The one figure on the Midnight hero card, ฿ and satang stepped down."
       },
       "display-figure-desktop": {
         "displayName": "Display Figure Desktop",
-        "purpose": "The display figure from the 640px breakpoint."
+        "purpose": "The hero figure from 640px."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "The screen title in the phone title bar."
+      },
+      "headline-desktop": {
+        "displayName": "Headline Desktop",
+        "purpose": "The in-page screen title from 640px."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card, sheet and empty-state titles."
+      },
+      "section-title": {
+        "displayName": "Section Title",
+        "purpose": "A list section's heading on the ground; 18px from 640px."
+      },
+      "figure-net": {
+        "displayName": "Figure Net",
+        "purpose": "The bold result figure in a summary card."
+      },
+      "figure-flow": {
+        "displayName": "Figure Flow",
+        "purpose": "Paired summary figures such as Income and Net expenses."
       },
       "row-figure": {
         "displayName": "Row Figure",
-        "purpose": "Aligned THB values in rows, reports, and amount entry."
+        "purpose": "A row's signed amount beside its title."
       },
-      "headline": { "displayName": "Headline", "purpose": "The screen title." },
-      "title": {
-        "displayName": "Title",
-        "purpose": "Section and sheet titles."
+      "row-title": {
+        "displayName": "Row Title",
+        "purpose": "A row's first line; wraps, never clamps."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Primary row text and input values."
+        "purpose": "Input values and running text; 14px inputs from 768px."
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Controls, fields, navigation, and segments."
+        "purpose": "Buttons, field labels, nav links, segments and section links."
+      },
+      "hero-label": {
+        "displayName": "Hero Label",
+        "purpose": "The hero card's heading in Midnight Muted."
       },
       "caption": {
         "displayName": "Caption",
-        "purpose": "Metadata, descriptions, and errors."
+        "purpose": "Metadata, descriptions, empty copy and errors in Slate."
+      },
+      "tab-label": {
+        "displayName": "Tab Label",
+        "purpose": "The word under each phone tab icon."
       }
     },
     "shadows": [
       {
-        "name": "indicator-lift",
-        "value": "0 1px 2px rgba(0,0,0,0.08), 0 1px 6px rgba(0,0,0,0.06)",
-        "purpose": "The Paper indicator inside a segmented track."
+        "name": "card",
+        "value": "0 1px 2px oklch(0.3 0.06 285 / 5%), 0 6px 20px -8px oklch(0.3 0.06 285 / 10%)",
+        "purpose": "Cards, list cards, empty states, load errors and the segmented indicator. Dark: 0 0 0 1px oklch(1 0 0 / 4%)."
       },
       {
-        "name": "popover-lift",
-        "value": "0 2px 4px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08)",
-        "purpose": "Floating Select, date/month picker, and account-menu surfaces."
+        "name": "float",
+        "value": "0 2px 6px oklch(0.3 0.06 285 / 6%), 0 16px 40px -12px oklch(0.3 0.06 285 / 22%)",
+        "purpose": "Select lists, pickers, the account menu, sheets and dialogs. Dark: 0 0 0 1px oklch(1 0 0 / 8%), 0 16px 40px -12px oklch(0 0 0 / 60%)."
+      },
+      {
+        "name": "hero",
+        "value": "0 14px 32px -16px oklch(0.27 0.1 285 / 55%)",
+        "purpose": "The Midnight hero card only. Dark: 0 14px 32px -16px oklch(0 0 0 / 70%)."
+      },
+      {
+        "name": "capture-glow",
+        "value": "0 8px 18px -8px oklch(0.54 0.21 285)",
+        "purpose": "The tab bar's 48px ＋ only, with a 4px Chrome ring around it."
       }
     ],
     "motion": [
       {
+        "name": "hover-fade",
+        "value": "color, background-color, border-color, box-shadow 150ms ease-out",
+        "purpose": "Hover and focus color changes on buttons, fields, rows, nav links and the summary card."
+      },
+      {
         "name": "indicator-slide",
-        "value": "transform 200ms ease-out",
-        "purpose": "Moves the selected segmented-control indicator."
+        "value": "transform 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Moves the segmented control's indicator; labels recolor over 200ms."
       },
       {
-        "name": "arrival-fade",
-        "value": "opacity 500ms",
-        "purpose": "Confirms a newly created wallet or transaction in its returned list."
+        "name": "sheet-rise",
+        "value": "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Raises a phone sheet from the bottom edge; from 640px the dialog fades over 260ms instead."
       },
       {
-        "name": "sheet-slide",
-        "value": "transform 200ms ease-out",
-        "purpose": "Moves a phone sheet from the bottom edge; the scrim fades in parallel."
+        "name": "scrim-fade",
+        "value": "opacity 200ms ease-out",
+        "purpose": "Fades the scrim behind a sheet or dialog."
+      },
+      {
+        "name": "row-arrival",
+        "value": "opacity and translateY(8px) 400ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The just-saved row rises and fades in, then keeps a 7% wash of its category hue."
       }
     ],
-    "breakpoints": [{ "name": "sm", "value": "640px" }]
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
   },
   "components": [
     {
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The empty state's sole primary, 44px on phone and 40px from 640px.",
-      "html": "<button class=\"ds-btn-primary\">Create your first wallet</button>",
-      "css": ".ds-btn-primary { height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: color 150ms, background-color 150ms, border-color 150ms, box-shadow 150ms, opacity 150ms; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-btn-primary:focus-visible { outline: none; border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (min-width: 640px) { .ds-btn-primary { height: 40px; } }"
+      "description": "The screen's one Iris action: 14px corners, 44px on phone and 40px at lg from 640px.",
+      "html": "<button class=\"ds-btn-primary\">New transaction</button>",
+      "css": ".ds-btn-primary { height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 14px; background: var(--primary, oklch(0.54 0.21 285)); color: var(--primary-foreground, oklch(1 0 0)); font: 600 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms ease-out, box-shadow 150ms ease-out; } .ds-btn-primary:hover { background: color-mix(in oklch, var(--primary, oklch(0.54 0.21 285)), black 12%); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.54 0.21 285)) 45%, transparent); } @media (min-width: 640px) { .ds-btn-primary { height: 40px; } } @media (prefers-reduced-motion: reduce) { .ds-btn-primary { transition: none; } }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "A white chip on the tinted ground: the neutral page action.",
+      "html": "<button class=\"ds-btn-outline\">Manage</button>",
+      "css": ".ds-btn-outline { height: 44px; padding: 0 14px; border: 1px solid var(--border, oklch(0.915 0.012 285)); border-radius: 14px; background: var(--card, oklch(1 0 0)); color: var(--foreground, oklch(0.21 0.025 285)); font: 600 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms ease-out, box-shadow 150ms ease-out; } .ds-btn-outline:hover { background: var(--accent, oklch(0.955 0.012 285)); } .ds-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.54 0.21 285)) 45%, transparent); } @media (min-width: 640px) { .ds-btn-outline { height: 36px; } }"
     },
     {
       "name": "Destructive Button",
       "kind": "button",
       "refersTo": "button-destructive",
-      "description": "Signal Red removal action used for wallets, categories, and transactions.",
+      "description": "Signal Red at 10% with red text, for removal; set apart by space as well as color.",
       "html": "<button class=\"ds-btn-destructive\">Delete transaction</button>",
-      "css": ".ds-btn-destructive { height: 44px; padding: 0 12px; border: 1px solid transparent; border-radius: 26px; background: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 10%, transparent); color: var(--destructive, oklch(0.577 0.245 27.325)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms, border-color 150ms, box-shadow 150ms; } .ds-btn-destructive:hover { background: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 20%, transparent); } .ds-btn-destructive:focus-visible { outline: none; border-color: color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 40%, transparent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive, oklch(0.577 0.245 27.325)) 20%, transparent); } @media (min-width: 640px) { .ds-btn-destructive { height: 40px; } }"
+      "css": ".ds-btn-destructive { height: 44px; padding: 0 14px; border: 1px solid transparent; border-radius: 14px; background: color-mix(in oklch, var(--destructive, oklch(0.55 0.21 25)) 10%, transparent); color: var(--destructive, oklch(0.55 0.21 25)); font: 600 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms ease-out, box-shadow 150ms ease-out; } .ds-btn-destructive:hover { background: color-mix(in oklch, var(--destructive, oklch(0.55 0.21 25)) 16%, transparent); } .ds-btn-destructive:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive, oklch(0.55 0.21 25)) 25%, transparent); } @media (min-width: 640px) { .ds-btn-destructive { height: 36px; } }"
     },
     {
       "name": "Text Field",
       "kind": "input",
-      "refersTo": "input",
-      "description": "A 44px Hairline capsule on phone, 36px from 640px, with the shared Cobalt focus ring.",
+      "refersTo": "field",
+      "description": "The surface every field-like control shares: a 14px-corner white field on a Hairline, Iris border and soft ring on focus.",
       "html": "<label class=\"ds-field\"><span>Name</span><input class=\"ds-input\" placeholder=\"Wallet name\"></label>",
-      "css": ".ds-field { display: flex; flex-direction: column; gap: 8px; color: var(--foreground, oklch(0.145 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-input { height: 44px; padding: 4px 12px; border: 1px solid var(--border, oklch(0.922 0 0)); border-radius: 26px; background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 30%, transparent); color: var(--foreground, oklch(0.145 0 0)); font-size: 16px; outline: none; } .ds-input:hover { background: color-mix(in oklab, var(--input, oklch(0.922 0 0)) 50%, transparent); } .ds-input:focus-visible { border-color: var(--ring, oklch(0.52 0.2 262)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (min-width: 640px) { .ds-input { height: 36px; } }"
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 12px; color: var(--foreground, oklch(0.21 0.025 285)); font: 600 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-input { height: 44px; padding: 4px 14px; border: 1px solid var(--border, oklch(0.915 0.012 285)); border-radius: 14px; background: var(--card, oklch(1 0 0)); color: var(--foreground, oklch(0.21 0.025 285)); font: 400 16px Inter, ui-sans-serif, system-ui, sans-serif; outline: none; transition: border-color 150ms ease-out, box-shadow 150ms ease-out; } .ds-input::placeholder { color: var(--muted-foreground, oklch(0.5 0.022 285)); } .ds-input:hover { border-color: color-mix(in oklch, var(--border, oklch(0.915 0.012 285)), var(--foreground, oklch(0.21 0.025 285)) 14%); } .ds-input:focus-visible { border-color: var(--ring, oklch(0.54 0.21 285)); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.54 0.21 285)) 25%, transparent); } @media (min-width: 640px) { .ds-input { height: 40px; } } @media (min-width: 768px) { .ds-input { font-size: 14px; } } @media (prefers-color-scheme: dark) { .ds-input { background: var(--input, oklch(1 0 0 / 6%)); } }"
     },
     {
       "name": "Segmented Control",
       "kind": "custom",
       "refersTo": "segmented-track",
-      "description": "A Mist track whose Paper indicator is the first of the system's two lifts; 52px on phone keeps every segment a 44px target inside the 4px inset.",
+      "description": "A Mist track whose white indicator slides 200ms on an exponential ease-out; 52px on phone keeps 44px segments inside the 4px inset.",
       "html": "<div class=\"ds-seg\" role=\"radiogroup\" aria-label=\"Type\"><span class=\"ds-seg-indicator\" aria-hidden=\"true\"></span><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"true\" data-checked>Expense</button><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"false\">Income</button></div>",
-      "css": ".ds-seg { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); height: 52px; padding: 4px; border-radius: 26px; background: var(--muted, oklch(0.97 0 0)); } .ds-seg-indicator { position: absolute; inset-block: 4px; left: 4px; width: calc((100% - 8px) / 2); border-radius: 26px; background: var(--background, oklch(1 0 0)); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 1px 6px rgba(0,0,0,.06); transition: transform 200ms ease-out; } .ds-seg-item { position: relative; z-index: 1; border: 0; border-radius: 26px; background: transparent; color: var(--muted-foreground, oklch(0.556 0 0)); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-seg-item[data-checked] { color: var(--primary, oklch(0.52 0.2 262)); } .ds-seg-item:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (min-width: 640px) { .ds-seg { height: 44px; } } @media (prefers-reduced-motion: reduce) { .ds-seg-indicator { transition: none; } }"
+      "css": ".ds-seg { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); height: 52px; padding: 4px; border-radius: 14px; background: var(--muted, oklch(0.952 0.01 285)); } .ds-seg-indicator { position: absolute; inset-block: 4px; left: 4px; width: calc((100% - 8px) / 2); border-radius: 10px; background: var(--card, oklch(1 0 0)); box-shadow: var(--shadow-card, 0 1px 2px oklch(0.3 0.06 285 / 5%), 0 6px 20px -8px oklch(0.3 0.06 285 / 10%)); transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-seg-item { position: relative; z-index: 1; border: 0; border-radius: 10px; background: transparent; color: var(--muted-foreground, oklch(0.5 0.022 285)); font: 600 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: color 200ms; } .ds-seg-item[data-checked] { color: var(--foreground, oklch(0.21 0.025 285)); } .ds-seg-item:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.54 0.21 285)) 45%, transparent); } @media (min-width: 640px) { .ds-seg { height: 44px; } } @media (prefers-reduced-motion: reduce) { .ds-seg-indicator, .ds-seg-item { transition: none; } }"
     },
     {
       "name": "Phone Tab Bar",
       "kind": "nav",
-      "refersTo": "nav-link",
-      "description": "Two equal halves around the centred Cobalt New action.",
-      "html": "<nav class=\"ds-tabs\" aria-label=\"Primary\"><div class=\"ds-tab-half\"><a class=\"ds-tab ds-current\" href=\"#\">⌂<span>Home</span></a><a class=\"ds-tab\" href=\"#\">↕<span>Transactions</span></a></div><a class=\"ds-new\" href=\"#\" aria-label=\"New transaction\"><b>＋</b><span>New</span></a><div class=\"ds-tab-half\"><a class=\"ds-tab\" href=\"#\">▢<span>Wallets</span></a><a class=\"ds-tab\" href=\"#\">▥<span>Reports</span></a></div></nav>",
-      "css": ".ds-tabs { display: flex; align-items: stretch; height: 56px; padding: 0 4px; border-top: 1px solid var(--border, oklch(0.922 0 0)); background: color-mix(in oklab, var(--background, oklch(1 0 0)) 80%, transparent); font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; } .ds-tab-half { display: flex; min-width: 0; flex: 1; justify-content: space-around; } .ds-tab, .ds-new { display: flex; min-width: 56px; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; padding: 0 4px 6px; border-radius: 8px; color: var(--muted-foreground, oklch(0.556 0 0)); text-decoration: none; } .ds-tab span, .ds-new span { font-size: 14px; } .ds-current { color: var(--foreground, oklch(0.145 0 0)); } .ds-new b { display: flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font-size: 24px; font-weight: 400; } .ds-tab:hover { background: var(--muted, oklch(0.97 0 0)); } .ds-tab:focus-visible, .ds-new:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); }"
+      "refersTo": "tab",
+      "description": "Four destinations in two equal halves around the rising 48px Iris capture circle; current is Iris Text with a heavier stroke.",
+      "html": "<nav class=\"ds-tabs\" aria-label=\"Primary\"><div class=\"ds-tab-half\"><a class=\"ds-tab\" href=\"#\" aria-current=\"page\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg><span>Home</span></a><a class=\"ds-tab\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z\"/><path d=\"M16 8h-6\"/><path d=\"M16 12H8\"/><path d=\"M13 16H8\"/></svg><span>Transactions</span></a></div><a class=\"ds-new\" href=\"#\" aria-label=\"New transaction\"><b><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" style=\"stroke-width:2.25\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></b><span>New</span></a><div class=\"ds-tab-half\"><a class=\"ds-tab\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1\"/><path d=\"M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4\"/></svg><span>Wallets</span></a><a class=\"ds-tab\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z\"/><path d=\"M21.21 15.89A10 10 0 1 1 8 2.83\"/></svg><span>Reports</span></a></div></nav>",
+      "css": ".ds-tabs { display: flex; align-items: stretch; height: 56px; padding: 0 4px; border-top: 1px solid var(--border, oklch(0.915 0.012 285)); background: color-mix(in oklch, var(--chrome, oklch(1 0 0)) 85%, transparent); backdrop-filter: blur(12px); font: 600 12px/1.375 Inter, ui-sans-serif, system-ui, sans-serif; } .ds-tab-half { display: flex; min-width: 0; flex: 1; justify-content: space-around; } .ds-tab, .ds-new { display: flex; min-width: 56px; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; padding: 0 4px 6px; border-radius: 10px; color: var(--muted-foreground, oklch(0.5 0.022 285)); text-decoration: none; outline: none; } .ds-tab svg { width: 24px; height: 24px; } .ds-tab[aria-current] { color: var(--link, oklch(0.52 0.21 285)); } .ds-tab[aria-current] svg { stroke-width: 2.25; } .ds-new { min-width: 0; } .ds-new b { display: flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--primary, oklch(0.54 0.21 285)); color: var(--primary-foreground, oklch(1 0 0)); box-shadow: 0 0 0 4px var(--chrome, oklch(1 0 0)), 0 8px 18px -8px var(--primary, oklch(0.54 0.21 285)); } .ds-new b svg { width: 24px; height: 24px; } .ds-new:hover b { background: color-mix(in oklch, var(--primary, oklch(0.54 0.21 285)), black 12%); } .ds-tab:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.54 0.21 285)) 45%, transparent); } .ds-new:focus-visible b { box-shadow: 0 0 0 4px color-mix(in oklch, var(--ring, oklch(0.54 0.21 285)) 45%, transparent); }"
     },
     {
-      "name": "Sheet",
-      "kind": "custom",
-      "description": "A phone bottom sheet with a shared title and 44px close header, using the scrim rather than a shadow.",
-      "html": "<div class=\"ds-scrim\"><section class=\"ds-sheet\" role=\"dialog\" aria-labelledby=\"ds-sheet-title\"><header class=\"ds-sheet-header\"><div><h2 id=\"ds-sheet-title\">Account</h2><p>you@example.com</p></div><button aria-label=\"Close\">✕</button></header><a href=\"#\">Categories</a><button>Sign out</button></section></div>",
-      "css": ".ds-scrim { display: flex; min-height: 320px; align-items: end; justify-content: center; background: color-mix(in oklab, var(--foreground, oklch(0.145 0 0)) 40%, transparent); } .ds-sheet { width: 100%; max-height: 85dvh; overflow: auto; border-radius: 14px 14px 0 0; background: var(--background, oklch(1 0 0)); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; transition: transform 200ms ease-out; } .ds-sheet-header { display: flex; min-height: 56px; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; } .ds-sheet-header div { min-width: 0; flex: 1; } .ds-sheet h2, .ds-sheet p { margin: 0; } .ds-sheet h2 { font-size: 18px; line-height: 1.25; } .ds-sheet p { color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; } .ds-sheet button[aria-label] { width: 44px; height: 44px; border: 0; border-radius: 9999px; background: transparent; } .ds-sheet > a, .ds-sheet > button:not([aria-label]) { display: flex; min-height: 48px; width: 100%; align-items: center; padding: 0 16px; border: 0; border-top: 1px solid var(--border, oklch(0.922 0 0)); background: transparent; color: inherit; text-decoration: none; } .ds-sheet button:hover, .ds-sheet a:hover { background: var(--muted, oklch(0.97 0 0)); } .ds-sheet button:focus-visible, .ds-sheet a:focus-visible { outline: none; box-shadow: inset 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (prefers-reduced-motion: reduce) { .ds-sheet { transition: none; } }"
-    },
-    {
-      "name": "Wallet Row",
+      "name": "Hero Card",
       "kind": "card",
-      "refersTo": "wallet-row",
-      "description": "A flat, divided row whose caption reads the type then Archived when applicable.",
-      "html": "<div class=\"ds-wallet-row\"><span class=\"ds-wallet-disc\">▣</span><div class=\"ds-wallet-copy\"><a href=\"#\">Cash</a><p>Cash · Archived</p></div><span class=\"ds-wallet-money\">฿1,250.00</span></div>",
-      "css": ".ds-wallet-row { display: flex; min-height: 64px; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--border, oklch(0.922 0 0)); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-wallet-disc { display: flex; width: 40px; height: 40px; flex: none; align-items: center; justify-content: center; border-radius: 9999px; background: var(--muted, oklch(0.97 0 0)); } .ds-wallet-copy { min-width: 0; flex: 1; } .ds-wallet-copy a { display: flex; min-height: 44px; min-width: 44px; align-items: center; color: inherit; font-weight: 500; text-decoration: none; } .ds-wallet-copy a:hover { text-decoration: underline; } .ds-wallet-copy a:focus-visible { outline: 2px solid var(--ring, oklch(0.52 0.2 262)); } .ds-wallet-copy p { margin: -10px 0 0; color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; } .ds-wallet-money { flex: none; font: 400 18px/1.556 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }"
+      "refersTo": "hero-card",
+      "description": "The screen's one display figure on Midnight, the icon's bowl and coin faint off its corner, the ฿ and satang stepped down.",
+      "html": "<section class=\"ds-hero\" aria-labelledby=\"ds-hero-h\"><svg class=\"ds-hero-coin\" viewBox=\"0 0 240 240\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"120\" cy=\"120\" r=\"84\" stroke=\"var(--hero-foreground, oklch(0.99 0.004 285))\" stroke-opacity=\"0.09\" stroke-width=\"44\"/><circle cx=\"120\" cy=\"120\" r=\"34\" fill=\"#9d8cff\" fill-opacity=\"0.32\"/></svg><h2 id=\"ds-hero-h\">Total balance</h2><p class=\"ds-hero-figure\"><span class=\"ds-step\">฿</span>1,266,806<span class=\"ds-step\">.14</span></p><p class=\"ds-hero-caption\">Across 3 wallets</p></section>",
+      "css": ".ds-hero { position: relative; isolation: isolate; display: flex; min-height: 176px; flex-direction: column; overflow: hidden; padding: 24px 20px; border-radius: 24px; background: var(--hero, oklch(0.27 0.07 285)); color: var(--hero-foreground, oklch(0.99 0.004 285)); box-shadow: var(--shadow-hero, 0 14px 32px -16px oklch(0.27 0.1 285 / 55%)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-hero-coin { position: absolute; top: -64px; right: -64px; z-index: -1; width: 240px; height: 240px; pointer-events: none; } .ds-hero h2 { margin: 0; color: var(--hero-muted, oklch(0.8 0.045 285)); font: 500 14px/1.43 Inter, ui-sans-serif, system-ui, sans-serif; } .ds-hero-figure { margin: auto 0 0; padding-top: 16px; font-size: 36px; line-height: 1; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum', 'cv01'; font-weight: 650; letter-spacing: -0.012em; font-weight: 700; } .ds-step { font-size: 0.6em; font-weight: 600; opacity: 0.7; } .ds-step:first-child { margin-right: 0.08em; } .ds-hero-caption { margin: 12px 0 0; color: var(--hero-muted, oklch(0.8 0.045 285)); font-size: 14px; } @media (min-width: 640px) { .ds-hero { min-height: 192px; padding: 28px; } .ds-hero-figure { font-size: 48px; } .ds-hero-coin { top: -80px; width: 288px; height: 288px; } }"
+    },
+    {
+      "name": "Transaction Rows",
+      "kind": "card",
+      "refersTo": "transaction-row",
+      "description": "Rows on one list card: a hue-tinted category tile, the wrapping title beside its signed figure, details full width beneath; the just-saved row keeps a 7% hue wash.",
+      "html": "<ul class=\"ds-list\" aria-label=\"Transactions\"><li class=\"ds-saved\" style=\"--hue: var(--category-amber, #c77c02)\"><a class=\"ds-row\" href=\"#\"><span class=\"ds-tile\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12\"/><path d=\"M8 21h.01\"/><path d=\"M19 21h.01\"/></svg></span><span class=\"ds-row-grid\"><span class=\"ds-row-title\">Expense · Food &amp; Drink › Groceries</span><span class=\"ds-row-meta\">1 Oct 2026 · Cash</span><span class=\"ds-row-money\">−฿1,385.50</span></span></a></li><li style=\"--hue: var(--category-neutral, oklch(0.5 0.022 285))\"><a class=\"ds-row\" href=\"#\"><span class=\"ds-tile\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m16 3 4 4-4 4\"/><path d=\"M20 7H4\"/><path d=\"m8 21-4-4 4-4\"/><path d=\"M4 17h16\"/></svg></span><span class=\"ds-row-grid\"><span class=\"ds-row-title\">Transfer</span><span class=\"ds-row-meta\">Savings → Cash<br>1 Oct 2026</span><span class=\"ds-row-money\">฿2,000.00</span></span></a></li></ul>",
+      "css": ".ds-list { margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: 20px; background: var(--card, oklch(1 0 0)); box-shadow: var(--shadow-card, 0 1px 2px oklch(0.3 0.06 285 / 5%), 0 6px 20px -8px oklch(0.3 0.06 285 / 10%)); color: var(--foreground, oklch(0.21 0.025 285)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-list li + li { border-top: 1px solid color-mix(in oklch, var(--border, oklch(0.915 0.012 285)) 70%, transparent); } .ds-saved { background: color-mix(in oklch, var(--hue) 7%, var(--card, oklch(1 0 0))); animation: ds-arrive 400ms cubic-bezier(0.16, 1, 0.3, 1); } @keyframes ds-arrive { from { opacity: 0; transform: translateY(8px); } } .ds-row { display: flex; min-height: 64px; align-items: center; gap: 14px; padding: 12px 16px; color: inherit; text-decoration: none; outline: none; transition: background-color 150ms ease-out; } .ds-row:hover { background: color-mix(in oklch, var(--accent, oklch(0.955 0.012 285)) 70%, transparent); } .ds-row:focus-visible { box-shadow: inset 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.54 0.21 285)) 45%, transparent); } .ds-tile { display: flex; width: 44px; height: 44px; flex: none; align-items: center; justify-content: center; border-radius: 14px; background: color-mix(in oklch, var(--hue) var(--tile-strength, 13%), transparent); color: var(--hue); } .ds-tile svg { width: 20px; height: 20px; } .ds-row-grid { display: grid; min-width: 0; flex: 1; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; } .ds-row-title { font-weight: 600; line-height: 1.375; overflow-wrap: anywhere; } .ds-row-meta { grid-column: 1 / span 2; grid-row: 2; margin-top: 2px; color: var(--muted-foreground, oklch(0.5 0.022 285)); font-size: 14px; } .ds-row-money { grid-column: 2; grid-row: 1; align-self: start; font-size: 16px; line-height: 1.375; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum', 'cv01'; font-weight: 650; letter-spacing: -0.012em; } @media (prefers-reduced-motion: reduce) { .ds-saved { animation: none; } .ds-row { transition: none; } }"
     },
     {
       "name": "Empty State",
       "kind": "card",
       "refersTo": "empty-state",
-      "description": "The sole Cobalt-action exception: a dashed Hairline box for the screen's one next step.",
-      "html": "<section class=\"ds-empty\"><span class=\"ds-empty-disc\">▢</span><h2>No wallets yet</h2><p>Add the cash, bank accounts, and e-wallets you want to track.</p><button class=\"ds-empty-action\">Create your first wallet</button></section>",
-      "css": ".ds-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 24px; border: 1px dashed var(--border, oklch(0.922 0 0)); border-radius: 14px; background: var(--background, oklch(1 0 0)); color: var(--foreground, oklch(0.145 0 0)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-empty-disc { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; border-radius: 9999px; background: var(--muted, oklch(0.97 0 0)); } .ds-empty h2, .ds-empty p { margin: 0; } .ds-empty h2 { font-size: 18px; } .ds-empty p { color: var(--muted-foreground, oklch(0.556 0 0)); font-size: 14px; } .ds-empty-action { height: 44px; padding: 0 16px; border: 0; border-radius: 26px; background: var(--primary, oklch(0.52 0.2 262)); color: var(--primary-foreground, oklch(0.985 0 0)); font-weight: 500; } .ds-empty-action:hover { background: color-mix(in oklab, var(--primary, oklch(0.52 0.2 262)) 80%, transparent); } .ds-empty-action:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring, oklch(0.52 0.2 262)) 50%, transparent); } @media (min-width: 640px) { .ds-empty-action { height: 40px; } }"
+      "description": "A card leading with an Iris Tonal tile, a title, a teaching sentence and the one next step.",
+      "html": "<section class=\"ds-empty\" aria-labelledby=\"ds-empty-h\"><span class=\"ds-empty-tile\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" style=\"stroke-width:2\"><path d=\"M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1\"/><path d=\"M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4\"/></svg></span><div><h2 id=\"ds-empty-h\">No wallets yet</h2><p>Add the cash, bank accounts and e-wallets you want to track.</p></div><button class=\"ds-empty-action\">Create your first wallet</button></section>",
+      "css": ".ds-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px; border-radius: 20px; background: var(--card, oklch(1 0 0)); box-shadow: var(--shadow-card, 0 1px 2px oklch(0.3 0.06 285 / 5%), 0 6px 20px -8px oklch(0.3 0.06 285 / 10%)); color: var(--foreground, oklch(0.21 0.025 285)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-empty-tile { display: flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 14px; background: var(--secondary, oklch(0.945 0.03 285)); color: var(--secondary-foreground, oklch(0.44 0.19 285)); } .ds-empty-tile svg { width: 24px; height: 24px; } .ds-empty div { display: flex; flex-direction: column; gap: 6px; } .ds-empty h2, .ds-empty p { margin: 0; } .ds-empty h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.025em; } .ds-empty p { max-width: 65ch; color: var(--muted-foreground, oklch(0.5 0.022 285)); font-size: 14px; line-height: 1.5; } .ds-empty-action { height: 44px; padding: 0 16px; border: 0; border-radius: 14px; background: var(--primary, oklch(0.54 0.21 285)); color: var(--primary-foreground, oklch(1 0 0)); font: 600 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms ease-out; } .ds-empty-action:hover { background: color-mix(in oklch, var(--primary, oklch(0.54 0.21 285)), black 12%); } .ds-empty-action:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.54 0.21 285)) 45%, transparent); } @media (min-width: 640px) { .ds-empty { padding: 28px; } .ds-empty-action { height: 40px; } }"
     }
   ],
   "narrative": {
-    "northStar": "The Statement of Holdings",
-    "overview": "Bookkeeping is a bank statement rendered as a phone-first web app: Paper behind near-black Inter, JetBrains Mono for every money figure, and one Cobalt action that is easy to reach after paying. It plays the clean modern fintech canon straight. Trust comes from exact money, quiet hierarchy, predictable controls, and motion used only to explain a state change.\n\nDensity is calm and columnar. Home answers the daily questions in one pass; deeper screens keep the same flat rows, hairlines, and narrow reading order. Controls are capsules, content is not boxed into cards, and the single display-size figure leads whenever a balance is the subject.",
+    "northStar": "The Midnight Card",
+    "overview": "Bookkeeping is a bright banking-app front page for one person's money. A single deep Midnight hero card holds the figure a screen is about; everything else sits on white cards over a soft iris-tinted ground, and one Iris action waits under the thumb. It plays clean modern fintech straight, at the craft level of MAKE by KBank and K PLUS, and sits beside them rather than imitating them: no bank green, no borrowed marks. Trust comes from exact money, a calm tonal palette, predictable controls, and a few short motions that confirm what just happened.\n\nDensity is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.\n\nScope: ticket 01 built this system, the shell, and Home. Capture, history, wallets, reports, categories, and authentication are restyled by tickets 02 to 07; until then they inherit only the shared primitives recorded here, and their screen-specific composition is not part of this document. Charts are ticket 05; only their tokens exist.",
     "keyCharacteristics": [
-      "Light-only Paper and achromatic greys with one Cobalt accent and Signal Red for validation or destruction.",
-      "Inter for language; JetBrains Mono with tabular numerals for THB and only THB.",
-      "Flat, hairline-divided rows; one display figure; capsules for controls.",
-      "A phone shell built around the title bar and bottom tab bar, with the desktop header taking over from 640px.",
-      "Lucide pictograms at stroke 1.75, paired with words except for universally understood, accessibly named controls.",
-      "Exactly three motion moments: segmented indicator, arriving row, and sheet."
+      "An iris-tinted ground with white cards in light, a near-black indigo ground with lifted indigo cards in dark, chosen by prefers-color-scheme.",
+      "One Midnight hero card per screen, carrying the app icon's bowl-and-coin as its only ornament.",
+      "Iris (violet-blue) for the action, focus, selection, and links; Signal Red only for destruction and failure.",
+      "Inter throughout, with money in bold Inter at tabular digits; no monospace anywhere.",
+      "Category pictograms on rounded-square tiles tinted from an eight-hue palette, children inheriting their parent.",
+      "Soft, iris-tinted shadows on cards and floating surfaces; a phone shell of white chrome, title bar, and tab bar.",
+      "Motion only for the arriving row, the sheet, the segmented indicator, and 150ms hover fades, all removed under reduced motion."
     ],
     "rules": [
       {
-        "name": "The One Cobalt Rule",
-        "body": "A screen has one Cobalt action. Selected states are separate: segment text, the chosen date or month, and a Select check may also be Cobalt. When the phone tab bar is present, its 48px ＋ is the action and page-level creates are outline buttons. When the tab bar is hidden, Save is the action. On desktop, New transaction in the header is the action. An empty state may use its own primary when it is the screen's sole next step.",
+        "name": "The One Iris Action Rule",
+        "body": "A screen has one Iris-filled action. On phone it is the tab bar's ＋; from 640px it is New transaction in the header. An empty state or a load error may fill its own action when it is the screen's sole next step. Selection is separate: the chosen day or month may be Iris, and Iris Text marks links, the current tab, and a chosen option.",
         "section": "colors"
       },
       {
-        "name": "The Red Means Wrong Rule",
-        "body": "Signal Red means validation or destruction. Transaction type, direction, and sign use words and symbols rather than red or green alone.",
+        "name": "The Hue Is Identity Rule",
+        "body": "A category's hue comes from a stable hash of its parent's id, so adding, removing, or reordering categories never recolors another; a child takes its parent's hue. Uncategorized, transfers, and unknown ids are neutral. Hue identifies a category and never carries type, sign, direction, or validity.",
         "section": "colors"
       },
       {
-        "name": "The Grey Steps Rule",
-        "body": "Every neutral is an achromatic OKLCH lightness step. Do not introduce tinted greys, warm whites, or a second accent.",
+        "name": "The Tinted Neutral Rule",
+        "body": "Every neutral carries the iris hue (285) at low chroma; only the light card and chrome are pure white. Do not introduce plain greys, warm whites, or a second brand accent.",
         "section": "colors"
       },
       {
-        "name": "The Mono Is Money Rule",
-        "body": "The money treatment belongs only to THB figures and the amount input. Dates, counts, IDs, and labels remain Inter.",
+        "name": "The Midnight Is the Figure Rule",
+        "body": "Midnight belongs to the hero card that holds a screen's one display figure, and to the app mark. It is never a section background, a button, or a second card on the same screen.",
+        "section": "colors"
+      },
+      {
+        "name": "The Sans Money Rule",
+        "body": "Every THB figure uses the money treatment in Inter. There is no monospace face in the system; dates, counts, and labels keep Inter's regular figures.",
         "section": "typography"
       },
       {
         "name": "The Always Satang Rule",
-        "body": "A figure is always ฿12,000.00: symbol, grouped whole baht, two decimals, and a true minus sign for negatives.",
+        "body": "A figure is always ฿12,000.00: symbol, grouped whole baht, two decimals, and a true minus sign (−) for negatives. It is never rounded or abbreviated.",
         "section": "typography"
       },
       {
         "name": "The Step-Down Rule",
-        "body": "Only display-size figures step down the symbol and satang. Row and input figures remain uniform.",
+        "body": "Only the hero's display figure steps down the ฿ and satang. Row, summary, and input figures stay one size.",
         "section": "typography"
       },
       {
         "name": "The Phone Reach Rule",
-        "body": "Every phone control keeps a tappable area of at least 44 by 44 CSS pixels below 640px, measured in both dimensions: authentication inputs and submit buttons, destructive actions, calendar days and arrows, month choices, picker options, Select options and their overflow arrows, and the entry form's controls. Small icons and the 32px account disc keep their visual sizes inside larger targets, and adjacent targets never overlap. Segmented tracks grow to 52px so their segments stay 44px inside the 4px inset. The central ＋ and form Save are 48px. From 640px, desktop sizing is unchanged.",
+        "body": "Every phone control keeps a tappable area of at least 44 by 44 CSS pixels below 640px. The primitives carry it: buttons at the default and lg sizes, icon buttons, field controls and their Select, date, and month triggers, Select options and overflow arrows, calendar days and arrows, segments (inside a 52px track with a 4px inset), section links, link actions, the title bar's ‹, the sheet's ✕, and the account disc's trigger. Small glyphs and the 32px account disc keep their visual size inside the larger target, and adjacent targets never overlap. The ＋ is 48px. From 640px, desktop sizes apply.",
         "section": "layout"
       },
       {
-        "name": "The Two Lifts Rule",
-        "body": "Only the segmented indicator and floating popovers cast shadows. Sheets use their scrim; buttons, inputs, rows, tab bars, and content containers remain flat.",
+        "name": "The Three Tokens Rule",
+        "body": "Surfaces lift only through --shadow-card, --shadow-float, and --shadow-hero, plus the ＋'s capture glow. Buttons, fields, rows, chrome, and tiles are flat; a row never carries its own shadow inside its card.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "Do render every THB figure with the money treatment and the full ฿12,000.00 form, right-aligned in lists.",
-      "Do keep one Cobalt action per screen, treating selected control states and the sole empty-state action as the documented exceptions.",
-      "Do give every phone control a tappable area of at least 44 by 44 CSS pixels, sized below the 640px breakpoint with desktop sizing preserved; use 48px for the central ＋ and form Save.",
-      "Do build lists as full-bleed phone rows separated by Hairlines, inside the 672px column from 640px.",
-      "Do use the two lifts only for the segmented indicator and floating popovers; use a scrim for sheets.",
-      "Do keep motion to the indicator slide, arrival fade, and sheet slide, and remove all three for reduced motion.",
-      "Do pair pictograms with text; an icon-only control requires an accessible name and a universal glyph such as ‹, ✕, or a calendar arrow.",
-      "Do use the destructive variant for wallet, category, and transaction removal."
+      "Do render every THB figure with the money treatment and the full ฿12,000.00 form with a true minus, never rounded.",
+      "Do carry type, sign, and direction in words, signs, and arrows; let color only reinforce them.",
+      "Do keep one Iris-filled action per screen: the ＋ on phone, New transaction from 640px, or the sole next step of an empty state or load error.",
+      "Do put the screen's one display figure on the Midnight hero card, and only there.",
+      "Do group rows on one list card divided by inset Hairlines, with the section heading on the ground above it.",
+      "Do color category tiles by the parent's stable hash, inherit it in children, and keep Uncategorized and transfers neutral.",
+      "Do give every phone control a tappable area of at least 44 by 44 CSS pixels below 640px; use 48px for the ＋.",
+      "Do use the three shadow tokens as defined, and the 1px light edge in dark.",
+      "Do keep motion to the arriving row, the sheet, the segmented indicator, and 150ms hover fades, and remove all of it under reduced motion.",
+      "Do pair pictograms with words; an icon-only control needs an accessible name and a universal glyph such as ‹ or ✕."
     ],
     "donts": [
-      "Don't wrap list content in cards, tiles, or a card grid; the list is the surface.",
-      "Don't add a stat strip or more than one display-size figure to a screen.",
-      "Don't use a second Cobalt page action where the phone ＋, form Save, or desktop New transaction already owns the action.",
-      "Don't carry transaction type, sign, or direction by red or green alone.",
-      "Don't put shadows on buttons, inputs, rows, sheets, tab bars, or content containers.",
-      "Don't introduce tinted neutrals, a second accent, or a dark theme; the shipped product is light-only.",
-      "Don't set dates, counts, or labels in JetBrains Mono, or money in Inter.",
-      "Don't add grab handles to sheets or icon-only navigation labels.",
-      "Don't add motion beyond the three feedback moments or animate them under reduced motion."
+      "Don't use red and green, or any category hue, to mean income, expense, or direction; chart income is Iris and chart expense is Amber.",
+      "Don't add a second Midnight card, a second display-size figure, or a stat strip of hero-sized numbers to a screen.",
+      "Don't introduce plain greys, a monospace face, bank green, or a borrowed bank mark.",
+      "Don't fill a second Iris action where the ＋ or the header's New transaction already owns it.",
+      "Don't put shadows on buttons, fields, rows, chrome, or tiles, or invent shadow values outside the three tokens and the capture glow.",
+      "Don't show figures, ฿, or sample money in loading states, or animate skeletons.",
+      "Don't animate popovers, menus, or page changes, or add motion beyond the recorded moments.",
+      "Don't add a grab handle to sheets or an in-app theme switch; the system setting chooses light or dark."
     ]
   }
 }

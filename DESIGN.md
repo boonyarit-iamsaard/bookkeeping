@@ -1,356 +1,558 @@
 ---
 name: Bookkeeping
-description: A phone-first personal ledger; one cobalt action, one mono for money, hairlines instead of cards.
+description: A phone-first personal ledger; one Midnight hero for the total, white cards on an iris-tinted ground, Iris for the action.
 colors:
-  cobalt: "oklch(0.52 0.2 262)"
-  cobalt-foreground: "oklch(0.985 0 0)"
-  paper: "oklch(1 0 0)"
-  ink: "oklch(0.145 0 0)"
-  mist: "oklch(0.97 0 0)"
-  graphite: "oklch(0.556 0 0)"
-  hairline: "oklch(0.922 0 0)"
-  signal-red: "oklch(0.577 0.245 27.325)"
+  iris: "oklch(0.54 0.21 285)"
+  iris-dark: "oklch(0.56 0.2 285)"
+  iris-foreground: "oklch(1 0 0)"
+  iris-text: "oklch(0.52 0.21 285)"
+  iris-text-dark: "oklch(0.74 0.14 285)"
+  iris-tonal: "oklch(0.945 0.03 285)"
+  iris-tonal-dark: "oklch(0.29 0.06 285)"
+  iris-tonal-ink: "oklch(0.44 0.19 285)"
+  iris-tonal-ink-dark: "oklch(0.86 0.08 285)"
+  ring-dark: "oklch(0.7 0.15 285)"
+  midnight: "oklch(0.27 0.07 285)"
+  midnight-dark: "oklch(0.28 0.09 285)"
+  midnight-ink: "oklch(0.99 0.004 285)"
+  midnight-muted: "oklch(0.8 0.045 285)"
+  midnight-muted-dark: "oklch(0.85 0.05 285)"
+  mark-midnight: "#242047"
+  mark-coin: "#9d8cff"
+  ground: "oklch(0.968 0.008 285)"
+  ground-dark: "oklch(0.165 0.014 285)"
+  chrome: "oklch(1 0 0)"
+  chrome-dark: "oklch(0.195 0.016 285)"
+  card: "oklch(1 0 0)"
+  card-dark: "oklch(0.215 0.018 285)"
+  popover-dark: "oklch(0.245 0.02 285)"
+  ink: "oklch(0.21 0.025 285)"
+  ink-dark: "oklch(0.965 0.006 285)"
+  slate: "oklch(0.5 0.022 285)"
+  slate-dark: "oklch(0.73 0.02 285)"
+  mist: "oklch(0.952 0.01 285)"
+  mist-dark: "oklch(0.265 0.02 285)"
+  wash: "oklch(0.955 0.012 285)"
+  wash-dark: "oklch(0.27 0.022 285)"
+  hairline: "oklch(0.915 0.012 285)"
+  hairline-dark: "oklch(1 0 0 / 9%)"
+  field-fill-dark: "oklch(1 0 0 / 6%)"
+  scrim: "oklch(0.18 0.04 285 / 45%)"
+  signal-red: "oklch(0.55 0.21 25)"
+  signal-red-dark: "oklch(0.7 0.18 25)"
+  category-iris: "#5b5bd6"
+  category-amber: "#c77c02"
+  category-sky: "#0b84d8"
+  category-coral: "#e5532f"
+  category-teal: "#0f9488"
+  category-plum: "#9b3fbf"
+  category-lime: "#5a9a16"
+  category-rose: "#d6336c"
+  category-neutral: "oklch(0.5 0.022 285)"
+  category-iris-dark: "#7c7cf0"
+  category-amber-dark: "#c0820e"
+  category-sky-dark: "#2f93d4"
+  category-coral-dark: "#e0603c"
+  category-teal-dark: "#1a9d8e"
+  category-plum-dark: "#b066d4"
+  category-lime-dark: "#6aa326"
+  category-rose-dark: "#e8547f"
+  category-neutral-dark: "oklch(0.73 0.02 285)"
 typography:
   display-figure:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "2.25rem"
-    fontWeight: 400
+    fontWeight: 700
     lineHeight: 1
-    letterSpacing: "-0.01em"
-    fontFeature: "tabular-nums"
+    letterSpacing: "-0.025em"
+    fontFeature: "\"tnum\", \"cv01\""
   display-figure-desktop:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "3rem"
-    fontWeight: 400
+    fontWeight: 700
     lineHeight: 1
-    letterSpacing: "-0.01em"
-    fontFeature: "tabular-nums"
-  row-figure:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
-    fontSize: "1.125rem"
-    fontWeight: 400
-    lineHeight: 1.556
-    letterSpacing: "-0.01em"
-    fontFeature: "tabular-nums"
+    letterSpacing: "-0.025em"
+    fontFeature: "\"tnum\", \"cv01\""
   headline:
     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "1.5rem"
-    fontWeight: 600
-    lineHeight: 1.333
-    letterSpacing: "-0.025em"
+    fontSize: "1.625rem"
+    fontWeight: 700
+    lineHeight: 1.25
+    letterSpacing: "-0.02em"
+  headline-desktop:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.875rem"
+    fontWeight: 700
+    lineHeight: 1.25
+    letterSpacing: "-0.02em"
   title:
     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.125rem"
+    fontWeight: 700
+    lineHeight: 1.25
+    letterSpacing: "-0.025em"
+  section-title:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.0625rem"
+    fontWeight: 700
+    lineHeight: 1.5
+    letterSpacing: "-0.025em"
+  figure-net:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 700
+    lineHeight: 1.4
+    letterSpacing: "-0.012em"
+    fontFeature: "\"tnum\", \"cv01\""
+  figure-flow:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 650
+    lineHeight: 1.25
+    letterSpacing: "-0.012em"
+    fontFeature: "\"tnum\", \"cv01\""
+  row-figure:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 650
+    lineHeight: 1.375
+    letterSpacing: "-0.012em"
+    fontFeature: "\"tnum\", \"cv01\""
+  row-title:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1rem"
     fontWeight: 600
-    lineHeight: 1.556
+    lineHeight: 1.375
     letterSpacing: "normal"
   body:
     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1rem"
-    fontWeight: 500
+    fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "normal"
   label:
     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.875rem"
+    fontWeight: 600
+    lineHeight: 1.43
+    letterSpacing: "normal"
+  hero-label:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.875rem"
     fontWeight: 500
-    lineHeight: 1.375
+    lineHeight: 1.43
     letterSpacing: "normal"
   caption:
     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.43
+    letterSpacing: "normal"
+  tab-label:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 600
+    lineHeight: 1.375
     letterSpacing: "normal"
 rounded:
-  sm: "0.375rem"
-  xl: "0.875rem"
-  pill: "1.625rem"
+  sm: "0.5rem"
+  md: "0.625rem"
+  lg: "0.875rem"
+  xl: "1rem"
+  "2xl": "1.25rem"
+  "3xl": "1.5rem"
   full: "9999px"
 spacing:
   "1": "0.25rem"
   "2": "0.5rem"
   "3": "0.75rem"
   "4": "1rem"
+  "5": "1.25rem"
   "6": "1.5rem"
   "7": "1.75rem"
   "8": "2rem"
-  header: "3.5rem"
-  row: "4rem"
+  gutter: "1rem"
+  row-gap: "0.875rem"
   control: "2.75rem"
-  control-lg: "3rem"
+  control-desktop: "2.5rem"
+  capture: "3rem"
+  tile: "2.75rem"
+  row: "4rem"
+  title-bar: "3.5rem"
+  tab-bar: "3.5rem"
+  header: "4rem"
+  column: "42rem"
+  column-wide: "64rem"
+  column-narrow: "28rem"
 components:
   button-primary:
-    backgroundColor: "{colors.cobalt}"
-    textColor: "{colors.cobalt-foreground}"
+    backgroundColor: "{colors.iris}"
+    textColor: "{colors.iris-foreground}"
     typography: "{typography.label}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.lg}"
     padding: "0 1rem"
-    height: "2.5rem"
+    height: "{spacing.control}"
   button-primary-hover:
-    backgroundColor: "oklch(0.52 0.2 262 / 80%)"
-    textColor: "{colors.cobalt-foreground}"
-  button-primary-save:
-    backgroundColor: "{colors.cobalt}"
-    textColor: "{colors.cobalt-foreground}"
-    typography: "{typography.body}"
-    rounded: "{rounded.pill}"
-    padding: "0 1rem"
-    height: "{spacing.control-lg}"
-    width: "100%"
+    backgroundColor: "color-mix(in oklch, oklch(0.54 0.21 285), black 12%)"
+    textColor: "{colors.iris-foreground}"
   button-outline:
-    backgroundColor: "oklch(0.922 0 0 / 30%)"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.ink}"
     typography: "{typography.label}"
-    rounded: "{rounded.pill}"
-    padding: "0 0.75rem"
+    rounded: "{rounded.lg}"
+    padding: "0 0.875rem"
+    height: "{spacing.control}"
+  button-outline-hover:
+    backgroundColor: "{colors.wash}"
+    textColor: "{colors.ink}"
+  button-secondary:
+    backgroundColor: "{colors.iris-tonal}"
+    textColor: "{colors.iris-tonal-ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.lg}"
+    padding: "0 0.875rem"
+    height: "{spacing.control}"
+  button-ghost:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.lg}"
+    padding: "0 0.875rem"
     height: "{spacing.control}"
   button-destructive:
-    backgroundColor: "oklch(0.577 0.245 27.325 / 10%)"
+    backgroundColor: "oklch(0.55 0.21 25 / 10%)"
     textColor: "{colors.signal-red}"
     typography: "{typography.label}"
-    rounded: "{rounded.pill}"
-    padding: "0 0.75rem"
+    rounded: "{rounded.lg}"
+    padding: "0 0.875rem"
     height: "{spacing.control}"
   button-destructive-hover:
-    backgroundColor: "oklch(0.577 0.245 27.325 / 20%)"
+    backgroundColor: "oklch(0.55 0.21 25 / 16%)"
     textColor: "{colors.signal-red}"
-  input:
-    backgroundColor: "oklch(0.922 0 0 / 30%)"
+  button-link:
+    backgroundColor: "transparent"
+    textColor: "{colors.iris-text}"
+    typography: "{typography.label}"
+    height: "{spacing.control}"
+  capture-button:
+    backgroundColor: "{colors.iris}"
+    textColor: "{colors.iris-foreground}"
+    rounded: "{rounded.full}"
+    size: "{spacing.capture}"
+  field:
+    backgroundColor: "{colors.card}"
     textColor: "{colors.ink}"
     typography: "{typography.body}"
-    rounded: "{rounded.pill}"
-    padding: "0.25rem 0.75rem"
+    rounded: "{rounded.lg}"
+    padding: "0.25rem 0.875rem"
     height: "{spacing.control}"
-  input-money:
-    backgroundColor: "oklch(0.922 0 0 / 30%)"
-    textColor: "{colors.ink}"
-    typography: "{typography.row-figure}"
-    rounded: "{rounded.pill}"
-    padding: "0.25rem 4rem 0.25rem 2.25rem"
-    height: "{spacing.control-lg}"
-  nav-link:
-    backgroundColor: "transparent"
-    textColor: "{colors.graphite}"
-    typography: "{typography.label}"
-    rounded: "{rounded.pill}"
-    padding: "0.375rem 0.75rem"
-  nav-link-current:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink}"
+  field-dark:
+    backgroundColor: "{colors.field-fill-dark}"
+    textColor: "{colors.ink-dark}"
   segmented-track:
     backgroundColor: "{colors.mist}"
-    rounded: "{rounded.pill}"
+    rounded: "{rounded.lg}"
     padding: "0.25rem"
-    height: "{spacing.control}"
-  segment-selected:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.cobalt}"
-  type-disc:
-    backgroundColor: "{colors.mist}"
+    height: "3.25rem"
+  segment-indicator:
+    backgroundColor: "{colors.card}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.full}"
-    size: "2.5rem"
-  wallet-row:
-    backgroundColor: "{colors.paper}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+  card:
+    backgroundColor: "{colors.card}"
     textColor: "{colors.ink}"
+    rounded: "{rounded.2xl}"
+    padding: "1.25rem"
+  hero-card:
+    backgroundColor: "{colors.midnight}"
+    textColor: "{colors.midnight-ink}"
+    typography: "{typography.display-figure}"
+    rounded: "{rounded.3xl}"
+    padding: "1.5rem 1.25rem"
+    height: "11rem"
+  transaction-row:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    typography: "{typography.row-title}"
     padding: "0.75rem 1rem"
     height: "{spacing.row}"
+  category-tile:
+    rounded: "{rounded.lg}"
+    size: "{spacing.tile}"
+  flow-tile:
+    rounded: "{rounded.md}"
+    size: "1.75rem"
   empty-state:
-    backgroundColor: "{colors.paper}"
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.2xl}"
+    padding: "1.25rem"
+  empty-state-tile:
+    backgroundColor: "{colors.iris-tonal}"
+    textColor: "{colors.iris-tonal-ink}"
+    rounded: "{rounded.lg}"
+    size: "3rem"
+  nav-link:
+    backgroundColor: "transparent"
+    textColor: "{colors.slate}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    padding: "0 0.625rem"
+    height: "{spacing.control-desktop}"
+  nav-link-current:
+    backgroundColor: "{colors.iris-tonal}"
+    textColor: "{colors.iris-tonal-ink}"
+  tab:
+    textColor: "{colors.slate}"
+    typography: "{typography.tab-label}"
+    rounded: "{rounded.md}"
+    height: "{spacing.tab-bar}"
+  tab-current:
+    textColor: "{colors.iris-text}"
+  account-disc:
+    backgroundColor: "{colors.iris-tonal}"
+    textColor: "{colors.iris-tonal-ink}"
+    rounded: "{rounded.full}"
+    size: "2rem"
+  popover:
+    backgroundColor: "{colors.card}"
     textColor: "{colors.ink}"
     rounded: "{rounded.xl}"
-    padding: "1.5rem"
-  error-bar:
-    backgroundColor: "oklch(0.577 0.245 27.325 / 5%)"
-    textColor: "{colors.signal-red}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.xl}"
-    padding: "0.75rem 1rem"
+    padding: "0.375rem"
+  sheet:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.3xl}"
+  skeleton:
+    backgroundColor: "{colors.mist}"
+    rounded: "{rounded.md}"
 ---
 
 # Design System: Bookkeeping
 
 ## Overview
 
-**Creative North Star: "The Statement of Holdings"**
+**Creative North Star: "The Midnight Card"**
 
-Bookkeeping is a bank statement rendered as a phone-first web app: Paper behind near-black Inter, JetBrains Mono for every money figure, and one Cobalt action that is easy to reach after paying. It plays the clean modern fintech canon straight. Trust comes from exact money, quiet hierarchy, predictable controls, and motion used only to explain a state change.
+Bookkeeping is a bright banking-app front page for one person's money. A single deep Midnight hero card holds the figure a screen is about; everything else sits on white cards over a soft iris-tinted ground, and one Iris action waits under the thumb. It plays clean modern fintech straight, at the craft level of MAKE by KBank and K PLUS, and sits beside them rather than imitating them: no bank green, no borrowed marks. Trust comes from exact money, a calm tonal palette, predictable controls, and a few short motions that confirm what just happened.
 
-Density is calm and columnar. Home answers the daily questions in one pass; deeper screens keep the same flat rows, hairlines, and narrow reading order. Controls are capsules, content is not boxed into cards, and the single display-size figure leads whenever a balance is the subject.
+Density is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.
+
+Scope: ticket 01 built this system, the shell, and Home. Capture, history, wallets, reports, categories, and authentication are restyled by tickets 02 to 07; until then they inherit only the shared primitives recorded here, and their screen-specific composition is not part of this document. Charts are ticket 05; only their tokens exist.
 
 **Key Characteristics:**
 
-- Light-only Paper and achromatic greys with one Cobalt accent and Signal Red for validation or destruction.
-- Inter for language; JetBrains Mono with tabular numerals for THB and only THB.
-- Flat, hairline-divided rows; one display figure; capsules for controls.
-- A phone shell built around the title bar and bottom tab bar, with the desktop header taking over from 640px.
-- Lucide pictograms at stroke 1.75, paired with words except for universally understood, accessibly named controls.
-- Exactly three motion moments: segmented indicator, arriving row, and sheet.
+- An iris-tinted ground with white cards in light, a near-black indigo ground with lifted indigo cards in dark, chosen by `prefers-color-scheme`.
+- One Midnight hero card per screen, carrying the app icon's bowl-and-coin as its only ornament.
+- Iris (violet-blue) for the action, focus, selection, and links; Signal Red only for destruction and failure.
+- Inter throughout, with money in bold Inter at tabular digits; no monospace anywhere.
+- Category pictograms on rounded-square tiles tinted from an eight-hue palette, children inheriting their parent.
+- Soft, iris-tinted shadows on cards and floating surfaces; a phone shell of white chrome, title bar, and tab bar.
+- Motion only for the arriving row, the sheet, the segmented indicator, and 150ms hover fades, all removed under reduced motion.
 
 ## Colors
 
-One chromatic action color, one destructive color, and neutral lightness steps keep attention on the ledger rather than its chrome.
+A violet-blue family on tinted neutrals: Iris acts, Midnight holds the figure, and eight category hues identify without meaning anything.
 
 ### Primary
 
-- **Cobalt** (`{colors.cobalt}`): the screen's primary action, focus rings, caret, text selection, and selected control states.
-- **Cobalt Foreground** (`{colors.cobalt-foreground}`): text and glyphs on Cobalt.
+- **Iris** (`{colors.iris}`, `{colors.iris-dark}` in dark): the screen's primary action fill, the tab bar's ＋, the selected calendar day and chosen month, the focus ring (at 25 to 50%), the caret, `accent-color`, and text selection at 22%. White (`{colors.iris-foreground}`) sits on it.
+- **Iris Text** (`{colors.iris-text}`, `{colors.iris-text-dark}` in dark): Iris used as text. Section links such as All transactions, link buttons, the current phone tab, and a chosen Select option's check. In dark it is lifted well above the fill so it clears 4.5:1 on the dark ground.
+- **Iris Tonal** (`{colors.iris-tonal}` with `{colors.iris-tonal-ink}`; `{colors.iris-tonal-dark}` with `{colors.iris-tonal-ink-dark}` in dark): the quiet Iris. The current desktop nav pill, the account initial disc, the empty-state tile, today's calendar day, this month in the month picker, and the secondary button.
+- **Dark Ring** (`{colors.ring-dark}`): the focus ring in dark, lighter than the Iris fill so it reads against indigo surfaces.
+
+### Secondary
+
+- **Midnight** (`{colors.midnight}`, `{colors.midnight-dark}` in dark): the hero card that holds a screen's one display figure. Dark keeps it deep rather than lifting it, so it stays inky against the near-black ground. Its text is **Midnight Ink** (`{colors.midnight-ink}`) and its label and caption are **Midnight Muted** (`{colors.midnight-muted}`, `{colors.midnight-muted-dark}` in dark).
+- **Mark Midnight and Mark Coin** (`{colors.mark-midnight}`, `{colors.mark-coin}`): the app icon's fixed sRGB ground and coin, used by the icon, the header's app mark, the maskable and Apple icon padding, and the hero's faint coin. These are asset colors, not theme tokens; they do not change with the scheme.
+
+### Tertiary
+
+- **Category hues**, in this order: Iris (`{colors.category-iris}`), Amber (`{colors.category-amber}`), Sky (`{colors.category-sky}`), Coral (`{colors.category-coral}`), Teal (`{colors.category-teal}`), Plum (`{colors.category-plum}`), Lime (`{colors.category-lime}`), Rose (`{colors.category-rose}`), each with a `-dark` counterpart; plus **Category Neutral** (`{colors.category-neutral}`, `{colors.category-neutral-dark}`). The order was validated for colour-blind separation and is the order charts consume. A tile paints the hue at 13% in light and 20% in dark behind the hue-colored glyph.
+- **Chart tokens** alias the palette: chart 1 to 5 are the first five category hues in order; chart income is chart 1 (Iris) and chart expense is chart 2 (Amber); the chart grid is the Hairline and the baseline is Slate in each scheme. Home's Income and Net expenses arrow tiles already wear chart income and chart expense, so Home and Reports agree.
 
 ### Neutral
 
-- **Paper** (`{colors.paper}`): page, sheet, dialog, popover, header, and tab-bar ground.
-- **Ink** (`{colors.ink}`): headings, body copy, figures, the current navigation item, and the full first line of a transaction row.
-- **Mist** (`{colors.mist}`): quiet hover states, segmented tracks, and pictogram discs.
-- **Graphite** (`{colors.graphite}`): captions, metadata, placeholders, and inactive navigation.
-- **Hairline** (`{colors.hairline}`): borders and row dividers; inputs and outline controls use it at 30% and 50% opacity.
+- **Ground** (`{colors.ground}`, `{colors.ground-dark}` in dark): the page behind the cards; a soft lavender in light, near-black indigo in dark.
+- **Chrome** (`{colors.chrome}`, `{colors.chrome-dark}` in dark): the phone title bar, the tab bar, and the desktop header; `theme-color` follows it per scheme (`#ffffff` and `#14141c`) so the status bar continues the title bar.
+- **Card** (`{colors.card}`, `{colors.card-dark}` in dark): cards, list cards, sheets, fields in light, and the segmented indicator. Floating surfaces use Card in light and the lifted **Popover Dark** (`{colors.popover-dark}`) in dark.
+- **Ink** (`{colors.ink}`, `{colors.ink-dark}` in dark): headings, body, row titles, and every figure off the hero.
+- **Slate** (`{colors.slate}`, `{colors.slate-dark}` in dark): captions, metadata, placeholders, inactive tabs and nav links, and trailing chevrons.
+- **Mist** (`{colors.mist}`, `{colors.mist-dark}` in dark): segmented tracks, skeletons, and the account sheet's row tiles.
+- **Wash** (`{colors.wash}`, `{colors.wash-dark}` in dark): hover and open states for outline and ghost buttons, menu items, and rows (rows at 70%).
+- **Hairline** (`{colors.hairline}`, `{colors.hairline-dark}` in dark): field borders, chrome edges, and the inset dividers inside list cards (at 70%). In dark, fields fill with **Field Fill Dark** (`{colors.field-fill-dark}`) instead of Card.
+- **Scrim** (`{colors.scrim}`): the indigo-tinted veil behind sheets and dialogs.
 
 ### Semantic
 
-- **Signal Red** (`{colors.signal-red}`): validation and destructive actions. Destructive buttons use 10% Signal Red fill, 20% on hover, Signal Red text, and a 20% focus ring.
+- **Signal Red** (`{colors.signal-red}`, `{colors.signal-red-dark}` in dark): validation, destructive actions, and load failure. Destructive buttons are 10% Signal Red with Signal Red text, 16% on hover (16% and 24% in dark), with a 25% red focus ring.
 
 ### Named Rules
 
-**The One Cobalt Rule.** A screen has one Cobalt action. Selected states are separate: segment text, the chosen date or month, and a Select check may also be Cobalt. When the phone tab bar is present, its 48px ＋ is the action and page-level creates are outline buttons. When the tab bar is hidden, Save is the action. On desktop, New transaction in the header is the action. An empty state may use its own primary when it is the screen's sole next step.
+**The One Iris Action Rule.** A screen has one Iris-filled action. On phone it is the tab bar's ＋; from 640px it is New transaction in the header. An empty state or a load error may fill its own action when it is the screen's sole next step. Selection is separate: the chosen day or month may be Iris, and Iris Text marks links, the current tab, and a chosen option.
 
-**The Red Means Wrong Rule.** Signal Red means validation or destruction. Transaction type, direction, and sign use words and symbols rather than red or green alone.
+**The Hue Is Identity Rule.** A category's hue comes from a stable hash of its parent's id, so adding, removing, or reordering categories never recolors another; a child takes its parent's hue. Uncategorized, transfers, and unknown ids are neutral. Hue identifies a category and never carries type, sign, direction, or validity.
 
-**The Grey Steps Rule.** Every neutral is an achromatic OKLCH lightness step. Do not introduce tinted greys, warm whites, or a second accent.
+**The Tinted Neutral Rule.** Every neutral carries the iris hue (285) at low chroma; only the light card and chrome are pure white. Do not introduce plain greys, warm whites, or a second brand accent.
+
+**The Midnight Is the Figure Rule.** Midnight belongs to the hero card that holds a screen's one display figure, and to the app mark. It is never a section background, a button, or a second card on the same screen.
 
 ## Typography
 
-**Display Font:** Inter (with `ui-sans-serif`, `system-ui`) for headings and language.
+**Display Font:** Inter (with `ui-sans-serif`, `system-ui`, `sans-serif`), loaded from Google Fonts with the optical-size axis (opsz 14 to 32) and weights 400 to 700.
 
 **Body Font:** Inter.
 
-**Money Font:** JetBrains Mono (with `ui-monospace`, `monospace`).
+**Money:** Inter through the `money` treatment: tabular digits, the `tnum` and `cv01` features, weight 650, and -0.012em tracking.
 
-The neutral grotesque lets the arithmetic lead. JetBrains Mono is reserved for exact THB figures, with tabular numerals and tight tracking so columns reconcile visually.
+**Character:** one confident grotesque for everything. Headings are bold and tightly tracked; money is heavy and tabular, so figures stack in columns while keeping Inter's proportional shapes.
 
 ### Hierarchy
 
-- **Display Figure** (`{typography.display-figure}`, growing to `{typography.display-figure-desktop}` from 640px): the one balance or total that leads a screen. Its ฿ and satang step down to 0.6em, weight 500, in Graphite.
-- **Headline** (`{typography.headline}`): one screen title in the phone title bar or desktop content row.
-- **Title** (`{typography.title}`): section and sheet titles.
-- **Row Figure** (`{typography.row-figure}`): list balances, report values, and the money input; the whole figure remains one size.
-- **Body** (`{typography.body}`): primary row text and input values.
-- **Label** (`{typography.label}`): buttons, navigation, fields, segments, and compact actions.
-- **Caption** (`{typography.caption}`): metadata, descriptions, empty copy, errors, and wallet type or Archived status.
+- **Display Figure** (`{typography.display-figure}`, `{typography.display-figure-desktop}` from 640px): the one figure on the Midnight hero. Its ฿ and satang step down to 0.6em, weight 600, at 70% opacity.
+- **Headline** (`{typography.headline}`, `{typography.headline-desktop}` from 640px): the screen title in the phone title bar and the desktop in-page heading.
+- **Title** (`{typography.title}`): card and sheet titles, such as This month, Account, and empty-state titles.
+- **Section Title** (`{typography.section-title}`, 18px from 640px): a list section's heading on the ground above its card.
+- **Figure Net** (`{typography.figure-net}`): the bold result figure in a summary card, such as Net.
+- **Figure Flow** (`{typography.figure-flow}`): paired summary figures, such as Income and Net expenses.
+- **Row Title** (`{typography.row-title}`): the first line of a row; it wraps rather than truncating.
+- **Row Figure** (`{typography.row-figure}`): a row's amount, beside the row title; uniform, never stepped down.
+- **Body** (`{typography.body}`): input values (16px on phone so the browser never zooms, 14px from 768px) and running text.
+- **Label** (`{typography.label}`): buttons, field labels, desktop nav links, segments, and section links.
+- **Hero Label** (`{typography.hero-label}`): the hero card's heading, such as Total balance, in Midnight Muted.
+- **Caption** (`{typography.caption}`): row metadata, descriptions, empty copy, and errors, in Slate.
+- **Tab Label** (`{typography.tab-label}`): the word under each phone tab icon.
 
 ### Named Rules
 
-**The Mono Is Money Rule.** The `money` treatment belongs only to THB figures and the amount input. Dates, counts, IDs, and labels remain Inter.
+**The Sans Money Rule.** Every THB figure uses the `money` treatment in Inter. There is no monospace face in the system; dates, counts, and labels keep Inter's regular figures.
 
-**The Always Satang Rule.** A figure is always `฿12,000.00`: symbol, grouped whole baht, two decimals, and a true minus sign for negatives.
+**The Always Satang Rule.** A figure is always `฿12,000.00`: symbol, grouped whole baht, two decimals, and a true minus sign (−) for negatives. It is never rounded or abbreviated.
 
-**The Step-Down Rule.** Only display-size figures step down the symbol and satang. Row and input figures remain uniform.
+**The Step-Down Rule.** Only the hero's display figure steps down the ฿ and satang. Row, summary, and input figures stay one size.
 
 ## Layout
 
-Content uses one centred column with 16px phone gutters: 672px for Home, lists, wallet detail, and reports; 448px for forms and management. Blocks are separated by 32px. Rows are at least 64px, with 16px between their disc, text, and figure. On phone, row dividers run full bleed while content restores the gutter.
+Content is one centred column with 16px phone gutters. Home, lists, details, and reports use the 672px column; single-record management and forms use the 448px column, and entry forms leave 160px below the fields on phone for the fixed Save bar. Blocks are 24px apart on phone and 32px from 640px. Cards pad 20px on phone and 24 to 28px from 640px. Rows are at least 64px tall, padded 12px by 16px, with 14px between the tile, the text, and the figure.
 
-From 640px, the 56px desktop header appears and content begins 32px below it. Below 640px, each screen begins with a sticky title bar that clears the status-area safe inset, gains a bottom hairline only after scroll, and gives every back or title action a 44px target. Form screens reserve space for the fixed safe-area Save bar and hide the tab bar.
+Below 640px each screen begins with a sticky Chrome title bar, 56px plus the status-area inset, which gains a bottom Hairline only once the page scrolls under it. The tab bar is fixed above the home indicator: 56px plus the bottom safe area, a top Hairline, Chrome at 85 to 95% with backdrop blur. Home and Transactions share one equal half, Wallets and Reports the other, with the 48px ＋ exactly centred between them and rising above the bar. From 640px the tab bar and title bar give way to the 64px desktop header (Chrome at 90%, blurred, bottom Hairline), and content starts 32px below it.
 
-The phone tab bar is fixed above the home indicator: 56px plus the bottom safe area, a top hairline, translucent Paper, and backdrop blur. Home and Transactions occupy one equal half, Wallets and Reports the other, with natural-width tabs inside each half and the ＋ exactly centred between them. Current is Ink; inactive is Graphite. There is no selected pill, underline, or accent fill.
+Home's dashboard layout is the 672px column until 1024px, then widens to the header's 1024px width and splits 5:7: the hero and This month on the left, sticky 96px from the top, and Recent transactions on the right.
 
-**The Phone Reach Rule.** Every phone control keeps a tappable area of at least 44 by 44 CSS pixels below 640px, measured in both dimensions: authentication inputs and submit buttons, destructive actions, calendar days and arrows, month choices, picker options, Select options and their overflow arrows, and the entry form's controls. Small icons and the 32px account disc keep their visual sizes inside larger targets, and adjacent targets never overlap. Segmented tracks grow to 52px so their segments stay 44px inside the 4px inset. The central ＋ and form Save are 48px. From 640px, desktop sizing is unchanged.
+A transaction row's title wraps beside its figure; the date, wallet, and note run the full width beneath it, with the date never shrinking and the wallet truncating first.
+
+**The Phone Reach Rule.** Every phone control keeps a tappable area of at least 44 by 44 CSS pixels below 640px. The primitives carry it: buttons at the default and `lg` sizes, icon buttons, field controls and their Select, date, and month triggers, Select options and overflow arrows, calendar days and arrows, segments (inside a 52px track with a 4px inset), section links, link actions, the title bar's ‹, the sheet's ✕, and the account disc's trigger. Small glyphs and the 32px account disc keep their visual size inside the larger target, and adjacent targets never overlap. The ＋ is 48px. From 640px, desktop sizes apply.
 
 ## Elevation & Depth
 
-The system is flat by default. Hairlines establish structure, while exactly two lifted patterns establish temporary depth: the Paper segmented indicator uses a small close shadow, and floating Select, date/month picker, and account-menu popovers use a soft offset shadow. Sheets and dialogs use a 40% Ink scrim instead of a shadow.
+Depth is soft and tinted. Cards rest on the ground with a faint iris shadow, floating surfaces lift further, and the hero casts a deeper indigo shadow beneath itself. In dark, cards and floating surfaces swap their drop shadows for a 1px white edge at 4 to 8%, because a shadow cannot read on a near-black ground. Sheets and dialogs sit over the Scrim and carry the float shadow.
 
 ### Shadow Vocabulary
 
-- **Indicator lift:** `0 1px 2px rgb(0 0 0 / 8%), 0 1px 6px rgb(0 0 0 / 6%)` for the selected capsule inside a segmented track.
-- **Popover lift:** `0 2px 4px rgb(0 0 0 / 4%), 0 8px 24px rgb(0 0 0 / 8%)` for floating value and account menus.
+- **Card** (`--shadow-card`; light `0 1px 2px oklch(0.3 0.06 285 / 5%), 0 6px 20px -8px oklch(0.3 0.06 285 / 10%)`; dark `0 0 0 1px oklch(1 0 0 / 4%)`): cards, list cards, empty states, load errors, and the segmented indicator.
+- **Float** (`--shadow-float`; light `0 2px 6px oklch(0.3 0.06 285 / 6%), 0 16px 40px -12px oklch(0.3 0.06 285 / 22%)`; dark `0 0 0 1px oklch(1 0 0 / 8%), 0 16px 40px -12px oklch(0 0 0 / 60%)`): Select lists, date and month pickers, the account menu, sheets, and dialogs.
+- **Hero** (`--shadow-hero`; light `0 14px 32px -16px oklch(0.27 0.1 285 / 55%)`; dark `0 14px 32px -16px oklch(0 0 0 / 70%)`): the Midnight hero card only.
+- **Capture glow** (`0 8px 18px -8px` in the Iris fill, with a 4px Chrome ring around the circle): the tab bar's ＋ only, separating it from the bar it rises above.
 
 ### Named Rules
 
-**The Two Lifts Rule.** Only the segmented indicator and floating popovers cast shadows. Sheets use their scrim; buttons, inputs, rows, tab bars, and content containers remain flat.
+**The Three Tokens Rule.** Surfaces lift only through `--shadow-card`, `--shadow-float`, and `--shadow-hero`, plus the ＋'s capture glow. Buttons, fields, rows, chrome, and tiles are flat; a row never carries its own shadow inside its card.
 
 ## Shapes
 
-Controls use a 26px capsule radius or a full circle. Floating surfaces, empty states, sheets, and dialogs use restrained 14px corners; a phone sheet rounds only its top corners. Rows and page regions have no container radius. Structure is a 1px Hairline, and empty states alone use a dashed border.
+Corners scale with the surface: 14px for controls, fields, and tiles; 16px for floating surfaces; 20px for cards; 24px for the hero card and sheets. A phone sheet rounds only its top corners; from 640px the dialog rounds all four. Smaller pieces use 10px (nav links, the segmented indicator and segments, menu and Select items, summary arrow tiles, skeletons) and circles (the ＋, the account disc, calendar days, the title bar's ‹, the sheet's ✕).
 
-Pictogram discs are 40px circles in Mist. The Home account disc is 32px; the desktop account disc is 28px inside a 36px outline trigger. Lucide glyphs use stroke 1.75.
+Category and row tiles are 44px rounded squares, never circles. Summary arrow tiles are 28px. Lucide pictograms draw at stroke 1.75 in rows, fields, chrome, and menus; small arrows in tiles and links use 2 to 2.25. The current phone tab thickens its icon to 2.25.
+
+The app mark is a Midnight squircle (116 on 512) holding a white "b" whose bowl holds an Iris coin. The hero card repeats the bowl and coin, large and faint off its top-right corner: the bowl ring at 9% Midnight Ink, the coin in Mark Coin at 32%. It is the hero's one ornament and the only decorative graphic in the system.
 
 ## Components
 
 ### Buttons
 
-- **Primary:** Cobalt fill, Cobalt Foreground label, capsule shape. The empty-state primary and the other `lg` actions are 44px below 640px and 40px from 640px; form Save is full-width and 48px.
-- **Outline:** Hairline border with a 30% Hairline fill, rising to 50% on hover. It carries phone page actions while the tab bar owns Cobalt.
-- **Ghost:** transparent, with Mist on hover; used for quiet alternatives such as Cancel.
-- **Destructive:** 10% Signal Red fill and Signal Red text, becoming 20% on hover. It is used for wallet deletion, category removal, and transaction deletion.
-- **Focus and pending:** a 3px Cobalt-at-50% focus-visible ring; destructive focus uses Signal Red at 20%. Disabled or pending controls are 50% opaque and keep their changing label visible.
+- **Shape:** 14px corners; 44px tall below 640px, 36px (default) or 40px (`lg`) from 640px; semibold 14px labels; Lucide glyphs at 16px.
+- **Primary:** Iris fill with white text, deepening by mixing 12% black on hover. This is the One Iris Action.
+- **Outline:** a white Card chip with a Hairline border, Wash on hover or when open; the neutral page action on the tinted ground.
+- **Secondary:** Iris Tonal fill with Iris Tonal Ink text, nudged 10% toward Iris on hover; a quieter positive action beside the primary.
+- **Ghost:** transparent with Ink text, Wash on hover; Cancel, the sheet's ✕, and the desktop account trigger.
+- **Destructive:** 10% Signal Red with Signal Red text (16% in dark), deepening on hover. It stands apart from neighbours by space as well as color.
+- **Link:** Iris Text, underlined on hover; a standalone link action keeps a 44 by 44px target at every width.
+- **Focus and pending:** a 3px Iris ring at 45% on focus-visible; disabled or pending controls fade to 50% and keep their changing label. Hover color fades take 150ms ease-out and stop under reduced motion.
+
+### Cards
+
+- **Card:** Card fill, 20px corners, `--shadow-card`, 20px padding on phone (16px for the small size).
+- **List card:** a Card holding a group of rows, clipped to its corners and divided by Hairline at 70%. A list section puts its Section Title and an optional Iris Text link (for example, All transactions →) on the ground above it. An empty group shows plain Slate text on a Card instead.
+- **Summary card (This month):** a Card whose heading links to the month's report; the whole card is the link's target, washing toward Wash on hover, with a trailing Slate chevron. Income and Net expenses sit side by side, each with a 28px arrow tile in its chart hue (Income ↙ in chart income, Net expenses ↗ in chart expense), and Net sits beneath a Hairline as the result in Figure Net.
 
 ### Inputs and Pickers
 
-Inputs are 44px capsules below 640px, 36px from 640px, with a Hairline border and 30% Hairline fill. Focus changes the border to Cobalt and adds a 3px Cobalt-at-50% ring. Invalid fields switch the label, border, and message to Signal Red and add a 20% red ring without clearing the entered value.
+All field-like controls share one surface: a 14px-corner Card field (Field Fill Dark in dark) on a Hairline, 44px below 640px and 40px from 640px, padded 14px. Hover darkens the Hairline slightly; focus turns it Iris with a 3px ring at 25%. An invalid field turns the border Signal Red with a 20% red ring without clearing the value, and its message appears in Signal Red Caption beneath. Labels are semibold 14px.
 
-The money input is 48px and pins ฿ at the left and THB at the right. Date and month pickers use the same 44px trigger, a Graphite leading pictogram, and a floating Paper calendar with the Popover lift; its days and arrows are 44px below 640px, 40px from 640px, with the internal horizontal padding narrowed on phone so seven 44px columns fit the 360px viewport. Reports applies both month and balance date immediately on selection.
+Select, date, and month triggers use the same surface with a Slate leading pictogram and a trailing chevron that flips while open. Their lists and calendars float on the 16px Float surface, 8px from the trigger, and appear without animating. Calendar days are circles, 44px on phone and 40px from 640px: today in Iris Tonal, the selected day in Iris. In the month picker this month is Iris Tonal and the chosen month Iris.
 
 ### Segmented Control
 
-A 52px Mist capsule on phone, 44px from 640px, contains one Paper indicator inset by 4px, so every segment stays a 44px target. The indicator slides 200ms ease-out; the checked label is Cobalt and the others Graphite. Base UI radio semantics provide arrow-key movement. Reduced motion removes both transitions.
+A Mist track with 14px corners, 52px on phone and 44px from 640px, holds one Card indicator (Popover Dark in dark) with 10px corners and `--shadow-card`, inset 4px. The indicator slides in 200ms on an exponential ease-out (`cubic-bezier(0.16, 1, 0.3, 1)`); the checked label turns Ink and the rest stay Slate. Base UI radio semantics give arrow-key movement. Reduced motion removes the slide.
 
 ### Navigation
 
-On phone, the tab bar exposes Home, Transactions, New, Wallets, and Reports as primary navigation. Every destination icon keeps its word; New is a 48px Cobalt circle over the label. The title bar labels the screen, places actions on the right, and uses an accessibly named ‹ to the logical parent on nested screens.
-
-On desktop, the 56px header contains the Bookkeeping wordmark; Home, Transactions, Wallets, and Reports; the Cobalt New transaction action; and an account trigger showing only the initial. Its floating menu names the signed-in email, then Categories and Sign out.
-
-On phone Home, a 32px initial disc opens the Account sheet with the email, Categories, and Sign out. Categories is not a tab.
+- **Phone tab bar:** Home, Transactions, New, Wallets, and Reports. Each destination is a 24px Lucide icon over its Tab Label; current is Iris Text with a 2.25 stroke, the rest Slate, and the word always names it. New is a 48px Iris circle with a white ＋, the capture glow, and a 4px Chrome ring, rising above the bar with its word aligned to the others.
+- **Phone title bar:** the Headline, an optional 44px ‹ to the logical parent (accessibly named, never browser history), and actions on the right at the `lg` size. Home places the 32px account disc there.
+- **Desktop header:** the 32px app mark with the Bookkeeping wordmark (the word appears from 768px), then Home, Transactions, Wallets, and Reports as 40px nav links (Slate, Wash on hover, the current one an Iris Tonal pill), New transaction as the Iris primary at `lg`, and the account trigger.
+- **Account controls:** the initial sits on an Iris Tonal disc. On desktop a 40px ghost circle opens a Float menu naming "Signed in as" and the email, then Categories and Sign out. On phone Home a 44px trigger around the 32px disc opens the Account sheet with the email as its caption and Categories and Sign out as rows on a Ground-filled inset list with 36px Mist tiles. Categories is not a tab.
 
 ### Sheets and Dialogs
 
-A task inside a task opens as a bottom sheet on phone and a centred, content-height dialog from 640px. It is capped at 85dvh, scrolls internally, clears the home indicator, traps focus, closes on Escape or scrim activation, and returns focus to its trigger. The shared header has a title, optional caption or leading action, and a 44px accessibly named ✕. The delete alert deliberately has no sheet header or close button. Sheets do not show a grab handle.
+A task inside a task opens as a bottom sheet on phone and a centred, content-height dialog up to 448px wide from 640px. It is a Card with 24px corners and `--shadow-float` over the Scrim, capped at 85dvh, scrolling internally, clearing the home indicator, trapping focus, closing on Escape or scrim activation, and returning focus to its trigger. The header has a bold 18px title, an optional Slate caption or leading action, and a 44px ghost ✕; an alert has no ✕. There is no grab handle.
 
-Phone sheets slide 200ms ease-out while the scrim fades; desktop dialogs fade. Reduced motion removes those transitions.
+The phone sheet rises in 260ms on the exponential ease-out while the scrim fades in 200ms; the desktop dialog fades. Reduced motion removes both.
 
-### Home
+### Hero Card (Display Figure)
 
-Home is the signed-in root. With wallets, it shows the total across all wallets as the one display figure with “Across N wallets,” a divided This month block for Income, Net expenses, and Net that links to Reports, then the ten most recent transaction rows and All transactions →. With no wallets, only the create-wallet empty state appears. With wallets but no transactions, Recent transactions says “No transactions yet” and all month figures show `฿0.00`. Loading uses neutral skeletons, never sample money.
+The screen's one display figure lives on a Midnight card with 24px corners and `--shadow-hero`, at least 176px tall on phone (192px from 640px), padded 24px by 20px (28px from 640px). It reads top to bottom: the Hero Label naming the figure (also the region's accessible name), the Display Figure pushed to the bottom with its stepped-down ฿ and satang, and a Midnight Muted caption saying what it covers, such as "Across 3 wallets". The bowl-and-coin ornament sits off the top-right corner behind the content. Screen readers hear the whole figure once, not its stepped parts.
 
-### Wallet Row and Wallet Page
+### Transaction Row
 
-A wallet row is a flat 64px minimum line: 40px type disc, name, Caption metadata, and right-aligned Row Figure. The caption begins with the type and adds Archived when needed (`Cash · Archived`); the opened date follows on desktop. The row opens the wallet page.
+A row is a link at least 64px tall inside a list card: a 44px Category Tile, then a two-column grid with the Row Title (type, then " · " and the category path) beside the Row Figure, and the Slate details beneath across the full width (transfer wallets, then the date and wallet, then a note clamped to two lines). The figure carries the type's sign: + for income and refund, − for expense, none for transfer. Hover washes the row in Wash at 70%; focus is an inset 3px ring. A refund adds a "View original expense" Iris Text link aligned under the text.
 
-The wallet page leads with the current balance as its single display figure, repeats the same type/Archived caption, and lists that wallet's transactions. Its title-bar Manage action is outline. An arriving wallet or transaction row fades in for 500ms unless reduced motion is requested.
+The row just saved arrives with a 400ms rise-and-fade (8px, exponential ease-out) and keeps a 7% wash of its category hue over the Card. Reduced motion shows it in place, still washed.
 
-### Transaction Row and Filters
+### Category Tile
 
-Transaction rows use the same flat 64px-minimum structure. The Ink first line combines the transaction type and category; the financial date and wallet metadata sit below in Graphite. History rows do not show recording time. Type words, signs, and arrows carry meaning; amount color is not the only signal.
+A 44px rounded square (14px) painted with the category's hue at the tile strength, the Lucide pictogram at 20px in the full hue. Transfers show a neutral tile with the transfer arrows; Uncategorized is neutral. The tile is decorative because the row names the category in text.
 
-Transactions opens filters in a sheet. Active filters appear as removable 44px outline chips beneath the title, and each chip removes only its own URL value. Apply and Clear are neutral. Invalid URL values stay visible and editable.
+### Empty State and Load Error
 
-### Display Figure and Empty State
+An empty state is a Card (20px corners, `--shadow-card`, 20px padding, 28px from 640px) leading with a 48px Iris Tonal tile and its pictogram, then a Title, a Caption that teaches what belongs here, and one next step, usually the Iris primary at `lg`. A load error uses the same card with a 10% Signal Red tile, a Headline in the screen's own words, an alert Caption, and Try again as the primary.
 
-The display figure is a paragraph, never a card, followed by an 8px-spaced Caption. It is the only display-size element on its screen.
+### Skeletons
 
-An empty state is a 14px dashed Hairline box with 24px phone padding, a Mist pictogram disc, Title, Caption, and one primary action. That sole primary is the One Cobalt empty-state exception.
+Loading uses still Mist blocks shaped like the content: the hero as a Card-colored block, the summary card, and row skeletons with a tile, two lines, and a figure-width bar. Skeletons never contain digits, ฿, or anything that could pass for money, and they do not shimmer.
 
 ## Do's and Don'ts
 
 ### Do
 
-- **Do** render every THB figure with the `money` treatment and the full `฿12,000.00` form, right-aligned in lists.
-- **Do** keep one Cobalt action per screen, treating selected control states and the sole empty-state action as the documented exceptions.
-- **Do** give every phone control a tappable area of at least 44 by 44 CSS pixels, sized below the 640px breakpoint with desktop sizing preserved; use 48px for the central ＋ and form Save.
-- **Do** build lists as full-bleed phone rows separated by Hairlines, inside the 672px column from 640px.
-- **Do** use the two lifts only for the segmented indicator and floating popovers; use a scrim for sheets.
-- **Do** keep motion to the indicator slide, arrival fade, and sheet slide, and remove all three for reduced motion.
-- **Do** pair pictograms with text; an icon-only control requires an accessible name and a universal glyph such as ‹, ✕, or a calendar arrow.
-- **Do** use the destructive variant for wallet, category, and transaction removal.
+- **Do** render every THB figure with the `money` treatment and the full `฿12,000.00` form with a true minus, never rounded.
+- **Do** carry type, sign, and direction in words, signs, and arrows; let color only reinforce them.
+- **Do** keep one Iris-filled action per screen: the ＋ on phone, New transaction from 640px, or the sole next step of an empty state or load error.
+- **Do** put the screen's one display figure on the Midnight hero card, and only there.
+- **Do** group rows on one list card divided by inset Hairlines, with the section heading on the ground above it.
+- **Do** color category tiles by the parent's stable hash, inherit it in children, and keep Uncategorized and transfers neutral.
+- **Do** give every phone control a tappable area of at least 44 by 44 CSS pixels below 640px; use 48px for the ＋.
+- **Do** use the three shadow tokens as defined, and the 1px light edge in dark.
+- **Do** keep motion to the arriving row, the sheet, the segmented indicator, and 150ms hover fades, and remove all of it under reduced motion.
+- **Do** pair pictograms with words; an icon-only control needs an accessible name and a universal glyph such as ‹ or ✕.
 
 ### Don't
 
-- **Don't** wrap list content in cards, tiles, or a card grid; the list is the surface.
-- **Don't** add a stat strip or more than one display-size figure to a screen.
-- **Don't** use a second Cobalt page action where the phone ＋, form Save, or desktop New transaction already owns the action.
-- **Don't** carry transaction type, sign, or direction by red or green alone.
-- **Don't** put shadows on buttons, inputs, rows, sheets, tab bars, or content containers.
-- **Don't** introduce tinted neutrals, a second accent, or a dark theme; the shipped product is light-only.
-- **Don't** set dates, counts, or labels in JetBrains Mono, or money in Inter.
-- **Don't** add grab handles to sheets or icon-only navigation labels.
-- **Don't** add motion beyond the three feedback moments or animate them under reduced motion.
+- **Don't** use red and green, or any category hue, to mean income, expense, or direction; chart income is Iris and chart expense is Amber.
+- **Don't** add a second Midnight card, a second display-size figure, or a stat strip of hero-sized numbers to a screen.
+- **Don't** introduce plain greys, a monospace face, bank green, or a borrowed bank mark.
+- **Don't** fill a second Iris action where the ＋ or the header's New transaction already owns it.
+- **Don't** put shadows on buttons, fields, rows, chrome, or tiles, or invent shadow values outside the three tokens and the capture glow.
+- **Don't** show figures, ฿, or sample money in loading states, or animate skeletons.
+- **Don't** animate popovers, menus, or page changes, or add motion beyond the recorded moments.
+- **Don't** add a grab handle to sheets or an in-app theme switch; the system setting chooses light or dark.
