@@ -50,7 +50,7 @@ export function AccountSheet({ email }: Readonly<AccountSheetProps>) {
               <span className={ROW_TILE_CLASS}>
                 <Tags aria-hidden="true" strokeWidth={2} />
               </span>
-              Categories
+              {"Categories"}
             </Link>
           </li>
           <li>
