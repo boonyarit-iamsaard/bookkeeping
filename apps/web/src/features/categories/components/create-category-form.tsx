@@ -72,6 +72,9 @@ export function CreateCategoryForm({
     clearFieldError,
     chooseIcon,
     followName,
+    isSaved,
+    isRefreshing,
+    retryRead,
   } = useCreateCategoryForm({
     kind,
     initialName,
@@ -98,6 +101,11 @@ export function CreateCategoryForm({
     >
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 pt-1 pb-6 sm:px-6">
         {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
+        {isSaved && isRefreshing && (
+          <output className="text-muted-foreground text-sm">
+            Category saved. Refreshing categories…
+          </output>
+        )}
         <FieldGroup className="gap-6">
           <form.Field
             name="name"
@@ -407,8 +415,18 @@ export function CreateCategoryForm({
             <Button type="button" variant="ghost" size="lg" onClick={onCancel}>
               Back
             </Button>
-            <Button type="submit" size="lg" disabled={isSubmitting}>
-              {isSubmitting ? "Saving…" : "Save category"}
+            {isSaved && serverError && (
+              <Button
+                type="button"
+                size="lg"
+                disabled={isRefreshing}
+                onClick={() => void retryRead()}
+              >
+                Retry category list
+              </Button>
+            )}
+            <Button type="submit" size="lg" disabled={isSubmitting || isSaved}>
+              {isSaved ? "Saved" : isSubmitting ? "Saving…" : "Save category"}
             </Button>
           </div>
         )}

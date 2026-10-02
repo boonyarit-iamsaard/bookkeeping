@@ -55,8 +55,7 @@ function RefundPage() {
     transactionQueries.refunds(transactionId),
   );
   const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
-  const { data: categoryCollection } = useSuspenseQuery(categoryQueries.list());
-  if (!expense || !refunds || !walletCollection || !categoryCollection) {
+  if (!expense || !refunds || !walletCollection) {
     throw new Error("The refund entry queries returned no data");
   }
   if (expense.type !== "expense") {
@@ -96,7 +95,6 @@ function RefundPage() {
       {wallets.length > 0 ? (
         <TransactionForm
           wallets={wallets}
-          categories={categoryCollection.items}
           today={todayIn({ timeZone: APP_TIME_ZONE })}
           mode={{ kind: "refund", expense: linked, defaultWalletId }}
         />

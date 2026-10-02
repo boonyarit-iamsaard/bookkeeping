@@ -6,11 +6,9 @@ import type {
   CategorySummary,
 } from "@bookkeeping/domain/categories";
 import { ArrowLeft, Check, ChevronDown, Plus, Search } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { CategoryColor } from "@/features/categories/category-color";
-import { createCategoryColors } from "@/features/categories/category-color";
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
-import type { CreateCategoryOutcome } from "@/features/categories/category-mutations";
 import type { CategoryGroup } from "@/features/categories/category-search";
 import {
   categoryPath,
@@ -22,6 +20,7 @@ import {
   ChildMarker,
 } from "@/features/categories/components/category-icon";
 import { CreateCategoryForm } from "@/features/categories/components/create-category-form";
+import { useCategoryCatalog } from "@/features/categories/hooks/use-category-catalog";
 import { Button } from "@/shared/components/ui/button";
 import { fieldControlClass, Input } from "@/shared/components/ui/input";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
@@ -30,11 +29,8 @@ import { cn } from "@/shared/helpers/cn";
 interface CategoryPickerProps {
   id: string;
   kind: CategoryKind;
-  categories: readonly CategorySummary[];
   value: string;
   onSelect: (categoryId: string) => void;
-  /** The saved category (and any parent saved with it); it is selected too. */
-  onCreated: (outcome: CreateCategoryOutcome) => void;
   "aria-labelledby": string;
   "aria-describedby"?: string;
   invalid?: boolean;
@@ -43,7 +39,12 @@ interface CategoryPickerProps {
 
 type View =
   | { name: "search" }
-  | { name: "create"; initialName: string; initialParentId?: string };
+  | {
+      name: "create";
+      initialName: string;
+      initialParentId?: string;
+      generation: number;
+    };
 
 /**
  * The Category row: a trigger that reads the current choice back, and one
@@ -55,10 +56,8 @@ type View =
 export function CategoryPicker({
   id,
   kind,
-  categories,
   value,
   onSelect,
-  onCreated,
   invalid,
   disabled,
   "aria-labelledby": labelledBy,
@@ -67,11 +66,25 @@ export function CategoryPicker({
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ name: "search" });
   const [query, setQuery] = useState("");
+  const generation = useRef(0);
+  const { categories, colorOf } = useCategoryCatalog();
   const valueId = `${id}-value`;
   const selected = categories.find((category) => category.id === value);
-  const colorOf = createCategoryColors(categories);
+
+  useEffect(
+    () => () => {
+      generation.current += 1;
+    },
+    [],
+  );
+
+  function backToSearch() {
+    generation.current += 1;
+    setView({ name: "search" });
+  }
 
   function openPanel(next: boolean) {
+    generation.current += 1;
     if (next) {
       setView({ name: "search" });
       setQuery("");
@@ -80,6 +93,7 @@ export function CategoryPicker({
   }
 
   function choose(categoryId: string) {
+    generation.current += 1;
     onSelect(categoryId);
     setOpen(false);
   }
@@ -104,7 +118,11 @@ export function CategoryPicker({
           <CategoryIcon iconId={selected?.iconId ?? "generic"} />
         </CategoryTile>
         <span id={valueId} className="wrap-break-word min-w-0 flex-1">
-          {selected ? categoryPath(selected, categories) : "Choose a category"}
+          {selected
+            ? categoryPath(selected, categories)
+            : value
+              ? "Selected category is no longer available"
+              : "Choose a category"}
         </span>
         <ChevronDown
           aria-hidden="true"
@@ -123,9 +141,15 @@ export function CategoryPicker({
             query={query}
             onQueryChange={setQuery}
             onSelect={choose}
-            onCreate={(initialName, initialParentId) =>
-              setView({ name: "create", initialName, initialParentId })
-            }
+            onCreate={(initialName, initialParentId) => {
+              generation.current += 1;
+              setView({
+                name: "create",
+                initialName,
+                initialParentId,
+                generation: generation.current,
+              });
+            }}
           />
         ) : (
           <>
@@ -136,7 +160,7 @@ export function CategoryPicker({
                   variant="ghost"
                   size="icon-touch"
                   aria-label="Back to search"
-                  onClick={() => setView({ name: "search" })}
+                  onClick={backToSearch}
                 >
                   <ArrowLeft strokeWidth={1.75} className="size-5" />
                 </Button>
@@ -150,10 +174,11 @@ export function CategoryPicker({
               initialName={view.initialName}
               initialParentId={view.initialParentId}
               onCreated={(outcome) => {
-                onCreated(outcome);
-                setOpen(false);
+                if (generation.current === view.generation) {
+                  choose(outcome.category.id);
+                }
               }}
-              onCancel={() => setView({ name: "search" })}
+              onCancel={backToSearch}
             />
           </>
         )}

@@ -1,7 +1,4 @@
-import type {
-  CategoryKind,
-  CategorySummary,
-} from "@bookkeeping/domain/categories";
+import type { CategoryKind } from "@bookkeeping/domain/categories";
 import { GENERIC_ICON_ID } from "@bookkeeping/domain/categories";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,6 +25,11 @@ type CreateCategoryRequest = components["schemas"]["CreateCategoryRequest"];
 type Category = components["schemas"]["Category"];
 type CategoryCollection = components["schemas"]["CategoryCollection"];
 type CategoryFormField = keyof CategoryFormInput;
+
+interface SavedCategory {
+  category: Category;
+  includesNewParent: boolean;
+}
 
 interface UseCreateCategoryFormOptions {
   kind: CategoryKind;
@@ -111,6 +113,9 @@ export function useCreateCategoryForm({
 }: Readonly<UseCreateCategoryFormOptions>) {
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | undefined>();
+  const savedCategory = useRef<SavedCategory | undefined>(undefined);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<CategoryFormField, string>>
   >({});
@@ -137,6 +142,61 @@ export function useCreateCategoryForm({
     parentIconId: GENERIC_ICON_ID,
   };
 
+  function finishFromCatalog() {
+    const saved = savedCategory.current;
+    if (!saved) {
+      return;
+    }
+    const query = categoryQueries.list();
+    const collection = queryClient.getQueryData<CategoryCollection>(
+      query.queryKey,
+    );
+    const category = collection?.items.find(
+      (entry) => entry.id === saved.category.id,
+    );
+    const parent = category?.parentId
+      ? collection?.items.find((entry) => entry.id === category.parentId)
+      : undefined;
+    if (
+      queryClient.getQueryState(query.queryKey)?.status !== "success" ||
+      !category ||
+      (category.parentId && !parent)
+    ) {
+      setServerError(
+        "Category saved; list could not refresh. Retry the category list to continue.",
+      );
+      return;
+    }
+    onCreated({
+      category,
+      ...(saved.includesNewParent && parent ? { createdParent: parent } : {}),
+    });
+  }
+
+  async function retryRead() {
+    if (!savedCategory.current || isRefreshing) {
+      return;
+    }
+    setServerError(undefined);
+    setIsRefreshing(true);
+    try {
+      // Re-read only: the category is already durable, and no POST is replayed.
+      await queryClient.fetchQuery({
+        ...categoryQueries.list(),
+        staleTime: 0,
+        retry: false,
+      });
+    } catch {
+      setServerError(
+        "Category saved; list could not refresh. Retry the category list to continue.",
+      );
+      setIsRefreshing(false);
+      return;
+    }
+    setIsRefreshing(false);
+    finishFromCatalog();
+  }
+
   const form = useForm({
     defaultValues,
     validationLogic: revalidateLogic(),
@@ -144,6 +204,9 @@ export function useCreateCategoryForm({
       onDynamic: categoryFormSchema,
     },
     onSubmit: async ({ value }) => {
+      if (savedCategory.current) {
+        return;
+      }
       setServerError(undefined);
       setFieldErrors({});
 
@@ -172,23 +235,17 @@ export function useCreateCategoryForm({
         return;
       }
 
-      // The category list is on screen wherever this form is, so it has
-      // re-read by the time the created parent is looked up below.
-      await refreshAfterWrite(queryClient);
-
-      let createdParent: CategorySummary | undefined;
-      if (parsed.data.parent && "create" in parsed.data.parent) {
-        const categories = queryClient.getQueryData<CategoryCollection>(
-          categoryQueries.list().queryKey,
-        );
-        createdParent = categories?.items.find(
-          (category) => category.id === result.value.parentId,
-        );
-      }
-      onCreated({
+      savedCategory.current = {
         category: result.value,
-        ...(createdParent ? { createdParent } : {}),
-      });
+        includesNewParent: Boolean(
+          parsed.data.parent && "create" in parsed.data.parent,
+        ),
+      };
+      setIsSaved(true);
+      setIsRefreshing(true);
+      await refreshAfterWrite(queryClient);
+      setIsRefreshing(false);
+      finishFromCatalog();
     },
   });
 
@@ -216,5 +273,8 @@ export function useCreateCategoryForm({
     clearFieldError,
     chooseIcon,
     followName,
+    isSaved,
+    isRefreshing,
+    retryRead,
   };
 }

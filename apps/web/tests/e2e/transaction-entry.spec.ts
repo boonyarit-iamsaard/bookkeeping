@@ -5,9 +5,11 @@ import {
   todayIn,
 } from "@bookkeeping/domain/dates";
 import { expect, test } from "@playwright/test";
+import { z } from "zod";
 import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
+import { resumePage } from "./helpers/resume-page";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 import { isDesktop } from "./helpers/viewport";
 
@@ -330,6 +332,227 @@ test("creating a category inline selects it for the entry", async ({
   await expect(
     page.getByRole("listitem").filter({ hasText: "Cash" }),
   ).toContainText("฿80.00");
+});
+
+test("a saved child waits for its parent list and retries only the read", async ({
+  page,
+}) => {
+  await signUpFreshUser(page);
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "100",
+    openingDate: addDays(today, -3),
+  });
+  await page.goto("/transactions/new");
+  await page.getByLabel("Amount").fill("20");
+  await page
+    .getByLabel("Note (optional)", { exact: true })
+    .fill("Keep this note");
+  let failRead = false;
+  let creations = 0;
+  await page.route("**/v1/categories", async (route) => {
+    if (route.request().method() === "POST") {
+      creations += 1;
+      const response = await route.fetch();
+      failRead = true;
+      await route.fulfill({ response });
+    } else if (failRead) {
+      await route.fulfill({ status: 503, body: "Unavailable" });
+    } else {
+      await route.continue();
+    }
+  });
+  const category = page.locator("#categoryId");
+  await category.click();
+  await page.getByRole("button", { name: "New category", exact: true }).click();
+  const create = page.getByRole("dialog", { name: "New expense category" });
+  await create.getByLabel("Name", { exact: true }).fill("Coffee shops");
+  await create.getByLabel("Parent", { exact: true }).click();
+  await page.getByRole("option", { name: "New parent…" }).click();
+  await create.getByLabel("Parent name").fill("Outings");
+  await create.getByRole("button", { name: "Save category" }).click();
+  await expect(create.getByRole("alert")).toContainText(
+    "Category saved; list could not refresh",
+    { timeout: 15_000 },
+  );
+  await expect(category).toHaveText("Uncategorized");
+  await expect(
+    create.getByRole("button", { name: "Saved", exact: true }),
+  ).toBeDisabled();
+  failRead = false;
+  await create.getByRole("button", { name: "Retry category list" }).click();
+  await expect(create).toBeHidden();
+  await expect(category).toHaveText("Outings › Coffee shops");
+  await expect(category.locator("[data-hue]")).not.toHaveAttribute(
+    "data-hue",
+    "neutral",
+  );
+  await expect(category).toBeFocused();
+  await expect(page.getByLabel("Amount")).toHaveValue("20");
+  await expect(page.getByLabel("Note (optional)", { exact: true })).toHaveValue(
+    "Keep this note",
+  );
+  expect(creations).toBe(1);
+});
+
+test("leaving inline creation protects a later choice and a reopened picker", async ({
+  page,
+}) => {
+  await signUpFreshUser(page);
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "100",
+    openingDate: addDays(today, -3),
+  });
+  await page.goto("/transactions/new");
+  let releaseWrite = () => {};
+  let savedWrite = () => {};
+  const heldWrite = new Promise<void>((resolve) => {
+    releaseWrite = resolve;
+  });
+  const writeSaved = new Promise<void>((resolve) => {
+    savedWrite = resolve;
+  });
+  await page.route("**/v1/categories", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    const response = await route.fetch();
+    savedWrite();
+    await heldWrite;
+    await route.fulfill({ response });
+  });
+  const category = page.locator("#categoryId");
+  await category.click();
+  await page.getByRole("button", { name: "New category", exact: true }).click();
+  const create = page.getByRole("dialog", { name: "New expense category" });
+  await create.getByLabel("Name", { exact: true }).fill("Late category");
+  await create.getByRole("button", { name: "Save category" }).click();
+  await writeSaved;
+  await create.getByRole("button", { name: "Back", exact: true }).click();
+  await page.getByRole("button", { name: "Groceries", exact: true }).click();
+  await expect(category).toHaveText("Food & Drink › Groceries");
+  await category.click();
+  releaseWrite();
+  const picker = page.getByRole("dialog", { name: "Expense category" });
+  await expect(
+    picker.getByRole("button", { name: "Late category", exact: true }),
+  ).toBeVisible();
+  await expect(category).toHaveText("Food & Drink › Groceries");
+  await expect(picker).toBeVisible();
+  await picker.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(category).toBeFocused();
+  // Dismissal revokes the same creation handoff even if the form remains
+  // mounted briefly for the dialog's exit animation.
+  await category.click();
+  await page.getByRole("button", { name: "New category", exact: true }).click();
+  await create.getByLabel("Name", { exact: true }).fill("Dismissed category");
+  let releaseDismissed = () => {};
+  const heldDismissed = new Promise<void>((resolve) => {
+    releaseDismissed = resolve;
+  });
+  let dismissSaved = () => {};
+  const dismissedSaved = new Promise<void>((resolve) => {
+    dismissSaved = resolve;
+  });
+  await page.route("**/v1/categories", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    const response = await route.fetch();
+    dismissSaved();
+    await heldDismissed;
+    await route.fulfill({ response });
+  });
+  await create.getByRole("button", { name: "Save category" }).click();
+  await dismissedSaved;
+  await create.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(create).toBeHidden();
+  await category.click();
+  releaseDismissed();
+  await expect(
+    picker.getByRole("button", { name: "Dismissed category", exact: true }),
+  ).toBeVisible();
+  await expect(category).toHaveText("Food & Drink › Groceries");
+  await expect(picker).toBeVisible();
+});
+
+test("live category names and removal preserve the entry and never substitute a choice", async ({
+  page,
+}) => {
+  await signUpFreshUser(page);
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "100",
+    openingDate: addDays(today, -3),
+  });
+  await page.goto("/transactions/new");
+  await page.clock.install();
+  await page.getByLabel("Amount").fill("25");
+  await page
+    .getByLabel("Note (optional)", { exact: true })
+    .fill("Keep my entry");
+  const category = page.locator("#categoryId");
+  await category.click();
+  await page.getByRole("button", { name: "Groceries", exact: true }).click();
+  const catalogSchema = z.object({
+    items: z.array(
+      z.looseObject({
+        id: z.string(),
+        name: z.string(),
+        parentId: z.string().nullable(),
+      }),
+    ),
+  });
+  let removeSelected = false;
+  await page.route("**/v1/categories", async (route) => {
+    const response = await route.fetch();
+    const collection = catalogSchema.parse(await response.json());
+    await route.fulfill({
+      response,
+      json: {
+        ...collection,
+        items: collection.items
+          .filter((entry) => !removeSelected || entry.name !== "Groceries")
+          .map((entry) => ({
+            ...entry,
+            name:
+              entry.name === "Groceries"
+                ? "Market"
+                : entry.name === "Food & Drink"
+                  ? "Meals"
+                  : entry.name,
+          })),
+      },
+    });
+  });
+  await page.clock.fastForward(2_000);
+  await resumePage(page);
+  await expect(category).toHaveText("Meals › Market");
+  await category.click();
+  await expect(
+    page.getByRole("button", { name: "Market", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  removeSelected = true;
+  await page.clock.fastForward(2_000);
+  await resumePage(page);
+  await expect(category).toHaveText("Selected category is no longer available");
+  await expect(page.getByLabel("Amount")).toHaveValue("25");
+  await expect(page.getByLabel("Note (optional)", { exact: true })).toHaveValue(
+    "Keep my entry",
+  );
+  await category.click();
+  await page.getByRole("button", { name: "Restaurants", exact: true }).click();
+  await expect(category).toHaveText("Meals › Restaurants");
 });
 
 test("a date that becomes future at Bangkok midnight keeps the chosen value and names the problem", async ({

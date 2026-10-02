@@ -1,6 +1,6 @@
+import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
-import { useState } from "react";
 import type { ApiMoney } from "@/core/api/money";
 import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
@@ -15,7 +15,9 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { toPercent } from "@/shared/helpers/bar-scale";
+import { isBalanceSelectionKey } from "../balance-selection";
 import type { BalanceDay, BalancePoint, BalanceTrend } from "../balance-trend";
+import { useBalanceSelection } from "../hooks/use-balance-selection";
 
 type WalletSummary = components["schemas"]["Wallet"];
 
@@ -29,6 +31,8 @@ interface WalletComparison {
 
 interface BalanceOverTimeProps extends WalletComparison {
   trend: Readonly<BalanceTrend>;
+  reportMonth: string;
+  balanceDate: CalendarDate;
   /** The chosen month, already formatted, such as "September 2026". */
   month: string;
 }
@@ -158,8 +162,6 @@ function WalletPicker({
   );
 }
 
-const PAGE_DAYS = 7;
-
 /**
  * The level 3 balance trend: the total Closing balance across the month as
  * one line, from the earliest opening date to the last day read, with one
@@ -171,8 +173,15 @@ const PAGE_DAYS = 7;
 export function BalanceOverTime({
   trend,
   month,
+  reportMonth,
+  balanceDate,
   ...comparison
 }: Readonly<BalanceOverTimeProps>) {
+  const selection = useBalanceSelection({
+    month: reportMonth,
+    balanceDate,
+    trend,
+  });
   if (trend.kind === "future") {
     return (
       <p className="text-muted-foreground text-sm">Nothing yet in {month}.</p>
@@ -185,30 +194,33 @@ export function BalanceOverTime({
       </p>
     );
   }
-  return <BalanceLine trend={trend} month={month} {...comparison} />;
+  return (
+    <BalanceLine
+      trend={trend}
+      month={month}
+      selection={selection}
+      {...comparison}
+    />
+  );
 }
 
 interface BalanceLineProps extends WalletComparison {
   trend: Readonly<Extract<BalanceTrend, { kind: "line" }>>;
   month: string;
+  selection: ReturnType<typeof useBalanceSelection>;
 }
 
 function BalanceLine({
   trend,
   month,
+  selection,
   ...comparison
 }: Readonly<BalanceLineProps>) {
-  const [selectedDate, setSelectedDate] = useState(trend.selected);
-  const points = trend.runs.flat();
-  const selectedIndex = Math.max(
-    points.findIndex((point) => point.date === selectedDate),
-    0,
-  );
-  const selectedPoint = points[selectedIndex];
-  const selectedDay = trend.days.find((day) => day.date === selectedDate);
-  const selectedWalletPoint = trend.walletRuns
-    .flat()
-    .find((point) => point.date === selectedDate);
+  const { points, selected } = selection;
+  const selectedIndex = selected?.index ?? 0;
+  const selectedPoint = selected?.point;
+  const selectedDay = selected?.day;
+  const selectedWalletPoint = selected?.walletPoint;
   // The wallet's figures arrive with its read; until then the total stands alone.
   const comparedWallet = trend.days.some((day) => day.wallet !== undefined)
     ? comparison.wallets.find(
@@ -216,37 +228,14 @@ function BalanceLine({
       )
     : undefined;
 
-  function select(index: number) {
-    const point = points[Math.min(Math.max(index, 0), points.length - 1)];
-    if (point) {
-      setSelectedDate(point.date);
-    }
-  }
-
   /** The day nearest the pointer, among the days with a balance. */
   function selectAt(event: React.PointerEvent<HTMLDivElement>) {
     const box = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - box.left) / box.width;
-    let nearest = 0;
-    for (const [index, point] of points.entries()) {
-      if (Math.abs(point.x - x) < Math.abs(points[nearest].x - x)) {
-        nearest = index;
-      }
-    }
-    select(nearest);
+    selection.move({
+      type: "pointer",
+      position: (event.clientX - box.left) / box.width,
+    });
   }
-
-  // How far each slider key moves the selected day; Home and End overshoot to the ends.
-  const keySteps = new Map([
-    ["ArrowLeft", -1],
-    ["ArrowDown", -1],
-    ["ArrowRight", 1],
-    ["ArrowUp", 1],
-    ["PageDown", -PAGE_DAYS],
-    ["PageUp", PAGE_DAYS],
-    ["Home", -points.length],
-    ["End", points.length],
-  ]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -298,10 +287,9 @@ function BalanceLine({
           selectedDay ? dayText(selectedDay, comparedWallet?.name) : undefined
         }
         onKeyDown={(event) => {
-          const step = keySteps.get(event.key);
-          if (step !== undefined) {
+          if (isBalanceSelectionKey(event.key)) {
             event.preventDefault();
-            select(selectedIndex + step);
+            selection.move({ type: "key", key: event.key });
           }
         }}
         onPointerDown={(event) => {

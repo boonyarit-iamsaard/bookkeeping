@@ -185,7 +185,8 @@ export function FinancialReport({
           Balance over time
         </h2>
         <BalanceOverTime
-          key={`${summary.month} ${asOf}`}
+          reportMonth={summary.month}
+          balanceDate={asOf}
           trend={balanceTrend}
           month={month}
           wallets={currentWallets}
