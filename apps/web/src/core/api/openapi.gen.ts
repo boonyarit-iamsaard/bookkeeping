@@ -168,6 +168,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reports/closing-balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a month's daily closing balances
+         * @description The signed-in owner's total Closing balance for each day of one month in YYYY-MM form, from its first day through its last day or today in Bangkok, whichever is earlier, oldest first. A day's total sums every wallet opened by that date, archived ones included: its opening balance plus every current transaction dated on or before it, so transfers between wallets leave it unchanged and recording time plays no part. A day before every wallet's opening date has a null total, and a future month has no entries. A malformed or impossible month is a bad request.
+         */
+        get: operations["getClosingBalances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/reports/monthly": {
         parameters: {
             query?: never;
@@ -406,6 +426,15 @@ export interface components {
             name: string;
             sortOrder: number;
             spending: components["schemas"]["Money"];
+        };
+        ClosingBalanceEntry: {
+            /** Format: date */
+            date: string;
+            total: components["schemas"]["Money"] | null;
+        };
+        ClosingBalances: {
+            entries: components["schemas"]["ClosingBalanceEntry"][];
+            month: string;
         };
         CreateCategoryRequest: {
             iconId: string;
@@ -1199,6 +1228,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategorySpending"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getClosingBalances: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's total Closing balance for each day */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosingBalances"];
                 };
             };
             /** @description Bad request */

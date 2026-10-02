@@ -9,11 +9,13 @@ import { WalletShareChart } from "@/shared/components/chart/wallet-share-chart";
 import { DisplayFigure } from "@/shared/components/display-figure";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
+import type { BalanceTrend } from "../balance-trend";
 import type { CategoryBreakdown } from "../category-breakdown";
 import type { ReportFigure } from "../report-labels";
 import { REPORT_FIGURE_LABELS } from "../report-labels";
 import { formatReportMonth } from "../report-month";
 import type { TrendPoint } from "../trend-series";
+import { BalanceOverTime } from "./balance-over-time";
 import { SpendingByCategory } from "./spending-by-category";
 import { TrendChart } from "./trend-chart";
 
@@ -24,6 +26,7 @@ type ApiMoney = components["schemas"]["Money"];
 interface FinancialReportProps {
   summary: Readonly<MonthlyReport>;
   categoryBreakdown: Readonly<CategoryBreakdown>;
+  balanceTrend: Readonly<BalanceTrend>;
   currentWallets: readonly WalletSummary[];
   datedWallets: readonly WalletSummary[];
   asOf: CalendarDate;
@@ -47,6 +50,7 @@ const SUMMARY_FIGURES = [
 export function FinancialReport({
   summary,
   categoryBreakdown,
+  balanceTrend,
   currentWallets,
   datedWallets,
   asOf,
@@ -170,6 +174,16 @@ export function FinancialReport({
             </dl>
           </>
         )}
+      </section>
+      <section aria-labelledby="balance-trend-heading" className={CARD_CLASS}>
+        <h2 id="balance-trend-heading" className={CARD_HEADING_CLASS}>
+          Balance over time
+        </h2>
+        <BalanceOverTime
+          key={`${summary.month} ${asOf}`}
+          trend={balanceTrend}
+          month={month}
+        />
       </section>
     </>
   );

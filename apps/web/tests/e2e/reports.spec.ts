@@ -89,6 +89,12 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
       .getByRole("region", { name: "Spending by category" })
       .getByText("No spending in August 2026."),
   ).toBeVisible();
+  // Both wallets open in September, so August has no line.
+  await expect(
+    page
+      .getByRole("region", { name: "Balance over time" })
+      .getByText("No wallets were open in August 2026."),
+  ).toBeVisible();
 
   await page.getByLabel("Report month").click();
   await page
@@ -113,6 +119,21 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   const spendingRows = page.locator("[data-category-spending]");
   await expect(spendingRows).toHaveCount(1);
   await expect(spendingRows).toHaveText("Uncategorized100% of spending฿400.00");
+
+  // The balance trend opens on the Balance date and moves by keyboard.
+  const balanceDay = page.getByRole("slider", { name: "Selected day" });
+  await expect(balanceDay).toHaveAttribute(
+    "aria-valuetext",
+    "3 Sep 2026, ฿1,700.00",
+  );
+  const readout = page.locator("[data-balance-readout]");
+  await expect(readout).toContainText("3 Sep 2026");
+  await expect(readout).toContainText("Total balance฿1,700.00");
+  await balanceDay.press("ArrowRight");
+  await expect(readout).toContainText("4 Sep 2026");
+  await expect(readout).toContainText("Total balance฿1,700.00");
+  await balanceDay.press("ArrowRight");
+  await expect(readout).toContainText("Total balance฿1,800.00");
 
   const overall = page.locator('[data-balance-row="Overall balance"]');
   await expect(overall).toContainText("Current฿1,800.00");

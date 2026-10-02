@@ -10,6 +10,7 @@ interface ReportQueryPlan {
   invalidFields: ReadonlySet<keyof ReportValues>;
   monthly: ReturnType<typeof reportQueries.monthly>;
   categorySpending: ReturnType<typeof reportQueries.categorySpending>;
+  closingBalances: ReturnType<typeof reportQueries.closingBalances>;
   /** The six months ending at the chosen one, oldest first; none while it is invalid. */
   trend: ReturnType<typeof reportQueries.monthly>[];
   currentWallets: ReturnType<typeof walletQueries.list>;
@@ -39,6 +40,7 @@ export function createReportQueryPlan(
     invalidFields,
     monthly: reportQueries.monthly(values.month),
     categorySpending: reportQueries.categorySpending(values.month),
+    closingBalances: reportQueries.closingBalances(values.month),
     trend: parsed.success
       ? trendMonths(values.month).map((month) => reportQueries.monthly(month))
       : [],

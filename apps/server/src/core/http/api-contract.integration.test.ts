@@ -13,6 +13,7 @@ import {
 import { healthResponseSchema } from "../../features/health/health.routes.js";
 import {
   categorySpendingResponseSchema,
+  closingBalancesResponseSchema,
   monthlyReportResponseSchema,
 } from "../../features/reports/report.routes.js";
 import { signUpResponseSchema } from "../../features/sign-up/sign-up.routes.js";
@@ -455,6 +456,15 @@ describe("published API contract", () => {
         schema: categorySpendingResponseSchema,
         response: await call({
           path: `/v1/reports/category-spending?month=${REPORT_MONTH}`,
+        }),
+      });
+      record({
+        operationId: "getClosingBalances",
+        method: "get",
+        path: "/v1/reports/closing-balances",
+        schema: closingBalancesResponseSchema,
+        response: await call({
+          path: `/v1/reports/closing-balances?month=${REPORT_MONTH}`,
         }),
       });
       record({

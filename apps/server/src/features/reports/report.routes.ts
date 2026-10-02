@@ -1,11 +1,13 @@
 import {
   getCategorySpending,
+  getClosingBalances,
   getMonthlySummary,
 } from "@bookkeeping/application/transactions";
 import type { Database } from "@bookkeeping/database/connection";
 import { parseCalendarDate } from "@bookkeeping/domain/dates";
 import type {
   CategorySpending,
+  ClosingBalances,
   MonthlySummary,
 } from "@bookkeeping/domain/transactions";
 import { Hono } from "hono";
@@ -128,8 +130,40 @@ export function presentCategorySpending(
   };
 }
 
+export const closingBalancesResponseSchema = z
+  .object({
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    entries: z.array(
+      z
+        .object({
+          date: z.iso.date(),
+          total: moneySchema.nullable(),
+        })
+        .meta({ id: "ClosingBalanceEntry" }),
+    ),
+  })
+  .meta({ id: "ClosingBalances" });
+
+export type ClosingBalancesResponse = z.infer<
+  typeof closingBalancesResponseSchema
+>;
+
+export function presentClosingBalances(
+  balances: Readonly<ClosingBalances>,
+): ClosingBalancesResponse {
+  // The schema constrains every wallet to THB, so the totals carry it.
+  return {
+    month: balances.month,
+    entries: balances.entries.map((entry) => ({
+      date: entry.date,
+      total: entry.total === null ? null : presentThb(entry.total),
+    })),
+  };
+}
+
 const MONTHLY_REPORT_PATH = "/reports/monthly";
 const CATEGORY_SPENDING_PATH = "/reports/category-spending";
+const CLOSING_BALANCES_PATH = "/reports/closing-balances";
 
 export function createReportRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>()
@@ -228,6 +262,55 @@ export function createReportRoutes(db: Database) {
             description: "The owner's spending by parent category",
             content: {
               "application/json": { vSchema: categorySpendingResponseSchema },
+            },
+          },
+          400: describeProblem(getProblemOptionsForStatus(400)),
+        },
+      ),
+    )
+    .get(
+      CLOSING_BALANCES_PATH,
+      describeRoute({
+        operationId: "getClosingBalances",
+        summary: "Get a month's daily closing balances",
+        description:
+          "The signed-in owner's total Closing balance for each day of one " +
+          "month in YYYY-MM form, from its first day through its last day or " +
+          "today in Bangkok, whichever is earlier, oldest first. A day's " +
+          "total sums every wallet opened by that date, archived ones " +
+          "included: its opening balance plus every current transaction " +
+          "dated on or before it, so transfers between wallets leave it " +
+          "unchanged and recording time plays no part. A day before every " +
+          "wallet's opening date has a null total, and a future month has " +
+          "no entries. A malformed or impossible month is a bad request.",
+        tags: ["Reports"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      monthlyReportQueryMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof CLOSING_BALANCES_PATH,
+        QueryValidatedInput<typeof monthlyReportQuerySchema>,
+        {
+          200: typeof closingBalancesResponseSchema;
+          400: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const balances = await getClosingBalances(db, {
+            ownerId: c.get("session").user.id,
+            month: c.req.valid("query").month,
+          });
+          return c.json(presentClosingBalances(balances), 200);
+        },
+        {
+          200: {
+            description: "The owner's total Closing balance for each day",
+            content: {
+              "application/json": { vSchema: closingBalancesResponseSchema },
             },
           },
           400: describeProblem(getProblemOptionsForStatus(400)),

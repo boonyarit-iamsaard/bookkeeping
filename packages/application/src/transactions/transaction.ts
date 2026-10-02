@@ -6,11 +6,13 @@ import {
 } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
+import { APP_TIME_ZONE, addDays, todayIn } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import type {
   CategorySpending,
+  ClosingBalanceEntry,
+  ClosingBalances,
   ExpenseRefunds,
   MonthlySummary,
   ParentCategorySpending,
@@ -42,6 +44,7 @@ import type {
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
+import { movesWallet, walletMovement } from "../wallets/wallet";
 import type {
   CategoryFact,
   CurrentTransactionFact,
@@ -1076,4 +1079,82 @@ export async function getCategorySpending(
     ),
     parents: parentSpending,
   };
+}
+
+/**
+ * The total Closing balance for each day of a month through today in Bangkok
+ * (ADR 0001): every wallet opened by that date, archived ones included, at its
+ * opening plus every current transaction dated on or before it. A date before
+ * every opening date has no total, and a future month has no days yet.
+ */
+export async function getClosingBalances(
+  db: Database,
+  { ownerId, month }: Readonly<MonthlySummaryOptions>,
+): Promise<ClosingBalances> {
+  const { start, end } = monthBounds(month);
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  const last = end < today ? end : today;
+  if (start > last) {
+    return { month, entries: [] };
+  }
+  const [openings, dailyMovements] = await Promise.all([
+    db
+      .select({
+        id: wallets.id,
+        openingAmount: wallets.openingAmount,
+        openingDate: wallets.openingDate,
+        movement: walletMovement,
+      })
+      .from(wallets)
+      .leftJoin(
+        transactions,
+        movesWallet(lt(transactions.transactionDate, start)),
+      )
+      .where(eq(wallets.userId, ownerId))
+      .groupBy(wallets.id),
+    db
+      .select({
+        id: wallets.id,
+        date: transactions.transactionDate,
+        movement: walletMovement,
+      })
+      .from(wallets)
+      .innerJoin(
+        transactions,
+        movesWallet(
+          and(
+            gte(transactions.transactionDate, start),
+            lte(transactions.transactionDate, last),
+          ),
+        ),
+      )
+      .where(eq(wallets.userId, ownerId))
+      .groupBy(wallets.id, transactions.transactionDate),
+  ]);
+
+  const balances = new Map(
+    openings.map((wallet) => [
+      wallet.id,
+      wallet.openingAmount + BigInt(wallet.movement),
+    ]),
+  );
+  const movementsByDate = Map.groupBy(dailyMovements, (row) => row.date);
+  const entries: ClosingBalanceEntry[] = [];
+  for (let date = start; date <= last; date = addDays(date, 1)) {
+    for (const row of movementsByDate.get(date) ?? []) {
+      balances.set(row.id, (balances.get(row.id) ?? 0n) + BigInt(row.movement));
+    }
+    const opened = openings.filter((wallet) => wallet.openingDate <= date);
+    entries.push({
+      date,
+      total:
+        opened.length === 0
+          ? null
+          : opened.reduce(
+              (total, wallet) => total + (balances.get(wallet.id) ?? 0n),
+              0n,
+            ),
+    });
+  }
+  return { month, entries };
 }

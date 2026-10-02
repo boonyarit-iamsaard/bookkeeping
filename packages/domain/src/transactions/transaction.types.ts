@@ -149,3 +149,16 @@ export interface CategorySpending {
   /** Parents with activity in the month, in category order, Uncategorized last. */
   parents: readonly ParentCategorySpending[];
 }
+
+/** The total Closing balance at the end of one calendar date. */
+export interface ClosingBalanceEntry {
+  date: CalendarDate;
+  /** Every opened wallet's Closing balance summed; null before any opened. */
+  total: bigint | null;
+}
+
+export interface ClosingBalances {
+  month: string;
+  /** The month's days through today in Bangkok, oldest first; none for a future month. */
+  entries: readonly ClosingBalanceEntry[];
+}

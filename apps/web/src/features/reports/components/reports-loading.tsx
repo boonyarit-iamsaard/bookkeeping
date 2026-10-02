@@ -69,6 +69,11 @@ export function ReportsLoading() {
             <RowSkeleton />
           </div>
         </div>
+        <div className={CARD_CLASS}>
+          <Skeleton className="h-6 w-44" />
+          <Skeleton className="h-44" />
+          <FigureRowSkeleton />
+        </div>
       </div>
     </Page>
   );

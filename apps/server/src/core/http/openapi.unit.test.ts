@@ -839,6 +839,31 @@ describe("OpenAPI document", () => {
     );
   });
 
+  it("documents the closing balances read", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const balances: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/reports/closing-balances",
+    });
+
+    expect(balances.operationId).toBe("getClosingBalances");
+    expect(balances.parameters).toEqual([
+      expect.objectContaining({ in: "query", name: "month", required: true }),
+    ]);
+    expect(
+      documentedSchemaRef(balances, {
+        status: "200",
+        mediaType: "application/json",
+      }),
+    ).toBe("#/components/schemas/ClosingBalances");
+    expectProblemResponses(balances, ["400", "401"]);
+
+    const balancesSchema = documentedSchema(document, "ClosingBalances");
+    expect(balancesSchema.required).toEqual(["month", "entries"]);
+    const entrySchema = documentedSchema(document, "ClosingBalanceEntry");
+    expect(entrySchema.required).toEqual(["date", "total"]);
+  });
+
   it("documents every registered route", async () => {
     const app = createUnitTestApp();
     const document = await fetchDocument(app);
