@@ -8,7 +8,7 @@ import { createUnauthenticatedMiddleware } from "@/core/api/unauthenticated-midd
 import { resetSessionCache } from "@/core/auth/session";
 import { createQueryClient } from "@/core/query/query-client";
 import { createAppRouter } from "@/core/router/router";
-import { syncThemeColor } from "@/core/shell/theme-color";
+import { syncAppearance } from "@/core/shell/appearance-sync";
 import "@/styles/fonts.css";
 import "@/styles/globals.css";
 
@@ -17,7 +17,7 @@ if (!container) {
   throw new Error("The document has no #root element to mount into");
 }
 
-syncThemeColor();
+syncAppearance();
 
 // `autoUpdate`: a new worker takes over and reloads without a prompt.
 registerSW({ immediate: true });

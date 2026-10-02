@@ -1,5 +1,5 @@
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
-import type { Locator } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
@@ -500,4 +500,68 @@ test("phone form controls keep a 44px touch target", async ({ page }) => {
   await expectTouchTarget(
     page.getByRole("link", { name: "Create another wallet" }),
   );
+});
+
+/**
+ * Chooses through the account control: menu radio items on desktop, which
+ * keep the menu open, or the Account sheet's segmented control on phone.
+ */
+async function chooseAppearance(
+  page: Page,
+  { email, label }: Readonly<{ email: string; label: string }>,
+) {
+  await page.getByRole("button", { name: `Account: ${email}` }).click();
+  if (isDesktop(page)) {
+    const menu = page.getByRole("menu");
+    const item = menu
+      .getByRole("group", { name: "Appearance" })
+      .getByRole("menuitemradio", { name: label });
+    await item.click();
+    await expect(item).toHaveAttribute("aria-checked", "true");
+    await expect(menu).toBeVisible();
+  } else {
+    const sheet = page.getByRole("dialog", { name: "Account" });
+    const segment = sheet
+      .getByRole("radiogroup", { name: "Appearance" })
+      .getByRole("radio", { name: label });
+    await segment.click();
+    await expect(segment).toBeChecked();
+  }
+  await page.keyboard.press("Escape");
+}
+
+test("the Appearance choice overrides the system and survives a reload", {
+  tag: "@matrix",
+}, async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  const { email } = await signUpFreshUser(page);
+  const root = page.locator("html");
+  const themeColor = page.locator('meta[name="theme-color"]');
+  await expect(root).toHaveAttribute("data-scheme", "light");
+
+  await chooseAppearance(page, { email, label: "Dark" });
+  await expect(root).toHaveAttribute("data-scheme", "dark");
+  await expect(themeColor).toHaveAttribute("content", "#14141c");
+
+  // With every script file refused, only the inline pre-paint script can
+  // apply the stored choice, so the first paint is already dark.
+  await page.route("**/*", (route) =>
+    route.request().resourceType() === "script"
+      ? route.abort()
+      : route.continue(),
+  );
+  await page.reload();
+  await expect(root).toHaveAttribute("data-scheme", "dark");
+  await expect(themeColor).toHaveAttribute("content", "#14141c");
+  await page.unrouteAll();
+
+  await page.reload();
+  await chooseAppearance(page, { email, label: "System" });
+  await expect(root).toHaveAttribute("data-scheme", "light");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(root).toHaveAttribute("data-scheme", "dark");
+  await expect(themeColor).toHaveAttribute("content", "#14141c");
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(root).toHaveAttribute("data-scheme", "light");
+  await expect(themeColor).toHaveAttribute("content", "#ffffff");
 });
