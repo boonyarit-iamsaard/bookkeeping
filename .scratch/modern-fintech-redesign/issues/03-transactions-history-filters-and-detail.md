@@ -22,6 +22,7 @@ and dark.
 - [ ] Active filter chips are removable, keep 44px phone targets, and each removes only its own URL value.
 - [ ] Invalid URL filter values stay visible and editable, with the invalid-filter message on the new system.
 - [ ] The detail page shows type, amount, category with its color, wallet or From and To, transaction date, recording time, note, and linked refunds or expense on the new system.
+- [ ] The linked expense tile shows its category color. 02 left it neutral because `LinkedExpenseView` carries no category id (see 02's closing note); adding the id may touch existing unit assertions, so extend them rather than rewrite them.
 - [ ] The delete confirmation alert sheet is on the new system and keeps its answer-not-dismiss behavior.
 - [ ] The history and detail loading skeletons and error screens use 01's patterns; loading never shows sample money.
 - [ ] `DESIGN.md` changes only through a stated system change, recorded in this ticket's closing comment.
