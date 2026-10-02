@@ -148,6 +148,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reports/category-spending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a month's spending by category
+         * @description The signed-in owner's Category spending for one month in YYYY-MM form, per expense parent category: expenses dated in the month less refunds dated in the month, each counted under its expense's current category and rolled up to the parent. Debt payments count like any other category. Only parents with activity in the month appear, in category order with Uncategorized last, and their signed amounts sum to netExpenses, the monthly report's Net expenses for the same month. Each parent carries the amount filed directly on it and its children with activity, in category order; the two add up to the parent. Any amount is negative when a refund dated in the month outweighs that month's expenses. A malformed or impossible month is a bad request.
+         */
+        get: operations["getCategorySpending"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/reports/closing-balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a month's daily closing balances
+         * @description The signed-in owner's total Closing balance for each day of one month in YYYY-MM form, from its first day through its last day or today in Bangkok, whichever is earlier, oldest first. A day's total sums every wallet opened by that date, archived ones included: its opening balance plus every current transaction dated on or before it, so transfers between wallets leave it unchanged and recording time plays no part. A day before every wallet's opening date has a null total, and a future month has no entries. With an optional `walletId`, each entry also carries that wallet's Closing balance, archived wallets included, null before its opening date. A malformed or impossible month, or a malformed wallet id, is a bad request; a wallet the owner does not hold is not found.
+         */
+        get: operations["getClosingBalances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/reports/monthly": {
         parameters: {
             query?: never;
@@ -362,6 +402,11 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        CategorySpending: {
+            month: string;
+            netExpenses: components["schemas"]["Money"];
+            parents: components["schemas"]["ParentCategorySpending"][];
+        };
         CategoryUsage: {
             children: number;
             transactions: number;
@@ -374,6 +419,23 @@ export interface components {
             /** Format: uuid */
             categoryId: string;
             transactions: number;
+        };
+        ChildCategorySpending: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            sortOrder: number;
+            spending: components["schemas"]["Money"];
+        };
+        ClosingBalanceEntry: {
+            /** Format: date */
+            date: string;
+            total: components["schemas"]["Money"] | null;
+            wallet?: components["schemas"]["Money"] | null;
+        };
+        ClosingBalances: {
+            entries: components["schemas"]["ClosingBalanceEntry"][];
+            month: string;
         };
         CreateCategoryRequest: {
             iconId: string;
@@ -482,6 +544,16 @@ export interface components {
         };
         Page: {
             nextCursor: string | null;
+        };
+        ParentCategorySpending: {
+            children: components["schemas"]["ChildCategorySpending"][];
+            directSpending: components["schemas"]["Money"];
+            /** Format: uuid */
+            id: string;
+            isUncategorized: boolean;
+            name: string;
+            sortOrder: number;
+            spending: components["schemas"]["Money"];
         };
         PlainRuleFieldError: {
             /** @enum {string} */
@@ -1121,6 +1193,114 @@ export interface operations {
             };
             /** @description Authentication required */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getCategorySpending: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's spending by parent category */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategorySpending"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getClosingBalances: {
+        parameters: {
+            query: {
+                month: string;
+                walletId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's total Closing balance for each day */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClosingBalances"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

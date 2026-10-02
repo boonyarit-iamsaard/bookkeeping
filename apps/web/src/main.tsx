@@ -8,6 +8,7 @@ import { createUnauthenticatedMiddleware } from "@/core/api/unauthenticated-midd
 import { resetSessionCache } from "@/core/auth/session";
 import { createQueryClient } from "@/core/query/query-client";
 import { createAppRouter } from "@/core/router/router";
+import { syncThemeColor } from "@/core/shell/theme-color";
 import "@/styles/fonts.css";
 import "@/styles/globals.css";
 
@@ -15,6 +16,8 @@ const container = document.getElementById("root");
 if (!container) {
   throw new Error("The document has no #root element to mount into");
 }
+
+syncThemeColor();
 
 // `autoUpdate`: a new worker takes over and reloads without a prompt.
 registerSW({ immediate: true });

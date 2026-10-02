@@ -9,6 +9,8 @@ export interface LinkedExpenseView {
   /** "฿500.00" */
   amountLabel: string;
   transactionDate: CalendarDate;
+  /** The expense's category, for its hue; null when Uncategorized. */
+  categoryId: string | null;
   categoryLabel: string;
   categoryIconId: string;
   wallet: { id: string; name: string; archived: boolean };

@@ -26,6 +26,7 @@ export function linkedExpenseView({
       currency: expense.amount.currency,
     }),
     transactionDate: expense.transactionDate,
+    categoryId: expense.category?.id ?? null,
     categoryLabel: expense.category
       ? categoryLabel(expense.category)
       : "Uncategorized",

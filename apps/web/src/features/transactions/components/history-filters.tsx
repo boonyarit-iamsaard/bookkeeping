@@ -2,7 +2,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal, TriangleAlert, X } from "lucide-react";
 import type { SyntheticEvent } from "react";
 import { useState } from "react";
 import type { components } from "@/core/api/openapi.gen";
@@ -16,8 +16,10 @@ import {
 } from "@/features/transactions/history-schema";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
+import { ErrorNotice } from "@/shared/components/error-notice";
 import { Button } from "@/shared/components/ui/button";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
+import { cn } from "@/shared/helpers/cn";
 
 type ApiWallet = components["schemas"]["Wallet"];
 type ApiCategory = components["schemas"]["Category"];
@@ -105,14 +107,14 @@ export function HistoryFilters({
         >
           <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-4 py-2 sm:px-6">
             {errors.length > 0 && (
-              <div role="alert" className="text-destructive text-sm">
+              <ErrorNotice>
                 {errors.map((error) => (
                   <p key={error}>{error}</p>
                 ))}
-              </div>
+              </ErrorNotice>
             )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+              <div className="flex min-w-0 flex-col gap-2 font-semibold text-sm">
                 <label htmlFor="history-from">From date</label>
                 <DatePicker
                   id="history-from"
@@ -125,7 +127,7 @@ export function HistoryFilters({
                   keepMalformed
                 />
               </div>
-              <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+              <div className="flex min-w-0 flex-col gap-2 font-semibold text-sm">
                 <label htmlFor="history-to">To date</label>
                 <DatePicker
                   id="history-to"
@@ -138,7 +140,7 @@ export function HistoryFilters({
                   keepMalformed
                 />
               </div>
-              <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+              <div className="flex min-w-0 flex-col gap-2 font-semibold text-sm">
                 <label htmlFor="history-walletId">Wallet</label>
                 <FilterSelect
                   id="history-walletId"
@@ -156,7 +158,7 @@ export function HistoryFilters({
                   ]}
                 />
               </div>
-              <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+              <div className="flex min-w-0 flex-col gap-2 font-semibold text-sm">
                 <label htmlFor="history-categoryId">Category</label>
                 <FilterSelect
                   id="history-categoryId"
@@ -166,7 +168,7 @@ export function HistoryFilters({
                   groups={categoryGroups(categories)}
                 />
               </div>
-              <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+              <div className="flex min-w-0 flex-col gap-2 font-semibold text-sm">
                 <label htmlFor="history-type">Type</label>
                 <FilterSelect
                   id="history-type"
@@ -229,8 +231,22 @@ export function HistoryFilterChips({
             // match would mark every chip as the current page.
             activeOptions={{ exact: true, includeSearch: true }}
             aria-label={`Remove filter ${chip.label}`}
-            className="flex min-h-11 max-w-full items-center gap-1 rounded-full border px-3 text-sm outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            aria-description={
+              chip.invalid ? "Not a value the history accepts" : undefined
+            }
+            className={cn(
+              "flex min-h-11 max-w-full items-center gap-1.5 rounded-full bg-secondary pr-3 pl-4 font-semibold text-secondary-foreground text-sm outline-none transition-colors duration-150 hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)] focus-visible:ring-[3px] focus-visible:ring-ring/45 motion-reduce:transition-none",
+              // Invalid reads by its dashed outline and pictogram, not red alone.
+              chip.invalid && "border border-destructive border-dashed pl-3",
+            )}
           >
+            {chip.invalid && (
+              <TriangleAlert
+                aria-hidden="true"
+                strokeWidth={1.75}
+                className="size-4 shrink-0 text-destructive"
+              />
+            )}
             <span className="truncate">{chip.label}</span>
             <X
               aria-hidden="true"

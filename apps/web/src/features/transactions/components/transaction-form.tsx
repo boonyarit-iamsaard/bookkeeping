@@ -9,11 +9,15 @@ import {
   MAX_NOTE_LENGTH,
 } from "@bookkeeping/domain/transactions";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowDownUp, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { CreateCategoryOutcome } from "@/features/categories/category-mutations";
-import { CategoryIcon } from "@/features/categories/components/category-icon";
+import { ArrowDownUp, Check, ChevronRight, CircleAlert } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
+import {
+  CategoryIcon,
+  CategoryTile,
+} from "@/features/categories/components/category-icon";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
+import { useCategoryCatalog } from "@/features/categories/hooks/use-category-catalog";
+import { useCategoryColors } from "@/features/categories/hooks/use-category-colors";
 import type { CaptureOrigin } from "@/features/transactions/capture-origin";
 import { captureOriginHref } from "@/features/transactions/capture-origin";
 import { DeleteTransactionButton } from "@/features/transactions/components/delete-transaction-button";
@@ -38,8 +42,10 @@ import {
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
+import { AmountInput } from "@/shared/components/form/amount-input";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button, linkActionClass } from "@/shared/components/ui/button";
+import { Card } from "@/shared/components/ui/card";
 import {
   Field,
   FieldDescription,
@@ -93,7 +99,6 @@ export type TransactionFormMode =
 
 interface TransactionFormProps {
   wallets: readonly WalletOption[];
-  categories: readonly CategoryOption[];
   /** Today in Asia/Bangkok, computed by the route. */
   today: CalendarDate;
   mode: TransactionFormMode;
@@ -216,6 +221,15 @@ function SaveLabel({
   );
 }
 
+/** One group of fields on a card over the ground. */
+function FormCard({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <Card className="px-5 sm:px-7 sm:py-7">
+      <FieldGroup>{children}</FieldGroup>
+    </Card>
+  );
+}
+
 interface FixedLabelProps {
   children: React.ReactNode;
 }
@@ -237,32 +251,35 @@ interface LinkedExpenseChipProps {
 
 /** The refunded expense read back: category, date, amount, and what is left. */
 function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
+  const colorOf = useCategoryColors();
   return (
     <Link
       to="/transactions/$transactionId"
       params={{ transactionId: expense.id }}
       aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${expense.refundAllowanceLabel} left to refund. Open the expense.`}
-      className="flex min-h-14 min-w-0 items-center gap-3 rounded-xl border px-3 py-2 outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="flex min-h-16 min-w-0 items-center gap-3.5 rounded-xl bg-muted px-3 py-2.5 outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/45 motion-reduce:transition-none"
     >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-        <CategoryIcon iconId={expense.categoryIconId} className="size-5" />
-      </span>
+      <CategoryTile
+        color={expense.categoryId ? colorOf(expense.categoryId) : "neutral"}
+      >
+        <CategoryIcon iconId={expense.categoryIconId} />
+      </CategoryTile>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="block truncate font-medium text-sm leading-snug">
-          <span className="text-muted-foreground">Refund of</span>{" "}
+        <span className="wrap-break-word block font-semibold text-base leading-snug">
+          <span className="font-normal text-muted-foreground">Refund of</span>{" "}
           {expense.categoryLabel}
         </span>
         <span className="wrap-break-word block text-muted-foreground text-sm">
           <span className="money" translate="no">
             −{expense.amountLabel}
           </span>{" "}
-          · {formatCalendarDate(expense.transactionDate)} ·{" "}
-          <span className="whitespace-nowrap">
-            <span className="money" translate="no">
-              {expense.refundAllowanceLabel}
-            </span>{" "}
-            left
-          </span>
+          · {formatCalendarDate(expense.transactionDate)}
+        </span>
+        <span className="block font-semibold text-secondary-foreground text-sm">
+          <span className="money" translate="no">
+            {expense.refundAllowanceLabel}
+          </span>{" "}
+          left to refund
         </span>
       </span>
       <ChevronRight
@@ -309,7 +326,7 @@ function TransactionTypeField({
     return (
       <Field className="min-w-0">
         <FixedLabel>Type</FixedLabel>
-        <p className="flex h-11 items-center font-medium">Refund</p>
+        <p className="flex min-h-6 items-center font-semibold">Refund</p>
         <LinkedExpenseChip expense={linked} />
         <FieldDescription>
           {editing
@@ -323,7 +340,7 @@ function TransactionTypeField({
     return (
       <Field>
         <FixedLabel>Type</FixedLabel>
-        <p className="flex h-11 items-center font-medium">
+        <p className="flex min-h-6 items-center font-semibold">
           {TRANSACTION_TYPE_LABELS[editing.type]}
         </p>
         <FieldDescription>
@@ -338,30 +355,18 @@ function TransactionTypeField({
 
 export function TransactionForm({
   wallets,
-  categories: initialCategories,
   today: initialToday,
   mode,
 }: Readonly<TransactionFormProps>) {
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
+  const { categories, colorOf } = useCategoryCatalog();
   const editing = mode.kind === "edit" ? mode.transaction : undefined;
   const linked = mode.kind === "refund" ? mode.expense : editing?.refundOf;
   const linkedExpense = useMemo(() => limitsOf(linked), [linked]);
   const cancelHref = cancelHrefFor(mode);
   const originalArchived =
     mode.kind === "refund" && mode.expense.wallet.archived;
-  const [categories, setCategories] = useState(initialCategories);
-
-  function addCategories({
-    category,
-    createdParent,
-  }: Readonly<CreateCategoryOutcome>) {
-    setCategories((current) => [
-      ...current,
-      ...(createdParent ? [createdParent] : []),
-      category,
-    ]);
-  }
 
   useEffect(() => {
     const element = formRef.current;
@@ -410,7 +415,7 @@ export function TransactionForm({
     <form
       ref={formRef}
       noValidate
-      className="flex flex-col gap-8"
+      className="flex flex-col gap-6 sm:gap-8"
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -420,8 +425,13 @@ export function TransactionForm({
       {serverError && (
         <div
           role="alert"
-          className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive text-sm"
+          className="flex items-start gap-3 rounded-2xl bg-destructive/10 px-4 py-3 text-destructive text-sm leading-normal"
         >
+          <CircleAlert
+            aria-hidden="true"
+            strokeWidth={1.75}
+            className="mt-0.5 size-4 shrink-0"
+          />
           {serverError}
         </div>
       )}
@@ -429,7 +439,7 @@ export function TransactionForm({
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
           <fieldset disabled={isPending || isSubmitting} className="contents">
-            <FieldGroup>
+            <FormCard>
               <form.Field name="amount">
                 {(field) => {
                   const serverFieldError = fieldErrors.amount;
@@ -438,48 +448,29 @@ export function TransactionForm({
                   return (
                     <Field data-invalid={invalid}>
                       <FieldLabel htmlFor={field.name}>Amount</FieldLabel>
-                      <div className="relative">
-                        <span
-                          aria-hidden="true"
-                          className="money pointer-events-none absolute inset-y-0 left-5 flex items-center text-muted-foreground text-xl"
-                        >
-                          ฿
-                        </span>
-                        <Input
-                          id={field.name}
-                          name={field.name}
-                          type="text"
-                          inputMode="decimal"
-                          autoComplete="off"
-                          autoFocus={!editing}
-                          onFocus={(event) => {
-                            if (mode.kind === "refund") {
-                              event.currentTarget.select();
-                            }
-                          }}
-                          enterKeyHint="done"
-                          placeholder="0.00"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(event) => {
-                            clearFieldError("amount");
-                            field.handleChange(event.target.value);
-                          }}
-                          aria-invalid={invalid}
-                          aria-describedby={
-                            invalid
-                              ? "amount-description amount-error"
-                              : "amount-description"
+                      <AmountInput
+                        id={field.name}
+                        name={field.name}
+                        autoFocus={!editing}
+                        onFocus={(event) => {
+                          if (mode.kind === "refund") {
+                            event.currentTarget.select();
                           }
-                          className="money h-16 pr-16 pl-11 text-3xl text-foreground sm:h-16 md:text-3xl"
-                        />
-                        <span
-                          aria-hidden="true"
-                          className="pointer-events-none absolute inset-y-0 right-5 flex items-center font-medium text-muted-foreground text-sm"
-                        >
-                          THB
-                        </span>
-                      </div>
+                        }}
+                        enterKeyHint="done"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => {
+                          clearFieldError("amount");
+                          field.handleChange(event.target.value);
+                        }}
+                        aria-invalid={invalid}
+                        aria-describedby={
+                          invalid
+                            ? "amount-description amount-error"
+                            : "amount-description"
+                        }
+                      />
                       <FieldDescription id="amount-description">
                         {linked ? (
                           <>
@@ -519,7 +510,9 @@ export function TransactionForm({
                   )}
                 </form.Field>
               </TransactionTypeField>
+            </FormCard>
 
+            <FormCard>
               <form.Subscribe selector={(state) => state.values.type}>
                 {(type) => (
                   <form.Field name="walletId">
@@ -623,13 +616,20 @@ export function TransactionForm({
                     return (
                       <Field>
                         <FixedLabel>Category</FixedLabel>
-                        <p className="flex min-h-11 items-center gap-3 font-medium">
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                        <p className="flex min-h-11 items-center gap-3 font-semibold">
+                          <CategoryTile
+                            color={
+                              linked.categoryId
+                                ? colorOf(linked.categoryId)
+                                : "neutral"
+                            }
+                            className="size-9 rounded-md"
+                          >
                             <CategoryIcon
                               iconId={linked.categoryIconId}
                               className="size-4"
                             />
-                          </span>
+                          </CategoryTile>
                           {linked.categoryLabel}
                         </p>
                         <FieldDescription>
@@ -673,7 +673,10 @@ export function TransactionForm({
                                     : "transfer-description"
                                 }
                               />
-                              <FieldDescription id="transfer-description">
+                              <FieldDescription
+                                id="transfer-description"
+                                className="text-[0.8125rem] leading-snug"
+                              >
                                 {wallets.length < 2
                                   ? "Transfers need two active wallets."
                                   : "Record any transfer fee as a separate expense."}
@@ -713,18 +716,13 @@ export function TransactionForm({
                               Category
                             </FieldLabel>
                             <CategoryPicker
+                              key={type}
                               id={field.name}
                               kind={type}
-                              categories={categories}
                               value={field.state.value}
                               onSelect={(categoryId) => {
                                 clearFieldError("categoryId");
                                 field.handleChange(categoryId);
-                              }}
-                              onCreated={(outcome) => {
-                                clearFieldError("categoryId");
-                                addCategories(outcome);
-                                field.handleChange(outcome.category.id);
                               }}
                               aria-labelledby="categoryId-label"
                               aria-describedby={
@@ -848,7 +846,7 @@ export function TransactionForm({
                   );
                 }}
               </form.Field>
-            </FieldGroup>
+            </FormCard>
           </fieldset>
         )}
       </form.Subscribe>
@@ -878,7 +876,7 @@ export function TransactionForm({
             />
           );
           return (
-            <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-backdrop-filter:bg-background/80 sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+            <div className="fixed inset-x-0 bottom-0 z-20 border-border border-t bg-chrome/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-backdrop-filter:bg-chrome/85 sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
               <div className="mx-auto flex w-full max-w-md flex-col gap-3 sm:max-w-none">
                 <Button
                   type="submit"
@@ -953,9 +951,10 @@ function DateChip({ selected, onClick, children }: Readonly<DateChipProps>) {
       className={cn(
         "h-11 px-4",
         selected &&
-          "border-primary/40 bg-primary/5 text-primary hover:bg-primary/10",
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary",
       )}
     >
+      {selected && <Check aria-hidden="true" strokeWidth={2.25} />}
       {children}
     </Button>
   );
@@ -1026,7 +1025,7 @@ function WalletSelect({
             className="min-h-14"
           >
             <span className="flex items-center gap-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
                 <WalletTypeIcon type={wallet.type} className="size-4" />
               </span>
               <span className="flex min-w-0 flex-col">

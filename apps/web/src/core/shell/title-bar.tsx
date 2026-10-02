@@ -13,7 +13,7 @@ function BackAnchor({ className, ...props }: Readonly<BackAnchorProps>) {
     <a
       {...props}
       className={cn(
-        "-ml-2 flex size-11 shrink-0 items-center justify-center rounded-full text-foreground outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "-ml-2 flex size-11 shrink-0 items-center justify-center rounded-full text-foreground outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/45",
         className,
       )}
     >
@@ -65,10 +65,10 @@ export function TitleBar({ title, back, actions }: Readonly<TitleBarProps>) {
   return (
     <div
       data-scrolled={scrolled || undefined}
-      className="sticky top-0 z-10 -mx-4 flex min-h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-2 border-transparent border-b bg-background px-4 pt-[env(safe-area-inset-top)] data-scrolled:border-border sm:static sm:mx-0 sm:min-h-0 sm:border-0 sm:px-0 sm:pt-0"
+      className="sticky top-0 z-10 -mx-4 flex min-h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-2 border-transparent border-b bg-chrome px-4 pt-[env(safe-area-inset-top)] data-scrolled:border-border sm:static sm:mx-0 sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0"
     >
       {back}
-      <h1 className="wrap-break-word min-w-0 flex-1 font-semibold text-2xl tracking-tight">
+      <h1 className="wrap-break-word min-w-0 flex-1 font-bold text-[1.625rem] leading-tight tracking-[-0.02em] sm:text-3xl">
         {title}
       </h1>
       {actions && (

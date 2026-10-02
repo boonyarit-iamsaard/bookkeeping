@@ -3,17 +3,21 @@ import {
   formatCalendarDate,
   formatInstant,
 } from "@bookkeeping/domain/dates";
-import { formatMoney } from "@bookkeeping/domain/money";
 import { Link } from "@tanstack/react-router";
-import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryLabel } from "@/features/categories/category-search";
-import { CategoryIcon } from "@/features/categories/components/category-icon";
+import {
+  CategoryIcon,
+  CategoryTile,
+} from "@/features/categories/components/category-icon";
+import { useCategoryColors } from "@/features/categories/hooks/use-category-colors";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
 } from "@/features/transactions/transaction-labels";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
+import { DisplayFigure } from "@/shared/components/display-figure";
+import { listCardClass } from "@/shared/components/list-section";
 import { Money } from "@/shared/components/money";
 
 type ApiTransaction = components["schemas"]["Transaction"];
@@ -37,55 +41,36 @@ function walletTerm(transaction: Readonly<ApiTransaction>) {
 export function TransactionDetailView({
   transaction,
 }: Readonly<TransactionDetailViewProps>) {
+  const colorOf = useCategoryColors();
   return (
     <div className="flex flex-col gap-8">
-      <section aria-labelledby="transaction-amount-heading">
-        <h2 id="transaction-amount-heading" className="sr-only">
-          Amount
-        </h2>
-        <p className="text-4xl leading-none sm:text-5xl">
-          <Money
-            amount={transaction.amount}
-            sign={TRANSACTION_TYPE_SIGNS[transaction.type]}
-            display
-          />
-        </p>
-        <p className="mt-2 text-muted-foreground text-sm">
-          {TRANSACTION_TYPE_LABELS[transaction.type]} ·{" "}
-          {formatCalendarDate(transaction.transactionDate)}
-        </p>
-      </section>
+      <DisplayFigure
+        amount={transaction.amount}
+        sign={TRANSACTION_TYPE_SIGNS[transaction.type]}
+        heading="Amount"
+        headingId="transaction-amount-heading"
+        caption={`${TRANSACTION_TYPE_LABELS[transaction.type]} · ${formatCalendarDate(transaction.transactionDate)}`}
+      />
 
-      <dl className="-mx-4 divide-y sm:mx-0">
+      <dl className={listCardClass}>
         {transaction.refundOf && (
           <Row term="Refund of">
             <Link
               to="/transactions/$transactionId"
               params={{ transactionId: transaction.refundOf.id }}
-              className="underline underline-offset-4"
+              className="font-semibold text-link underline underline-offset-4"
             >
-              <span className="money" translate="no">
-                −
-                {formatMoney({
-                  amountInMinorUnits: parseApiMoney(
-                    transaction.refundOf.amount,
-                  ),
-                  currency: transaction.refundOf.amount.currency,
-                })}
-              </span>{" "}
-              on {formatCalendarDate(transaction.refundOf.transactionDate)}
+              <Money amount={transaction.refundOf.amount} sign="−" /> on{" "}
+              {formatCalendarDate(transaction.refundOf.transactionDate)}
             </Link>
           </Row>
         )}
         {transaction.category && (
           <Row term="Category">
             <span className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                <CategoryIcon
-                  iconId={transaction.category.iconId}
-                  className="size-5"
-                />
-              </span>
+              <CategoryTile color={colorOf(transaction.category.id)}>
+                <CategoryIcon iconId={transaction.category.iconId} />
+              </CategoryTile>
               {categoryLabel(transaction.category)}
             </span>
           </Row>
@@ -133,11 +118,11 @@ interface RowProps {
 
 function Row({ term, children }: Readonly<RowProps>) {
   return (
-    <div className="flex min-h-16 flex-col justify-center gap-0.5 px-4 py-3 sm:flex-row sm:items-center sm:justify-start sm:gap-6 sm:px-0">
+    <div className="flex min-h-16 flex-col justify-center gap-0.5 px-5 py-3 sm:flex-row sm:items-center sm:justify-start sm:gap-6 sm:px-7">
       <dt className="text-muted-foreground text-sm sm:w-28 sm:shrink-0">
         {term}
       </dt>
-      <dd className="wrap-break-word min-w-0 font-medium">{children}</dd>
+      <dd className="wrap-break-word min-w-0 font-semibold">{children}</dd>
     </div>
   );
 }

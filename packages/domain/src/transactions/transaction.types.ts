@@ -119,3 +119,51 @@ export interface MonthlySummary {
   net: bigint;
   transactionCount: number;
 }
+
+/** One child category's Category spending for a month; it may be negative. */
+export interface ChildCategorySpending {
+  id: string;
+  name: string;
+  sortOrder: number;
+  spending: bigint;
+}
+
+/** One expense parent's Category spending for a month; it may be negative. */
+export interface ParentCategorySpending {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isUncategorized: boolean;
+  /** The parent's own amount plus every child's. */
+  spending: bigint;
+  /** The amount filed directly on the parent rather than a child. */
+  directSpending: bigint;
+  /** Children with activity in the month, in category order. */
+  children: readonly ChildCategorySpending[];
+}
+
+export interface CategorySpending {
+  month: string;
+  /** The sum of every parent's spending: the month's Net expenses. */
+  netExpenses: bigint;
+  /** Parents with activity in the month, in category order, Uncategorized last. */
+  parents: readonly ParentCategorySpending[];
+}
+
+/** The total Closing balance at the end of one calendar date. */
+export interface ClosingBalanceEntry {
+  date: CalendarDate;
+  /** Every opened wallet's Closing balance summed; null before any opened. */
+  total: bigint | null;
+  /**
+   * The requested wallet's Closing balance; null before its opening date,
+   * absent when no wallet was requested.
+   */
+  wallet?: bigint | null;
+}
+
+export interface ClosingBalances {
+  month: string;
+  /** The month's days through today in Bangkok, oldest first; none for a future month. */
+  entries: readonly ClosingBalanceEntry[];
+}

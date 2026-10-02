@@ -14,10 +14,7 @@ import { HistoryErrorBoundary } from "@/features/transactions/components/history
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { editableTransaction } from "@/features/transactions/editable-transaction";
-import type {
-  CategoryOption,
-  WalletOption,
-} from "@/features/transactions/hooks/use-transaction-form";
+import type { WalletOption } from "@/features/transactions/hooks/use-transaction-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
 import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
 import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
@@ -73,8 +70,7 @@ function EditTransactionPage() {
     transactionQueries.detail(transactionId),
   );
   const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
-  const { data: categoryCollection } = useSuspenseQuery(categoryQueries.list());
-  if (!transaction || !walletCollection || !categoryCollection) {
+  if (!transaction || !walletCollection) {
     throw new Error("The transaction edit queries returned no data");
   }
 
@@ -112,11 +108,7 @@ function EditTransactionPage() {
           </Link>
         }
       />
-      <EditTransactionForm
-        transaction={transaction}
-        wallets={wallets}
-        categories={categoryCollection.items}
-      />
+      <EditTransactionForm transaction={transaction} wallets={wallets} />
     </Page>
   );
 }
@@ -124,7 +116,6 @@ function EditTransactionPage() {
 interface EditTransactionFormProps {
   transaction: Transaction;
   wallets: readonly WalletOption[];
-  categories: readonly CategoryOption[];
 }
 
 /** A refund shows its expense; an expense shows what it has refunded. */
@@ -180,14 +171,12 @@ interface EditFormProps extends EditTransactionFormProps {
 function EditForm({
   transaction,
   wallets,
-  categories,
   refundOf,
   refunds,
 }: Readonly<EditFormProps>) {
   return (
     <TransactionForm
       wallets={wallets}
-      categories={categories}
       today={todayIn({ timeZone: APP_TIME_ZONE })}
       mode={{
         kind: "edit",

@@ -6,7 +6,7 @@ import { and, eq } from "drizzle-orm";
 import type { Auth } from "./config";
 
 /** Better Auth's provider id for the email/password credential. */
-const PASSWORD_PROVIDER_ID = "credential";
+const CREDENTIAL_PROVIDER_ID = "credential";
 
 export interface ResetPasswordInput {
   auth: Auth;
@@ -41,7 +41,7 @@ export async function resetPassword({
       and(
         // Better Auth lowercases emails when it stores and looks them up.
         eq(users.email, email.toLowerCase()),
-        eq(accounts.providerId, PASSWORD_PROVIDER_ID),
+        eq(accounts.providerId, CREDENTIAL_PROVIDER_ID),
       ),
     );
   if (!credential) {
@@ -63,7 +63,7 @@ export async function resetPassword({
       .where(
         and(
           eq(accounts.userId, userId),
-          eq(accounts.providerId, PASSWORD_PROVIDER_ID),
+          eq(accounts.providerId, CREDENTIAL_PROVIDER_ID),
         ),
       );
     await tx.delete(sessions).where(eq(sessions.userId, userId));

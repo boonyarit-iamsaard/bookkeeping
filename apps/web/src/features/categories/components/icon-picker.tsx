@@ -1,7 +1,8 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { useId, useMemo, useState } from "react";
+import type { CategoryColor } from "@/features/categories/category-color";
 import { suggestIcons } from "@/features/categories/icon-suggestions";
 import type { IconDefinition } from "@/features/categories/icons";
 import {
@@ -15,6 +16,8 @@ import { cn } from "@/shared/helpers/cn";
 interface IconPickerProps {
   /** The category name the recommendations follow. */
   name: string;
+  /** The hue the category wears, so the chosen icon previews its tile. */
+  color: CategoryColor;
   value: string;
   /** Called only for a pick by hand; recommendations are applied by the owner. */
   onChange: (iconId: string) => void;
@@ -38,6 +41,7 @@ export function iconLabel(icon: IconDefinition): string {
  */
 export function IconPicker({
   name,
+  color,
   value,
   onChange,
   disabled,
@@ -64,13 +68,14 @@ export function IconPicker({
         role="radiogroup"
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}
-        className="flex flex-wrap gap-2"
+        className="flex flex-wrap gap-2 pt-1.5 pr-1.5"
       >
         {shortlist.map((icon) => (
           <IconChoice
             key={icon.id}
             icon={icon}
             groupName={groupName}
+            color={color}
             checked={icon.id === selected.id}
             disabled={disabled}
             onPick={onChange}
@@ -84,7 +89,8 @@ export function IconPicker({
       </p>
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
+        className="self-start"
         aria-expanded={browsing}
         aria-controls={browseId}
         disabled={disabled}
@@ -93,6 +99,7 @@ export function IconPicker({
         {browsing ? "Hide all icons" : "Browse all icons"}
         <ChevronDown
           aria-hidden="true"
+          data-icon="inline-end"
           strokeWidth={1.75}
           className={cn("size-4", browsing && "rotate-180")}
         />
@@ -102,7 +109,7 @@ export function IconPicker({
           id={browseId}
           role="radiogroup"
           aria-label="All icons"
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-5 pt-1"
         >
           {ICON_GROUPS.map((group) => (
             <section
@@ -110,15 +117,16 @@ export function IconPicker({
               aria-label={group.label}
               className="flex flex-col gap-2"
             >
-              <h4 className="font-medium text-muted-foreground text-sm">
+              <h4 className="font-semibold text-muted-foreground text-sm">
                 {group.label}
               </h4>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-1.5 pr-1.5">
                 {iconsInGroup(group.id).map((icon) => (
                   <IconChoice
                     key={icon.id}
                     icon={icon}
                     groupName={browseGroupName}
+                    color={color}
                     checked={icon.id === selected.id}
                     disabled={disabled}
                     onPick={onChange}
@@ -136,18 +144,22 @@ export function IconPicker({
 interface IconChoiceProps {
   icon: IconDefinition;
   groupName: string;
+  color: CategoryColor;
   checked: boolean;
   disabled?: boolean;
   onPick: (iconId: string) => void;
 }
 
 /**
- * A native radio behind a 44px disc, so arrow keys walk the group and the
- * checked one takes the cobalt selection ring and glyph.
+ * A native radio behind a 44px Mist tile. Arrow keys walk the group; the
+ * checked one becomes the category's own tile, in its hue, so it previews
+ * the row, and takes an Iris outline and a check badge, so selection is
+ * never the hue alone.
  */
 function IconChoice({
   icon,
   groupName,
+  color,
   checked,
   disabled,
   onPick,
@@ -155,7 +167,7 @@ function IconChoice({
   const Glyph = icon.glyph;
   const label = iconLabel(icon);
   return (
-    <label className="relative block size-11" title={label}>
+    <label data-hue={color} className="relative block size-11" title={label}>
       <input
         type="radio"
         name={groupName}
@@ -164,19 +176,27 @@ function IconChoice({
         disabled={disabled}
         onChange={() => onPick(icon.id)}
         aria-label={label}
-        className="peer absolute inset-0 size-full cursor-pointer appearance-none rounded-full disabled:cursor-not-allowed"
+        className="peer absolute inset-0 size-full cursor-pointer appearance-none rounded-lg disabled:cursor-not-allowed"
       />
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none flex size-11 items-center justify-center rounded-full border border-transparent bg-muted text-foreground transition-colors peer-focus-visible:border-ring peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-disabled:opacity-50 motion-reduce:transition-none",
+          "pointer-events-none flex size-11 items-center justify-center rounded-lg transition-[background-color,color] duration-150 ease-out peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/45 peer-disabled:opacity-50 motion-reduce:transition-none",
           checked
-            ? "border-primary/40 bg-primary/5 text-primary"
-            : "peer-hover:bg-input/60",
+            ? "hue-tile outline-2 outline-primary outline-offset-2"
+            : "bg-muted text-foreground peer-hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]",
         )}
       >
         <Glyph strokeWidth={1.75} className="size-5" />
       </span>
+      {checked && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-1.5 -right-1.5 flex size-4.5 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-card"
+        >
+          <Check strokeWidth={3} className="size-3" />
+        </span>
+      )}
     </label>
   );
 }

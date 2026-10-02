@@ -3,17 +3,17 @@ import { cn } from "@/shared/helpers/cn";
 
 interface AccountDiscProps {
   email: string;
-  /** The disc's size; the header's is 28px, Home's title bar's 32px. */
+  /** The disc's size; the header's is 36px, Home's title bar's 32px. */
   className: string;
 }
 
-/** The Mist initial disc both account controls lead with; decorative, since each trigger names the email. */
+/** The tonal Iris initial disc both account controls lead with; decorative, since each trigger names the email. */
 export function AccountDisc({ email, className }: Readonly<AccountDiscProps>) {
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-muted font-medium text-foreground text-sm",
+        "flex shrink-0 items-center justify-center rounded-full bg-secondary font-bold text-secondary-foreground text-sm",
         className,
       )}
     >

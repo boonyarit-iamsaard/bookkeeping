@@ -5,9 +5,10 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-// DESIGN.md Paper as sRGB hex: manifest parsers do not all read oklch. The
-// status bar matches the page, so theme and background are both Paper.
-const PAPER = "#ffffff";
+// The light chrome as sRGB hex: manifest parsers do not all read oklch. A
+// manifest holds one scheme, so it takes light; `syncThemeColor` switches
+// the page meta for dark.
+const CHROME = "#ffffff";
 
 export default defineConfig({
   plugins: [
@@ -27,8 +28,8 @@ export default defineConfig({
         start_url: "/",
         scope: "/",
         display: "standalone",
-        theme_color: PAPER,
-        background_color: PAPER,
+        theme_color: CHROME,
+        background_color: CHROME,
         icons: [
           { src: "pwa-64x64.png", sizes: "64x64", type: "image/png" },
           { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },

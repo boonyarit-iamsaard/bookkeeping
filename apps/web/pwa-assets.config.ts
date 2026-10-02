@@ -1,11 +1,11 @@
 import { defineConfig } from "@vite-pwa/assets-generator/config";
 
-// Cobalt from DESIGN.md, as sRGB hex because sharp cannot read oklch.
-const COBALT = "#1f5ed9";
+// Midnight, the icon's ground, as sRGB hex because sharp cannot read oklch.
+const MIDNIGHT = "#242047";
 
-// The source is a cobalt disc, so padding the maskable and Apple icons on a
-// cobalt ground yields a full-bleed square with the monogram inside the safe
-// zone; the transparent icons keep the disc as drawn.
+// The source is a Midnight squircle, so padding the maskable and Apple icons
+// on a Midnight ground yields a full-bleed square with the mark inside the
+// safe zone; the transparent icons keep the squircle as drawn.
 export default defineConfig({
   headLinkOptions: { preset: "2023" },
   preset: {
@@ -17,12 +17,12 @@ export default defineConfig({
     maskable: {
       sizes: [512],
       padding: 0.1,
-      resizeOptions: { background: COBALT },
+      resizeOptions: { background: MIDNIGHT },
     },
     apple: {
       sizes: [180],
       padding: 0.1,
-      resizeOptions: { background: COBALT },
+      resizeOptions: { background: MIDNIGHT },
     },
   },
   images: ["public/icon.svg"],

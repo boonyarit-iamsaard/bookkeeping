@@ -4,6 +4,7 @@ import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { cn } from "cn";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import type * as React from "react";
+import { fieldControlClass } from "@/shared/components/ui/input";
 
 /**
  * The app's choice control, shaped like its inputs: a 44px capsule trigger
@@ -54,7 +55,8 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "group/select-trigger flex h-11 w-full min-w-0 items-center gap-2 rounded-4xl border border-input bg-input/30 py-1 pr-4 pl-4 text-base text-foreground outline-none transition-colors hover:bg-input/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20 data-popup-open:bg-input/50 md:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        fieldControlClass,
+        "group/select-trigger flex items-center gap-2 py-1 pr-3.5 pl-3.5 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         className,
       )}
       {...props}
@@ -111,13 +113,12 @@ function SelectContent({
           data-slot="select-content"
           data-align-trigger={alignItemWithTrigger}
           className={cn(
-            // The same floating surface as the dropdown menu: a 14px-corner
-            // Paper box on a hairline with one soft offset shadow, appearing
-            // without animating.
+            // The same floating surface as the dropdown menu: a 16px-corner
+            // card lifted by the float shadow, appearing without animating.
             // The popup clips; the List beneath is the scroll container, so
             // Base UI can hide its scrollbar behind the edge arrows and the
             // rounded corners stay closed.
-            "relative isolate z-50 flex max-h-[min(var(--available-height),26rem)] w-(--anchor-width) min-w-48 flex-col overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-[0_2px_4px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.08)] outline-none",
+            "relative isolate z-50 flex max-h-[min(var(--available-height),26rem)] w-(--anchor-width) min-w-48 flex-col overflow-hidden rounded-xl bg-popover text-popover-foreground shadow-float outline-none",
             className,
           )}
           {...props}
@@ -156,7 +157,7 @@ function SelectItem({
       data-slot="select-item"
       className={cn(
         // 44px options below 640px; 40px from 640px.
-        "relative flex min-h-11 w-full cursor-default select-none items-center gap-3 rounded-lg py-2 pr-10 pl-3 text-sm outline-hidden focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-highlighted:bg-accent data-selected:font-medium data-highlighted:text-accent-foreground data-disabled:opacity-50 sm:min-h-10 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "relative flex min-h-11 w-full cursor-default select-none items-center gap-3 rounded-md py-2 pr-10 pl-3 text-sm outline-hidden focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-highlighted:bg-accent data-selected:font-semibold data-highlighted:text-accent-foreground data-disabled:opacity-50 sm:min-h-10 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         className,
       )}
       {...props}
@@ -166,7 +167,7 @@ function SelectItem({
       </SelectPrimitive.ItemText>
       <SelectPrimitive.ItemIndicator
         render={
-          <span className="pointer-events-none absolute right-3 flex size-4 items-center justify-center text-primary" />
+          <span className="pointer-events-none absolute right-3 flex size-4 items-center justify-center text-link" />
         }
       >
         <Check aria-hidden="true" strokeWidth={2} />

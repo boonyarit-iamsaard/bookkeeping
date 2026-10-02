@@ -21,6 +21,7 @@ import {
   historySearchSchema,
   parseHistoryFilters,
 } from "@/features/transactions/history-schema";
+import { SavedNotice } from "@/shared/components/saved-notice";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 /** The page the address names, or null while its filters are invalid. */
@@ -91,12 +92,10 @@ function TransactionsPage() {
         values={search}
       />
       {justDeleted && (
-        <output className="rounded-xl border bg-muted px-4 py-3 text-sm leading-normal">
-          <span className="font-medium">Transaction deleted.</span>{" "}
-          <span className="text-muted-foreground">
-            It no longer counts toward any wallet balance.
-          </span>
-        </output>
+        <SavedNotice>
+          <span className="font-semibold">Transaction deleted.</span> It no
+          longer counts toward any wallet balance.
+        </SavedNotice>
       )}
       <TransactionHistory
         transactions={transactions}
@@ -111,7 +110,7 @@ function TransactionsPage() {
           className={buttonVariants({
             variant: "outline",
             size: "lg",
-            className: "self-start",
+            className: "w-full sm:w-auto sm:self-start",
           })}
         >
           Older transactions

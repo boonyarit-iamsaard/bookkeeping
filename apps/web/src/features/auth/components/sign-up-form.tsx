@@ -2,6 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import { useSignUpForm } from "@/features/auth/hooks/use-sign-up-form";
+import { ErrorNotice } from "@/shared/components/error-notice";
 import { Button, linkActionClass } from "@/shared/components/ui/button";
 import {
   Card,
@@ -18,14 +19,20 @@ import {
   FieldLabel,
 } from "@/shared/components/ui/field";
 import { Input } from "@/shared/components/ui/input";
+import { cn } from "@/shared/helpers/cn";
 
 export function SignUpForm(props: Readonly<React.ComponentProps<typeof Card>>) {
   const { form, serverError } = useSignUpForm();
 
   return (
-    <Card {...props}>
+    <Card
+      {...props}
+      className={cn("sm:[--card-spacing:--spacing(7)]", props.className)}
+    >
       <CardHeader>
-        <CardTitle>Create an account</CardTitle>
+        <CardTitle className="text-[1.625rem] leading-tight tracking-[-0.02em]">
+          Create an account
+        </CardTitle>
         <CardDescription>
           Enter your information below to create your account
         </CardDescription>
@@ -124,8 +131,8 @@ export function SignUpForm(props: Readonly<React.ComponentProps<typeof Card>>) {
             <form.Subscribe selector={(state) => state.isSubmitting}>
               {(isSubmitting) => (
                 <Field>
-                  <FieldError>{serverError}</FieldError>
-                  <Button type="submit" disabled={isSubmitting}>
+                  {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
+                  <Button type="submit" size="lg" disabled={isSubmitting}>
                     {isSubmitting ? "Creating account…" : "Create Account"}
                   </Button>
                   <FieldDescription className="text-center">

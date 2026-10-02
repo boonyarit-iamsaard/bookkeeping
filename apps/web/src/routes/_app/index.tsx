@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_app/")({
       context.queryClient.ensureQueryData(plan.wallets),
       context.queryClient.ensureQueryData(plan.monthly),
       context.queryClient.ensureQueryData(plan.recent),
+      context.queryClient.ensureQueryData(plan.categories),
     ]);
     return { initialToday };
   },

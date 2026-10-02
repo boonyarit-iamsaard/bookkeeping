@@ -46,6 +46,15 @@ describe("history filter chips", () => {
     ).toEqual(["From 0000-01-01", "gone", "7"]);
   });
 
+  test("marks a value the history rejects as invalid", () => {
+    expect(
+      historyFilterChips(
+        { from: "2026-09-01", walletId: "gone", type: "7" },
+        names,
+      ).map((chip) => chip.invalid),
+    ).toEqual([false, true, true]);
+  });
+
   test("has no chips without filters", () => {
     expect(historyFilterChips({ cursor: "x" }, names)).toEqual([]);
   });
