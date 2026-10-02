@@ -231,8 +231,8 @@ export function HistoryFilterChips({
             // match would mark every chip as the current page.
             activeOptions={{ exact: true, includeSearch: true }}
             aria-label={`Remove filter ${chip.label}`}
-            aria-describedby={
-              chip.invalid ? `invalid-chip-${chip.key}` : undefined
+            aria-description={
+              chip.invalid ? "Not a value the history accepts" : undefined
             }
             className={cn(
               "flex min-h-11 max-w-full items-center gap-1.5 rounded-full bg-secondary pr-3 pl-4 font-semibold text-secondary-foreground text-sm outline-none transition-colors duration-150 hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)] focus-visible:ring-[3px] focus-visible:ring-ring/45 motion-reduce:transition-none",
@@ -254,11 +254,6 @@ export function HistoryFilterChips({
               className="size-4 shrink-0"
             />
           </Link>
-          {chip.invalid && (
-            <span id={`invalid-chip-${chip.key}`} className="sr-only">
-              Not a value the history accepts
-            </span>
-          )}
         </li>
       ))}
     </ul>

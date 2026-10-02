@@ -8,7 +8,7 @@ const PAGE_LAYOUTS = {
   dashboard: "max-w-2xl pb-8 lg:max-w-5xl lg:px-6",
   wide: "max-w-2xl pb-8",
   narrow: "max-w-md pb-8",
-  entry: "max-w-md pb-40 sm:pb-12",
+  entry: "max-w-md pb-56 sm:pb-12",
 } as const;
 
 interface PageProps {

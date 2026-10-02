@@ -687,7 +687,10 @@ export function TransactionForm({
                                     : "transfer-description"
                                 }
                               />
-                              <FieldDescription id="transfer-description">
+                              <FieldDescription
+                                id="transfer-description"
+                                className="text-[0.8125rem] leading-snug"
+                              >
                                 {wallets.length < 2
                                   ? "Transfers need two active wallets."
                                   : "Record any transfer fee as a separate expense."}
