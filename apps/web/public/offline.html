@@ -3,19 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#1f5ed9" />
+    <meta name="theme-color" content="#f4f4fa" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/favicon.ico" />
     <title>Bookkeeping</title>
     <!-- Served by the service worker when a launch cannot reach the network,
-         so it carries its own styles: Paper ground, Ink text, one Cobalt action. -->
+         so it carries its own styles: the iris-tinted ground, one white card and
+         one Iris action, in light and dark. Offline, Inter cannot load, so the
+         system sans stands in on this one page. -->
     <style>
       :root {
-        --background: oklch(1 0 0);
-        --foreground: oklch(0.145 0 0);
-        --muted-foreground: oklch(0.556 0 0);
-        --primary: oklch(0.52 0.2 262);
-        --primary-foreground: oklch(0.985 0 0);
-        --ring: oklch(0.52 0.2 262);
+        --background: oklch(0.968 0.008 285);
+        --card: oklch(1 0 0);
+        --foreground: oklch(0.21 0.025 285);
+        --muted-foreground: oklch(0.5 0.022 285);
+        --primary: oklch(0.54 0.21 285);
+        --primary-foreground: oklch(1 0 0);
+        --ring: oklch(0.54 0.21 285);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: oklch(0.165 0.014 285);
+          --card: oklch(0.215 0.018 285);
+          --foreground: oklch(0.965 0.006 285);
+          --muted-foreground: oklch(0.73 0.02 285);
+          --primary: oklch(0.56 0.2 285);
+          --ring: oklch(0.7 0.15 285);
+        }
       }
       html {
         height: 100%;
@@ -31,23 +45,25 @@
         flex-direction: column;
       }
       main {
-        flex: 1;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: 24px;
-        padding: 24px 16px;
+        gap: 16px;
+        padding: 28px 24px;
         max-width: 28rem;
-        width: 100%;
+        width: calc(100% - 32px);
         box-sizing: border-box;
-        margin: 0 auto;
+        margin: auto;
+        flex: 0 1 auto;
+        border-radius: 20px;
+        background: var(--card);
       }
       h1 {
         margin: 0;
         font-size: 1.5rem;
         line-height: 2rem;
-        font-weight: 600;
-        letter-spacing: -0.025em;
+        font-weight: 700;
+        letter-spacing: -0.02em;
       }
       p {
         margin: 0;
@@ -59,16 +75,17 @@
         height: 48px;
         width: 100%;
         border: 0;
-        border-radius: 26px;
+        margin-top: 8px;
+        border-radius: 14px;
         background: var(--primary);
         color: var(--primary-foreground);
         font: inherit;
         font-size: 1rem;
-        font-weight: 500;
+        font-weight: 600;
         cursor: pointer;
       }
       button:hover {
-        background: color-mix(in oklch, var(--primary) 80%, transparent);
+        background: color-mix(in oklch, var(--primary), black 12%);
       }
       button:focus-visible {
         outline: none;

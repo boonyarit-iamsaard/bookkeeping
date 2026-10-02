@@ -783,6 +783,89 @@ describe("OpenAPI document", () => {
     );
   });
 
+  it("documents the category spending read", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const spending: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/reports/category-spending",
+    });
+
+    expect(spending.operationId).toBe("getCategorySpending");
+    expect(spending.parameters).toEqual([
+      expect.objectContaining({ in: "query", name: "month", required: true }),
+    ]);
+    expect(
+      documentedSchemaRef(spending, {
+        status: "200",
+        mediaType: "application/json",
+      }),
+    ).toBe("#/components/schemas/CategorySpending");
+    expectProblemResponses(spending, ["400", "401"]);
+
+    const spendingSchema = documentedSchema(document, "CategorySpending");
+    expect(spendingSchema.required).toEqual([
+      "month",
+      "netExpenses",
+      "parents",
+    ]);
+    expect(spendingSchema.properties?.netExpenses.$ref).toBe(
+      "#/components/schemas/Money",
+    );
+    const parentSchema = documentedSchema(document, "ParentCategorySpending");
+    expect(parentSchema.required).toEqual([
+      "id",
+      "name",
+      "sortOrder",
+      "isUncategorized",
+      "spending",
+      "directSpending",
+      "children",
+    ]);
+    expect(parentSchema.properties?.spending.$ref).toBe(
+      "#/components/schemas/Money",
+    );
+    expect(parentSchema.properties?.directSpending.$ref).toBe(
+      "#/components/schemas/Money",
+    );
+    const childSchema = documentedSchema(document, "ChildCategorySpending");
+    expect(childSchema.required).toEqual([
+      "id",
+      "name",
+      "sortOrder",
+      "spending",
+    ]);
+    expect(childSchema.properties?.spending.$ref).toBe(
+      "#/components/schemas/Money",
+    );
+  });
+
+  it("documents the closing balances read", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const balances: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/reports/closing-balances",
+    });
+
+    expect(balances.operationId).toBe("getClosingBalances");
+    expect(balances.parameters).toEqual([
+      expect.objectContaining({ in: "query", name: "month", required: true }),
+      expect.objectContaining({ in: "query", name: "walletId" }),
+    ]);
+    expect(balances.parameters?.[1]?.required).toBeUndefined();
+    expect(
+      documentedSchemaRef(balances, {
+        status: "200",
+        mediaType: "application/json",
+      }),
+    ).toBe("#/components/schemas/ClosingBalances");
+    expectProblemResponses(balances, ["400", "401", "404"]);
+
+    const balancesSchema = documentedSchema(document, "ClosingBalances");
+    expect(balancesSchema.required).toEqual(["month", "entries"]);
+    const entrySchema = documentedSchema(document, "ClosingBalanceEntry");
+    expect(entrySchema.required).toEqual(["date", "total"]);
+  });
+
   it("documents every registered route", async () => {
     const app = createUnitTestApp();
     const document = await fetchDocument(app);

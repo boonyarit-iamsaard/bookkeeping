@@ -1,4 +1,5 @@
 import { createLink, Link } from "@tanstack/react-router";
+import { AppMark } from "@/core/shell/app-mark";
 import type { CaptureLinkSearch } from "@/core/shell/capture-link-search";
 import { DESTINATIONS } from "@/core/shell/destinations";
 import { NavLink } from "@/core/shell/nav-link";
@@ -28,15 +29,16 @@ export function AppHeader({
   captureSearch,
 }: Readonly<AppHeaderProps>) {
   return (
-    <header className="border-b bg-background max-sm:hidden">
-      <div className="mx-auto flex h-14 w-full max-w-2xl items-center gap-3 px-4 md:gap-5">
+    <header className="sticky top-0 z-20 border-b bg-chrome/90 backdrop-blur-md max-sm:hidden">
+      <div className="mx-auto flex h-16 w-full max-w-2xl items-center gap-3 px-4 md:gap-5 lg:max-w-5xl lg:px-6">
         <WordmarkLink
           to="/"
-          className="font-semibold tracking-tight outline-none focus-visible:rounded-sm focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="flex shrink-0 items-center gap-2.5 rounded-md font-bold text-[1.0625rem] tracking-tight outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45"
         >
-          Bookkeeping
+          <AppMark className="size-8" />
+          <span className="max-md:sr-only">Bookkeeping</span>
         </WordmarkLink>
-        <nav aria-label="Primary" className="flex items-center">
+        <nav aria-label="Primary" className="flex items-center gap-1">
           {DESTINATIONS.map((destination) => (
             <NavLink key={destination.to} to={destination.to}>
               {destination.label}

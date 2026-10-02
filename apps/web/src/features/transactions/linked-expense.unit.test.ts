@@ -39,6 +39,7 @@ describe("linkedExpenseView", () => {
       id: "expense-1",
       amountLabel: "฿500.00",
       transactionDate: "2026-09-02",
+      categoryId: "category-1",
       categoryLabel: "Food & Drink › Groceries",
       categoryIconId: "shopping-cart",
       wallet: { id: "wallet-1", name: "Cash", archived: false },

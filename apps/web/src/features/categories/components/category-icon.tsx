@@ -1,4 +1,5 @@
 import type { LucideProps } from "lucide-react";
+import type { CategoryColor } from "@/features/categories/category-color";
 import { iconById } from "@/features/categories/icons";
 import { cn } from "@/shared/helpers/cn";
 
@@ -15,31 +16,52 @@ export function CategoryIcon({
   return <Icon aria-hidden="true" strokeWidth={1.75} {...props} />;
 }
 
-interface CategoryDiscProps {
-  iconId: string;
-  /** Children take the smaller disc so the hierarchy reads at a glance. */
-  size?: "parent" | "child";
+interface CategoryTileProps {
+  color: CategoryColor;
+  /** A child category in a tree steps down to the 36px tile. */
+  size?: "row" | "child";
+  children: React.ReactNode;
   className?: string;
 }
 
-/** The pictogram in its Mist disc, as every category row leads with it. */
-export function CategoryDisc({
-  iconId,
-  size = "parent",
+/**
+ * A row's leading pictogram on a rounded tile tinted with its category's
+ * color; neutral for Uncategorized and transfers. Decorative: the row names
+ * the category in text.
+ */
+export function CategoryTile({
+  color,
+  size = "row",
+  children,
   className,
-}: Readonly<CategoryDiscProps>) {
+}: Readonly<CategoryTileProps>) {
   return (
     <span
+      data-hue={color}
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-muted text-foreground",
-        size === "parent" ? "size-10" : "size-8",
+        "hue-tile flex shrink-0 items-center justify-center",
+        size === "row"
+          ? "size-11 rounded-lg [&_svg]:size-5"
+          : "size-9 rounded-md [&_svg]:size-4",
         className,
       )}
     >
-      <CategoryIcon
-        iconId={iconId}
-        className={size === "parent" ? "size-5" : "size-4"}
-      />
+      {children}
+    </span>
+  );
+}
+
+/**
+ * A child row's leading ›, centred in a 44px slot beneath its parent's
+ * tile so the tree reads at a glance. Decorative; the list says the level.
+ */
+export function ChildMarker() {
+  return (
+    <span
+      aria-hidden="true"
+      className="w-11 shrink-0 text-center text-lg text-muted-foreground leading-none"
+    >
+      ›
     </span>
   );
 }

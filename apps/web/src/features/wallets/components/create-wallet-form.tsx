@@ -9,8 +9,11 @@ import { useEffect, useRef } from "react";
 import { useCreateWalletForm } from "@/features/wallets/hooks/use-create-wallet-form";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
+import { ErrorNotice } from "@/shared/components/error-notice";
+import { AmountInput } from "@/shared/components/form/amount-input";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button } from "@/shared/components/ui/button";
+import { Card } from "@/shared/components/ui/card";
 import {
   Field,
   FieldDescription,
@@ -72,161 +75,143 @@ export function CreateWalletForm({
     <form
       ref={formRef}
       noValidate
-      className="flex flex-col gap-8"
+      className="flex flex-col gap-6 sm:gap-8"
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
         void form.handleSubmit();
       }}
     >
-      {serverError && (
-        <div
-          role="alert"
-          className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive text-sm"
-        >
-          {serverError}
-        </div>
-      )}
+      {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
 
-      <FieldGroup>
-        <form.Field name="name">
-          {(field) => {
-            const invalid =
-              !field.state.meta.isValid || Boolean(serverFieldErrors.name);
-            return (
-              <Field data-invalid={invalid}>
-                <FieldLabel htmlFor={field.name}>Name</FieldLabel>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  type="text"
-                  autoComplete="off"
-                  autoFocus
-                  placeholder="Kasikorn savings"
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  aria-invalid={invalid}
-                />
-                <FieldErrors
-                  id={`${field.name}-error`}
-                  serverError={serverFieldErrors.name}
-                  errors={field.state.meta.errors}
-                />
-              </Field>
-            );
-          }}
-        </form.Field>
-
-        <form.Field name="type">
-          {(field) => {
-            const invalid =
-              !field.state.meta.isValid || Boolean(serverFieldErrors.type);
-            return (
-              <Field data-invalid={invalid}>
-                <FieldLabel id="wallet-type-label">Type</FieldLabel>
-                <SegmentedControl
-                  name={field.name}
-                  aria-labelledby="wallet-type-label"
-                  options={TYPE_OPTIONS}
-                  value={field.state.value}
-                  onValueChange={field.handleChange}
-                />
-                <FieldErrors
-                  id={`${field.name}-error`}
-                  serverError={serverFieldErrors.type}
-                  errors={field.state.meta.errors}
-                />
-              </Field>
-            );
-          }}
-        </form.Field>
-
-        <form.Field name="openingAmount">
-          {(field) => {
-            const invalid =
-              !field.state.meta.isValid ||
-              Boolean(serverFieldErrors.openingAmount);
-            return (
-              <Field data-invalid={invalid}>
-                <FieldLabel htmlFor={field.name}>Opening balance</FieldLabel>
-                <div className="relative">
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-muted-foreground"
-                  >
-                    ฿
-                  </span>
+      <Card className="px-5 sm:px-7 sm:py-7">
+        <FieldGroup>
+          <form.Field name="name">
+            {(field) => {
+              const invalid =
+                !field.state.meta.isValid || Boolean(serverFieldErrors.name);
+              return (
+                <Field data-invalid={invalid}>
+                  <FieldLabel htmlFor={field.name}>Name</FieldLabel>
                   <Input
                     id={field.name}
                     name={field.name}
                     type="text"
-                    inputMode="decimal"
                     autoComplete="off"
-                    placeholder="0.00"
+                    autoFocus
+                    placeholder="Kasikorn savings"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    aria-invalid={invalid}
+                  />
+                  <FieldErrors
+                    id={`${field.name}-error`}
+                    serverError={serverFieldErrors.name}
+                    errors={field.state.meta.errors}
+                  />
+                </Field>
+              );
+            }}
+          </form.Field>
+
+          <form.Field name="type">
+            {(field) => {
+              const invalid =
+                !field.state.meta.isValid || Boolean(serverFieldErrors.type);
+              return (
+                <Field data-invalid={invalid}>
+                  <FieldLabel id="wallet-type-label">Type</FieldLabel>
+                  <SegmentedControl
+                    name={field.name}
+                    aria-labelledby="wallet-type-label"
+                    options={TYPE_OPTIONS}
+                    value={field.state.value}
+                    onValueChange={field.handleChange}
+                    // "Bank account" needs the room on a 360px card.
+                    optionClassName="max-sm:px-0.5 max-sm:text-[0.8125rem]"
+                  />
+                  <FieldErrors
+                    id={`${field.name}-error`}
+                    serverError={serverFieldErrors.type}
+                    errors={field.state.meta.errors}
+                  />
+                </Field>
+              );
+            }}
+          </form.Field>
+        </FieldGroup>
+      </Card>
+
+      <Card className="px-5 sm:px-7 sm:py-7">
+        <FieldGroup>
+          <form.Field name="openingAmount">
+            {(field) => {
+              const invalid =
+                !field.state.meta.isValid ||
+                Boolean(serverFieldErrors.openingAmount);
+              return (
+                <Field data-invalid={invalid}>
+                  <FieldLabel htmlFor={field.name}>Opening balance</FieldLabel>
+                  <AmountInput
+                    id={field.name}
+                    name={field.name}
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(event) => field.handleChange(event.target.value)}
                     aria-invalid={invalid}
                     aria-describedby="opening-amount-description"
-                    className="money h-12 pr-16 pl-9 text-foreground text-lg md:text-lg"
                   />
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-y-0 right-4 flex items-center font-medium text-muted-foreground text-sm"
-                  >
-                    THB
-                  </span>
-                </div>
-                <FieldDescription id="opening-amount-description">
-                  In Thai baht, to the satang. A negative balance is allowed.
-                </FieldDescription>
-                <FieldErrors
-                  id={`${field.name}-error`}
-                  serverError={serverFieldErrors.openingAmount}
-                  errors={field.state.meta.errors}
-                />
-              </Field>
-            );
-          }}
-        </form.Field>
+                  <FieldDescription id="opening-amount-description">
+                    In Thai baht, to the satang. A negative balance is allowed.
+                  </FieldDescription>
+                  <FieldErrors
+                    id={`${field.name}-error`}
+                    serverError={serverFieldErrors.openingAmount}
+                    errors={field.state.meta.errors}
+                  />
+                </Field>
+              );
+            }}
+          </form.Field>
 
-        <form.Field name="openingDate">
-          {(field) => {
-            const invalid =
-              !field.state.meta.isValid ||
-              Boolean(serverFieldErrors.openingDate);
-            return (
-              <Field data-invalid={invalid}>
-                <FieldLabel htmlFor={field.name}>Opening date</FieldLabel>
-                <DatePicker
-                  id={field.name}
-                  name={field.name}
-                  today={defaultOpeningDate}
-                  max={defaultOpeningDate}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={field.handleChange}
-                  invalid={invalid}
-                  aria-describedby="opening-date-description"
-                />
-                <FieldDescription id="opening-date-description">
-                  {describeOpeningDate(field.state.value)}
-                </FieldDescription>
-                <FieldErrors
-                  id={`${field.name}-error`}
-                  serverError={serverFieldErrors.openingDate}
-                  errors={field.state.meta.errors}
-                />
-              </Field>
-            );
-          }}
-        </form.Field>
-      </FieldGroup>
+          <form.Field name="openingDate">
+            {(field) => {
+              const invalid =
+                !field.state.meta.isValid ||
+                Boolean(serverFieldErrors.openingDate);
+              return (
+                <Field data-invalid={invalid}>
+                  <FieldLabel htmlFor={field.name}>Opening date</FieldLabel>
+                  <DatePicker
+                    id={field.name}
+                    name={field.name}
+                    today={defaultOpeningDate}
+                    max={defaultOpeningDate}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={field.handleChange}
+                    invalid={invalid}
+                    aria-describedby="opening-date-description"
+                  />
+                  <FieldDescription id="opening-date-description">
+                    {describeOpeningDate(field.state.value)}
+                  </FieldDescription>
+                  <FieldErrors
+                    id={`${field.name}-error`}
+                    serverError={serverFieldErrors.openingDate}
+                    errors={field.state.meta.errors}
+                  />
+                </Field>
+              );
+            }}
+          </form.Field>
+        </FieldGroup>
+      </Card>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
-          <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-backdrop-filter:bg-background/80 sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+          <div className="fixed inset-x-0 bottom-0 z-20 border-border border-t bg-chrome/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-backdrop-filter:bg-chrome/85 sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
             <div className="mx-auto flex w-full max-w-md flex-col gap-3 sm:max-w-none">
               <Button
                 type="submit"

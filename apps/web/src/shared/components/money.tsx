@@ -13,7 +13,10 @@ interface MoneyProps {
   className?: string;
 }
 
-/** A THB figure with tabular numerals, always two decimals. */
+/**
+ * A THB figure in bold Inter with tabular digits, always two decimals and a
+ * true minus sign, never rounded.
+ */
 export function Money({
   amount,
   sign = "",
@@ -42,11 +45,11 @@ export function Money({
       <span aria-hidden="true">
         {sign}
         {parts.sign}
-        <span className="font-medium text-[0.6em] text-muted-foreground">
+        <span className="mr-[0.08em] font-semibold text-[0.6em] opacity-70">
           {parts.symbol}
         </span>
         {parts.whole}
-        <span className="font-medium text-[0.6em] text-muted-foreground">
+        <span className="font-semibold text-[0.6em] opacity-70">
           .{parts.fraction}
         </span>
       </span>

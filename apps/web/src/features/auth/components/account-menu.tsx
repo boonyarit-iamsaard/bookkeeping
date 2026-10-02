@@ -37,9 +37,9 @@ export function AccountMenu({ email }: Readonly<AccountMenuProps>) {
       <DropdownMenuTrigger
         disabled={isPending}
         aria-label={isPending ? "Signing out…" : accountLabel(email)}
-        render={<Button variant="outline" className="size-9 p-0" />}
+        render={<Button variant="ghost" className="size-10 rounded-full p-0" />}
       >
-        <AccountDisc email={email} className="size-7" />
+        <AccountDisc email={email} className="size-9" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8}>
         <DropdownMenuGroup>
@@ -47,7 +47,9 @@ export function AccountMenu({ email }: Readonly<AccountMenuProps>) {
             <span className="block text-muted-foreground text-xs">
               Signed in as
             </span>
-            <span className="block font-medium text-foreground">{email}</span>
+            <span className="block break-all font-semibold text-foreground">
+              {email}
+            </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem

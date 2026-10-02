@@ -4,11 +4,16 @@ import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { RecentTransactions } from "@/features/home/components/recent-transactions";
 import { ThisMonth } from "@/features/home/components/this-month";
+import { WalletBalances } from "@/features/home/components/wallet-balances";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import { EmptyWallets } from "@/features/wallets/components/wallet-list";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
 import { walletCountLabel } from "@/features/wallets/wallet-labels";
+
+/** From 1024px the figures hold the left column and the rows the right. */
+export const HOME_COLUMNS_CLASS =
+  "flex flex-col gap-6 sm:gap-8 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start";
 
 interface HomeProps {
   /** The phone account control the route supplies; the header has its own from 640px. */
@@ -34,7 +39,7 @@ export function Home({
   const wallets = walletCollection.items;
 
   return (
-    <Page layout="wide">
+    <Page layout="dashboard">
       <TitleBar
         title="Home"
         actions={<div className="sm:hidden">{accountControl}</div>}
@@ -42,14 +47,18 @@ export function Home({
       {wallets.length === 0 ? (
         <EmptyWallets />
       ) : (
-        <>
-          <WalletsTotal
-            wallets={wallets}
-            caption={`Across ${walletCountLabel(wallets.length)}`}
-          />
-          <ThisMonth report={report} />
+        <div className={HOME_COLUMNS_CLASS}>
+          <div className="flex flex-col gap-6 sm:gap-8">
+            <WalletsTotal
+              wallets={wallets}
+              caption={`Across ${walletCountLabel(wallets.length)}`}
+            />
+            <ThisMonth report={report} />
+            {/* With one wallet the card would only repeat the total. */}
+            {wallets.length > 1 && <WalletBalances wallets={wallets} />}
+          </div>
           <RecentTransactions transactions={recent.items} savedId={savedId} />
-        </>
+        </div>
       )}
     </Page>
   );

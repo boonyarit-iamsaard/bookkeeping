@@ -6,29 +6,31 @@ import type {
   CategorySummary,
 } from "@bookkeeping/domain/categories";
 import { ArrowLeft, Check, ChevronDown, Plus, Search } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import type { CategoryColor } from "@/features/categories/category-color";
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
-import type { CreateCategoryOutcome } from "@/features/categories/category-mutations";
 import type { CategoryGroup } from "@/features/categories/category-search";
 import {
   categoryPath,
   searchCategories,
 } from "@/features/categories/category-search";
-import { CategoryIcon } from "@/features/categories/components/category-icon";
+import {
+  CategoryIcon,
+  CategoryTile,
+  ChildMarker,
+} from "@/features/categories/components/category-icon";
 import { CreateCategoryForm } from "@/features/categories/components/create-category-form";
+import { useCategoryCatalog } from "@/features/categories/hooks/use-category-catalog";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
+import { fieldControlClass, Input } from "@/shared/components/ui/input";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/helpers/cn";
 
 interface CategoryPickerProps {
   id: string;
   kind: CategoryKind;
-  categories: readonly CategorySummary[];
   value: string;
   onSelect: (categoryId: string) => void;
-  /** The saved category (and any parent saved with it); it is selected too. */
-  onCreated: (outcome: CreateCategoryOutcome) => void;
   "aria-labelledby": string;
   "aria-describedby"?: string;
   invalid?: boolean;
@@ -37,7 +39,12 @@ interface CategoryPickerProps {
 
 type View =
   | { name: "search" }
-  | { name: "create"; initialName: string; initialParentId?: string };
+  | {
+      name: "create";
+      initialName: string;
+      initialParentId?: string;
+      generation: number;
+    };
 
 /**
  * The Category row: a trigger that reads the current choice back, and one
@@ -49,10 +56,8 @@ type View =
 export function CategoryPicker({
   id,
   kind,
-  categories,
   value,
   onSelect,
-  onCreated,
   invalid,
   disabled,
   "aria-labelledby": labelledBy,
@@ -61,10 +66,31 @@ export function CategoryPicker({
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ name: "search" });
   const [query, setQuery] = useState("");
+  const generation = useRef(0);
+  const { categories, colorOf } = useCategoryCatalog();
   const valueId = `${id}-value`;
   const selected = categories.find((category) => category.id === value);
+  let selectedLabel = value
+    ? "Selected category is no longer available"
+    : "Choose a category";
+  if (selected) {
+    selectedLabel = categoryPath(selected, categories);
+  }
+
+  useEffect(
+    () => () => {
+      generation.current += 1;
+    },
+    [],
+  );
+
+  function backToSearch() {
+    generation.current += 1;
+    setView({ name: "search" });
+  }
 
   function openPanel(next: boolean) {
+    generation.current += 1;
     if (next) {
       setView({ name: "search" });
       setQuery("");
@@ -73,6 +99,7 @@ export function CategoryPicker({
   }
 
   function choose(categoryId: string) {
+    generation.current += 1;
     onSelect(categoryId);
     setOpen(false);
   }
@@ -85,16 +112,19 @@ export function CategoryPicker({
         aria-labelledby={`${labelledBy} ${valueId}`}
         aria-describedby={describedBy}
         aria-invalid={invalid}
-        className="flex h-11 w-full items-center gap-3 rounded-4xl border border-input bg-input/30 py-1 pr-4 pl-1.5 text-left text-base text-foreground outline-none transition-colors hover:bg-input/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20 md:text-sm"
+        className={cn(
+          fieldControlClass,
+          "flex h-auto min-h-11 items-center gap-3 py-1.5 pr-3.5 pl-1.5 text-left disabled:cursor-not-allowed sm:h-auto sm:min-h-10",
+        )}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
-          <CategoryIcon
-            iconId={selected?.iconId ?? "generic"}
-            className="size-4"
-          />
-        </span>
-        <span id={valueId} className="min-w-0 flex-1 truncate">
-          {selected ? categoryPath(selected, categories) : "Choose a category"}
+        <CategoryTile
+          color={selected ? colorOf(selected.id) : "neutral"}
+          className="size-8 rounded-md [&_svg]:size-4"
+        >
+          <CategoryIcon iconId={selected?.iconId ?? "generic"} />
+        </CategoryTile>
+        <span id={valueId} className="wrap-break-word min-w-0 flex-1">
+          {selectedLabel}
         </span>
         <ChevronDown
           aria-hidden="true"
@@ -107,14 +137,21 @@ export function CategoryPicker({
         {view.name === "search" ? (
           <SearchView
             kind={kind}
+            colorOf={colorOf}
             categories={categories}
             value={value}
             query={query}
             onQueryChange={setQuery}
             onSelect={choose}
-            onCreate={(initialName, initialParentId) =>
-              setView({ name: "create", initialName, initialParentId })
-            }
+            onCreate={(initialName, initialParentId) => {
+              generation.current += 1;
+              setView({
+                name: "create",
+                initialName,
+                initialParentId,
+                generation: generation.current,
+              });
+            }}
           />
         ) : (
           <>
@@ -125,7 +162,7 @@ export function CategoryPicker({
                   variant="ghost"
                   size="icon-touch"
                   aria-label="Back to search"
-                  onClick={() => setView({ name: "search" })}
+                  onClick={backToSearch}
                 >
                   <ArrowLeft strokeWidth={1.75} className="size-5" />
                 </Button>
@@ -139,10 +176,11 @@ export function CategoryPicker({
               initialName={view.initialName}
               initialParentId={view.initialParentId}
               onCreated={(outcome) => {
-                onCreated(outcome);
-                setOpen(false);
+                if (generation.current === view.generation) {
+                  choose(outcome.category.id);
+                }
               }}
-              onCancel={() => setView({ name: "search" })}
+              onCancel={backToSearch}
             />
           </>
         )}
@@ -153,6 +191,7 @@ export function CategoryPicker({
 
 interface SearchViewProps {
   kind: CategoryKind;
+  colorOf: (categoryId: string) => CategoryColor;
   categories: readonly CategorySummary[];
   value: string;
   query: string;
@@ -163,6 +202,7 @@ interface SearchViewProps {
 
 function SearchView({
   kind,
+  colorOf,
   categories,
   value,
   query,
@@ -226,13 +266,13 @@ function SearchView({
     <OptionRow
       onKeyDown={optionKeyDown}
       onClick={() => onCreate(trimmed, impliedParent)}
-      className="min-h-14 py-2"
+      className="min-h-15 py-2.5"
     >
-      <OptionDisc>
-        <Plus aria-hidden="true" strokeWidth={1.75} className="size-5" />
-      </OptionDisc>
+      <CreateTile />
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">Create “{trimmed}”</span>
+        <span className="wrap-break-word block font-semibold">
+          Create “{trimmed}”
+        </span>
         <span className="block text-muted-foreground text-sm">
           New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
         </span>
@@ -243,7 +283,7 @@ function SearchView({
   return (
     <>
       <SheetHeader>{CATEGORY_KIND_LABELS[kind]} category</SheetHeader>
-      <div className="shrink-0 px-4 pb-3 sm:px-6">
+      <div className="shrink-0 px-5 pb-3 sm:px-6">
         <div className="relative">
           <Search
             aria-hidden="true"
@@ -267,26 +307,27 @@ function SearchView({
               }
               moveFocus(event, -1);
             }}
-            className="h-11 pl-11 text-foreground [&::-webkit-search-cancel-button]:hidden"
+            className="pl-11 [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
       </div>
       <div
         ref={listRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-t pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-border/70 border-t pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         {nothingMatched && createRow}
         {nothingMatched && !offerCreate && (
-          <p className="px-4 py-6 text-muted-foreground text-sm sm:px-6">
+          <p className="px-5 py-6 text-muted-foreground text-sm sm:px-6">
             No categories yet.
           </p>
         )}
         {groups.length > 0 && (
-          <ul aria-label="Categories">
+          <ul aria-label="Categories" className="divide-y divide-border/70">
             {groups.map((group) => (
               <CategoryGroupRows
                 key={group.parent.id}
                 group={group}
+                color={colorOf(group.parent.id)}
                 value={value}
                 onSelect={onSelect}
                 onOptionKeyDown={optionKeyDown}
@@ -299,12 +340,10 @@ function SearchView({
           <OptionRow
             onKeyDown={optionKeyDown}
             onClick={() => onCreate("")}
-            className="min-h-14 py-2"
+            className="min-h-15 py-2.5"
           >
-            <OptionDisc>
-              <Plus aria-hidden="true" strokeWidth={1.75} className="size-5" />
-            </OptionDisc>
-            <span className="font-medium">New category</span>
+            <CreateTile />
+            <span className="font-semibold">New category</span>
           </OptionRow>
         )}
       </div>
@@ -314,6 +353,7 @@ function SearchView({
 
 interface CategoryGroupRowsProps {
   group: CategoryGroup;
+  color: CategoryColor;
   value: string;
   onSelect: (categoryId: string) => void;
   onOptionKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
@@ -322,6 +362,7 @@ interface CategoryGroupRowsProps {
 /** A parent row, then its children indented beneath; both are choices. */
 function CategoryGroupRows({
   group,
+  color,
   value,
   onSelect,
   onOptionKeyDown,
@@ -330,6 +371,7 @@ function CategoryGroupRows({
     <li>
       <CategoryRow
         category={group.parent}
+        color={color}
         selected={group.parent.id === value}
         onSelect={onSelect}
         onKeyDown={onOptionKeyDown}
@@ -340,6 +382,7 @@ function CategoryGroupRows({
             <li key={child.id}>
               <CategoryRow
                 category={child}
+                color={color}
                 isChild
                 selected={child.id === value}
                 onSelect={onSelect}
@@ -355,6 +398,7 @@ function CategoryGroupRows({
 
 interface CategoryRowProps {
   category: CategorySummary;
+  color: CategoryColor;
   isChild?: boolean;
   selected: boolean;
   onSelect: (categoryId: string) => void;
@@ -363,6 +407,7 @@ interface CategoryRowProps {
 
 function CategoryRow({
   category,
+  color,
   isChild,
   selected,
   onSelect,
@@ -374,32 +419,28 @@ function CategoryRow({
       aria-current={selected || undefined}
       onClick={() => onSelect(category.id)}
       onKeyDown={onKeyDown}
-      className={cn("min-h-12 py-1.5", isChild && "pl-8 sm:pl-10")}
+      className={cn(
+        "aria-current:bg-secondary/60",
+        isChild ? "min-h-13 py-2" : "min-h-15 py-2.5",
+      )}
     >
-      <OptionDisc
+      {isChild && <ChildMarker />}
+      <CategoryTile color={color} size={isChild ? "child" : "row"}>
+        <CategoryIcon iconId={category.iconId} />
+      </CategoryTile>
+      <span
         className={cn(
-          isChild && "size-8",
-          selected && "bg-primary/5 text-primary",
+          "wrap-break-word min-w-0 flex-1 leading-snug",
+          isChild ? "font-medium" : "font-semibold",
         )}
       >
-        <CategoryIcon
-          iconId={category.iconId}
-          className={isChild ? "size-4" : "size-5"}
-        />
-      </OptionDisc>
-      <span className="min-w-0 flex-1 truncate">
-        {isChild && (
-          <span aria-hidden="true" className="mr-2 text-muted-foreground">
-            ›
-          </span>
-        )}
-        <span className={cn(!isChild && "font-medium")}>{category.name}</span>
+        {category.name}
       </span>
       {selected && (
         <Check
           aria-hidden="true"
-          strokeWidth={1.75}
-          className="size-5 shrink-0 text-primary"
+          strokeWidth={2}
+          className="size-5 shrink-0 text-link"
         />
       )}
     </OptionRow>
@@ -413,7 +454,7 @@ function OptionRow({ className, ...props }: React.ComponentProps<"button">) {
       type="button"
       data-option
       className={cn(
-        "flex w-full items-center gap-4 px-4 text-left outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset sm:px-6",
+        "flex w-full items-center gap-3.5 px-5 text-left outline-none transition-colors duration-150 hover:bg-accent/70 focus-visible:ring-[3px] focus-visible:ring-ring/45 focus-visible:ring-inset motion-reduce:transition-none sm:px-6",
         className,
       )}
       {...props}
@@ -421,15 +462,11 @@ function OptionRow({ className, ...props }: React.ComponentProps<"button">) {
   );
 }
 
-/** The 40px Mist disc every row leads with. */
-function OptionDisc({ className, ...props }: React.ComponentProps<"span">) {
+/** The Iris Tonal tile that leads a create row, sized like a Category Tile. */
+function CreateTile() {
   return (
-    <span
-      className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground",
-        className,
-      )}
-      {...props}
-    />
+    <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+      <Plus aria-hidden="true" strokeWidth={2} className="size-5" />
+    </span>
   );
 }

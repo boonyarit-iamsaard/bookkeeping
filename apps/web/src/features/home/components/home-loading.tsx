@@ -1,53 +1,37 @@
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
-
-function RowSkeleton() {
-  return (
-    <div className="flex items-center justify-between gap-3 py-4">
-      <div className="h-4 w-24 rounded bg-muted" />
-      <div className="h-5 w-28 rounded bg-muted" />
-    </div>
-  );
-}
-
-function TransactionSkeleton() {
-  return (
-    <div className="flex min-h-16 items-center gap-4 py-3">
-      <div className="size-10 shrink-0 rounded-full bg-muted" />
-      <div className="flex flex-1 flex-col gap-2">
-        <div className="h-4 w-36 rounded bg-muted" />
-        <div className="h-3 w-24 rounded bg-muted" />
-      </div>
-      <div className="h-5 w-24 rounded bg-muted" />
-    </div>
-  );
-}
+import { HOME_COLUMNS_CLASS } from "@/features/home/components/home";
+import { listCardClass } from "@/shared/components/list-section";
+import {
+  HeroSkeleton,
+  RowSkeleton,
+  Skeleton,
+} from "@/shared/components/skeleton";
 
 /** Home's layout in neutral blocks: never a figure that could pass for money. */
 export function HomeLoading() {
   return (
-    <Page layout="wide">
+    <Page layout="dashboard" loading>
       <TitleBar title="Home" />
       <output className="sr-only">Loading your records…</output>
-      <div aria-hidden="true" className="flex flex-col gap-8">
-        <div className="flex flex-col gap-3">
-          <div className="h-10 w-56 rounded bg-muted sm:h-12" />
-          <div className="h-4 w-32 rounded bg-muted" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="mt-3 h-6 w-28 rounded bg-muted" />
-          <div className="divide-y">
-            <RowSkeleton />
-            <RowSkeleton />
-            <RowSkeleton />
+      <div aria-hidden="true" className={HOME_COLUMNS_CLASS}>
+        <div className="flex flex-col gap-6 sm:gap-8">
+          <HeroSkeleton />
+          <div className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-card sm:p-6">
+            <Skeleton className="h-5 w-24" />
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-12" />
+              <Skeleton className="h-12" />
+            </div>
+            <Skeleton className="h-6" />
           </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <div className="h-6 w-48 rounded bg-muted" />
-          <div className="divide-y">
-            <TransactionSkeleton />
-            <TransactionSkeleton />
-            <TransactionSkeleton />
+        <div className="flex flex-col gap-3">
+          <Skeleton className="ml-1 h-6 w-48" />
+          <div className={listCardClass}>
+            <RowSkeleton />
+            <RowSkeleton />
+            <RowSkeleton />
           </div>
         </div>
       </div>

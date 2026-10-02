@@ -26,6 +26,19 @@ engineStrict: true
 verifyDepsBeforeRun: "error"
 verifyStoreIntegrity: true
 
+# Owner: repository owner; temporary exception accepted 2026-10-02.
+# Assessed: dotenvx 2.30.0 / node-forge 1.4.0; no published fix.
+# Observed Forge calls generate/sign proxy certificates, not RSA verification.
+# Module loading still occurs during dotenvx run; this is a usage assessment.
+# Next review: 2026-10-09, then weekly against upstream advisory/releases.
+# Reassess on dependency, proxy configuration, usage, or advisory changes.
+# Install/test a patched release and remove this exception after upgrading.
+# Evidence: docs/research/unpatched-dependency-audit-exceptions.md
+# https://github.com/advisories/GHSA-86w9-cpqp-85rv
+audit:
+  ignore:
+    - GHSA-86w9-cpqp-85rv
+
 # drizzle-kit's deprecated @esbuild-kit loader bundles esbuild 0.18.20
 # (GHSA-67mh-4wv8-2f99). Point it at the 0.25 that drizzle-kit itself uses.
 # Drop this once drizzle-kit drops @esbuild-kit.

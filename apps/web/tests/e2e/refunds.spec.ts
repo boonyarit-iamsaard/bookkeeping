@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { chooseDate } from "./helpers/choose-date";
+import { chooseDate, openCalendarAt } from "./helpers/choose-date";
 import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
@@ -75,9 +75,12 @@ test("a linked refund starts from the expense, falls back when the original wall
   await expect(page.getByLabel("Amount")).toHaveValue("600");
   await page.getByLabel("Amount").fill("100");
   // A refund cannot precede its expense, so the calendar refuses the day.
-  await page.getByLabel("Date", { exact: true }).click();
-  await expect(page.locator('[data-date="2026-09-01"]')).toBeDisabled();
-  await page.locator('[data-date="2026-09-02"]').click();
+  const calendar = await openCalendarAt(
+    page.getByLabel("Date", { exact: true }),
+    "2026-09-01",
+  );
+  await expect(calendar.locator('[data-date="2026-09-01"]')).toBeDisabled();
+  await calendar.locator('[data-date="2026-09-02"]').click();
   // Enter submits from the amount on every device.
   await page.getByLabel("Amount").press("Enter");
   await expectSavedRecord(page);

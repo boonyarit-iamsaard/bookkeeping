@@ -11,7 +11,11 @@ import {
   provisioningOutcomeResponseSchema,
 } from "../../features/categories/category.routes.js";
 import { healthResponseSchema } from "../../features/health/health.routes.js";
-import { monthlyReportResponseSchema } from "../../features/reports/report.routes.js";
+import {
+  categorySpendingResponseSchema,
+  closingBalancesResponseSchema,
+  monthlyReportResponseSchema,
+} from "../../features/reports/report.routes.js";
 import { signUpResponseSchema } from "../../features/sign-up/sign-up.routes.js";
 import {
   refundsExistProblemSchema,
@@ -446,6 +450,24 @@ describe("published API contract", () => {
         }),
       });
       record({
+        operationId: "getCategorySpending",
+        method: "get",
+        path: "/v1/reports/category-spending",
+        schema: categorySpendingResponseSchema,
+        response: await call({
+          path: `/v1/reports/category-spending?month=${REPORT_MONTH}`,
+        }),
+      });
+      record({
+        operationId: "getClosingBalances",
+        method: "get",
+        path: "/v1/reports/closing-balances",
+        schema: closingBalancesResponseSchema,
+        response: await call({
+          path: `/v1/reports/closing-balances?month=${REPORT_MONTH}&walletId=${cashId}`,
+        }),
+      });
+      record({
         operationId: "deleteTransaction",
         method: "delete",
         path: "/v1/transactions/{transactionId}",
@@ -532,6 +554,15 @@ describe("published API contract", () => {
         schema: problemDetailsSchema,
         response: await call({
           path: `/v1/wallets/${UNKNOWN_WALLET_ID}`,
+        }),
+      });
+      record({
+        operationId: "getClosingBalances",
+        method: "get",
+        path: "/v1/reports/closing-balances",
+        schema: problemDetailsSchema,
+        response: await call({
+          path: `/v1/reports/closing-balances?month=${REPORT_MONTH}&walletId=${UNKNOWN_WALLET_ID}`,
         }),
       });
       record({

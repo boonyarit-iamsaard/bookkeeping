@@ -5,6 +5,7 @@ import {
   calendarDate,
   HISTORY_FILTER_KEYS,
   historyFilters,
+  transactionFiltersSchema,
 } from "@/features/transactions/history-schema";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 
@@ -23,6 +24,8 @@ interface HistoryFilterNames {
 export interface HistoryFilterChip {
   key: HistoryFilterKey;
   label: string;
+  /** The value is not one the history accepts, so it filters nothing. */
+  invalid: boolean;
   /** The address with just this filter lifted, back on the first page. */
   without: HistorySearch;
 }
@@ -63,6 +66,8 @@ export function historyFilterChips(
       return [];
     }
     const { [key]: _removed, ...without } = filters;
-    return [{ key, label: labels[key](value), without }];
+    const invalid = !transactionFiltersSchema.safeParse({ [key]: value })
+      .success;
+    return [{ key, label: labels[key](value), invalid, without }];
   });
 }

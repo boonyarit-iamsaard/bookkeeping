@@ -1,5 +1,4 @@
-/* Font families loaded by index.html. */
+/* Font family loaded by index.html: Inter, with its optical-size axis. */
 :root {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }

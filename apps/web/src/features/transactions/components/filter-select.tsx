@@ -94,7 +94,8 @@ export function FilterSelect({
                 label={option.label}
                 className={option.indent ? "pl-7" : undefined}
               >
-                <span className="truncate">
+                {/* Wraps, so a long name keeps its Archived mark in a narrow column. */}
+                <span className="wrap-break-word">
                   {option.indent && (
                     <span aria-hidden="true" className="text-muted-foreground">
                       ›{" "}

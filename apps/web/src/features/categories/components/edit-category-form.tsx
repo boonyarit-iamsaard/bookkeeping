@@ -2,10 +2,15 @@
 
 import type { CategorySummary } from "@bookkeeping/domain/categories";
 import { MAX_CATEGORY_NAME_LENGTH } from "@bookkeeping/domain/categories";
+import type { LucideIcon } from "lucide-react";
+import { ListTree, LockKeyhole, Trash2 } from "lucide-react";
 import { useId, useState } from "react";
+import type { CategoryColor } from "@/features/categories/category-color";
 import type { ManageCategoryOutcome } from "@/features/categories/category-mutations";
 import { IconPicker } from "@/features/categories/components/icon-picker";
 import { useEditCategoryForm } from "@/features/categories/hooks/use-edit-category-form";
+import { ConfirmPanel } from "@/shared/components/confirm-panel";
+import { ErrorNotice } from "@/shared/components/error-notice";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -28,6 +33,8 @@ export interface RemovalContext {
 
 interface EditCategoryFormProps {
   category: CategorySummary;
+  /** The hue the category wears, so the icon choices preview it. */
+  color: CategoryColor;
   removal: RemovalContext;
   onDone: (outcome: ManageCategoryOutcome) => void;
   onCancel: () => void;
@@ -49,6 +56,7 @@ export function entriesLabel(count: number): string {
  */
 export function EditCategoryForm({
   category,
+  color,
   removal,
   onDone,
   onCancel,
@@ -65,6 +73,52 @@ export function EditCategoryForm({
       onDone,
     });
   const blocked = removal.childCount > 0;
+  const removalControls = confirming ? (
+    <ConfirmPanel
+      actions={
+        <>
+          <Button
+            type="button"
+            variant="destructive"
+            size="lg"
+            disabled={removing}
+            onClick={remove}
+            className="wrap-break-word h-auto min-h-11 whitespace-normal py-2 sm:min-h-10"
+          >
+            <Trash2 data-icon="inline-start" strokeWidth={1.75} />
+            {removing ? "Removing…" : `Remove ${category.name}`}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            disabled={removing}
+            onClick={() => setConfirming(false)}
+          >
+            Keep it
+          </Button>
+        </>
+      }
+    >
+      {removalExplanation(category, removal)}
+    </ConfirmPanel>
+  ) : (
+    <>
+      <p className="text-muted-foreground text-sm leading-normal">
+        {removalExplanation(category, removal)}
+      </p>
+      <Button
+        type="button"
+        variant="destructive"
+        size="lg"
+        onClick={() => setConfirming(true)}
+        className="self-start"
+      >
+        <Trash2 data-icon="inline-start" strokeWidth={1.75} />
+        Remove…
+      </Button>
+    </>
+  );
 
   return (
     <form
@@ -76,15 +130,8 @@ export function EditCategoryForm({
         void form.handleSubmit();
       }}
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pt-1 pb-6 sm:px-6">
-        {serverError && (
-          <div
-            role="alert"
-            className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive text-sm"
-          >
-            {serverError}
-          </div>
-        )}
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 pt-1 pb-6 sm:px-6">
+        {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
         <FieldGroup className="gap-6">
           <form.Field name="name">
             {(field) => {
@@ -116,7 +163,7 @@ export function EditCategoryForm({
                     }}
                     aria-invalid={invalid}
                     aria-describedby={describedBy || undefined}
-                    className="h-11 text-foreground read-only:text-muted-foreground"
+                    className="read-only:bg-muted read-only:text-muted-foreground"
                   />
                   {category.isProtected && (
                     <FieldDescription id={`${nameId}-description`}>
@@ -146,6 +193,7 @@ export function EditCategoryForm({
                       <FieldLabel id={`${iconId}-label`}>Icon</FieldLabel>
                       <IconPicker
                         name={name}
+                        color={color}
                         value={field.state.value}
                         onChange={(next) => {
                           clearFieldError("iconId");
@@ -175,74 +223,65 @@ export function EditCategoryForm({
               type="submit"
               size="lg"
               disabled={isSubmitting || removing}
-              className="h-11 w-full"
+              className="w-full"
             >
               {isSubmitting ? "Saving…" : "Save changes"}
             </Button>
           )}
         </form.Subscribe>
 
+        {/* Removal stands apart by space and a hairline, not color alone. */}
         <section
           aria-labelledby={removeHeadingId}
-          className="flex flex-col items-start gap-3 border-t pt-6"
+          className="mt-2 flex flex-col gap-3 border-border/70 border-t pt-6"
         >
-          <h3 id={removeHeadingId} className="font-semibold text-base">
+          <h3
+            id={removeHeadingId}
+            className="font-bold text-base tracking-tight"
+          >
             {category.isProtected ? "A protected category" : "Remove"}
           </h3>
-          <p className="text-muted-foreground text-sm leading-normal">
-            {removalExplanation(category, removal)}
-          </p>
-          {!category.isProtected &&
-            !blocked &&
-            (confirming ? (
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="lg"
-                  disabled={removing}
-                  onClick={remove}
-                  className="h-11"
-                >
-                  {removing ? "Removing…" : `Remove ${category.name}`}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  disabled={removing}
-                  onClick={() => setConfirming(false)}
-                  className="h-11"
-                >
-                  Keep it
-                </Button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={() => setConfirming(true)}
-                className="h-11"
-              >
-                Remove…
-              </Button>
-            ))}
+          {category.isProtected || blocked ? (
+            <RemovalPanel icon={category.isProtected ? LockKeyhole : ListTree}>
+              {removalExplanation(category, removal)}
+            </RemovalPanel>
+          ) : (
+            removalControls
+          )}
         </section>
       </div>
 
-      <div className="flex shrink-0 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:justify-end sm:px-6 sm:pb-4">
+      <div className="flex shrink-0 border-border/70 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:justify-end sm:px-6 sm:pb-4">
         <Button
           type="button"
           variant="ghost"
           size="lg"
           onClick={onCancel}
-          className="h-11 w-full sm:w-auto"
+          className="w-full sm:w-auto"
         >
           Close
         </Button>
       </div>
     </form>
+  );
+}
+
+interface RemovalPanelProps {
+  icon: LucideIcon;
+  children: React.ReactNode;
+}
+
+/** Why this category stays, on a Mist panel led by the reason's pictogram. */
+function RemovalPanel({ icon: Icon, children }: Readonly<RemovalPanelProps>) {
+  return (
+    <p className="flex items-start gap-3 rounded-xl bg-muted p-4 text-foreground text-sm leading-normal">
+      <Icon
+        aria-hidden="true"
+        strokeWidth={1.75}
+        className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+      />
+      {children}
+    </p>
   );
 }
 

@@ -11,6 +11,7 @@ import type * as React from "react";
 import { useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/shared/components/ui/calendar";
+import { fieldControlClass } from "@/shared/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -123,7 +124,8 @@ export function DatePicker({
         data-max={max}
         onBlur={onBlur}
         className={cn(
-          "group/date-trigger flex h-11 w-full min-w-0 items-center gap-2 rounded-4xl border border-input bg-input/30 py-1 pr-4 pl-4 text-left text-base text-foreground outline-none transition-colors hover:bg-input/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20 data-popup-open:bg-input/50 md:text-sm [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+          fieldControlClass,
+          "group/date-trigger flex items-center gap-2 py-1 pr-3.5 pl-3.5 text-left [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
           className,
         )}
       >

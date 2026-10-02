@@ -21,6 +21,7 @@ import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
 } from "@/features/transactions/transaction-labels";
+import { ErrorNotice } from "@/shared/components/error-notice";
 import { Button } from "@/shared/components/ui/button";
 import { SheetPortal } from "@/shared/components/ui/sheet";
 
@@ -180,9 +181,12 @@ export function DeleteTransactionButton({
       </AlertDialog.Trigger>
 
       <SheetPortal>
-        <div className="flex min-h-0 flex-col gap-6 overflow-y-auto px-4 pt-4 pb-2 sm:px-6 sm:pt-6">
-          <div className="flex flex-col gap-2">
-            <AlertDialog.Title className="font-semibold text-lg">
+        <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-6 pb-2 sm:px-6">
+          <span className="flex size-12 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+            <Trash2 aria-hidden="true" strokeWidth={2} className="size-6" />
+          </span>
+          <div className="flex flex-col gap-1.5">
+            <AlertDialog.Title className="font-bold text-lg leading-tight tracking-tight">
               Delete this {noun}?
             </AlertDialog.Title>
             <AlertDialog.Description className="text-muted-foreground text-sm leading-normal">
@@ -200,15 +204,10 @@ export function DeleteTransactionButton({
             </AlertDialog.Description>
           </div>
           {state.name === "failed" && (
-            <p
-              role="alert"
-              className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive text-sm"
-            >
-              {state.message}
-            </p>
+            <ErrorNotice>{state.message}</ErrorNotice>
           )}
         </div>
-        <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 pb-6 sm:flex-row-reverse sm:px-6">
+        <div className="flex shrink-0 flex-col gap-3 px-5 pt-4 pb-6 sm:flex-row-reverse sm:px-6">
           <Button
             type="button"
             variant="destructive"

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { signUpQuery } from "@/core/auth/sign-up";
 import { useSignInForm } from "@/features/auth/hooks/use-sign-in-form";
+import { ErrorNotice } from "@/shared/components/error-notice";
 import { Button, linkActionClass } from "@/shared/components/ui/button";
 import {
   Card,
@@ -20,15 +21,21 @@ import {
   FieldLabel,
 } from "@/shared/components/ui/field";
 import { Input } from "@/shared/components/ui/input";
+import { cn } from "@/shared/helpers/cn";
 
 export function SignInForm(props: Readonly<React.ComponentProps<typeof Card>>) {
   const { form, serverError } = useSignInForm();
   const { data: signUpStatus } = useQuery(signUpQuery());
 
   return (
-    <Card {...props}>
+    <Card
+      {...props}
+      className={cn("sm:[--card-spacing:--spacing(7)]", props.className)}
+    >
       <CardHeader>
-        <CardTitle>Sign in to your account</CardTitle>
+        <CardTitle className="text-[1.625rem] leading-tight tracking-[-0.02em]">
+          Sign in to your account
+        </CardTitle>
         <CardDescription>
           Enter your email below to sign in to your account
         </CardDescription>
@@ -82,8 +89,8 @@ export function SignInForm(props: Readonly<React.ComponentProps<typeof Card>>) {
             <form.Subscribe selector={(state) => state.isSubmitting}>
               {(isSubmitting) => (
                 <Field>
-                  <FieldError>{serverError}</FieldError>
-                  <Button type="submit" disabled={isSubmitting}>
+                  {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
+                  <Button type="submit" size="lg" disabled={isSubmitting}>
                     {isSubmitting ? "Signing in…" : "Sign in"}
                   </Button>
                   {signUpStatus === "open" && (

@@ -48,10 +48,9 @@ function DropdownMenuContent({
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            // The menu is the one floating surface: a 14px-corner Paper box on
-            // a hairline, lifted by a soft offset shadow. It appears without
-            // animating: motion is kept for the three feedback moments.
-            "z-50 max-h-(--available-height) min-w-56 overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl border bg-popover p-1 text-popover-foreground shadow-[0_2px_4px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.08)] outline-none [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] data-closed:overflow-hidden",
+            // The floating surface shared with Select and Popover: a 16px-corner
+            // card lifted by the float shadow, appearing without animating.
+            "z-50 max-h-(--available-height) min-w-56 overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl bg-popover p-1.5 text-popover-foreground shadow-float outline-none [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] data-closed:overflow-hidden",
             className,
           )}
           {...props}
@@ -104,7 +103,7 @@ function DropdownMenuItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "group/dropdown-menu-item relative flex min-h-10 cursor-default select-none items-center gap-3 rounded-lg px-3 py-2 font-medium text-sm outline-hidden focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-inset:pl-10 data-[variant=destructive]:text-destructive data-disabled:opacity-50 data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-[variant=destructive]:[&_svg]:text-destructive",
+        "group/dropdown-menu-item relative flex min-h-10 cursor-default select-none items-center gap-3 rounded-md px-3 py-2 font-medium text-sm outline-hidden focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-inset:pl-10 data-[variant=destructive]:text-destructive data-disabled:opacity-50 data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-[variant=destructive]:[&_svg]:text-destructive",
         className,
       )}
       {...props}

@@ -23,13 +23,13 @@ export function SheetPortal({
 }: Readonly<SheetPortalProps>) {
   return (
     <Dialog.Portal>
-      <Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/40 transition-opacity duration-200 ease-out data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none" />
+      <Dialog.Backdrop className="fixed inset-0 z-50 bg-[oklch(0.18_0.04_285/45%)] transition-opacity duration-200 ease-out data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none" />
       <Dialog.Viewport className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
         <Dialog.Popup
           className={cn(
-            "flex max-h-[85dvh] w-full flex-col overflow-hidden bg-background pb-[env(safe-area-inset-bottom)] text-foreground outline-none",
-            "rounded-t-[14px] transition-transform duration-200 ease-out data-ending-style:translate-y-full data-starting-style:translate-y-full motion-reduce:transition-none",
-            "sm:max-w-md sm:rounded-[14px] sm:pb-0 sm:transition-opacity sm:data-ending-style:translate-y-0 sm:data-starting-style:translate-y-0 sm:data-ending-style:opacity-0 sm:data-starting-style:opacity-0",
+            "flex max-h-[85dvh] w-full flex-col overflow-hidden bg-card pb-[env(safe-area-inset-bottom)] text-card-foreground shadow-float outline-none",
+            "rounded-t-3xl transition-transform duration-[260ms] ease-[cubic-bezier(0.16,1,0.3,1)] data-ending-style:translate-y-full data-starting-style:translate-y-full motion-reduce:transition-none",
+            "sm:max-w-md sm:rounded-3xl sm:pb-0 sm:transition-opacity sm:data-ending-style:translate-y-0 sm:data-starting-style:translate-y-0 sm:data-ending-style:opacity-0 sm:data-starting-style:opacity-0",
             className,
           )}
         >
@@ -58,10 +58,10 @@ export function SheetHeader({
   leadingAction,
 }: Readonly<SheetHeaderProps>) {
   return (
-    <header className="flex min-h-14 shrink-0 items-center gap-2 py-2 pr-2 pl-4 sm:pl-6">
+    <header className="flex min-h-16 shrink-0 items-center gap-2 pt-3 pr-3 pb-2 pl-5 sm:pl-6">
       {leadingAction}
       <div className="min-w-0 flex-1">
-        <Dialog.Title className="font-semibold text-lg leading-tight">
+        <Dialog.Title className="font-bold text-lg leading-tight tracking-tight">
           {children}
         </Dialog.Title>
         {subtitle && (
@@ -72,7 +72,14 @@ export function SheetHeader({
       </div>
       <Dialog.Close
         aria-label="Close"
-        render={<Button type="button" variant="ghost" size="icon-touch" />}
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-touch"
+            className="text-muted-foreground hover:text-foreground"
+          />
+        }
       >
         <X strokeWidth={1.75} className="size-5" />
       </Dialog.Close>
