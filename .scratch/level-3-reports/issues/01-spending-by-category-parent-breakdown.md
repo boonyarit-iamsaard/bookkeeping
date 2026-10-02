@@ -19,13 +19,15 @@ parent is positive; negative categories and children arrive in 02.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The read reuses the monthly report's month query schema, is owner-scoped from the session, and has its own named OpenAPI schema; the generated web client is regenerated
-- [ ] Money is in the existing money schema, exact minor units, never summed on the client
-- [ ] Route integration tests: the parent amounts sum to the monthly report's Net expenses for the same month, including a Debt payments expense; a refund in the same month reduces its expense's parent; Uncategorized appears flagged only with activity; parents without activity are absent; month validation and authentication problems match the monthly report
-- [ ] A pure derivation turns the response into ordered segments (sort order, Uncategorized last) with shares; unit tested like the existing trend series
-- [ ] The section uses the DESIGN.md breakdown bar and legend exactly, works at 360px, and carries every figure as text
-- [ ] Empty month and loading states as described
-- [ ] One focused browser case in the existing Reports spec on one project shows the section for a month with data and the empty state for an empty month
-- [ ] `pnpm run ci` passes
+- [x] The read reuses the monthly report's month query schema, is owner-scoped from the session, and has its own named OpenAPI schema; the generated web client is regenerated
+- [x] Money is in the existing money schema, exact minor units, never summed on the client
+- [x] Route integration tests: the parent amounts sum to the monthly report's Net expenses for the same month, including a Debt payments expense; a refund in the same month reduces its expense's parent; Uncategorized appears flagged only with activity; parents without activity are absent; month validation and authentication problems match the monthly report
+- [x] A pure derivation turns the response into ordered segments (sort order, Uncategorized last) with shares; unit tested like the existing trend series
+- [x] The section uses the DESIGN.md breakdown bar and legend exactly, works at 360px, and carries every figure as text
+- [x] Empty month and loading states as described
+- [x] One focused browser case in the existing Reports spec on one project shows the section for a month with data and the empty state for an empty month
+- [x] `pnpm run ci` passes
+
+Closed by 346f162: `GET /v1/reports/category-spending`, the breakdown derivation, and the Spending by category section. Shares divide by the server's Net expenses, which ticket 02 changes to positive spending.
