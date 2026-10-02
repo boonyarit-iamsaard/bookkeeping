@@ -48,32 +48,35 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
 
   return (
     <div className="flex flex-col gap-4">
-      <table className="sr-only">
-        <caption>
-          Income and net expenses for each of the last six months
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">Month</th>
-            <th scope="col">Income</th>
-            <th scope="col">Net expenses</th>
-          </tr>
-        </thead>
-        <tbody>
-          {points.map((point) => (
-            <tr key={point.month}>
-              <th scope="row">{formatReportMonth(point.month)}</th>
-              <td>
-                <Money amount={toApiMoney(point.income)} />
-              </td>
-              <td>
-                <Money amount={toApiMoney(point.netExpenses)} />
-              </td>
+      {/* A table ignores the clip of its own sr-only, so a wrapper holds it. */}
+      <div className="sr-only">
+        <table>
+          <caption>
+            Income and net expenses for each of the last six months
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Month</th>
+              <th scope="col">Income</th>
+              <th scope="col">Net expenses</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <div aria-hidden="true" className="relative flex gap-1.5">
+          </thead>
+          <tbody>
+            {points.map((point) => (
+              <tr key={point.month}>
+                <th scope="row">{formatReportMonth(point.month)}</th>
+                <td>
+                  <Money amount={toApiMoney(point.income)} />
+                </td>
+                <td>
+                  <Money amount={toApiMoney(point.netExpenses)} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div aria-hidden="true" className="relative flex gap-1">
         {points.map((point, index) => (
           <div
             key={point.month}
@@ -108,7 +111,7 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
           style={{ bottom: toPercent(zero) }}
         />
       </div>
-      <fieldset className="m-0 flex min-w-0 gap-1.5 border-0 p-0">
+      <fieldset className="m-0 flex min-w-0 gap-1 border-0 p-0">
         <legend className="sr-only">Choose a month to read</legend>
         {points.map((point, index) => (
           <button

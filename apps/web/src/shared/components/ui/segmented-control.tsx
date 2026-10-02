@@ -16,6 +16,8 @@ export interface SegmentedControlProps<Value extends string> {
   name?: string;
   "aria-labelledby"?: string;
   className?: string;
+  /** Added to every segment, for a field whose longest label needs the room. */
+  optionClassName?: string;
 }
 
 /**
@@ -28,6 +30,7 @@ export function SegmentedControl<Value extends string>({
   onValueChange,
   name,
   className,
+  optionClassName,
   "aria-labelledby": ariaLabelledBy,
 }: Readonly<SegmentedControlProps<Value>>) {
   const selectedIndex = Math.max(
@@ -62,7 +65,10 @@ export function SegmentedControl<Value extends string>({
         <Radio.Root
           key={option.value}
           value={option.value}
-          className="relative z-10 flex items-center justify-center rounded-[0.625rem] px-2 font-semibold text-muted-foreground text-sm outline-none transition-colors duration-200 focus-visible:ring-[3px] focus-visible:ring-ring/45 data-checked:text-foreground motion-reduce:transition-none"
+          className={cn(
+            "relative z-10 flex items-center justify-center whitespace-nowrap rounded-[0.625rem] px-2 font-semibold text-muted-foreground text-sm outline-none transition-colors duration-200 focus-visible:ring-[3px] focus-visible:ring-ring/45 data-checked:text-foreground motion-reduce:transition-none",
+            optionClassName,
+          )}
         >
           {option.label}
         </Radio.Root>

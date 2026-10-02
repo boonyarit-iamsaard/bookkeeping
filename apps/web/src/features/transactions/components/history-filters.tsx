@@ -2,7 +2,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal, TriangleAlert, X } from "lucide-react";
 import type { SyntheticEvent } from "react";
 import { useState } from "react";
 import type { components } from "@/core/api/openapi.gen";
@@ -19,6 +19,7 @@ import { DatePicker } from "@/shared/components/date-picker";
 import { ErrorNotice } from "@/shared/components/error-notice";
 import { Button } from "@/shared/components/ui/button";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
+import { cn } from "@/shared/helpers/cn";
 
 type ApiWallet = components["schemas"]["Wallet"];
 type ApiCategory = components["schemas"]["Category"];
@@ -230,8 +231,22 @@ export function HistoryFilterChips({
             // match would mark every chip as the current page.
             activeOptions={{ exact: true, includeSearch: true }}
             aria-label={`Remove filter ${chip.label}`}
-            className="flex min-h-11 max-w-full items-center gap-1.5 rounded-full bg-secondary pr-3 pl-4 font-semibold text-secondary-foreground text-sm outline-none transition-colors duration-150 hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)] focus-visible:ring-[3px] focus-visible:ring-ring/45 motion-reduce:transition-none"
+            aria-describedby={
+              chip.invalid ? `invalid-chip-${chip.key}` : undefined
+            }
+            className={cn(
+              "flex min-h-11 max-w-full items-center gap-1.5 rounded-full bg-secondary pr-3 pl-4 font-semibold text-secondary-foreground text-sm outline-none transition-colors duration-150 hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)] focus-visible:ring-[3px] focus-visible:ring-ring/45 motion-reduce:transition-none",
+              // Invalid reads by its dashed outline and pictogram, not red alone.
+              chip.invalid && "border border-destructive border-dashed pl-3",
+            )}
           >
+            {chip.invalid && (
+              <TriangleAlert
+                aria-hidden="true"
+                strokeWidth={1.75}
+                className="size-4 shrink-0 text-destructive"
+              />
+            )}
             <span className="truncate">{chip.label}</span>
             <X
               aria-hidden="true"
@@ -239,6 +254,11 @@ export function HistoryFilterChips({
               className="size-4 shrink-0"
             />
           </Link>
+          {chip.invalid && (
+            <span id={`invalid-chip-${chip.key}`} className="sr-only">
+              Not a value the history accepts
+            </span>
+          )}
         </li>
       ))}
     </ul>

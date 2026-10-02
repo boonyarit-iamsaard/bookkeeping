@@ -3,12 +3,13 @@
 import type { CategorySummary } from "@bookkeeping/domain/categories";
 import { MAX_CATEGORY_NAME_LENGTH } from "@bookkeeping/domain/categories";
 import type { LucideIcon } from "lucide-react";
-import { ListTree, LockKeyhole, Trash2, TriangleAlert } from "lucide-react";
+import { ListTree, LockKeyhole, Trash2 } from "lucide-react";
 import { useId, useState } from "react";
 import type { CategoryColor } from "@/features/categories/category-color";
 import type { ManageCategoryOutcome } from "@/features/categories/category-mutations";
 import { IconPicker } from "@/features/categories/components/icon-picker";
 import { useEditCategoryForm } from "@/features/categories/hooks/use-edit-category-form";
+import { ConfirmPanel } from "@/shared/components/confirm-panel";
 import { ErrorNotice } from "@/shared/components/error-notice";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button } from "@/shared/components/ui/button";
@@ -199,38 +200,34 @@ export function EditCategoryForm({
               {removalExplanation(category, removal)}
             </RemovalPanel>
           ) : confirming ? (
-            <div className="flex flex-col gap-4 rounded-xl bg-muted p-4">
-              <p className="flex items-start gap-3 text-foreground text-sm leading-normal">
-                <TriangleAlert
-                  aria-hidden="true"
-                  strokeWidth={1.75}
-                  className="mt-0.5 size-4 shrink-0 text-destructive"
-                />
-                {removalExplanation(category, removal)}
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="lg"
-                  disabled={removing}
-                  onClick={remove}
-                  className="wrap-break-word h-auto min-h-11 whitespace-normal py-2 sm:min-h-10"
-                >
-                  <Trash2 data-icon="inline-start" strokeWidth={1.75} />
-                  {removing ? "Removing…" : `Remove ${category.name}`}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="lg"
-                  disabled={removing}
-                  onClick={() => setConfirming(false)}
-                >
-                  Keep it
-                </Button>
-              </div>
-            </div>
+            <ConfirmPanel
+              actions={
+                <>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="lg"
+                    disabled={removing}
+                    onClick={remove}
+                    className="wrap-break-word h-auto min-h-11 whitespace-normal py-2 sm:min-h-10"
+                  >
+                    <Trash2 data-icon="inline-start" strokeWidth={1.75} />
+                    {removing ? "Removing…" : `Remove ${category.name}`}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="lg"
+                    disabled={removing}
+                    onClick={() => setConfirming(false)}
+                  >
+                    Keep it
+                  </Button>
+                </>
+              }
+            >
+              {removalExplanation(category, removal)}
+            </ConfirmPanel>
           ) : (
             <>
               <p className="text-muted-foreground text-sm leading-normal">

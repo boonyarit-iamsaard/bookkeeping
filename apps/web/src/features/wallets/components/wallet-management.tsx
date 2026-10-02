@@ -2,7 +2,7 @@ import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Archive, ArchiveRestore, Trash2, TriangleAlert } from "lucide-react";
+import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "@/core/api/client";
 import { formatApiMoneyInput } from "@/core/api/money";
@@ -16,6 +16,7 @@ import {
 } from "@/core/query/refresh-after-write";
 import { WalletTile } from "@/features/wallets/components/wallet-tile";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
+import { ConfirmPanel } from "@/shared/components/confirm-panel";
 import { DatePicker } from "@/shared/components/date-picker";
 import { ErrorNotice } from "@/shared/components/error-notice";
 import { Money } from "@/shared/components/money";
@@ -327,36 +328,32 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           </p>
         </div>
         {confirmDelete ? (
-          <div className="flex flex-col gap-4 rounded-xl bg-muted p-4">
-            <p className="flex items-start gap-3 text-foreground text-sm leading-normal">
-              <TriangleAlert
-                aria-hidden="true"
-                strokeWidth={1.75}
-                className="mt-0.5 size-4 shrink-0 text-destructive"
-              />
-              Delete this wallet permanently? Its opening balance will leave
-              your totals. This cannot be undone.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button
-                variant="destructive"
-                size="lg"
-                disabled={pending}
-                onClick={() => void submitDelete()}
-              >
-                <Trash2 data-icon="inline-start" strokeWidth={1.75} />
-                Delete permanently
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                disabled={pending}
-                onClick={() => setConfirmDelete(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
+          <ConfirmPanel
+            actions={
+              <>
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  disabled={pending}
+                  onClick={() => void submitDelete()}
+                >
+                  <Trash2 data-icon="inline-start" strokeWidth={1.75} />
+                  Delete permanently
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  disabled={pending}
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  Cancel
+                </Button>
+              </>
+            }
+          >
+            Delete this wallet permanently? Its opening balance will leave your
+            totals. This cannot be undone.
+          </ConfirmPanel>
         ) : (
           <Button
             variant="destructive"

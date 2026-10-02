@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
+import { NotFound } from "@/core/shell/not-found";
 import { routeTree } from "@/routeTree.gen";
 
 /** What every route's `beforeLoad` and loader can reach. */
@@ -12,6 +13,7 @@ export function createAppRouter(context: Readonly<RouterContext>) {
     routeTree,
     context,
     defaultPreload: "intent",
+    defaultNotFoundComponent: NotFound,
     // Keyed by address rather than history entry, so returning to a tab by
     // its link finds the place it was left.
     scrollRestoration: true,

@@ -10,6 +10,7 @@ import { useCreateWalletForm } from "@/features/wallets/hooks/use-create-wallet-
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { ErrorNotice } from "@/shared/components/error-notice";
+import { AmountInput } from "@/shared/components/form/amount-input";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
@@ -127,6 +128,8 @@ export function CreateWalletForm({
                     options={TYPE_OPTIONS}
                     value={field.state.value}
                     onValueChange={field.handleChange}
+                    // "Bank account" needs the room on a 360px card.
+                    optionClassName="max-sm:px-0.5 max-sm:text-[0.8125rem]"
                   />
                   <FieldErrors
                     id={`${field.name}-error`}
@@ -150,36 +153,15 @@ export function CreateWalletForm({
               return (
                 <Field data-invalid={invalid}>
                   <FieldLabel htmlFor={field.name}>Opening balance</FieldLabel>
-                  <div className="relative">
-                    <span
-                      aria-hidden="true"
-                      className="money pointer-events-none absolute inset-y-0 left-5 flex items-center text-muted-foreground text-xl"
-                    >
-                      ฿
-                    </span>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      type="text"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      placeholder="0.00"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.target.value)
-                      }
-                      aria-invalid={invalid}
-                      aria-describedby="opening-amount-description"
-                      className="money h-16 pr-16 pl-11 text-3xl text-foreground sm:h-16 md:text-3xl"
-                    />
-                    <span
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-y-0 right-5 flex items-center font-medium text-muted-foreground text-sm"
-                    >
-                      THB
-                    </span>
-                  </div>
+                  <AmountInput
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    aria-invalid={invalid}
+                    aria-describedby="opening-amount-description"
+                  />
                   <FieldDescription id="opening-amount-description">
                     In Thai baht, to the satang. A negative balance is allowed.
                   </FieldDescription>

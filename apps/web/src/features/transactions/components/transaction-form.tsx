@@ -42,6 +42,7 @@ import {
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
+import { AmountInput } from "@/shared/components/form/amount-input";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button, linkActionClass } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
@@ -461,48 +462,29 @@ export function TransactionForm({
                   return (
                     <Field data-invalid={invalid}>
                       <FieldLabel htmlFor={field.name}>Amount</FieldLabel>
-                      <div className="relative">
-                        <span
-                          aria-hidden="true"
-                          className="money pointer-events-none absolute inset-y-0 left-5 flex items-center text-muted-foreground text-xl"
-                        >
-                          ฿
-                        </span>
-                        <Input
-                          id={field.name}
-                          name={field.name}
-                          type="text"
-                          inputMode="decimal"
-                          autoComplete="off"
-                          autoFocus={!editing}
-                          onFocus={(event) => {
-                            if (mode.kind === "refund") {
-                              event.currentTarget.select();
-                            }
-                          }}
-                          enterKeyHint="done"
-                          placeholder="0.00"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(event) => {
-                            clearFieldError("amount");
-                            field.handleChange(event.target.value);
-                          }}
-                          aria-invalid={invalid}
-                          aria-describedby={
-                            invalid
-                              ? "amount-description amount-error"
-                              : "amount-description"
+                      <AmountInput
+                        id={field.name}
+                        name={field.name}
+                        autoFocus={!editing}
+                        onFocus={(event) => {
+                          if (mode.kind === "refund") {
+                            event.currentTarget.select();
                           }
-                          className="money h-16 pr-16 pl-11 text-3xl text-foreground sm:h-16 md:text-3xl"
-                        />
-                        <span
-                          aria-hidden="true"
-                          className="pointer-events-none absolute inset-y-0 right-5 flex items-center font-medium text-muted-foreground text-sm"
-                        >
-                          THB
-                        </span>
-                      </div>
+                        }}
+                        enterKeyHint="done"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => {
+                          clearFieldError("amount");
+                          field.handleChange(event.target.value);
+                        }}
+                        aria-invalid={invalid}
+                        aria-describedby={
+                          invalid
+                            ? "amount-description amount-error"
+                            : "amount-description"
+                        }
+                      />
                       <FieldDescription id="amount-description">
                         {linked ? (
                           <>

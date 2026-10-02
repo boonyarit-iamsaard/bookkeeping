@@ -1,8 +1,7 @@
 import type { components } from "@/core/api/openapi.gen";
+import { MonthSections } from "@/features/transactions/components/month-sections";
 import { TransactionList } from "@/features/transactions/components/transaction-list";
-import { groupHistoryByMonth } from "@/features/transactions/history-groups";
 import { ErrorNotice } from "@/shared/components/error-notice";
-import { ListSection } from "@/shared/components/list-section";
 
 type ApiTransaction = components["schemas"]["Transaction"];
 
@@ -54,19 +53,10 @@ export function TransactionHistory({
   }
 
   return (
-    <>
-      {groupHistoryByMonth(transactions).map((group) => (
-        <ListSection
-          key={group.key}
-          headingId={`history-${group.key}-heading`}
-          heading={group.label}
-        >
-          <TransactionList
-            transactions={group.transactions}
-            savedId={savedId}
-          />
-        </ListSection>
-      ))}
-    </>
+    <MonthSections
+      transactions={transactions}
+      idPrefix="history"
+      savedId={savedId}
+    />
   );
 }

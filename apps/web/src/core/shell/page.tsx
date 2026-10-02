@@ -13,6 +13,8 @@ const PAGE_LAYOUTS = {
 
 interface PageProps {
   layout: keyof typeof PAGE_LAYOUTS;
+  /** A screen waiting on its records: busy, and named without naming a screen. */
+  loading?: boolean;
   children: React.ReactNode;
 }
 
@@ -21,9 +23,11 @@ interface PageProps {
  * column starts flush; from 640px the header sits above it and it steps down.
  * Blocks are 24px apart on phone and 32px from 640px.
  */
-export function Page({ layout, children }: Readonly<PageProps>) {
+export function Page({ layout, loading, children }: Readonly<PageProps>) {
   return (
     <main
+      aria-busy={loading || undefined}
+      aria-label={loading ? "Loading" : undefined}
       className={cn(
         "mx-auto flex w-full flex-col gap-6 px-4 sm:gap-8 sm:pt-8",
         PAGE_LAYOUTS[layout],

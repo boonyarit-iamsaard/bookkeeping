@@ -1,6 +1,10 @@
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
-import { RowSkeleton, Skeleton } from "@/shared/components/skeleton";
+import {
+  HeroSkeleton,
+  RowSkeleton,
+  Skeleton,
+} from "@/shared/components/skeleton";
 
 const CARD_CLASS =
   "flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-card sm:p-6";
@@ -17,7 +21,7 @@ function FigureRowSkeleton() {
 /** Reports' layout in neutral blocks: never a figure that could pass for money. */
 export function ReportsLoading() {
   return (
-    <Page layout="wide">
+    <Page layout="wide" loading>
       <TitleBar
         title="Reports"
         actions={
@@ -32,11 +36,7 @@ export function ReportsLoading() {
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-11" />
         </div>
-        <div className="flex min-h-44 flex-col gap-3 rounded-3xl bg-hero p-5 pt-6 shadow-hero sm:min-h-48 sm:p-7">
-          <Skeleton className="h-4 w-24 bg-hero-foreground/12" />
-          <Skeleton className="mt-auto h-9 w-52 bg-hero-foreground/12 sm:h-12 sm:w-72" />
-          <Skeleton className="h-4 w-36 bg-hero-foreground/12" />
-        </div>
+        <HeroSkeleton captionClassName="w-36" />
         <div className={CARD_CLASS}>
           <Skeleton className="h-6 w-40" />
           <div className="flex flex-col gap-3.5">

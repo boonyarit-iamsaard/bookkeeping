@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-01T12:00:00+07:00",
+  "generatedAt": "2026-10-02T12:00:00+07:00",
   "title": "Design System: Bookkeeping",
   "extensions": {
     "colorMeta": {
@@ -547,16 +547,16 @@
       "signal-red": {
         "role": "error",
         "displayName": "Signal Red",
-        "canonical": "oklch(0.55 0.21 25)",
+        "canonical": "oklch(0.5 0.2 25)",
         "tonalRamp": [
-          "oklch(0.15 0.21 25)",
-          "oklch(0.264 0.21 25)",
-          "oklch(0.379 0.21 25)",
-          "oklch(0.493 0.21 25)",
-          "oklch(0.607 0.21 25)",
-          "oklch(0.721 0.21 25)",
-          "oklch(0.836 0.21 25)",
-          "oklch(0.95 0.21 25)"
+          "oklch(0.15 0.2 25)",
+          "oklch(0.264 0.2 25)",
+          "oklch(0.379 0.2 25)",
+          "oklch(0.493 0.2 25)",
+          "oklch(0.607 0.2 25)",
+          "oklch(0.721 0.2 25)",
+          "oklch(0.836 0.2 25)",
+          "oklch(0.95 0.2 25)"
         ]
       },
       "signal-red-dark": {
@@ -994,7 +994,7 @@
       "refersTo": "button-destructive",
       "description": "Signal Red at 10% with red text, for removal; set apart by space as well as color.",
       "html": "<button class=\"ds-btn-destructive\">Delete transaction</button>",
-      "css": ".ds-btn-destructive { height: 44px; padding: 0 14px; border: 1px solid transparent; border-radius: 14px; background: color-mix(in oklch, var(--destructive, oklch(0.55 0.21 25)) 10%, transparent); color: var(--destructive, oklch(0.55 0.21 25)); font: 600 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms ease-out, box-shadow 150ms ease-out; } .ds-btn-destructive:hover { background: color-mix(in oklch, var(--destructive, oklch(0.55 0.21 25)) 16%, transparent); } .ds-btn-destructive:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive, oklch(0.55 0.21 25)) 25%, transparent); } @media (min-width: 640px) { .ds-btn-destructive { height: 36px; } }"
+      "css": ".ds-btn-destructive { height: 44px; padding: 0 14px; border: 1px solid transparent; border-radius: 14px; background: color-mix(in oklch, var(--destructive, oklch(0.5 0.2 25)) 10%, transparent); color: var(--destructive, oklch(0.5 0.2 25)); font: 600 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms ease-out, box-shadow 150ms ease-out; } .ds-btn-destructive:hover { background: color-mix(in oklch, var(--destructive, oklch(0.5 0.2 25)) 16%, transparent); } .ds-btn-destructive:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive, oklch(0.5 0.2 25)) 25%, transparent); } @media (min-width: 640px) { .ds-btn-destructive { height: 36px; } }"
     },
     {
       "name": "Text Field",
@@ -1047,7 +1047,7 @@
   ],
   "narrative": {
     "northStar": "The Midnight Card",
-    "overview": "Bookkeeping is a bright banking-app front page for one person's money. A single deep Midnight hero card holds the figure a screen is about; everything else sits on white cards over a soft iris-tinted ground, and one Iris action waits under the thumb. It plays clean modern fintech straight, at the craft level of MAKE by KBank and K PLUS, and sits beside them rather than imitating them: no bank green, no borrowed marks. Trust comes from exact money, a calm tonal palette, predictable controls, and a few short motions that confirm what just happened.\n\nDensity is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.\n\nScope: ticket 01 built this system, the shell, and Home. Capture, history, wallets, reports, categories, and authentication are restyled by tickets 02 to 07; until then they inherit only the shared primitives recorded here, and their screen-specific composition is not part of this document. Charts are ticket 05; only their tokens exist.",
+    "overview": "Bookkeeping is a bright banking-app front page for one person's money. A single deep Midnight hero card holds the figure a screen is about; everything else sits on white cards over a soft iris-tinted ground, and one Iris action waits under the thumb. It plays clean modern fintech straight, at the craft level of MAKE by KBank and K PLUS, and sits beside them rather than imitating them: no bank green, no borrowed marks. Trust comes from exact money, a calm tonal palette, predictable controls, and a few short motions that confirm what just happened.\n\nDensity is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.\n\nScope: the whole product is on this system. Ticket 01 built it with the shell and Home; 02 restyled capture, 03 history, filters, and the transaction detail, 04 the wallets, 05 Reports with the chart component, 06 Categories and the pickers, and 07 sign-in and sign-up; 08 swept the seams between them, the offline page, and the not-found screen.",
     "keyCharacteristics": [
       "An iris-tinted ground with white cards in light, a near-black indigo ground with lifted indigo cards in dark, chosen by prefers-color-scheme.",
       "One Midnight hero card per screen, carrying the app icon's bowl-and-coin as its only ornament.",
@@ -1055,7 +1055,7 @@
       "Inter throughout, with money in bold Inter at tabular digits; no monospace anywhere.",
       "Category pictograms on rounded-square tiles tinted from an eight-hue palette, children inheriting their parent.",
       "Soft, iris-tinted shadows on cards and floating surfaces; a phone shell of white chrome, title bar, and tab bar.",
-      "Motion only for the arriving row, the sheet, the segmented indicator, and 150ms hover fades, all removed under reduced motion."
+      "Motion only for the arriving row or wallet card, the sheet, the segmented indicator, and 150ms hover fades, all removed under reduced motion."
     ],
     "rules": [
       {
@@ -1113,7 +1113,8 @@
       "Do color category tiles by the parent's stable hash, inherit it in children, and keep Uncategorized and transfers neutral.",
       "Do give every phone control a tappable area of at least 44 by 44 CSS pixels below 640px; use 48px for the ＋.",
       "Do use the three shadow tokens as defined, and the 1px light edge in dark.",
-      "Do keep motion to the arriving row, the sheet, the segmented indicator, and 150ms hover fades, and remove all of it under reduced motion.",
+      "Do keep motion to the arriving row or wallet card, the sheet, the segmented indicator, and 150ms hover fades, and remove all of it under reduced motion.",
+      "Do tell every chart series apart by label, position, and pattern as well as hue, and state each charted figure as text.",
       "Do pair pictograms with words; an icon-only control needs an accessible name and a universal glyph such as ‹ or ✕."
     ],
     "donts": [
@@ -1121,6 +1122,7 @@
       "Don't add a second Midnight card, a second display-size figure, or a stat strip of hero-sized numbers to a screen.",
       "Don't introduce plain greys, a monospace face, bank green, or a borrowed bank mark.",
       "Don't fill a second Iris action where the ＋ or the header's New transaction already owns it.",
+      "Don't add a pie or ring for wallets, a dual-axis chart, an abbreviated axis number, or a client-side sum standing in for a level 3 read.",
       "Don't put shadows on buttons, fields, rows, chrome, or tiles, or invent shadow values outside the three tokens and the capture glow.",
       "Don't show figures, ฿, or sample money in loading states, or animate skeletons.",
       "Don't animate popovers, menus, or page changes, or add motion beyond the recorded moments.",

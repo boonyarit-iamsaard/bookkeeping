@@ -9,13 +9,11 @@ import {
 } from "@/core/api/queries";
 import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
-import { TransactionList } from "@/features/transactions/components/transaction-list";
-import { groupHistoryByMonth } from "@/features/transactions/history-groups";
+import { MonthSections } from "@/features/transactions/components/month-sections";
 import { historySearchSchema } from "@/features/transactions/history-schema";
 import { WalletBalance } from "@/features/wallets/components/wallet-balance";
 import { WalletPageErrorBoundary } from "@/features/wallets/components/wallet-page-error-boundary";
 import { WalletPageLoading } from "@/features/wallets/components/wallet-page-loading";
-import { ListSection } from "@/shared/components/list-section";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 /** One wallet's history: the list's own address, pinned to this wallet. */
@@ -88,20 +86,13 @@ function WalletPage() {
             No transactions yet
           </p>
         ) : (
-          groupHistoryByMonth(page.items).map((group) => (
-            <ListSection
-              key={group.key}
-              headingId={`wallet-${group.key}-heading`}
-              heading={group.label}
-              level={3}
-            >
-              <TransactionList
-                transactions={group.transactions}
-                savedId={created}
-                pageWalletId={wallet.id}
-              />
-            </ListSection>
-          ))
+          <MonthSections
+            transactions={page.items}
+            idPrefix="wallet"
+            level={3}
+            savedId={created}
+            pageWalletId={wallet.id}
+          />
         )}
       </section>
       {nextCursor && (

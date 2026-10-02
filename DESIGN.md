@@ -38,7 +38,7 @@ colors:
   hairline-dark: "oklch(1 0 0 / 9%)"
   field-fill-dark: "oklch(1 0 0 / 6%)"
   scrim: "oklch(0.18 0.04 285 / 45%)"
-  signal-red: "oklch(0.55 0.21 25)"
+  signal-red: "oklch(0.5 0.2 25)"
   signal-red-dark: "oklch(0.7 0.18 25)"
   category-iris: "#5b5bd6"
   category-amber: "#c77c02"
@@ -220,14 +220,14 @@ components:
     padding: "0 0.875rem"
     height: "{spacing.control}"
   button-destructive:
-    backgroundColor: "oklch(0.55 0.21 25 / 10%)"
+    backgroundColor: "oklch(0.5 0.2 25 / 10%)"
     textColor: "{colors.signal-red}"
     typography: "{typography.label}"
     rounded: "{rounded.lg}"
     padding: "0 0.875rem"
     height: "{spacing.control}"
   button-destructive-hover:
-    backgroundColor: "oklch(0.55 0.21 25 / 16%)"
+    backgroundColor: "oklch(0.5 0.2 25 / 16%)"
     textColor: "{colors.signal-red}"
   button-link:
     backgroundColor: "transparent"
@@ -339,7 +339,7 @@ Bookkeeping is a bright banking-app front page for one person's money. A single 
 
 Density is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.
 
-Scope: ticket 01 built this system, the shell, and Home. Capture is restyled by ticket 02, history, filters, and the transaction detail by ticket 03, the wallet list, wallet page, Manage, and the new-wallet form by ticket 04, Categories, the category editor, and the category picker by ticket 06, and Reports with the chart component by ticket 05; authentication is ticket 07 and inherits only the shared primitives recorded here, so its screen-specific composition is not part of this document.
+Scope: the whole product is on this system. Ticket 01 built it with the shell and Home; 02 restyled capture, 03 history, filters, and the transaction detail, 04 the wallets, 05 Reports with the chart component, 06 Categories and the pickers, and 07 sign-in and sign-up; 08 swept the seams between them, the offline page, and the not-found screen.
 
 **Key Characteristics:**
 
@@ -386,7 +386,7 @@ A violet-blue family on tinted neutrals: Iris acts, Midnight holds the figure, a
 
 ### Semantic
 
-- **Signal Red** (`{colors.signal-red}`, `{colors.signal-red-dark}` in dark): validation, destructive actions, and load failure. Destructive buttons are 10% Signal Red with Signal Red text, 16% on hover (16% and 24% in dark), with a 25% red focus ring.
+- **Signal Red** (`{colors.signal-red}`, `{colors.signal-red-dark}` in dark): validation, destructive actions, and load failure. Destructive buttons are 10% Signal Red with Signal Red text, 16% on hover (16% and 24% in dark), with a 25% red focus ring. Light Signal Red is dark enough to keep 4.5:1 for its text on its own 10% tint.
 
 ### Named Rules
 
@@ -494,11 +494,11 @@ Select, date, and month triggers use the same surface with a Slate leading picto
 
 ### Segmented Control
 
-A Mist track with 14px corners, 52px on phone and 44px from 640px, holds one Card indicator (Popover Dark in dark) with 10px corners and `--shadow-card`, inset 4px. The indicator slides in 200ms on an exponential ease-out (`cubic-bezier(0.16, 1, 0.3, 1)`); the checked label turns Ink and the rest stay Slate. Base UI radio semantics give arrow-key movement. Reduced motion removes the slide.
+A Mist track with 14px corners, 52px on phone and 44px from 640px, holds one Card indicator (Popover Dark in dark) with 10px corners and `--shadow-card`, inset 4px. The indicator slides in 200ms on an exponential ease-out (`cubic-bezier(0.16, 1, 0.3, 1)`); the checked label turns Ink and the rest stay Slate. Base UI radio semantics give arrow-key movement. Reduced motion removes the slide. Labels never wrap. A field whose longest label cannot fit its equal share steps its labels down on phone through `optionClassName`: the new-wallet Type shows "Bank account" at 13px with a 2px inset below 640px.
 
 ### Form Cards
 
-An entry form groups its fields on Cards over the ground rather than on the bare page: the amount and type share one card, and the details (wallet, category or destination, date, note) the next, 20px corners, padded 20px (28px from 640px), 24px apart on phone and 32px from 640px. Fields keep their one surface on the card. The Amount field is the form's figure: a 64px field with the `money` treatment at 30px, a Slate ฿ and THB flanking it; it never takes the Midnight hero, which stays with display figures. A selected date chip (Today, Yesterday) fills Iris Tonal and gains a check, so selection is never color alone. A form-level rejection is the shared **Error Notice**: a 10% Signal Red card with a circle-alert pictogram and its message in Signal Red, also used for an invalid history filter, a failed delete, a rejected wallet change, and a rejected category change. The fixed Save bar is Chrome at 95% over a top Hairline, clearing the home indicator, with the Iris Save as the screen's one action; from 640px it sits in the page.
+An entry form groups its fields on Cards over the ground rather than on the bare page: the amount and type share one card, and the details (wallet, category or destination, date, note) the next, 20px corners, padded 20px (28px from 640px), 24px apart on phone and 32px from 640px. Fields keep their one surface on the card. The Amount field is the form's figure (`AmountInput`, shared by the capture form and the new-wallet form): a 64px field with the `money` treatment at 30px, a Slate ฿ and THB flanking it; it never takes the Midnight hero, which stays with display figures. A selected date chip (Today, Yesterday) fills Iris Tonal and gains a check, so selection is never color alone. A form-level rejection is the shared **Error Notice**: a 10% Signal Red card with a circle-alert pictogram and its message in Signal Red, also used for an invalid history filter, a failed delete, a rejected wallet change, and a rejected category change. The fixed Save bar is Chrome at 95% over a top Hairline, clearing the home indicator, with the Iris Save as the screen's one action; from 640px it sits in the page.
 
 ### Linked Expense
 
@@ -506,7 +506,7 @@ A refund's source expense reads back as a Wash-filled 12px-corner link at least 
 
 ### Filter Chips
 
-History's active filters are removable chips under the title: Iris Tonal pills, 44px tall, semibold 14px in Iris Tonal Ink, with a 16px ✕ after the label. A value the app cannot name, such as an invalid date, shows as typed. Each chip is a link that lifts only its own URL value, nudging 10% toward Iris on hover. An invalid filter shows the Error Notice beneath the chips, in place of the list, and the filter sheet reopens with the typed value and the same notice above its fields. Apply is Outline and Clear is Ghost, so the filter sheet adds no Iris action.
+History's active filters are removable chips under the title: Iris Tonal pills, 44px tall, semibold 14px in Iris Tonal Ink, with a 16px ✕ after the label. A value the app cannot name, such as an invalid date, shows as typed, and an invalid chip is told apart by more than red: a dashed Signal Red outline, a leading triangle-alert, and a hidden note ("Not a value the history accepts") that the chip is described by. Each chip is a link that lifts only its own URL value, nudging 10% toward Iris on hover. An invalid filter shows the Error Notice beneath the chips, in place of the list, and the filter sheet reopens with the typed value and the same notice above its fields. Apply is Outline and Clear is Ghost, so the filter sheet adds no Iris action.
 
 ### Transaction History and Detail
 
@@ -520,13 +520,13 @@ The Wallets screen leads with the Total balance hero, then one **Wallet Card** p
 
 A wallet's page leads with its Midnight hero ("Current balance", the type as its caption), then its transactions as 03's month list sections of Transaction Rows; the sections sit under a visually hidden "Transactions" heading, so their month headings are level 3 (`ListSection` takes a `level`). A wallet with no transactions shows "No transactions yet" as Slate text on a Card. Manage is an Outline action in the title bar.
 
-Manage stacks one Card per task in the 448px column: a balance card (the Wallet Tile, "Current balance" in Caption, the figure in Figure Net), Correct opening balance, Archive or Unarchive wallet (Outline, with the archive or restore pictogram), and Permanent deletion, set 16px further apart (24px from 640px) so destruction stands apart by space. Delete wallet… is a Destructive button with a trash pictogram; its inline confirmation is a 16px-corner Mist panel inside the card, led by a Signal Red triangle-alert pictogram, with Delete permanently (Destructive, trash pictogram) and a Ghost Cancel. A saved change reads back as a **Saved Notice**: an Iris Tonal card led by a check pictogram (`SavedNotice`), announced as a status and shared with history's "Transaction deleted." notice. The opening-balance correction field carries a Slate ฿ inside its leading edge, as the Amount field does. A screen whose notice must take focus once the control that had it is gone (Categories after a removal) keeps the Saved Notice mounted, visually hidden while empty, and passes it a `ref` and `tabIndex`.
+Manage stacks one Card per task in the 448px column: a balance card (the Wallet Tile, "Current balance" in Caption, the figure in Figure Net), Correct opening balance, Archive or Unarchive wallet (Outline, with the archive or restore pictogram), and Permanent deletion, set 16px further apart (24px from 640px) so destruction stands apart by space. Delete wallet… is a Destructive button with a trash pictogram; its inline confirmation is the shared **Confirm Panel** (`ConfirmPanel`, also Categories' removal): a 16px-corner Mist panel inside the card, led by a Signal Red triangle-alert pictogram, with Delete permanently (Destructive, trash pictogram) and a Ghost Cancel. A saved change reads back as a **Saved Notice**: an Iris Tonal card led by a check pictogram (`SavedNotice`), announced as a status and shared with history's "Transaction deleted." notice. The opening-balance correction field carries a Slate ฿ inside its leading edge, as the Amount field does. A screen whose notice must take focus once the control that had it is gone (Categories after a removal) keeps the Saved Notice mounted, visually hidden while empty, and passes it a `ref` and `tabIndex`.
 
 The new-wallet form is a Form Cards entry form: Name and Type on the first card, Opening balance and Opening date on the second. Opening balance is the form's figure, treated like the capture form's Amount field (64px, money at 30px, ฿ and THB flanking it); the fixed Save bar carries Create wallet.
 
 ### Categories
 
-Categories leads with its title (New category as an Outline action), the Saved Notice that reads back each change, and the Expense and Income segmented control. Each tree is a stack of list cards, one per parent, 12px apart (16px from 640px): the parent's row first, then its children on the same card. A parent row is at least 64px tall with a 44px Category Tile and the name in Row Title; a child row is at least 56px, its Slate › centred in a 44px slot beneath the parent's tile and its own 36px tile in line with the parent's name, the name in medium weight. Children wear their parent's hue. Names wrap rather than truncate in rows; a Select trigger, such as the new-category form's Parent, stays one line and truncates. A Caption line beneath the name says "Protected", led by a lock pictogram, for Uncategorized, and the entry count ("3 entries") when there are any; protection is never told by the neutral tile alone. Rows carry no trailing chevron, like Transaction Rows; the whole row is the button to its editor and washes on hover.
+Categories leads with its title (New category as an Outline action), the Saved Notice that reads back each change, and the Expense and Income segmented control. Each tree is a stack of list cards, one per parent, 12px apart (16px from 640px): the parent's row first, then its children on the same card. A parent row is at least 64px tall with a 44px Category Tile and the name in Row Title; a child row is at least 56px, its Slate › centred in a 44px slot beneath the parent's tile and its own 36px tile in line with the parent's name, the name in medium weight. Children wear their parent's hue. Names wrap rather than truncate in rows; a Select trigger, such as the new-category form's Parent, stays one line and truncates. A Caption line beneath the name says "Protected", led by a lock pictogram, for Uncategorized, and the entry count ("3 entries") when there are any; protection is never told by the neutral tile alone. Rows carry no trailing chevron, like Transaction Rows; the whole row is the button to its editor and washes on hover. A row's accessible name is its visible text, so it now includes "Protected" and the entry count that it always showed (an intended change from the earlier name, which held only the category).
 
 The editor and the new-category form are sheets. Fields keep their one surface; a read-only name (Uncategorized) fills Mist. A rejection is the Error Notice. The new-category form's New parent fields sit on a 16px-corner Mist panel under a bold legend, and its Parent options lead with each parent's tile in its hue. Save is the sheet's Iris action. Removal stands apart under a Hairline and 32px of space, headed "Remove" (or "A protected category"). When removal is blocked, for Uncategorized or a parent with children, the reason sits on a Mist panel led by a Slate lock or list-tree pictogram, and no remove action appears. Otherwise the consequence is a Caption above a Destructive Remove… with a trash pictogram; it opens an inline confirmation like Manage's: a Mist panel led by a Signal Red triangle-alert, with Remove [name] (Destructive, trash) and a Ghost Keep it.
 
@@ -540,10 +540,18 @@ Ticket 05 adds one chart component family, built on the chart tokens and drawn i
 
 - **Flow bars** (level 1): Income above Net expenses on one scale. Reports states each figure beside its label; Home's This month draws the bars beneath its own figures, hidden from assistive technology because those figures already say it. Shown only when the month has transactions.
 - **Wallet share** (level 1): one bar per wallet from a shared zero line, the track only as wide as the balances need. A negative wallet reaches left of the zero line and is labeled with its true minus; an archived wallet keeps "· Archived"; the total is stated as text beneath. It uses the balance date's as-of balances. A ring would hide the negative slice.
-- **Six-month trend** (level 2): paired Income and Net expenses columns for the six months ending at the chosen month, from six monthly reports, over one zero line (a negative Net expenses month hangs below it). A month is chosen from 44px buttons beneath the plot (current is bold, its column washes), and its exact figures read out below with the series key. An empty month draws no columns; six empty months become one line of text. A visually hidden table carries every figure for assistive technology.
-- **Reports page** (a stated system change): the Midnight hero is the month's Net; below it a Card holds the month's flow bars and the five figures divided by Hairlines, then Last six months, then Wallet balances, which holds the Balance date field, the wallet share bars, the total, and the per-wallet current and dated figures in two columns. Blocks are Cards at 20px corners.
+- **Six-month trend** (level 2): paired Income and Net expenses columns for the six months ending at the chosen month, from six monthly reports, over one zero line (a negative Net expenses month hangs below it). A month is chosen from 44px buttons (4px apart, so six fit a 360px card) beneath the plot (current is bold, its column washes), and its exact figures read out below with the series key. An empty month draws no columns; six empty months become one line of text. A visually hidden table carries every figure for assistive technology.
+- **Reports page** (a stated system change): the Midnight hero is the month's Net; below it a Card holds the month's flow bars and the five figures divided by Hairlines, then Last six months, then Wallet balances, which holds the Balance date field, the wallet share bars, the total, and the per-wallet current and dated figures in two columns. The per-wallet rows repeat what the bars show; that is deliberate, because the bars are marks and the rows are the text the Always Satang Rule asks for beside them. Blocks are Cards at 20px corners.
 
 **Level 3 (specified, not built).** Spending by category and balance over time need new server-calculated reads and ship as a separate feature, which adopts these styles without client-side sums. The **category breakdown bar** is one horizontal bar split into segments by each parent's hue in the category order, 2px surface gaps between segments, 4px outer corners, with a legend row per parent that carries the hue swatch, the parent's name, and its exact amount; the share of the whole is stated as text, and Uncategorized uses Category Neutral hatched. The **balance trend** is a single 2px line in chart 1 with a 4px round marker on the selected day, the zero line drawn whenever any balance is negative, a Hairline area wash beneath, and the same selected-day readout and hidden table as the six-month trend; a second wallet takes the next chart hue and a hatched dash, never red or green.
+
+### Signed-out Screens
+
+Sign-in and sign-up sit on the Ground with no shell: the app mark and the Bookkeeping wordmark centred above one Form Card in a 448px column (28px padding from 640px), the Headline as the card title. Fields keep their one surface, the submit is the `lg` Iris primary and the screen's one action, and the closed sign-up state shows no Sign up link. A credential rejection is the shared Error Notice above the button rather than a field error (an intended change from the earlier bare red line); a field error keeps its pictogram, and values are kept through both.
+
+### Offline Page and Not Found
+
+The offline page is static, because the service worker serves it when a launch cannot reach the network and nothing else is available: the Ground, one Card with the Headline, a Slate sentence, and an Iris Retry button, in light and dark, with the system sans standing in since Inter cannot load offline. An address that matches no screen shows a Not Found empty state, one Card with an Iris Tonal tile, "Page not found", a Caption, and Go to Home.
 
 ### Navigation
 
@@ -578,7 +586,7 @@ An empty state is a Card (20px corners, `--shadow-card`, 20px padding, 28px from
 
 ### Skeletons
 
-Loading uses still Mist blocks shaped like the content: the hero as a Card-colored block, the summary card, row skeletons with a tile, two lines, and a figure-width bar, the detail's fact rows as label and value bars, and a wallet's page as its title bar, hero, and a month of rows. The title is a bar when the screen's name is not yet known. Skeletons never contain digits, ฿, or anything that could pass for money, and they do not shimmer.
+Loading uses still Mist blocks shaped like the content: the hero as its own Midnight card with faint hero-tinted blocks (`HeroSkeleton`, so nothing changes color when the figure arrives), the summary card, row skeletons with a tile, two lines, and a figure-width bar, the detail's fact rows as label and value bars, and a wallet's page as its title bar, hero, and a month of rows. The title is a bar when the screen's name is not yet known. Skeletons never contain digits, ฿, or anything that could pass for money, and they do not shimmer. A loading screen marks its column busy and names it "Loading" without naming a screen, because edit, refund, and wallet routes share the shape.
 
 ## Do's and Don'ts
 
