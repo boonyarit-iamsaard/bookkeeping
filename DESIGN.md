@@ -339,7 +339,7 @@ Bookkeeping is a bright banking-app front page for one person's money. A single 
 
 Density is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.
 
-Scope: ticket 01 built this system, the shell, and Home. Capture is restyled by ticket 02; history, wallets, reports, categories, and authentication by tickets 03 to 07; until then they inherit only the shared primitives recorded here, and their screen-specific composition is not part of this document. Charts are ticket 05; only their tokens exist.
+Scope: ticket 01 built this system, the shell, and Home. Capture is restyled by ticket 02 and history, filters, and the transaction detail by ticket 03; wallets, reports, categories, and authentication by tickets 04 to 07; until then they inherit only the shared primitives recorded here, and their screen-specific composition is not part of this document. Charts are ticket 05; only their tokens exist.
 
 **Key Characteristics:**
 
@@ -498,11 +498,21 @@ A Mist track with 14px corners, 52px on phone and 44px from 640px, holds one Car
 
 ### Form Cards
 
-An entry form groups its fields on Cards over the ground rather than on the bare page: the amount and type share one card, and the details (wallet, category or destination, date, note) the next, 20px corners, padded 20px (28px from 640px), 24px apart on phone and 32px from 640px. Fields keep their one surface on the card. The Amount field is the form's figure: a 64px field with the `money` treatment at 30px, a Slate ฿ and THB flanking it; it never takes the Midnight hero, which stays with display figures. A selected date chip (Today, Yesterday) fills Iris Tonal and gains a check, so selection is never color alone. A form-level rejection is a 10% Signal Red card with a circle-alert pictogram and its message in Signal Red. The fixed Save bar is Chrome at 95% over a top Hairline, clearing the home indicator, with the Iris Save as the screen's one action; from 640px it sits in the page.
+An entry form groups its fields on Cards over the ground rather than on the bare page: the amount and type share one card, and the details (wallet, category or destination, date, note) the next, 20px corners, padded 20px (28px from 640px), 24px apart on phone and 32px from 640px. Fields keep their one surface on the card. The Amount field is the form's figure: a 64px field with the `money` treatment at 30px, a Slate ฿ and THB flanking it; it never takes the Midnight hero, which stays with display figures. A selected date chip (Today, Yesterday) fills Iris Tonal and gains a check, so selection is never color alone. A form-level rejection is the shared **Error Notice**: a 10% Signal Red card with a circle-alert pictogram and its message in Signal Red, also used for an invalid history filter and a failed delete. The fixed Save bar is Chrome at 95% over a top Hairline, clearing the home indicator, with the Iris Save as the screen's one action; from 640px it sits in the page.
 
 ### Linked Expense
 
-A refund's source expense reads back as a Wash-filled 12px-corner link at least 64px tall: a neutral 44px Category Tile with the category's pictogram, the category in a semibold Row Title ("Refund of" in Slate), the −amount and date in Caption, then what is left to refund as "฿300.00 left to refund" in Iris Tonal Ink semibold, and a trailing Slate chevron to the expense. The tile is neutral because the form is not handed the category's id, so it cannot derive the hue.
+A refund's source expense reads back as a Wash-filled 12px-corner link at least 64px tall: a 44px Category Tile with the category's pictogram, the category in a semibold Row Title ("Refund of" in Slate), the −amount and date in Caption, then what is left to refund as "฿300.00 left to refund" in Iris Tonal Ink semibold, and a trailing Slate chevron to the expense. The tile wears the category's hue, derived from the expense's category id like every other tile, and neutral when the expense is Uncategorized. The refund form's fixed Category field wears the same hue.
+
+### Filter Chips
+
+History's active filters are removable chips under the title: Iris Tonal pills, 44px tall, semibold 14px in Iris Tonal Ink, with a 16px ✕ after the label. A value the app cannot name, such as an invalid date, shows as typed. Each chip is a link that lifts only its own URL value, nudging 10% toward Iris on hover. An invalid filter shows the Error Notice beneath the chips, in place of the list, and the filter sheet reopens with the typed value and the same notice above its fields. Apply is Outline and Clear is Ghost, so the filter sheet adds no Iris action.
+
+### Transaction History and Detail
+
+History is one list section per calendar month of the transaction date (September 2026), each a Section Title on the ground above a list card of Transaction Rows. A month cut by a page boundary continues under its own heading on the next page; "Older transactions" is an Outline button. A filter with no matches is a Card with a Title and Caption.
+
+A transaction's detail leads with the screen's one Midnight hero: its Hero Label "Amount", the signed Display Figure, and a Caption of the type and date. Beneath it a list card of fact rows (Category with its hue tile, Wallet or From and To, Date, Note, Recorded in Bangkok time) pairs a Slate Caption term with a semibold value, padded 20px (28px from 640px). An expense's Refunds are a list section whose action is Record refund (Outline) or the words "Fully refunded", a Caption of what was refunded and what is left, and a list card of refund rows: a tile in the expense's hue with the undo pictogram, the date and receiving wallet, and the +amount. A deletion confirmation is an alert sheet led by a 48px Signal Red tile with a trash pictogram; it keeps no ✕ and is answered with Delete or Keep it.
 
 ### Navigation
 
@@ -537,7 +547,7 @@ An empty state is a Card (20px corners, `--shadow-card`, 20px padding, 28px from
 
 ### Skeletons
 
-Loading uses still Mist blocks shaped like the content: the hero as a Card-colored block, the summary card, and row skeletons with a tile, two lines, and a figure-width bar. Skeletons never contain digits, ฿, or anything that could pass for money, and they do not shimmer.
+Loading uses still Mist blocks shaped like the content: the hero as a Card-colored block, the summary card, row skeletons with a tile, two lines, and a figure-width bar, and the detail's fact rows as label and value bars. The title is a bar when the screen's name is not yet known. Skeletons never contain digits, ฿, or anything that could pass for money, and they do not shimmer.
 
 ## Do's and Don'ts
 

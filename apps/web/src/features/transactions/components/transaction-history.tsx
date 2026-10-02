@@ -1,5 +1,8 @@
 import type { components } from "@/core/api/openapi.gen";
 import { TransactionList } from "@/features/transactions/components/transaction-list";
+import { groupHistoryByMonth } from "@/features/transactions/history-groups";
+import { ErrorNotice } from "@/shared/components/error-notice";
+import { ListSection } from "@/shared/components/list-section";
 
 type ApiTransaction = components["schemas"]["Transaction"];
 
@@ -19,29 +22,51 @@ export function TransactionHistory({
 }: Readonly<TransactionHistoryProps>) {
   if (filterErrors.length > 0) {
     return (
-      <div role="alert" className="text-destructive text-sm">
+      <ErrorNotice>
         {filterErrors.map((error) => (
           <p key={error}>{error}</p>
         ))}
-      </div>
+      </ErrorNotice>
     );
   }
 
   if (filtered && transactions.length === 0) {
     return (
       <section
-        className="flex flex-col gap-2"
+        className="flex flex-col gap-1.5 rounded-2xl bg-card p-5 shadow-card sm:p-7"
         aria-labelledby="no-matches-heading"
       >
-        <h2 id="no-matches-heading" className="font-semibold text-lg">
+        <h2
+          id="no-matches-heading"
+          className="font-bold text-lg tracking-tight"
+        >
           No matching transactions
         </h2>
-        <p className="text-muted-foreground text-sm">
+        <p className="max-w-prose text-muted-foreground text-sm leading-normal">
           Try a wider date range or clear the filters to see all your history.
         </p>
       </section>
     );
   }
 
-  return <TransactionList transactions={transactions} savedId={savedId} />;
+  if (transactions.length === 0) {
+    return <TransactionList transactions={transactions} />;
+  }
+
+  return (
+    <>
+      {groupHistoryByMonth(transactions).map((group) => (
+        <ListSection
+          key={group.key}
+          headingId={`history-${group.key}-heading`}
+          heading={group.label}
+        >
+          <TransactionList
+            transactions={group.transactions}
+            savedId={savedId}
+          />
+        </ListSection>
+      ))}
+    </>
+  );
 }

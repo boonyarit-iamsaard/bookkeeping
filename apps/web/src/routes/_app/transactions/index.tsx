@@ -1,5 +1,6 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Check } from "lucide-react";
 import {
   categoryQueries,
   transactionQueries,
@@ -91,10 +92,15 @@ function TransactionsPage() {
         values={search}
       />
       {justDeleted && (
-        <output className="rounded-xl border bg-muted px-4 py-3 text-sm leading-normal">
-          <span className="font-medium">Transaction deleted.</span>{" "}
-          <span className="text-muted-foreground">
-            It no longer counts toward any wallet balance.
+        <output className="flex items-start gap-3 rounded-2xl bg-secondary px-4 py-3 text-secondary-foreground text-sm leading-normal">
+          <Check
+            aria-hidden="true"
+            strokeWidth={2}
+            className="mt-0.5 size-4 shrink-0"
+          />
+          <span>
+            <span className="font-semibold">Transaction deleted.</span> It no
+            longer counts toward any wallet balance.
           </span>
         </output>
       )}
@@ -111,7 +117,7 @@ function TransactionsPage() {
           className={buttonVariants({
             variant: "outline",
             size: "lg",
-            className: "self-start",
+            className: "w-full sm:w-auto sm:self-start",
           })}
         >
           Older transactions

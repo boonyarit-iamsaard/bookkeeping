@@ -2,12 +2,13 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
-import { transactionQueries } from "@/core/api/queries";
+import { categoryQueries, transactionQueries } from "@/core/api/queries";
 import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
+import { useCategoryColors } from "@/features/categories/hooks/use-category-colors";
 import { ExpenseRefundsView } from "@/features/transactions/components/expense-refunds";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
-import { HistoryLoading } from "@/features/transactions/components/history-loading";
+import { TransactionDetailLoading } from "@/features/transactions/components/history-loading";
 import { TransactionDetailView } from "@/features/transactions/components/transaction-detail";
 import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
@@ -16,17 +17,17 @@ import { buttonVariants } from "@/shared/components/ui/button";
 export const Route = createFileRoute("/_app/transactions/$transactionId")({
   head: () => ({ meta: [{ title: "Transaction" }] }),
   loader: async ({ context, params }) => {
-    const transaction = await loadOwnedTransaction(
-      context.queryClient,
-      params.transactionId,
-    );
+    const [transaction] = await Promise.all([
+      loadOwnedTransaction(context.queryClient, params.transactionId),
+      context.queryClient.ensureQueryData(categoryQueries.list()),
+    ]);
     if (transaction.type === "expense") {
       await context.queryClient.ensureQueryData(
         transactionQueries.refunds(params.transactionId),
       );
     }
   },
-  pendingComponent: HistoryLoading,
+  pendingComponent: TransactionDetailLoading,
   errorComponent: HistoryErrorBoundary,
   component: TransactionDetailPage,
 });
@@ -58,15 +59,25 @@ function TransactionDetailPage() {
       />
       <TransactionDetailView transaction={transaction} />
       {transaction.type === "expense" && (
-        <ExpenseRefundsSection transactionId={transaction.id} />
+        <ExpenseRefundsSection
+          transactionId={transaction.id}
+          categoryId={transaction.category?.id}
+        />
       )}
     </Page>
   );
 }
 
+interface ExpenseRefundsSectionProps {
+  transactionId: string;
+  categoryId: string | undefined;
+}
+
 function ExpenseRefundsSection({
   transactionId,
-}: Readonly<{ transactionId: string }>) {
+  categoryId,
+}: Readonly<ExpenseRefundsSectionProps>) {
+  const colorOf = useCategoryColors();
   const { data: refunds } = useSuspenseQuery(
     transactionQueries.refunds(transactionId),
   );
@@ -74,6 +85,10 @@ function ExpenseRefundsSection({
     throw new Error("The expense refunds query returned no data");
   }
   return (
-    <ExpenseRefundsView expense={{ id: transactionId }} refunds={refunds} />
+    <ExpenseRefundsView
+      expense={{ id: transactionId }}
+      refunds={refunds}
+      color={categoryId ? colorOf(categoryId) : "neutral"}
+    />
   );
 }

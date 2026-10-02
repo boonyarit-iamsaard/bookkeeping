@@ -17,6 +17,7 @@ import {
   CategoryTile,
 } from "@/features/categories/components/category-icon";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
+import { useCategoryColors } from "@/features/categories/hooks/use-category-colors";
 import type { CaptureOrigin } from "@/features/transactions/capture-origin";
 import { captureOriginHref } from "@/features/transactions/capture-origin";
 import { DeleteTransactionButton } from "@/features/transactions/components/delete-transaction-button";
@@ -250,6 +251,7 @@ interface LinkedExpenseChipProps {
 
 /** The refunded expense read back: category, date, amount, and what is left. */
 function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
+  const colorOf = useCategoryColors();
   return (
     <Link
       to="/transactions/$transactionId"
@@ -257,7 +259,9 @@ function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
       aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${expense.refundAllowanceLabel} left to refund. Open the expense.`}
       className="flex min-h-16 min-w-0 items-center gap-3.5 rounded-xl bg-muted px-3 py-2.5 outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/45 motion-reduce:transition-none"
     >
-      <CategoryTile color="neutral">
+      <CategoryTile
+        color={expense.categoryId ? colorOf(expense.categoryId) : "neutral"}
+      >
         <CategoryIcon iconId={expense.categoryIconId} />
       </CategoryTile>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -357,6 +361,7 @@ export function TransactionForm({
 }: Readonly<TransactionFormProps>) {
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
+  const colorOf = useCategoryColors();
   const editing = mode.kind === "edit" ? mode.transaction : undefined;
   const linked = mode.kind === "refund" ? mode.expense : editing?.refundOf;
   const linkedExpense = useMemo(() => limitsOf(linked), [linked]);
@@ -645,7 +650,11 @@ export function TransactionForm({
                         <FixedLabel>Category</FixedLabel>
                         <p className="flex min-h-11 items-center gap-3 font-semibold">
                           <CategoryTile
-                            color="neutral"
+                            color={
+                              linked.categoryId
+                                ? colorOf(linked.categoryId)
+                                : "neutral"
+                            }
                             className="size-9 rounded-md"
                           >
                             <CategoryIcon

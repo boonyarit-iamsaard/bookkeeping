@@ -3,6 +3,8 @@ import { Money } from "@/shared/components/money";
 
 interface DisplayFigureProps {
   amount: ApiMoney;
+  /** Prefixed as given, such as "−" when the figure's meaning carries it. */
+  sign?: string;
   /** Names the figure; it is the card's label and the region's name. */
   heading: string;
   headingId: string;
@@ -41,6 +43,7 @@ function HeroCoin() {
  */
 export function DisplayFigure({
   amount,
+  sign,
   heading,
   headingId,
   caption,
@@ -55,7 +58,7 @@ export function DisplayFigure({
         {heading}
       </h2>
       <p className="mt-auto pt-4 font-bold text-4xl leading-none tracking-[-0.025em] sm:text-5xl">
-        <Money amount={amount} display className="font-bold" />
+        <Money amount={amount} sign={sign} display className="font-bold" />
       </p>
       <p className="mt-3 text-hero-muted text-sm">{caption}</p>
     </section>
