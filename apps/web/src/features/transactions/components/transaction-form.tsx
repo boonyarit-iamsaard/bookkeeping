@@ -10,13 +10,13 @@ import {
 } from "@bookkeeping/domain/transactions";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowDownUp, Check, ChevronRight, CircleAlert } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { CreateCategoryOutcome } from "@/features/categories/category-mutations";
+import { useEffect, useMemo, useRef } from "react";
 import {
   CategoryIcon,
   CategoryTile,
 } from "@/features/categories/components/category-icon";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
+import { useCategoryCatalog } from "@/features/categories/hooks/use-category-catalog";
 import { useCategoryColors } from "@/features/categories/hooks/use-category-colors";
 import type { CaptureOrigin } from "@/features/transactions/capture-origin";
 import { captureOriginHref } from "@/features/transactions/capture-origin";
@@ -99,7 +99,6 @@ export type TransactionFormMode =
 
 interface TransactionFormProps {
   wallets: readonly WalletOption[];
-  categories: readonly CategoryOption[];
   /** Today in Asia/Bangkok, computed by the route. */
   today: CalendarDate;
   mode: TransactionFormMode;
@@ -356,31 +355,18 @@ function TransactionTypeField({
 
 export function TransactionForm({
   wallets,
-  categories: initialCategories,
   today: initialToday,
   mode,
 }: Readonly<TransactionFormProps>) {
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
-  const colorOf = useCategoryColors();
+  const { categories, colorOf } = useCategoryCatalog();
   const editing = mode.kind === "edit" ? mode.transaction : undefined;
   const linked = mode.kind === "refund" ? mode.expense : editing?.refundOf;
   const linkedExpense = useMemo(() => limitsOf(linked), [linked]);
   const cancelHref = cancelHrefFor(mode);
   const originalArchived =
     mode.kind === "refund" && mode.expense.wallet.archived;
-  const [categories, setCategories] = useState(initialCategories);
-
-  function addCategories({
-    category,
-    createdParent,
-  }: Readonly<CreateCategoryOutcome>) {
-    setCategories((current) => [
-      ...current,
-      ...(createdParent ? [createdParent] : []),
-      category,
-    ]);
-  }
 
   useEffect(() => {
     const element = formRef.current;
@@ -730,18 +716,13 @@ export function TransactionForm({
                               Category
                             </FieldLabel>
                             <CategoryPicker
+                              key={type}
                               id={field.name}
                               kind={type}
-                              categories={categories}
                               value={field.state.value}
                               onSelect={(categoryId) => {
                                 clearFieldError("categoryId");
                                 field.handleChange(categoryId);
-                              }}
-                              onCreated={(outcome) => {
-                                clearFieldError("categoryId");
-                                addCategories(outcome);
-                                field.handleChange(outcome.category.id);
                               }}
                               aria-labelledby="categoryId-label"
                               aria-describedby={

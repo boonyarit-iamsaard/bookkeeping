@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bookkeeping · Architecture review · 2 October 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "neutral",
+        securityLevel: "strict",
+        themeVariables: {
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "13px",
+          primaryColor: "#ffffff",
+          primaryBorderColor: "#cbd5e1",
+          lineColor: "#64748b",
+        },
+      });
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172624;
+        --muted: #54645f;
+        --paper: #f5f4ee;
+        --accent: #16634b;
+        --line: #d7dfd8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: system-ui, sans-serif;
+        line-height: 1.55;
+      }
+      main {
+        width: min(1160px, 100%);
+        margin: auto;
+        padding: 54px 28px 70px;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      main h1 {
+        font:
+          500 clamp(38px, 5vw, 64px)/1.08 Georgia,
+          serif;
+        letter-spacing: -0.035em;
+        max-width: 850px;
+      }
+      main h2 {
+        font:
+          500 clamp(27px, 3vw, 36px)/1.2 Georgia,
+          serif;
+        letter-spacing: -0.02em;
+      }
+      main h3 {
+        font-size: 15px;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 3px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.17em;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .meta {
+        margin-top: 22px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .scope {
+        margin: 18px 0;
+        font:
+          12px/1.8 ui-monospace,
+          monospace;
+        overflow-wrap: anywhere;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px 24px;
+        margin-top: 22px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .sample {
+        display: inline-block;
+        width: 20px;
+        height: 14px;
+        border: 1px solid #8a9991;
+        background: white;
+      }
+      .sample.deep {
+        border: 3px solid var(--ink);
+        background: var(--ink);
+      }
+      .sample.seam {
+        border: 0;
+        border-top: 2px dashed #718d80;
+        height: 1px;
+      }
+      .sample.leak {
+        border: 0;
+        border-top: 2px solid #b4534b;
+        height: 1px;
+      }
+      nav {
+        display: flex;
+        gap: 12px 24px;
+        flex-wrap: wrap;
+        padding: 25px 0;
+        margin: 24px 0 4px;
+        border-block: 1px solid var(--line);
+        font-size: 13px;
+      }
+      article {
+        padding: 34px 0 38px;
+        border-bottom: 1px solid var(--line);
+        scroll-margin-top: 24px;
+      }
+      .card-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+        justify-content: space-between;
+      }
+      .number {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 7px;
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        flex-shrink: 0;
+        margin-top: 5px;
+      }
+      .badge {
+        font-size: 11px;
+        padding: 5px 9px;
+        border-radius: 5px;
+        font-weight: 650;
+      }
+      .strong {
+        background: #dcefe4;
+        color: #15533d;
+      }
+      .explore {
+        background: #f3e9cb;
+        color: #765611;
+      }
+      .dependency {
+        color: #4b5b53;
+        background: #e6e9e4;
+      }
+      .files {
+        margin-top: 19px;
+        font:
+          11px/1.9 ui-monospace,
+          monospace;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+      .files strong {
+        font-family: system-ui, sans-serif;
+        color: var(--ink);
+        font-size: 11px;
+      }
+      .visuals {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin: 22px 0;
+      }
+      .diagram {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        padding: 18px;
+        min-height: 320px;
+        overflow: hidden;
+      }
+      .diagram > .eyebrow {
+        margin-bottom: 14px;
+      }
+      .mermaid {
+        margin: 0;
+        font-size: 11px;
+        white-space: pre-wrap;
+      }
+      .mermaid svg {
+        max-width: 100% !important;
+        height: auto;
+      }
+      .node {
+        border: 1px solid #bac9bf;
+        border-radius: 6px;
+        padding: 10px 12px;
+        background: #fff;
+        font-size: 12px;
+        text-align: center;
+      }
+      .node small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 3px;
+      }
+      .arrow {
+        color: #7a8b81;
+        text-align: center;
+        height: 27px;
+        font-size: 18px;
+        line-height: 27px;
+      }
+      .arrow.leak {
+        color: #b4534b;
+      }
+      .seam-label {
+        border-top: 1px dashed #779786;
+        margin-top: 13px;
+        padding: 7px 0;
+        text-align: center;
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        color: #547664;
+      }
+      .deep-box {
+        border: 3px solid var(--ink);
+        border-radius: 8px;
+        background: var(--ink);
+        color: white;
+        padding: 18px;
+        text-align: center;
+        font-size: 13px;
+      }
+      .deep-box .inside {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #527264;
+        color: #d4e5db;
+        font-size: 11px;
+        line-height: 1.9;
+      }
+      .paired {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .note {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 12px;
+      }
+      .facts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px 32px;
+      }
+      .facts h3 {
+        color: var(--accent);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 5px;
+      }
+      .facts p {
+        font-size: 13px;
+      }
+      .wins {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 19px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .wins li {
+        background: #e7ece5;
+        padding: 6px 10px;
+        font-size: 11px;
+        border-radius: 4px;
+      }
+      details {
+        margin-top: 19px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      summary {
+        cursor: pointer;
+        color: var(--ink);
+        font-weight: 650;
+      }
+      details ul {
+        padding-left: 18px;
+        margin: 9px 0;
+      }
+      details li {
+        margin: 7px 0;
+      }
+      code {
+        font:
+          0.94em ui-monospace,
+          monospace;
+        overflow-wrap: anywhere;
+      }
+      .compat {
+        margin-top: 16px;
+        font-size: 11px;
+        padding-left: 11px;
+        border-left: 3px solid #b2caba;
+        color: var(--muted);
+      }
+      .top {
+        margin-top: 36px;
+        background: var(--ink);
+        color: #fff;
+        padding: 28px;
+        border-radius: 12px;
+      }
+      .top .eyebrow {
+        color: #b7d2c4;
+        margin-bottom: 12px;
+      }
+      .top p {
+        margin-top: 13px;
+        max-width: 790px;
+        font-size: 14px;
+        color: #dae8df;
+      }
+      .top a {
+        color: white;
+      }
+      .kept {
+        margin-top: 30px;
+        padding: 22px;
+        background: #e9ece5;
+        border-radius: 8px;
+      }
+      .kept h3 {
+        font:
+          500 23px Georgia,
+          serif;
+      }
+      .kept ul {
+        font-size: 12px;
+        color: var(--muted);
+        padding-left: 18px;
+        margin-bottom: 0;
+      }
+      .kept li {
+        margin-top: 9px;
+      }
+      footer {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 28px;
+      }
+      @media (max-width: 760px) {
+        main {
+          padding: 30px 18px 45px;
+        }
+        .visuals,
+        .facts {
+          grid-template-columns: 1fr;
+        }
+        .card-head {
+          flex-direction: column;
+          gap: 10px;
+        }
+        .diagram {
+          min-height: 290px;
+        }
+      }
+      @media print {
+        main {
+          padding: 16px;
+        }
+        details {
+          display: block;
+        }
+        article {
+          break-inside: avoid;
+        }
+        .top {
+          background: white;
+          color: var(--ink);
+          border: 2px solid var(--ink);
+        }
+        .top p,
+        .top a,
+        .top .eyebrow {
+          color: var(--ink);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">Bookkeeping / architecture review</p>
+        <h1 class="mt-4">More depth.<br />Less knowledge in callers.</h1>
+        <p class="meta">
+          2 October 2026 · Bangkok · reviewed at <code>0394111</code> · 3
+          candidates
+        </p>
+        <div class="scope">
+          .scratch/modern-fintech-redesign<br />.scratch/level-3-reports
+        </div>
+        <div class="legend" aria-label="Diagram legend">
+          <span><i class="sample"></i> module</span>
+          <span><i class="sample seam"></i> seam</span>
+          <span
+            ><i class="sample leak"></i> knowledge leaking between modules</span
+          >
+          <span><i class="sample deep"></i> deep module</span>
+        </div>
+      </header>
+      <nav aria-label="Candidates">
+        <a href="#report-reads">01 / Reports reads</a>
+        <a href="#category-selection">02 / Category selection</a>
+        <a href="#selected-day">03 / Selected day</a>
+        <a href="#top-recommendation">Top recommendation</a>
+      </nav>
+
+      <article id="report-reads">
+        <div class="card-head">
+          <div>
+            <p class="number">01</p>
+            <h2>Deepen the Reports read module</h2>
+          </div>
+          <div class="badges">
+            <span class="badge strong">Strong</span
+            ><span class="badge dependency">ports &amp; adapters</span>
+          </div>
+        </div>
+        <div class="files">
+          <strong>Files · apps/web/src/</strong
+          ><br />features/reports/report-queries.ts:21<br />routes/_app/reports.tsx:16<br />features/reports/components/reports.tsx:35–78,
+          134–153<br />core/api/queries.ts:149
+        </div>
+        <div class="visuals">
+          <div class="diagram">
+            <p class="eyebrow">Before / each caller knows the reads</p>
+            <pre class="mermaid">
+flowchart TB
+  P[Query plan: named read handles] --> L[Loader: enumerate preloads]
+  P --> R[Reports: enumerate subscriptions]
+  R --> G[Reports: readiness + comparison identity]
+  L -. same read inventory .-> G
+  G --> F[Financial report]
+  classDef shallow fill:#ffffff,stroke:#b8c7bd,color:#172624;
+  class P,L,R,G,F shallow;
+  linkStyle 3 stroke:#b4534b,stroke-width:2px;
+            </pre>
+          </div>
+          <div class="diagram">
+            <p class="eyebrow">After / callers know the report</p>
+            <div class="paired">
+              <div class="node">
+                Route loader<small>preload the report</small>
+              </div>
+              <div class="node">
+                Reports screen<small>observe the report</small>
+              </div>
+            </div>
+            <div class="seam-label">
+              seam · report address and comparison choice
+            </div>
+            <div class="deep-box">
+              Reports read module
+              <div class="inside">
+                Validation · required reads · readiness<br />Same-month totals
+                while comparison loads<br />Keep wallet figures tied to their
+                choice
+              </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="node">
+              Existing cached-read adapter<small
+                >OpenAPI path + parameters stay authoritative</small
+              >
+            </div>
+          </div>
+        </div>
+        <div class="facts">
+          <div>
+            <h3>Problem</h3>
+            <p>
+              The plan's interface exposes read mechanics; adding category
+              spending and closing balances required matching edits to the
+              loader, subscriptions, and ready-data guard.
+            </p>
+          </div>
+          <div>
+            <h3>Solution</h3>
+            <p>
+              Put required reads, preload/observe coordination, and
+              comparison-result identity behind one feature-local module,
+              keeping TanStack Query and the existing read adapter.
+            </p>
+          </div>
+          <div>
+            <h3>Depth &amp; deletion test</h3>
+            <p>
+              The plan already earns its validation logic; absorb the repeated
+              protocol rather than deleting that value. Deleting the deep module
+              would scatter read inventory and comparison ordering back into
+              callers.
+            </p>
+          </div>
+          <div>
+            <h3>Tests through the seam</h3>
+            <p>
+              Exercise valid/invalid addresses and delayed comparison changes
+              through the module's interface; assert that totals remain visible
+              and an old wallet's figures never acquire the newly chosen
+              wallet's name.
+            </p>
+          </div>
+        </div>
+        <ul class="wins">
+          <li>Locality: one read inventory</li>
+          <li>Leverage: loader and screen</li>
+          <li>Depth: hide result ordering</li>
+        </ul>
+        <details>
+          <summary>Evidence, test coverage, and adapter discipline</summary>
+          <ul>
+            <li>
+              <code>report-queries.ts:7–18</code> publishes six named kinds of
+              read handle; the loader manually visits them at
+              <code>routes/_app/reports.tsx:17–28</code>, while the screen
+              manually subscribes at <code>reports.tsx:41–78</code> and checks
+              availability at <code>134–140</code>.
+            </li>
+            <li>
+              <code>reports.tsx:23–28, 53–62, 145–148</code> strips wallet
+              figures from placeholder data and chooses cached same-month
+              totals. This is existing protective behavior; no stale-wallet
+              defect was reproduced.
+            </li>
+            <li>
+              Commits <code>346f162</code>, <code>fa76bd3</code>, and
+              <code>d6a31a5</code> demonstrate repeated changes to this protocol
+              as level 3 reads arrive.
+            </li>
+            <li>
+              <code>apps/web/tests/e2e/reports.spec.ts:15</code> covers real
+              reads, month/date changes, comparison retention and clearing;
+              <code>:218</code> covers initial loading. It does not hold two
+              successive wallet reads to check pending-result identity.
+            </li>
+            <li>
+              Keep the production HTTP adapter. Use delayed test responses only
+              where they test observable ordering; two adapters justify that
+              seam. Do not add a generic transport framework or put individual
+              endpoint calls behind new pass-through modules.
+            </li>
+          </ul>
+        </details>
+        <p class="compat">
+          Compatible with ADR 0006 and cached-read conventions: preserve
+          path/parameter keys, centralized refreshAfterWrite, session resets,
+          and accepted previous-data behavior.
+        </p>
+      </article>
+
+      <article id="category-selection">
+        <div class="card-head">
+          <div>
+            <p class="number">02</p>
+            <h2>Deepen Category selection in capture</h2>
+          </div>
+          <div class="badges">
+            <span class="badge explore">Worth exploring</span
+            ><span class="badge dependency">ports &amp; adapters</span>
+          </div>
+        </div>
+        <div class="files">
+          <strong>Files · apps/web/src/features/</strong
+          ><br />transactions/components/transaction-form.tsx:365–382,
+          732–745<br />categories/components/category-picker.tsx:29–38,
+          157–160<br />categories/hooks/use-create-category-form.ts:174–190<br />categories/hooks/use-category-colors.ts:10–12
+        </div>
+        <div class="visuals">
+          <div class="diagram">
+            <p class="eyebrow">Before / two category lists</p>
+            <div class="paired">
+              <div class="node">
+                Capture's local list<small
+                  >initial snapshot + manual append</small
+                >
+              </div>
+              <div class="node">
+                Cached categories read<small
+                  >live colors + refreshed parent</small
+                >
+              </div>
+            </div>
+            <div class="arrow leak">↓ &nbsp; &nbsp; &nbsp; &nbsp; ↓</div>
+            <div class="node">
+              Category picker<small
+                >selected path and hue depend on supplied list</small
+              >
+            </div>
+            <div class="arrow leak">↑</div>
+            <div class="node">
+              Create category form<small
+                >write → refresh → recover parent → callback</small
+              >
+            </div>
+            <p class="note">
+              Capture must append parent + child before selecting; the create
+              form assumes an active cached read.
+            </p>
+          </div>
+          <div class="diagram">
+            <p class="eyebrow">After / one catalog owns selection</p>
+            <div class="node">
+              Capture module<small
+                >selected category field + rejection display</small
+              >
+            </div>
+            <div class="seam-label">seam · choosing or creating a category</div>
+            <div class="deep-box">
+              Category selection module
+              <div class="inside">
+                Current tree · selected path · inherited hue<br />Inline
+                creation · refreshed parent and child<br />Selection only after
+                catalog is available
+              </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="node">
+              Existing read/write adapter<small
+                >refreshAfterWrite remains the cache authority</small
+              >
+            </div>
+          </div>
+        </div>
+        <div class="facts">
+          <div>
+            <h3>Problem</h3>
+            <p>
+              The selection interface makes capture coordinate a local list with
+              the live cache, while creation recovers a new Parent category from
+              a read kept active elsewhere.
+            </p>
+          </div>
+          <div>
+            <h3>Solution</h3>
+            <p>
+              Give the Category selection module ownership of the current tree
+              and create-to-select lifecycle, so capture receives the chosen
+              category without reconstructing the tree.
+            </p>
+          </div>
+          <div>
+            <h3>Depth &amp; deletion test</h3>
+            <p>
+              Deleting the manual append removes a second catalog but loses
+              today's create-to-select ordering; absorbing that ordering behind
+              the selection seam adds depth instead of merely moving the
+              callback.
+            </p>
+          </div>
+          <div>
+            <h3>Tests through the seam</h3>
+            <p>
+              Create a Child category with a new Parent category under a delayed
+              refresh; assert the chosen path, inherited hue, preserved capture
+              values, and correct selection on reopening.
+            </p>
+          </div>
+        </div>
+        <ul class="wins">
+          <li>Locality: catalog and selection together</li>
+          <li>Leverage: capture stops reconstructing parents</li>
+          <li>Depth: own create-to-select ordering</li>
+        </ul>
+        <details>
+          <summary>Evidence, test coverage, and adapter discipline</summary>
+          <ul>
+            <li>
+              <code>transaction-form.tsx:365</code> reads live colors through
+              <code>useCategoryColors</code>, but <code>:372</code> snapshots
+              <code>initialCategories</code>; <code>:374–382</code> appends the
+              creation outcome locally. <code>:741–744</code> orders that append
+              before selecting the saved category.
+            </li>
+            <li>
+              <code>use-create-category-form.ts:174–186</code> explicitly
+              assumes the categories list is on screen, awaits the global
+              refresh, then recovers the created parent from cached data.
+              <code>use-category-colors.ts:11</code> supplies an active read in
+              capture.
+            </li>
+            <li>
+              <code>category-picker.tsx:29–38</code> requires categories,
+              selection, and a creation outcome from its caller. This is a real
+              caller protocol; the inferred risk is divergent paths/catalogs
+              after refresh, not a confirmed production failure.
+            </li>
+            <li>
+              <code>apps/web/tests/e2e/transaction-entry.spec.ts:301–334</code>
+              covers creating a parent inline. The redesign ticket 06 records a
+              manual parent/child scenario; the cited browser case does not
+              assert that scenario.
+            </li>
+            <li>
+              Keep the existing HTTP read/write adapter and global cache refresh
+              policy. Controlled test responses can provide the second adapter
+              for timing; no application-owned business rule moves into capture.
+            </li>
+          </ul>
+        </details>
+        <p class="compat">
+          Compatible with ADR 0005 and the redesign's stable Parent category
+          hues. This is client read/selection ownership; it does not require a
+          new domain term, schema, or category business-rule owner.
+        </p>
+      </article>
+
+      <article id="selected-day">
+        <div class="card-head">
+          <div>
+            <p class="number">03</p>
+            <h2>Keep the selected Closing balance day local</h2>
+          </div>
+          <div class="badges">
+            <span class="badge explore">Worth exploring</span
+            ><span class="badge dependency">in-process</span>
+          </div>
+        </div>
+        <div class="files">
+          <strong>Files · apps/web/src/features/reports/</strong
+          ><br />balance-trend.ts:101–146<br />components/financial-report.tsx:187–195<br />components/balance-over-time.tsx:196–254,
+          290–307, 352–403
+        </div>
+        <div class="visuals">
+          <div class="diagram">
+            <p class="eyebrow">Before / default, reset, and readout apart</p>
+            <pre class="mermaid">
+flowchart TB
+  D[Balance trend: choose default day] --> C[Balance line: copy default into state]
+  F[Financial report: month/date key] -. force selection reset .-> C
+  C --> I[Clamp slider index]
+  C --> R[Look up readout date]
+  C --> M[Look up wallet marker]
+  classDef shallow fill:#ffffff,stroke:#b8c7bd,color:#172624;
+  class D,C,F,I,R,M shallow;
+  linkStyle 1 stroke:#b4534b,stroke-width:2px;
+            </pre>
+          </div>
+          <div class="diagram">
+            <p class="eyebrow">After / one selected day drives every figure</p>
+            <div class="node">
+              Financial report<small>month, Balance date, current read</small>
+            </div>
+            <div class="seam-label">seam · Closing balance interaction</div>
+            <div class="deep-box">
+              Closing balance interaction module
+              <div class="inside">
+                Choose/reset day · pointer and keyboard moves<br />Resolve
+                available day once<br />Total marker · wallet marker · exact
+                readout
+              </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="paired">
+              <div class="node">Plot + slider</div>
+              <div class="node">Text + table</div>
+            </div>
+            <p class="note">
+              Conceptual responsibility grouping; no new interface methods
+              proposed.
+            </p>
+          </div>
+        </div>
+        <div class="facts">
+          <div>
+            <h3>Problem</h3>
+            <p>
+              The interaction module's interface silently requires its caller to
+              supply a reset key; the marker index can fall back while the
+              readout still looks up the original selected date.
+            </p>
+          </div>
+          <div>
+            <h3>Solution</h3>
+            <p>
+              Keep default-day choice, reset/preserve behavior, and selection
+              resolution inside the existing Closing balance interaction module,
+              leaving geometry calculation as useful internal implementation.
+            </p>
+          </div>
+          <div>
+            <h3>Depth &amp; deletion test</h3>
+            <p>
+              Removing the caller's key loses the existing reset behavior;
+              concentrating that behavior locally makes it disappear from
+              callers. Deleting the deep module would scatter selection
+              knowledge again.
+            </p>
+          </div>
+          <div>
+            <h3>Tests through the seam</h3>
+            <p>
+              Keep keyboard and pointer browser assertions; cover Balance date
+              changes, comparison loads, and a refreshed read without the
+              selected date, requiring marker, announced date, and readout to
+              agree.
+            </p>
+          </div>
+        </div>
+        <ul class="wins">
+          <li>Locality: selection owns its resets</li>
+          <li>Leverage: one resolved selected day</li>
+          <li>Depth: callers lose reset knowledge</li>
+        </ul>
+        <details>
+          <summary>Evidence, test coverage, and adapter discipline</summary>
+          <ul>
+            <li>
+              <code>balance-trend.ts:144–146</code> selects the default;
+              <code>financial-report.tsx:188</code> resets using
+              <code>month + asOf</code>;
+              <code>balance-over-time.tsx:201</code> copies that default only on
+              mount.
+            </li>
+            <li>
+              <code>balance-over-time.tsx:203–211</code> resolves slider index,
+              total readout, and wallet point separately. If a refresh removes
+              the chosen day, the index falls back to the first point while the
+              readout lookup can be absent. That condition is inferred from the
+              code; it was not reproduced against financial writes.
+            </li>
+            <li>
+              <code>balance-trend.unit.test.ts</code> thoroughly covers default
+              selection, gaps, signed scale, and wallet series; it cannot cover
+              React state retention or parent-key reset behavior.
+              <code>reports.spec.ts:122–173</code> already covers selected-day
+              keyboard movement and comparison retention.
+            </li>
+            <li>
+              No adapter is needed for the in-process selection calculation.
+              Keep browser tests at the rendered interface for focus, pointer
+              capture, slider announcements, and actual reset behavior; do not
+              add a mockable gesture framework.
+            </li>
+            <li>
+              This is a smaller optional follow-on to candidate 01. It can be
+              tackled independently if selected-day interaction changes next; it
+              does not need the Reports read module to absorb chart gestures.
+            </li>
+          </ul>
+        </details>
+        <p class="compat">
+          Compatible with the level 3 default-day and comparison decisions:
+          month/Balance date changes reset selection; comparison changes
+          preserve the chosen day. ADR 0001's Closing balance calculation stays
+          untouched.
+        </p>
+      </article>
+
+      <section id="top-recommendation" class="top">
+        <p class="eyebrow">Top recommendation</p>
+        <h2><a href="#report-reads">01 / Reports read module</a></h2>
+        <p>
+          Three recent report changes exposed the same caller protocol, so
+          concentrating inventory, readiness, and comparison identity gives
+          immediate locality and leverage while preserving the existing adapter
+          and cache conventions.
+        </p>
+      </section>
+      <section class="kept">
+        <h3>Modules that already earn their keep</h3>
+        <ul>
+          <li>
+            <strong>Category spending and Closing balance calculations.</strong>
+            Keep the server-calculated reads and their current domain meanings.
+            <code>transaction.ts:1097–1188</code> already hides carry-in, daily
+            accumulation, opening dates and owner checks;
+            <code>wallet.ts:94–111</code> shares wallet movement signs and
+            transaction membership. Moving these files alone adds no depth.
+          </li>
+          <li>
+            <strong>Presentation derivations.</strong>
+            <code>createCategoryBreakdown</code> and
+            <code>createBalanceTrend</code> hide signed shares, gaps, scales and
+            empty states behind useful interfaces. Their internal pure functions
+            are not shallow merely because they are small.
+          </li>
+          <li>
+            <strong>Redesign extractions.</strong> The final sweep already
+            extracted <code>HeroSkeleton</code>, <code>AmountInput</code>,
+            <code>MonthSections</code>, and <code>ConfirmPanel</code>. It
+            deliberately kept the two auth-form class strings and Reports' exact
+            per-wallet text. Reopening those choices has no new evidence.
+          </li>
+          <li>
+            <strong>DDD assessment.</strong> No new conflicting domain meanings
+            or demonstrated cross-operation invariant drift were found. ADR
+            0005's single-context, owned-rule approach remains sufficient; no
+            aggregates, repositories, or separate reporting context are
+            recommended. ADRs 0001, 0004, 0006, 0011 and 0012 remain compatible
+            with these candidates.
+          </li>
+        </ul>
+      </section>
+      <footer>
+        <p>
+          Method: scoped source review plus the skill-required codebase walk,
+          checked against CONTEXT.md, relevant ADRs, the two feature
+          specs/tickets and recent commits. Risks are inferred where stated; no
+          defects were reproduced and no application code was changed.
+        </p>
+        <p class="mt-2">
+          Existing coverage was read, not rerun. Tailwind and Mermaid load from
+          CDNs; the embedded CSS and hand-built visuals keep the report readable
+          without them. Interface design waits for candidate selection.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

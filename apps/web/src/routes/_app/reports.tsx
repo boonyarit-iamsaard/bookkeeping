@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ReportErrorBoundary } from "@/features/reports/components/report-error-boundary";
 import { Reports } from "@/features/reports/components/reports";
 import { ReportsLoading } from "@/features/reports/components/reports-loading";
-import { createReportQueryPlan } from "@/features/reports/report-queries";
+import { preloadReports } from "@/features/reports/report-reads";
 import { reportSearchSchema } from "@/features/reports/report-schema";
 
 export const Route = createFileRoute("/_app/reports")({
@@ -12,17 +12,11 @@ export const Route = createFileRoute("/_app/reports")({
   loaderDeps: ({ search }) => ({ search }),
   loader: async ({ context, deps }) => {
     const initialToday = todayIn({ timeZone: APP_TIME_ZONE });
-    const plan = createReportQueryPlan(deps.search, initialToday);
-    if (plan.valid) {
-      await Promise.all([
-        context.queryClient.ensureQueryData(plan.monthly),
-        ...plan.trend.map((query) =>
-          context.queryClient.ensureQueryData(query),
-        ),
-        context.queryClient.ensureQueryData(plan.currentWallets),
-        context.queryClient.ensureQueryData(plan.datedWallets),
-      ]);
-    }
+    await preloadReports({
+      queryClient: context.queryClient,
+      search: deps.search,
+      today: initialToday,
+    });
     return { initialToday };
   },
   pendingComponent: ReportsLoading,

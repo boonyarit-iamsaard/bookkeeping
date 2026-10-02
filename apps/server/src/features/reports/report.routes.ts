@@ -1,7 +1,15 @@
-import { getMonthlySummary } from "@bookkeeping/application/transactions";
+import {
+  getCategorySpending,
+  getClosingBalances,
+  getMonthlySummary,
+} from "@bookkeeping/application/transactions";
 import type { Database } from "@bookkeeping/database/connection";
 import { parseCalendarDate } from "@bookkeeping/domain/dates";
-import type { MonthlySummary } from "@bookkeeping/domain/transactions";
+import type {
+  CategorySpending,
+  ClosingBalances,
+  MonthlySummary,
+} from "@bookkeeping/domain/transactions";
 import { Hono } from "hono";
 import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
@@ -15,6 +23,7 @@ import type { problemDetailsSchema } from "../../core/http/problem-details.js";
 import { getProblemOptionsForStatus } from "../../core/http/problem-details.js";
 import type { QueryValidatedInput } from "../../core/http/request-validation.js";
 import { createQueryMiddleware } from "../../core/http/request-validation.js";
+import { answerRead } from "../../core/http/resource-answers.js";
 
 export const monthlyReportResponseSchema = z
   .object({
@@ -46,86 +55,291 @@ const monthlyReportQueryMiddleware = createQueryMiddleware(
   monthlyReportQuerySchema,
 );
 
+export const closingBalancesQuerySchema = monthlyReportQuerySchema.extend({
+  walletId: z.uuid().optional(),
+});
+
+const closingBalancesQueryMiddleware = createQueryMiddleware(
+  closingBalancesQuerySchema,
+);
+
+function presentThb(amountInMinorUnits: bigint) {
+  return presentMoney({ amountInMinorUnits, currency: "THB" });
+}
+
 export function presentMonthlyReport(
   summary: Readonly<MonthlySummary>,
 ): MonthlyReportResponse {
   // The schema constrains every transaction to THB, so the totals carry it.
   return {
     month: summary.month,
-    income: presentMoney({
-      amountInMinorUnits: summary.income,
-      currency: "THB",
-    }),
-    grossExpenses: presentMoney({
-      amountInMinorUnits: summary.grossExpenses,
-      currency: "THB",
-    }),
-    refunds: presentMoney({
-      amountInMinorUnits: summary.refunds,
-      currency: "THB",
-    }),
-    netExpenses: presentMoney({
-      amountInMinorUnits: summary.netExpenses,
-      currency: "THB",
-    }),
-    net: presentMoney({
-      amountInMinorUnits: summary.net,
-      currency: "THB",
-    }),
+    income: presentThb(summary.income),
+    grossExpenses: presentThb(summary.grossExpenses),
+    refunds: presentThb(summary.refunds),
+    netExpenses: presentThb(summary.netExpenses),
+    net: presentThb(summary.net),
     transactionCount: summary.transactionCount,
   };
 }
 
+export const categorySpendingResponseSchema = z
+  .object({
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    netExpenses: moneySchema,
+    parents: z.array(
+      z
+        .object({
+          id: z.uuid(),
+          name: z.string(),
+          sortOrder: z.number().int(),
+          isUncategorized: z.boolean(),
+          spending: moneySchema,
+          directSpending: moneySchema,
+          children: z.array(
+            z
+              .object({
+                id: z.uuid(),
+                name: z.string(),
+                sortOrder: z.number().int(),
+                spending: moneySchema,
+              })
+              .meta({ id: "ChildCategorySpending" }),
+          ),
+        })
+        .meta({ id: "ParentCategorySpending" }),
+    ),
+  })
+  .meta({ id: "CategorySpending" });
+
+export type CategorySpendingResponse = z.infer<
+  typeof categorySpendingResponseSchema
+>;
+
+export function presentCategorySpending(
+  spending: Readonly<CategorySpending>,
+): CategorySpendingResponse {
+  // The schema constrains every transaction to THB, so the totals carry it.
+  return {
+    month: spending.month,
+    netExpenses: presentThb(spending.netExpenses),
+    parents: spending.parents.map((parent) => ({
+      id: parent.id,
+      name: parent.name,
+      sortOrder: parent.sortOrder,
+      isUncategorized: parent.isUncategorized,
+      spending: presentThb(parent.spending),
+      directSpending: presentThb(parent.directSpending),
+      children: parent.children.map((child) => ({
+        id: child.id,
+        name: child.name,
+        sortOrder: child.sortOrder,
+        spending: presentThb(child.spending),
+      })),
+    })),
+  };
+}
+
+export const closingBalancesResponseSchema = z
+  .object({
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    entries: z.array(
+      z
+        .object({
+          date: z.iso.date(),
+          total: moneySchema.nullable(),
+          wallet: moneySchema.nullable().optional(),
+        })
+        .meta({ id: "ClosingBalanceEntry" }),
+    ),
+  })
+  .meta({ id: "ClosingBalances" });
+
+export type ClosingBalancesResponse = z.infer<
+  typeof closingBalancesResponseSchema
+>;
+
+export function presentClosingBalances(
+  balances: Readonly<ClosingBalances>,
+): ClosingBalancesResponse {
+  // The schema constrains every wallet to THB, so the totals carry it.
+  return {
+    month: balances.month,
+    entries: balances.entries.map(({ date, total, wallet }) => ({
+      date,
+      total: total === null ? null : presentThb(total),
+      ...(wallet === undefined
+        ? {}
+        : { wallet: wallet === null ? null : presentThb(wallet) }),
+    })),
+  };
+}
+
 const MONTHLY_REPORT_PATH = "/reports/monthly";
+const CATEGORY_SPENDING_PATH = "/reports/category-spending";
+const CLOSING_BALANCES_PATH = "/reports/closing-balances";
 
 export function createReportRoutes(db: Database) {
-  return new Hono<AuthenticatedEnv>().get(
-    MONTHLY_REPORT_PATH,
-    describeRoute({
-      operationId: "getMonthlyReport",
-      summary: "Get a monthly report",
-      description:
-        "The signed-in owner's server-calculated totals for one month in " +
-        "YYYY-MM form: income, gross expenses, refunds, net expenses, and " +
-        "net as exact Money objects beside the number of counted " +
-        "transactions. Totals follow Bangkok calendar dates, so a refund " +
-        "counts in the month of its own transaction date, while transfers " +
-        "and opening balances never count. A month with no counted " +
-        "transactions reports every amount as zero with a transaction " +
-        "count of zero; aggregates stay exact beyond JavaScript's safe " +
-        "integers. A malformed or impossible month is a bad request.",
-      tags: ["Reports"],
-      responses: {
-        400: describeProblemResponse(400),
-        401: describeProblemResponse(401),
-      },
-    }),
-    monthlyReportQueryMiddleware,
-    describeResponse<
-      AuthenticatedEnv,
-      typeof MONTHLY_REPORT_PATH,
-      QueryValidatedInput<typeof monthlyReportQuerySchema>,
-      {
-        200: typeof monthlyReportResponseSchema;
-        400: typeof problemDetailsSchema;
-      }
-    >(
-      async (c) => {
-        const summary = await getMonthlySummary(db, {
-          ownerId: c.get("session").user.id,
-          month: c.req.valid("query").month,
-        });
-        return c.json(presentMonthlyReport(summary), 200);
-      },
-      {
-        200: {
-          description: "The owner's monthly report",
-          content: {
-            "application/json": { vSchema: monthlyReportResponseSchema },
-          },
+  return new Hono<AuthenticatedEnv>()
+    .get(
+      MONTHLY_REPORT_PATH,
+      describeRoute({
+        operationId: "getMonthlyReport",
+        summary: "Get a monthly report",
+        description:
+          "The signed-in owner's server-calculated totals for one month in " +
+          "YYYY-MM form: income, gross expenses, refunds, net expenses, and " +
+          "net as exact Money objects beside the number of counted " +
+          "transactions. Totals follow Bangkok calendar dates, so a refund " +
+          "counts in the month of its own transaction date, while transfers " +
+          "and opening balances never count. A month with no counted " +
+          "transactions reports every amount as zero with a transaction " +
+          "count of zero; aggregates stay exact beyond JavaScript's safe " +
+          "integers. A malformed or impossible month is a bad request.",
+        tags: ["Reports"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
         },
-        400: describeProblem(getProblemOptionsForStatus(400)),
-      },
-    ),
-  );
+      }),
+      monthlyReportQueryMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof MONTHLY_REPORT_PATH,
+        QueryValidatedInput<typeof monthlyReportQuerySchema>,
+        {
+          200: typeof monthlyReportResponseSchema;
+          400: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const summary = await getMonthlySummary(db, {
+            ownerId: c.get("session").user.id,
+            month: c.req.valid("query").month,
+          });
+          return c.json(presentMonthlyReport(summary), 200);
+        },
+        {
+          200: {
+            description: "The owner's monthly report",
+            content: {
+              "application/json": { vSchema: monthlyReportResponseSchema },
+            },
+          },
+          400: describeProblem(getProblemOptionsForStatus(400)),
+        },
+      ),
+    )
+    .get(
+      CATEGORY_SPENDING_PATH,
+      describeRoute({
+        operationId: "getCategorySpending",
+        summary: "Get a month's spending by category",
+        description:
+          "The signed-in owner's Category spending for one month in YYYY-MM " +
+          "form, per expense parent category: expenses dated in the month " +
+          "less refunds dated in the month, each counted under its expense's " +
+          "current category and rolled up to the parent. Debt payments count " +
+          "like any other category. Only parents with activity in the month " +
+          "appear, in category order with Uncategorized last, and their " +
+          "signed amounts sum to netExpenses, the monthly report's Net " +
+          "expenses for the same month. Each parent carries the amount filed " +
+          "directly on it and its children with activity, in category order; " +
+          "the two add up to the parent. Any amount is negative when a " +
+          "refund dated in the month outweighs that month's expenses. A " +
+          "malformed or impossible month is a bad request.",
+        tags: ["Reports"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      monthlyReportQueryMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof CATEGORY_SPENDING_PATH,
+        QueryValidatedInput<typeof monthlyReportQuerySchema>,
+        {
+          200: typeof categorySpendingResponseSchema;
+          400: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const spending = await getCategorySpending(db, {
+            ownerId: c.get("session").user.id,
+            month: c.req.valid("query").month,
+          });
+          return c.json(presentCategorySpending(spending), 200);
+        },
+        {
+          200: {
+            description: "The owner's spending by parent category",
+            content: {
+              "application/json": { vSchema: categorySpendingResponseSchema },
+            },
+          },
+          400: describeProblem(getProblemOptionsForStatus(400)),
+        },
+      ),
+    )
+    .get(
+      CLOSING_BALANCES_PATH,
+      describeRoute({
+        operationId: "getClosingBalances",
+        summary: "Get a month's daily closing balances",
+        description:
+          "The signed-in owner's total Closing balance for each day of one " +
+          "month in YYYY-MM form, from its first day through its last day or " +
+          "today in Bangkok, whichever is earlier, oldest first. A day's " +
+          "total sums every wallet opened by that date, archived ones " +
+          "included: its opening balance plus every current transaction " +
+          "dated on or before it, so transfers between wallets leave it " +
+          "unchanged and recording time plays no part. A day before every " +
+          "wallet's opening date has a null total, and a future month has " +
+          "no entries. With an optional `walletId`, each entry also carries " +
+          "that wallet's Closing balance, archived wallets included, null " +
+          "before its opening date. A malformed or impossible month, or a " +
+          "malformed wallet id, is a bad request; a wallet the owner does " +
+          "not hold is not found.",
+        tags: ["Reports"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+          404: describeProblemResponse(404),
+        },
+      }),
+      closingBalancesQueryMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof CLOSING_BALANCES_PATH,
+        QueryValidatedInput<typeof closingBalancesQuerySchema>,
+        {
+          200: typeof closingBalancesResponseSchema;
+          400: typeof problemDetailsSchema;
+          404: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const query = c.req.valid("query");
+          const balances = await getClosingBalances(db, {
+            ownerId: c.get("session").user.id,
+            month: query.month,
+            walletId: query.walletId,
+          });
+          return answerRead(c, {
+            value: balances,
+            present: presentClosingBalances,
+          });
+        },
+        {
+          200: {
+            description: "The owner's total Closing balance for each day",
+            content: {
+              "application/json": { vSchema: closingBalancesResponseSchema },
+            },
+          },
+          400: describeProblem(getProblemOptionsForStatus(400)),
+          404: describeProblem(getProblemOptionsForStatus(404)),
+        },
+      ),
+    );
 }

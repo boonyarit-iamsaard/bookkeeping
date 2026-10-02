@@ -72,6 +72,9 @@ export function CreateCategoryForm({
     clearFieldError,
     chooseIcon,
     followName,
+    isSaved,
+    isRefreshing,
+    retryRead,
   } = useCreateCategoryForm({
     kind,
     initialName,
@@ -98,6 +101,11 @@ export function CreateCategoryForm({
     >
       <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 pt-1 pb-6 sm:px-6">
         {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
+        {isSaved && isRefreshing && (
+          <output className="text-muted-foreground text-sm">
+            Category saved. Refreshing categories…
+          </output>
+        )}
         <FieldGroup className="gap-6">
           <form.Field
             name="name"
@@ -402,16 +410,41 @@ export function CreateCategoryForm({
       </div>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
-        {(isSubmitting) => (
-          <div className="flex shrink-0 flex-col-reverse gap-2 border-border/70 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
-            <Button type="button" variant="ghost" size="lg" onClick={onCancel}>
-              Back
-            </Button>
-            <Button type="submit" size="lg" disabled={isSubmitting}>
-              {isSubmitting ? "Saving…" : "Save category"}
-            </Button>
-          </div>
-        )}
+        {(isSubmitting) => {
+          let submitLabel = isSubmitting ? "Saving…" : "Save category";
+          if (isSaved) {
+            submitLabel = "Saved";
+          }
+          return (
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-border/70 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                onClick={onCancel}
+              >
+                Back
+              </Button>
+              {isSaved && serverError && (
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={isRefreshing}
+                  onClick={() => void retryRead()}
+                >
+                  Retry category list
+                </Button>
+              )}
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isSubmitting || isSaved}
+              >
+                {submitLabel}
+              </Button>
+            </div>
+          );
+        }}
       </form.Subscribe>
     </form>
   );

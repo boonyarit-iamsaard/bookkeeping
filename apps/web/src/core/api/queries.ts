@@ -155,4 +155,23 @@ export const reportQueries = {
         apiClient.GET("/v1/reports/monthly", { params, signal }),
     });
   },
+  categorySpending(month: string) {
+    return createReadQuery({
+      path: "/v1/reports/category-spending",
+      params: { query: { month } },
+      read: (params, signal) =>
+        apiClient.GET("/v1/reports/category-spending", { params, signal }),
+    });
+  },
+  /** The month's daily totals, with one wallet's figures when `walletId` is given. */
+  closingBalances(month: string, walletId?: string) {
+    return createReadQuery({
+      path: "/v1/reports/closing-balances",
+      params: {
+        query: walletId === undefined ? { month } : { month, walletId },
+      },
+      read: (params, signal) =>
+        apiClient.GET("/v1/reports/closing-balances", { params, signal }),
+    });
+  },
 };

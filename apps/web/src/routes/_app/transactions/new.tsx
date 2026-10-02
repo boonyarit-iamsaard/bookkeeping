@@ -41,11 +41,10 @@ function NewTransactionPage() {
   const router = useRouter();
   const search = Route.useSearch();
   const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
-  const { data: categoryCollection } = useSuspenseQuery(categoryQueries.list());
   const { data: entryDefaults } = useSuspenseQuery(
     transactionQueries.entryDefaults(),
   );
-  if (!walletCollection || !categoryCollection || !entryDefaults) {
+  if (!walletCollection || !entryDefaults) {
     throw new Error("The transaction entry queries returned no data");
   }
   const wallets = toWalletOptions(walletCollection.items);
@@ -93,7 +92,6 @@ function NewTransactionPage() {
       {defaultWalletId ? (
         <TransactionForm
           wallets={wallets}
-          categories={categoryCollection.items}
           today={todayIn({ timeZone: APP_TIME_ZONE })}
           mode={{ kind: "create", defaultWalletId, captureOrigin }}
         />

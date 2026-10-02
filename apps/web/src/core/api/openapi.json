@@ -1327,6 +1327,151 @@
           "net",
           "transactionCount"
         ]
+      },
+      "CategorySpending": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}$"
+          },
+          "netExpenses": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "parents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParentCategorySpending"
+            }
+          }
+        },
+        "required": [
+          "month",
+          "netExpenses",
+          "parents"
+        ]
+      },
+      "ParentCategorySpending": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "isUncategorized": {
+            "type": "boolean"
+          },
+          "spending": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "directSpending": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChildCategorySpending"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "sortOrder",
+          "isUncategorized",
+          "spending",
+          "directSpending",
+          "children"
+        ]
+      },
+      "ChildCategorySpending": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "spending": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "sortOrder",
+          "spending"
+        ]
+      },
+      "ClosingBalances": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}$"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClosingBalanceEntry"
+            }
+          }
+        },
+        "required": [
+          "month",
+          "entries"
+        ]
+      },
+      "ClosingBalanceEntry": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wallet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "date",
+          "total"
+        ]
       }
     }
   },
@@ -3010,6 +3155,151 @@
               "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
             },
             "required": true
+          }
+        ]
+      }
+    },
+    "/v1/reports/category-spending": {
+      "get": {
+        "operationId": "getCategorySpending",
+        "responses": {
+          "200": {
+            "description": "The owner's spending by parent category",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategorySpending"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get a month's spending by category",
+        "description": "The signed-in owner's Category spending for one month in YYYY-MM form, per expense parent category: expenses dated in the month less refunds dated in the month, each counted under its expense's current category and rolled up to the parent. Debt payments count like any other category. Only parents with activity in the month appear, in category order with Uncategorized last, and their signed amounts sum to netExpenses, the monthly report's Net expenses for the same month. Each parent carries the amount filed directly on it and its children with activity, in category order; the two add up to the parent. Any amount is negative when a refund dated in the month outweighs that month's expenses. A malformed or impossible month is a bad request.",
+        "tags": [
+          "Reports"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+            },
+            "required": true
+          }
+        ]
+      }
+    },
+    "/v1/reports/closing-balances": {
+      "get": {
+        "operationId": "getClosingBalances",
+        "responses": {
+          "200": {
+            "description": "The owner's total Closing balance for each day",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosingBalances"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get a month's daily closing balances",
+        "description": "The signed-in owner's total Closing balance for each day of one month in YYYY-MM form, from its first day through its last day or today in Bangkok, whichever is earlier, oldest first. A day's total sums every wallet opened by that date, archived ones included: its opening balance plus every current transaction dated on or before it, so transfers between wallets leave it unchanged and recording time plays no part. A day before every wallet's opening date has a null total, and a future month has no entries. With an optional `walletId`, each entry also carries that wallet's Closing balance, archived wallets included, null before its opening date. A malformed or impossible month, or a malformed wallet id, is a bad request; a wallet the owner does not hold is not found.",
+        "tags": [
+          "Reports"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "walletId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
           }
         ]
       }

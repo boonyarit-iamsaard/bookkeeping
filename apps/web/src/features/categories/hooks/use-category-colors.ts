@@ -1,6 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { categoryQueries } from "@/core/api/queries";
-import { createCategoryColors } from "@/features/categories/category-color";
+import { useCategoryCatalog } from "./use-category-catalog";
 
 /**
  * Each category's color, from the categories list read. A screen showing
@@ -8,6 +6,5 @@ import { createCategoryColors } from "@/features/categories/category-color";
  * uncolored.
  */
 export function useCategoryColors() {
-  const { data } = useSuspenseQuery(categoryQueries.list());
-  return createCategoryColors(data?.items ?? []);
+  return useCategoryCatalog().colorOf;
 }

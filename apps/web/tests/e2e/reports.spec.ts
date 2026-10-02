@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
+import { resumePage } from "./helpers/resume-page";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test.setTimeout(150_000);
@@ -84,6 +85,17 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   await page.getByRole("button", { name: "August 2026", exact: true }).click();
   await expect(page).toHaveURL(/\/reports\?month=2026-08$/);
   await expect(page.locator('[data-summary="income"]')).toContainText("฿0.00");
+  await expect(
+    page
+      .getByRole("region", { name: "Spending by category" })
+      .getByText("No spending in August 2026."),
+  ).toBeVisible();
+  // Both wallets open in September, so August has no line.
+  await expect(
+    page
+      .getByRole("region", { name: "Balance over time" })
+      .getByText("No wallets were open in August 2026."),
+  ).toBeVisible();
 
   await page.getByLabel("Report month").click();
   await page
@@ -104,6 +116,59 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   for (const [key, value] of Object.entries(expectedSummary)) {
     await expect(page.locator(`[data-summary="${key}"]`)).toContainText(value);
   }
+  // The refund comes off its expense's category in the month it is dated.
+  const spendingRows = page.locator("[data-category-spending]");
+  await expect(spendingRows).toHaveCount(1);
+  await expect(spendingRows).toHaveText("Uncategorized100% of spending฿400.00");
+
+  // The balance trend opens on the Balance date and moves by keyboard.
+  const balanceDay = page.getByRole("slider", { name: "Selected day" });
+  await expect(balanceDay).toHaveAttribute(
+    "aria-valuetext",
+    "3 Sep 2026, Total ฿1,700.00",
+  );
+  const readout = page.locator("[data-balance-readout]");
+  await expect(readout).toContainText("3 Sep 2026");
+  await expect(readout).toContainText("Total balance฿1,700.00");
+  await balanceDay.press("ArrowRight");
+  await expect(readout).toContainText("4 Sep 2026");
+  await expect(readout).toContainText("Total balance฿1,700.00");
+  await balanceDay.press("ArrowRight");
+  await expect(readout).toContainText("Total balance฿1,800.00");
+
+  // One wallet, archived ones included, is drawn beside the total; the
+  // transfer moves its line and leaves the total alone.
+  const compareWallet = page.getByLabel("Compare a wallet");
+  await expect(compareWallet).toHaveText("None");
+  await compareWallet.click();
+  await page.getByRole("option", { name: "Savings · Archived" }).click();
+  await expect(page.locator("[data-wallet-line]")).toHaveCount(1);
+  await expect(readout).toContainText("Savings฿400.00");
+  await balanceDay.press("ArrowLeft");
+  await expect(balanceDay).toHaveAttribute(
+    "aria-valuetext",
+    "4 Sep 2026, Total ฿1,700.00, Savings ฿400.00",
+  );
+  await balanceDay.press("ArrowLeft");
+  await expect(readout).toContainText("Total balance฿1,700.00");
+  await expect(readout).toContainText("Savings฿200.00");
+  // The comparison holds across months without dropping the report.
+  await page.getByLabel("Report month").click();
+  await page.getByRole("button", { name: "August 2026", exact: true }).click();
+  await expect(
+    page
+      .getByRole("region", { name: "Balance over time" })
+      .getByText("No wallets were open in August 2026."),
+  ).toBeVisible();
+  await page.getByLabel("Report month").click();
+  await page
+    .getByRole("button", { name: "September 2026", exact: true })
+    .click();
+  await expect(readout).toContainText("Savings฿200.00");
+  await compareWallet.click();
+  await page.getByRole("option", { name: "None" }).click();
+  await expect(page.locator("[data-wallet-line]")).toHaveCount(0);
+  await expect(readout).not.toContainText("Savings");
 
   const overall = page.locator('[data-balance-row="Overall balance"]');
   await expect(overall).toContainText("Current฿1,800.00");
@@ -219,4 +284,228 @@ test("old dashboard links keep their values, and a failed report retries", async
     page.getByRole("heading", { name: "September 2026" }),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/reports\?month=2026-09&asOf=2026-09-03$/);
+});
+
+test("valid defaults advancing on resume show loading instead of invalid filters", async ({
+  page,
+}) => {
+  await signUpFreshUser(page);
+  await page.clock.install({ time: new Date("2026-09-30T12:00:00+07:00") });
+  await page.goto("/reports");
+  await expect(page.getByLabel("Report month")).toHaveText("September 2026");
+  let releaseRead = () => {};
+  const heldRead = new Promise<void>((resolve) => {
+    releaseRead = resolve;
+  });
+  await page.route("**/v1/wallets?**", async (route) => {
+    if (
+      new URL(route.request().url()).searchParams.get("asOf") === "2026-10-01"
+    ) {
+      await heldRead;
+    }
+    await route.continue();
+  });
+  await page.clock.setFixedTime(new Date("2026-10-01T12:00:00+07:00"));
+  await resumePage(page);
+  await expect(page.getByText("Loading your report…")).toBeVisible();
+  await expect(
+    page.getByText("Choose a valid month and balance date."),
+  ).toHaveCount(0);
+  await expect(page.getByText(/฿/)).toHaveCount(0);
+  releaseRead();
+  await expect(page.getByLabel("Report month")).toHaveText("October 2026");
+  await expect(page.getByText("Loading your report…")).toHaveCount(0);
+});
+
+test("pending Wallet switches and clearing keep totals and selected day without stale figures", async ({
+  page,
+}) => {
+  await signUpFreshUser(page);
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "100",
+    openingDate: "2026-09-01",
+  });
+  await createWalletThroughForm(page, {
+    name: "Savings",
+    openingAmount: "40",
+    openingDate: "2026-09-01",
+  });
+  await page.goto("/reports?month=2026-09&asOf=2026-09-03");
+  const slider = page.getByRole("slider", { name: "Selected day" });
+  const readout = page.locator("[data-balance-readout]");
+  await slider.press("ArrowRight");
+  const picker = page.getByLabel("Compare a wallet");
+  const cashRequest = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname === "/v1/reports/closing-balances" &&
+      new URL(request.url()).searchParams.has("walletId"),
+  );
+  await picker.click();
+  await page.getByRole("option", { name: "Cash", exact: true }).click();
+  const cashId = new URL((await cashRequest).url()).searchParams.get(
+    "walletId",
+  );
+  await expect(readout).toContainText("Cash฿100.00");
+  let releaseComparison = () => {};
+  let releaseMonth = () => {};
+  const heldComparison = new Promise<void>((resolve) => {
+    releaseComparison = resolve;
+  });
+  const heldMonth = new Promise<void>((resolve) => {
+    releaseMonth = resolve;
+  });
+  let comparisonStarted = () => {};
+  let comparisonFinished = () => {};
+  const pendingComparison = new Promise<void>((resolve) => {
+    comparisonStarted = resolve;
+  });
+  const finishedComparison = new Promise<void>((resolve) => {
+    comparisonFinished = resolve;
+  });
+  await page.route("**/v1/reports/closing-balances?**", async (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    if (!params.has("walletId") || params.get("walletId") === cashId) {
+      await route.continue();
+      return;
+    }
+    const response = await route.fetch();
+    if (params.get("month") === "2026-09") {
+      comparisonStarted();
+      await heldComparison;
+    } else {
+      await heldMonth;
+    }
+    await route.fulfill({ response });
+    comparisonFinished();
+  });
+  await picker.click();
+  await page.getByRole("option", { name: "Savings", exact: true }).click();
+  await pendingComparison;
+  await expect(readout).toContainText("4 Sep 2026");
+  await expect(readout).toContainText("Total balance฿140.00");
+  await expect(readout).not.toContainText("Cash");
+  await expect(readout).not.toContainText("Savings");
+  await picker.click();
+  await page.getByRole("option", { name: "None", exact: true }).click();
+  releaseComparison();
+  await finishedComparison;
+  await expect(picker).toHaveText("None");
+  await expect(readout).not.toContainText("Savings");
+  await expect(page.locator("[data-wallet-line]")).toHaveCount(0);
+  await expect(slider).toHaveAttribute(
+    "aria-valuetext",
+    "4 Sep 2026, Total ฿140.00",
+  );
+  await picker.click();
+  await page.getByRole("option", { name: "Savings", exact: true }).click();
+  await expect(readout).toContainText("Savings฿40.00");
+  await expect(readout).toContainText("4 Sep 2026");
+  await page.getByLabel("Report month").click();
+  await page.getByRole("button", { name: "October 2026", exact: true }).click();
+  await expect(picker).toHaveText("Savings");
+  await expect(readout).toContainText("Total balance฿140.00");
+  await expect(readout).not.toContainText("Sep 2026");
+  await expect(readout).not.toContainText("Savings");
+  releaseMonth();
+  await expect(readout).toContainText("Savings฿40.00");
+  await page.getByLabel("Report month").click();
+  await page.getByRole("button", { name: "August 2026", exact: true }).click();
+  await expect(picker).toHaveCount(0);
+  await page.getByLabel("Report month").click();
+  await page
+    .getByRole("button", { name: "September 2026", exact: true })
+    .click();
+  await expect(picker).toHaveText("Savings");
+  await expect(slider).toHaveAttribute(
+    "aria-valuetext",
+    "3 Sep 2026, Total ฿140.00, Savings ฿40.00",
+  );
+});
+
+test("refresh reconciliation keeps markers, exact figures, and announcements on one selected day", async ({
+  page,
+}) => {
+  await signUpFreshUser(page);
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "100",
+    openingDate: "2026-09-01",
+  });
+  let openingDay = 1;
+  let omitBalanceDate = false;
+  await page.route("**/v1/reports/closing-balances?**", async (route) => {
+    if (
+      new URL(route.request().url()).searchParams.get("month") !== "2026-09"
+    ) {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      json: {
+        month: "2026-09",
+        entries: Array.from({ length: 30 }, (_, index) => ({
+          date: `2026-09-${String(index + 1).padStart(2, "0")}`,
+          total:
+            index + 1 < openingDay
+              ? null
+              : { value: "100.00", currency: "THB" },
+        })).filter((entry) => !omitBalanceDate || entry.date !== "2026-09-15"),
+      },
+    });
+  });
+  await page.goto("/reports?month=2026-09&asOf=2026-09-15");
+  const slider = page.getByRole("slider", { name: "Selected day" });
+  const marker = page.locator("[data-selected-day]");
+  const readout = page.locator("[data-balance-readout]");
+  await slider.press("Home");
+  await expect(marker).toHaveAttribute("data-selected-day", "2026-09-01");
+  openingDay = 10;
+  await resumePage(page);
+  await expect(marker).toHaveAttribute("data-selected-day", "2026-09-15");
+  await expect(readout).toContainText("15 Sep 2026");
+  await expect(slider).toHaveAttribute(
+    "aria-valuetext",
+    "15 Sep 2026, Total ฿100.00",
+  );
+  omitBalanceDate = true;
+  await resumePage(page);
+  await expect(marker).toHaveAttribute("data-selected-day", "2026-09-30");
+  await expect(readout).toContainText("30 Sep 2026");
+  await expect(slider).toHaveAttribute(
+    "aria-valuetext",
+    "30 Sep 2026, Total ฿100.00",
+  );
+  omitBalanceDate = false;
+  const restored = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/v1/reports/closing-balances",
+  );
+  await resumePage(page);
+  await restored;
+  await expect(marker).toHaveAttribute("data-selected-day", "2026-09-30");
+  await chooseDate(page.getByLabel("Balance date"), "2026-09-16");
+  await expect(marker).toHaveAttribute("data-selected-day", "2026-09-16");
+  await slider.press("Home");
+  await expect(readout).toContainText("10 Sep 2026");
+  await slider.press("PageUp");
+  await expect(readout).toContainText("17 Sep 2026");
+  await slider.press("End");
+  await slider.press("PageDown");
+  await expect(readout).toContainText("23 Sep 2026");
+  await slider.scrollIntoViewIfNeeded();
+  const box = await slider.boundingBox();
+  if (!box) {
+    throw new Error("The Closing balance slider has no pointer target");
+  }
+  await page.mouse.move(box.x + 1, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + (box.width * 19) / 29, box.y + box.height / 2);
+  await page.mouse.up();
+  await expect(marker).toHaveAttribute("data-selected-day", "2026-09-20");
+  await expect(readout).toContainText("20 Sep 2026");
+  await expect(slider).toHaveAttribute(
+    "aria-valuetext",
+    "20 Sep 2026, Total ฿100.00",
+  );
 });
