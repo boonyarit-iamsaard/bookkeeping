@@ -9,7 +9,7 @@ built separately, and runs the full browser matrix.
 
 **Blocked by:** 02, 03, 04, 05, 06, 07
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [x] The static offline page is on the new system, in light and dark.
 - [x] The shared loading component (`HistoryLoading`) regains `aria-busy` and a screen-neutral `aria-label`, both dropped in 03 when it became shared (see 03's closing note).
@@ -22,8 +22,8 @@ built separately, and runs the full browser matrix.
 - [x] A cross-screen `/impeccable` audit finds no remaining screen, sheet, dialog, empty, loading, or error state on the old system, and its material drift fixes are applied.
 - [x] `DESIGN.md` and `.impeccable/design.json` match the shipped product, including every stated system change from 02–07.
 - [x] `pnpm run ci` passes.
-- [ ] The full two-project SPA matrix passes.
-- [ ] `pnpm run ci:e2e` passes against the production build.
+- [x] The full two-project SPA matrix passes.
+- [x] `pnpm run ci:e2e` passes against the production build.
 
 ## Constraints
 
@@ -72,3 +72,24 @@ buttons were 43px wide; an unknown address showed a bare "Not Found" (now an
 empty-state card with Go to Home). The confirmation round was clean. The pane's
 captures came back tiled or timed out, so the audit used measurements, not
 pictures. `DESIGN.md` and `.impeccable/design.json` are in line, `pnpm run ci` passes.
+
+## Closing note
+
+### 2026-10-02: done
+
+Part 1 (the sweep) is `dddaf48`; the matrix's findings are fixed in `77eb90f`.
+
+The first full two-project matrix run failed three phone tests, all from the
+redesign's layout rather than from the sweep: the filter chip's hidden note
+became list-item text (now `aria-description`), the transfer hint wrapped
+and moved the Date 52px (the test allows 48; the hint is now 13px), and the
+last field could not scroll clear of the sticky title bar (the entry layout
+now leaves 224px below the fields). No assertion changed. The run after
+that lost its throwaway database when a Sonar scan started alongside it, was
+discarded, and was repeated alone.
+
+Verified, each run alone: `pnpm run ci` passes; the full two-project SPA
+matrix passes (52 passed, 7 skipped, which are the PWA specs that need a
+production build); `pnpm run ci:e2e` against the production build passes
+(58 passed, 1 skipped), once replayed from the Turborepo cache and once
+forced fresh. No host execution was needed.
