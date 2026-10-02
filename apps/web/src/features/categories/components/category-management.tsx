@@ -5,19 +5,27 @@ import type {
   CategoryKind,
   CategorySummary,
 } from "@bookkeeping/domain/categories";
-import { ChevronRight, Plus } from "lucide-react";
+import { LockKeyhole, Plus } from "lucide-react";
 import { useRef, useState } from "react";
 import { TitleBar } from "@/core/shell/title-bar";
+import type { CategoryColor } from "@/features/categories/category-color";
+import { createCategoryColors } from "@/features/categories/category-color";
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
 import type { ManageCategoryOutcome } from "@/features/categories/category-mutations";
 import { searchCategories } from "@/features/categories/category-search";
-import { CategoryDisc } from "@/features/categories/components/category-icon";
+import {
+  CategoryIcon,
+  CategoryTile,
+  ChildMarker,
+} from "@/features/categories/components/category-icon";
 import { CreateCategoryForm } from "@/features/categories/components/create-category-form";
 import type { RemovalContext } from "@/features/categories/components/edit-category-form";
 import {
   EditCategoryForm,
   entriesLabel,
 } from "@/features/categories/components/edit-category-form";
+import { listCardClass } from "@/shared/components/list-section";
+import { SavedNotice } from "@/shared/components/saved-notice";
 import { Button } from "@/shared/components/ui/button";
 import { SegmentedControl } from "@/shared/components/ui/segmented-control";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
@@ -35,10 +43,10 @@ const KIND_OPTIONS = (
 ).map((value) => ({ value, label: CATEGORY_KIND_LABELS[value] }));
 
 /**
- * Both trees behind one segmented switch, each as hairline rows: parents
- * leading, children indented beneath, every row a button to its edit
- * sheet. The list is server truth; every change re-reads it and says what
- * happened in the status line beneath the title.
+ * Both trees behind one segmented switch, each parent and its children on
+ * one list card, every row a button to its edit sheet. The list is server
+ * truth; every change re-reads it and says what happened in the notice
+ * beneath the title.
  */
 export function CategoryManagement({
   categories,
@@ -49,6 +57,7 @@ export function CategoryManagement({
   const [notice, setNotice] = useState("");
   const noticeRef = useRef<HTMLOutputElement>(null);
   const { groups } = searchCategories({ categories, kind, query: "" });
+  const colorOf = createCategoryColors(categories);
 
   function announce(message: string) {
     setNotice(message);
@@ -74,7 +83,7 @@ export function CategoryManagement({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 sm:gap-8">
       <TitleBar
         title="Categories"
         actions={
@@ -106,16 +115,13 @@ export function CategoryManagement({
         }
       />
 
-      <output
+      <SavedNotice
         ref={noticeRef}
         tabIndex={-1}
-        className={cn(
-          "rounded-sm text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-          !notice && "sr-only",
-        )}
+        className={cn(!notice && "sr-only")}
       >
         {notice}
-      </output>
+      </SavedNotice>
 
       <div>
         <span id="category-tree-label" className="sr-only">
@@ -130,40 +136,48 @@ export function CategoryManagement({
       </div>
 
       <ul
-        className="-mx-4 divide-y sm:mx-0"
+        className="flex flex-col gap-3 sm:gap-4"
         aria-label={`${CATEGORY_KIND_LABELS[kind]} categories`}
       >
-        {groups.map((group) => (
-          <li key={group.parent.id}>
-            <CategoryRow
-              category={group.parent}
-              removal={{
-                parentName: null,
-                childCount: group.children.length,
-                entries: usage[group.parent.id] ?? 0,
-              }}
-              onDone={finishEdit}
-            />
-            {group.children.length > 0 && (
-              <ul aria-label={`${group.parent.name} children`}>
-                {group.children.map((child) => (
-                  <li key={child.id}>
-                    <CategoryRow
-                      category={child}
-                      isChild
-                      removal={{
-                        parentName: group.parent.name,
-                        childCount: 0,
-                        entries: usage[child.id] ?? 0,
-                      }}
-                      onDone={finishEdit}
-                    />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
+        {groups.map((group) => {
+          const color = colorOf(group.parent.id);
+          return (
+            <li key={group.parent.id} className={listCardClass}>
+              <CategoryRow
+                category={group.parent}
+                color={color}
+                removal={{
+                  parentName: null,
+                  childCount: group.children.length,
+                  entries: usage[group.parent.id] ?? 0,
+                }}
+                onDone={finishEdit}
+              />
+              {group.children.length > 0 && (
+                <ul
+                  aria-label={`${group.parent.name} children`}
+                  className="divide-y divide-border/70"
+                >
+                  {group.children.map((child) => (
+                    <li key={child.id}>
+                      <CategoryRow
+                        category={child}
+                        color={color}
+                        isChild
+                        removal={{
+                          parentName: group.parent.name,
+                          childCount: 0,
+                          entries: usage[child.id] ?? 0,
+                        }}
+                        onDone={finishEdit}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -178,14 +192,21 @@ interface EditResult {
 
 interface CategoryRowProps {
   category: CategorySummary;
+  /** The parent's hue; a child wears it too. */
+  color: CategoryColor;
   isChild?: boolean;
   removal: RemovalContext;
   onDone: (result: Readonly<EditResult>) => void;
 }
 
-/** One row, and the sheet it opens; focus comes back here on close. */
+/**
+ * One row, and the sheet it opens; focus comes back here on close. A child
+ * sits one step in: its › under the parent's tile, its smaller tile in line
+ * with the parent's name. Names wrap rather than truncate.
+ */
 function CategoryRow({
   category,
+  color,
   isChild,
   removal,
   onDone,
@@ -197,32 +218,42 @@ function CategoryRow({
       <Dialog.Trigger
         data-category-row={category.id}
         className={cn(
-          "flex w-full items-center gap-4 px-4 text-left outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset sm:px-0 sm:hover:bg-transparent",
-          isChild ? "min-h-12 border-t py-1.5 pl-8 sm:pl-10" : "min-h-14 py-2",
+          "flex w-full items-center gap-3.5 px-4 text-left outline-none transition-colors duration-150 hover:bg-accent/70 focus-visible:ring-[3px] focus-visible:ring-ring/45 focus-visible:ring-inset motion-reduce:transition-none",
+          isChild ? "min-h-14 py-2.5" : "min-h-16 py-3",
         )}
       >
-        <CategoryDisc
-          iconId={category.iconId}
-          size={isChild ? "child" : "parent"}
-        />
-        <span className="min-w-0 flex-1 truncate">
-          {isChild && (
-            <span aria-hidden="true" className="mr-2 text-muted-foreground">
-              ›
+        {isChild && <ChildMarker />}
+        <CategoryTile color={color} size={isChild ? "child" : "row"}>
+          <CategoryIcon iconId={category.iconId} />
+        </CategoryTile>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span
+            className={cn(
+              "wrap-break-word leading-snug",
+              isChild ? "font-medium" : "font-semibold",
+            )}
+          >
+            {category.name}
+          </span>
+          {(category.isProtected || entries > 0) && (
+            <span className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground text-sm">
+              {category.isProtected && (
+                <span className="inline-flex items-center gap-1">
+                  <LockKeyhole
+                    aria-hidden="true"
+                    strokeWidth={2}
+                    className="size-3.5"
+                  />
+                  Protected
+                </span>
+              )}
+              {category.isProtected && entries > 0 && (
+                <span aria-hidden="true">·</span>
+              )}
+              {entries > 0 && <span>{entriesLabel(entries)}</span>}
             </span>
           )}
-          <span className={cn(!isChild && "font-medium")}>{category.name}</span>
         </span>
-        {entries > 0 && (
-          <span className="shrink-0 text-muted-foreground text-sm">
-            {entriesLabel(entries)}
-          </span>
-        )}
-        <ChevronRight
-          aria-hidden="true"
-          strokeWidth={1.75}
-          className="size-4 shrink-0 text-muted-foreground"
-        />
       </Dialog.Trigger>
       <SheetPortal className="sm:h-auto sm:max-h-144">
         <SheetHeader
@@ -236,6 +267,7 @@ function CategoryRow({
         </SheetHeader>
         <EditCategoryForm
           category={category}
+          color={color}
           removal={removal}
           onDone={(outcome) => {
             setOpen(false);

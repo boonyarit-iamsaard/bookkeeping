@@ -7,6 +7,7 @@ import type {
 import { MAX_CATEGORY_NAME_LENGTH } from "@bookkeeping/domain/categories";
 import { Plus } from "lucide-react";
 import { useId } from "react";
+import { createCategoryColors } from "@/features/categories/category-color";
 import {
   NEW_PARENT,
   NO_PARENT,
@@ -14,9 +15,13 @@ import {
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
 import type { CreateCategoryOutcome } from "@/features/categories/category-mutations";
 import { topLevelParents } from "@/features/categories/category-search";
-import { CategoryIcon } from "@/features/categories/components/category-icon";
+import {
+  CategoryIcon,
+  CategoryTile,
+} from "@/features/categories/components/category-icon";
 import { IconPicker } from "@/features/categories/components/icon-picker";
 import { useCreateCategoryForm } from "@/features/categories/hooks/use-create-category-form";
+import { ErrorNotice } from "@/shared/components/error-notice";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -74,6 +79,7 @@ export function CreateCategoryForm({
     onCreated,
   });
   const parents = topLevelParents(categories, kind);
+  const colorOf = createCategoryColors(categories);
   const nameId = `${prefix}-name`;
   const parentId = `${prefix}-parent`;
   const parentNameId = `${prefix}-parent-name`;
@@ -90,15 +96,8 @@ export function CreateCategoryForm({
         void form.handleSubmit();
       }}
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pt-1 pb-6 sm:px-6">
-        {serverError && (
-          <div
-            role="alert"
-            className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive text-sm"
-          >
-            {serverError}
-          </div>
-        )}
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 pt-1 pb-6 sm:px-6">
+        {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
         <FieldGroup className="gap-6">
           <form.Field
             name="name"
@@ -129,7 +128,6 @@ export function CreateCategoryForm({
                     }}
                     aria-invalid={invalid}
                     aria-describedby={invalid ? `${nameId}-error` : undefined}
-                    className="h-11 text-foreground"
                   />
                   <FieldErrors
                     id={`${nameId}-error`}
@@ -180,10 +178,12 @@ export function CreateCategoryForm({
                           if (parent) {
                             return (
                               <>
-                                <CategoryIcon
-                                  iconId={parent.iconId}
-                                  className="size-4"
-                                />
+                                <CategoryTile
+                                  color={colorOf(parent.id)}
+                                  className="size-7 rounded-md [&_svg]:size-4"
+                                >
+                                  <CategoryIcon iconId={parent.iconId} />
+                                </CategoryTile>
                                 <span className="truncate">{parent.name}</span>
                               </>
                             );
@@ -219,23 +219,25 @@ export function CreateCategoryForm({
                           label={parent.name}
                         >
                           <span className="flex items-center gap-3">
-                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
-                              <CategoryIcon
-                                iconId={parent.iconId}
-                                className="size-4"
-                              />
+                            <CategoryTile
+                              color={colorOf(parent.id)}
+                              className="size-8 rounded-md [&_svg]:size-4"
+                            >
+                              <CategoryIcon iconId={parent.iconId} />
+                            </CategoryTile>
+                            <span className="wrap-break-word min-w-0">
+                              {parent.name}
                             </span>
-                            <span className="truncate">{parent.name}</span>
                           </span>
                         </SelectItem>
                       ))}
                       <SelectSeparator />
                       <SelectItem value={NEW_PARENT} label="New parent…">
                         <span className="flex items-center gap-3">
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
                             <Plus
                               aria-hidden="true"
-                              strokeWidth={1.75}
+                              strokeWidth={2}
                               className="size-4"
                             />
                           </span>
@@ -261,98 +263,107 @@ export function CreateCategoryForm({
           <form.Subscribe selector={(state) => state.values.parent}>
             {(parent) =>
               parent === NEW_PARENT && (
-                <fieldset className="flex flex-col gap-6 rounded-xl border p-4">
-                  <legend className="px-1 font-medium text-sm">
+                <fieldset className="rounded-xl bg-muted p-4">
+                  <legend className="float-left mb-4 w-full font-bold text-base tracking-tight">
                     New parent
                   </legend>
-                  <form.Field
-                    name="parentName"
-                    listeners={{
-                      onChange: ({ value }) =>
-                        followName("parentIconId", value),
-                    }}
-                  >
-                    {(field) => {
-                      const serverFieldError = fieldErrors.parentName;
-                      const invalid =
-                        !field.state.meta.isValid || Boolean(serverFieldError);
-                      return (
-                        <Field data-invalid={invalid}>
-                          <FieldLabel htmlFor={parentNameId}>
-                            Parent name
-                          </FieldLabel>
-                          <Input
-                            id={parentNameId}
-                            name={field.name}
-                            type="text"
-                            autoComplete="off"
-                            autoFocus
-                            maxLength={MAX_CATEGORY_NAME_LENGTH}
-                            placeholder="Drinks"
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(event) => {
-                              clearFieldError("parentName");
-                              field.handleChange(event.target.value);
-                            }}
-                            aria-invalid={invalid}
-                            aria-describedby={
-                              invalid ? `${parentNameId}-error` : undefined
-                            }
-                            className="h-11 text-foreground"
-                          />
-                          <FieldErrors
-                            id={`${parentNameId}-error`}
-                            serverError={serverFieldError}
-                            errors={field.state.meta.errors}
-                          />
-                        </Field>
-                      );
-                    }}
-                  </form.Field>
-                  <form.Subscribe selector={(state) => state.values.parentName}>
-                    {(parentName) => (
-                      <form.Field name="parentIconId">
-                        {(field) => {
-                          const serverFieldError = fieldErrors.parentIconId;
-                          const invalid =
-                            !field.state.meta.isValid ||
-                            Boolean(serverFieldError);
-                          return (
-                            <Field data-invalid={invalid}>
-                              <FieldLabel id={`${parentIconId}-label`}>
-                                Parent icon
-                              </FieldLabel>
-                              <IconPicker
-                                name={parentName}
-                                value={field.state.value}
-                                onChange={(next) => {
-                                  clearFieldError("parentIconId");
-                                  chooseIcon("parentIconId", next);
-                                }}
-                                aria-labelledby={`${parentIconId}-label`}
-                                aria-describedby={
-                                  invalid ? `${parentIconId}-error` : undefined
-                                }
-                              />
-                              <FieldErrors
-                                id={`${parentIconId}-error`}
-                                serverError={serverFieldError}
-                                errors={field.state.meta.errors}
-                              />
-                            </Field>
-                          );
-                        }}
-                      </form.Field>
-                    )}
-                  </form.Subscribe>
+                  <div className="clear-both flex flex-col gap-6">
+                    <form.Field
+                      name="parentName"
+                      listeners={{
+                        onChange: ({ value }) =>
+                          followName("parentIconId", value),
+                      }}
+                    >
+                      {(field) => {
+                        const serverFieldError = fieldErrors.parentName;
+                        const invalid =
+                          !field.state.meta.isValid ||
+                          Boolean(serverFieldError);
+                        return (
+                          <Field data-invalid={invalid}>
+                            <FieldLabel htmlFor={parentNameId}>
+                              Parent name
+                            </FieldLabel>
+                            <Input
+                              id={parentNameId}
+                              name={field.name}
+                              type="text"
+                              autoComplete="off"
+                              autoFocus
+                              maxLength={MAX_CATEGORY_NAME_LENGTH}
+                              placeholder="Drinks"
+                              value={field.state.value}
+                              onBlur={field.handleBlur}
+                              onChange={(event) => {
+                                clearFieldError("parentName");
+                                field.handleChange(event.target.value);
+                              }}
+                              aria-invalid={invalid}
+                              aria-describedby={
+                                invalid ? `${parentNameId}-error` : undefined
+                              }
+                            />
+                            <FieldErrors
+                              id={`${parentNameId}-error`}
+                              serverError={serverFieldError}
+                              errors={field.state.meta.errors}
+                            />
+                          </Field>
+                        );
+                      }}
+                    </form.Field>
+                    <form.Subscribe
+                      selector={(state) => state.values.parentName}
+                    >
+                      {(parentName) => (
+                        <form.Field name="parentIconId">
+                          {(field) => {
+                            const serverFieldError = fieldErrors.parentIconId;
+                            const invalid =
+                              !field.state.meta.isValid ||
+                              Boolean(serverFieldError);
+                            return (
+                              <Field data-invalid={invalid}>
+                                <FieldLabel id={`${parentIconId}-label`}>
+                                  Parent icon
+                                </FieldLabel>
+                                <IconPicker
+                                  name={parentName}
+                                  color="neutral"
+                                  value={field.state.value}
+                                  onChange={(next) => {
+                                    clearFieldError("parentIconId");
+                                    chooseIcon("parentIconId", next);
+                                  }}
+                                  aria-labelledby={`${parentIconId}-label`}
+                                  aria-describedby={
+                                    invalid
+                                      ? `${parentIconId}-error`
+                                      : undefined
+                                  }
+                                />
+                                <FieldErrors
+                                  id={`${parentIconId}-error`}
+                                  serverError={serverFieldError}
+                                  errors={field.state.meta.errors}
+                                />
+                              </Field>
+                            );
+                          }}
+                        </form.Field>
+                      )}
+                    </form.Subscribe>
+                  </div>
                 </fieldset>
               )
             }
           </form.Subscribe>
 
-          <form.Subscribe selector={(state) => state.values.name}>
-            {(name) => (
+          <form.Subscribe
+            selector={(state) => [state.values.name, state.values.parent]}
+          >
+            {([name = "", parent]) => (
               <form.Field name="iconId">
                 {(field) => {
                   const serverFieldError = fieldErrors.iconId;
@@ -363,6 +374,9 @@ export function CreateCategoryForm({
                       <FieldLabel id={`${iconId}-label`}>Icon</FieldLabel>
                       <IconPicker
                         name={name}
+                        // A chosen parent lends its hue; no parent or a new
+                        // one is not a known id, so the preview stays neutral.
+                        color={colorOf(parent ?? NO_PARENT)}
                         value={field.state.value}
                         onChange={(next) => {
                           clearFieldError("iconId");
@@ -389,22 +403,11 @@ export function CreateCategoryForm({
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
-          <div className="flex shrink-0 flex-col-reverse gap-2 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
-            <Button
-              type="button"
-              variant="ghost"
-              size="lg"
-              onClick={onCancel}
-              className="h-11"
-            >
+          <div className="flex shrink-0 flex-col-reverse gap-2 border-border/70 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
+            <Button type="button" variant="ghost" size="lg" onClick={onCancel}>
               Back
             </Button>
-            <Button
-              type="submit"
-              size="lg"
-              disabled={isSubmitting}
-              className="h-11"
-            >
+            <Button type="submit" size="lg" disabled={isSubmitting}>
               {isSubmitting ? "Saving…" : "Save category"}
             </Button>
           </div>

@@ -16,37 +16,10 @@ export function CategoryIcon({
   return <Icon aria-hidden="true" strokeWidth={1.75} {...props} />;
 }
 
-interface CategoryDiscProps {
-  iconId: string;
-  /** Children take the smaller disc so the hierarchy reads at a glance. */
-  size?: "parent" | "child";
-  className?: string;
-}
-
-/** The pictogram in its Mist disc, as every category row leads with it. */
-export function CategoryDisc({
-  iconId,
-  size = "parent",
-  className,
-}: Readonly<CategoryDiscProps>) {
-  return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-muted text-foreground",
-        size === "parent" ? "size-10" : "size-8",
-        className,
-      )}
-    >
-      <CategoryIcon
-        iconId={iconId}
-        className={size === "parent" ? "size-5" : "size-4"}
-      />
-    </span>
-  );
-}
-
 interface CategoryTileProps {
   color: CategoryColor;
+  /** A child category in a tree steps down to the 36px tile. */
+  size?: "row" | "child";
   children: React.ReactNode;
   className?: string;
 }
@@ -58,6 +31,7 @@ interface CategoryTileProps {
  */
 export function CategoryTile({
   color,
+  size = "row",
   children,
   className,
 }: Readonly<CategoryTileProps>) {
@@ -65,11 +39,29 @@ export function CategoryTile({
     <span
       data-hue={color}
       className={cn(
-        "hue-tile flex size-11 shrink-0 items-center justify-center rounded-lg [&_svg]:size-5",
+        "hue-tile flex shrink-0 items-center justify-center",
+        size === "row"
+          ? "size-11 rounded-lg [&_svg]:size-5"
+          : "size-9 rounded-md [&_svg]:size-4",
         className,
       )}
     >
       {children}
+    </span>
+  );
+}
+
+/**
+ * A child row's leading ›, centred in a 44px slot beneath its parent's
+ * tile so the tree reads at a glance. Decorative; the list says the level.
+ */
+export function ChildMarker() {
+  return (
+    <span
+      aria-hidden="true"
+      className="w-11 shrink-0 text-center text-lg text-muted-foreground leading-none"
+    >
+      ›
     </span>
   );
 }
