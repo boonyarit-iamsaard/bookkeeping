@@ -33,12 +33,12 @@ function toApiMoney(amountInMinorUnits: bigint): ApiMoney {
 export function TrendChart({ points }: Readonly<TrendChartProps>) {
   const [chosen, setChosen] = useState(points.length - 1);
   const everyMonthEmpty = points.every((point) => point.empty);
-  const selected = points[chosen] ?? points[points.length - 1];
+  const selected = points[chosen] ?? points.at(-1);
   const { zero, bars } = scaleBars(
     points.flatMap((point) => [point.income, point.netExpenses]),
   );
 
-  if (everyMonthEmpty) {
+  if (everyMonthEmpty || !selected) {
     return (
       <p className="text-muted-foreground text-sm">
         Nothing recorded in these six months.

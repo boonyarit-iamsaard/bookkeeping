@@ -42,7 +42,7 @@ describe("scaleBars", () => {
 
   test("keeps exact satang apart at seven figures", () => {
     const { bars } = scaleBars([1_000_000_000n, 999_999_999n]);
-    expect(bars[0].length).toBe(1);
+    expect(bars[0]).toHaveLength(1);
     expect(bars[1].length).toBeLessThan(1);
   });
 });

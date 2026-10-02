@@ -73,6 +73,52 @@ export function EditCategoryForm({
       onDone,
     });
   const blocked = removal.childCount > 0;
+  const removalControls = confirming ? (
+    <ConfirmPanel
+      actions={
+        <>
+          <Button
+            type="button"
+            variant="destructive"
+            size="lg"
+            disabled={removing}
+            onClick={remove}
+            className="wrap-break-word h-auto min-h-11 whitespace-normal py-2 sm:min-h-10"
+          >
+            <Trash2 data-icon="inline-start" strokeWidth={1.75} />
+            {removing ? "Removing…" : `Remove ${category.name}`}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            disabled={removing}
+            onClick={() => setConfirming(false)}
+          >
+            Keep it
+          </Button>
+        </>
+      }
+    >
+      {removalExplanation(category, removal)}
+    </ConfirmPanel>
+  ) : (
+    <>
+      <p className="text-muted-foreground text-sm leading-normal">
+        {removalExplanation(category, removal)}
+      </p>
+      <Button
+        type="button"
+        variant="destructive"
+        size="lg"
+        onClick={() => setConfirming(true)}
+        className="self-start"
+      >
+        <Trash2 data-icon="inline-start" strokeWidth={1.75} />
+        Remove…
+      </Button>
+    </>
+  );
 
   return (
     <form
@@ -199,51 +245,8 @@ export function EditCategoryForm({
             <RemovalPanel icon={category.isProtected ? LockKeyhole : ListTree}>
               {removalExplanation(category, removal)}
             </RemovalPanel>
-          ) : confirming ? (
-            <ConfirmPanel
-              actions={
-                <>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="lg"
-                    disabled={removing}
-                    onClick={remove}
-                    className="wrap-break-word h-auto min-h-11 whitespace-normal py-2 sm:min-h-10"
-                  >
-                    <Trash2 data-icon="inline-start" strokeWidth={1.75} />
-                    {removing ? "Removing…" : `Remove ${category.name}`}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="lg"
-                    disabled={removing}
-                    onClick={() => setConfirming(false)}
-                  >
-                    Keep it
-                  </Button>
-                </>
-              }
-            >
-              {removalExplanation(category, removal)}
-            </ConfirmPanel>
           ) : (
-            <>
-              <p className="text-muted-foreground text-sm leading-normal">
-                {removalExplanation(category, removal)}
-              </p>
-              <Button
-                type="button"
-                variant="destructive"
-                size="lg"
-                onClick={() => setConfirming(true)}
-                className="self-start"
-              >
-                <Trash2 data-icon="inline-start" strokeWidth={1.75} />
-                Remove…
-              </Button>
-            </>
+            removalControls
           )}
         </section>
       </div>
