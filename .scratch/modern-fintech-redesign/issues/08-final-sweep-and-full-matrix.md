@@ -12,6 +12,9 @@ built separately, and runs the full browser matrix.
 **Status:** ready-for-agent
 
 - [ ] The static offline page is on the new system, in light and dark.
+- [ ] The shared loading component (`HistoryLoading`) regains `aria-busy` and a screen-neutral `aria-label`, both dropped in 03 when it became shared (see 03's closing note).
+- [ ] An invalid filter chip is distinguishable from a valid one, not by red alone, rather than relying only on the notice (deferred from 03).
+- [ ] The loading hero skeleton's color is reconciled: the detail page's and Home's are Midnight-tinted while `DESIGN.md` says "Card-colored"; fix the code or the document so they agree (deferred from 03).
 - [ ] A cross-screen `/impeccable` audit finds no remaining screen, sheet, dialog, empty, loading, or error state on the old system, and its material drift fixes are applied.
 - [ ] `DESIGN.md` and `.impeccable/design.json` match the shipped product, including every stated system change from 02–07.
 - [ ] `pnpm run ci` passes.
