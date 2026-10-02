@@ -410,26 +410,41 @@ export function CreateCategoryForm({
       </div>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
-        {(isSubmitting) => (
-          <div className="flex shrink-0 flex-col-reverse gap-2 border-border/70 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
-            <Button type="button" variant="ghost" size="lg" onClick={onCancel}>
-              Back
-            </Button>
-            {isSaved && serverError && (
+        {(isSubmitting) => {
+          let submitLabel = isSubmitting ? "Saving…" : "Save category";
+          if (isSaved) {
+            submitLabel = "Saved";
+          }
+          return (
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-border/70 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
               <Button
                 type="button"
+                variant="ghost"
                 size="lg"
-                disabled={isRefreshing}
-                onClick={() => void retryRead()}
+                onClick={onCancel}
               >
-                Retry category list
+                Back
               </Button>
-            )}
-            <Button type="submit" size="lg" disabled={isSubmitting || isSaved}>
-              {isSaved ? "Saved" : isSubmitting ? "Saving…" : "Save category"}
-            </Button>
-          </div>
-        )}
+              {isSaved && serverError && (
+                <Button
+                  type="button"
+                  size="lg"
+                  disabled={isRefreshing}
+                  onClick={() => void retryRead()}
+                >
+                  Retry category list
+                </Button>
+              )}
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isSubmitting || isSaved}
+              >
+                {submitLabel}
+              </Button>
+            </div>
+          );
+        }}
       </form.Subscribe>
     </form>
   );

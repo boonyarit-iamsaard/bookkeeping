@@ -70,6 +70,12 @@ export function CategoryPicker({
   const { categories, colorOf } = useCategoryCatalog();
   const valueId = `${id}-value`;
   const selected = categories.find((category) => category.id === value);
+  let selectedLabel = value
+    ? "Selected category is no longer available"
+    : "Choose a category";
+  if (selected) {
+    selectedLabel = categoryPath(selected, categories);
+  }
 
   useEffect(
     () => () => {
@@ -118,11 +124,7 @@ export function CategoryPicker({
           <CategoryIcon iconId={selected?.iconId ?? "generic"} />
         </CategoryTile>
         <span id={valueId} className="wrap-break-word min-w-0 flex-1">
-          {selected
-            ? categoryPath(selected, categories)
-            : value
-              ? "Selected category is no longer available"
-              : "Choose a category"}
+          {selectedLabel}
         </span>
         <ChevronDown
           aria-hidden="true"
