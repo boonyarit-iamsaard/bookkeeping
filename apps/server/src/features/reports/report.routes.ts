@@ -23,6 +23,7 @@ import type { problemDetailsSchema } from "../../core/http/problem-details.js";
 import { getProblemOptionsForStatus } from "../../core/http/problem-details.js";
 import type { QueryValidatedInput } from "../../core/http/request-validation.js";
 import { createQueryMiddleware } from "../../core/http/request-validation.js";
+import { answerRead } from "../../core/http/resource-answers.js";
 
 export const monthlyReportResponseSchema = z
   .object({
@@ -52,6 +53,14 @@ export const monthlyReportQuerySchema = z.strictObject({
 
 const monthlyReportQueryMiddleware = createQueryMiddleware(
   monthlyReportQuerySchema,
+);
+
+export const closingBalancesQuerySchema = monthlyReportQuerySchema.extend({
+  walletId: z.uuid().optional(),
+});
+
+const closingBalancesQueryMiddleware = createQueryMiddleware(
+  closingBalancesQuerySchema,
 );
 
 function presentThb(amountInMinorUnits: bigint) {
@@ -138,6 +147,7 @@ export const closingBalancesResponseSchema = z
         .object({
           date: z.iso.date(),
           total: moneySchema.nullable(),
+          wallet: moneySchema.nullable().optional(),
         })
         .meta({ id: "ClosingBalanceEntry" }),
     ),
@@ -154,9 +164,12 @@ export function presentClosingBalances(
   // The schema constrains every wallet to THB, so the totals carry it.
   return {
     month: balances.month,
-    entries: balances.entries.map((entry) => ({
-      date: entry.date,
-      total: entry.total === null ? null : presentThb(entry.total),
+    entries: balances.entries.map(({ date, total, wallet }) => ({
+      date,
+      total: total === null ? null : presentThb(total),
+      ...(wallet === undefined
+        ? {}
+        : { wallet: wallet === null ? null : presentThb(wallet) }),
     })),
   };
 }
@@ -282,29 +295,40 @@ export function createReportRoutes(db: Database) {
           "dated on or before it, so transfers between wallets leave it " +
           "unchanged and recording time plays no part. A day before every " +
           "wallet's opening date has a null total, and a future month has " +
-          "no entries. A malformed or impossible month is a bad request.",
+          "no entries. With an optional `walletId`, each entry also carries " +
+          "that wallet's Closing balance, archived wallets included, null " +
+          "before its opening date. A malformed or impossible month, or a " +
+          "malformed wallet id, is a bad request; a wallet the owner does " +
+          "not hold is not found.",
         tags: ["Reports"],
         responses: {
           400: describeProblemResponse(400),
           401: describeProblemResponse(401),
+          404: describeProblemResponse(404),
         },
       }),
-      monthlyReportQueryMiddleware,
+      closingBalancesQueryMiddleware,
       describeResponse<
         AuthenticatedEnv,
         typeof CLOSING_BALANCES_PATH,
-        QueryValidatedInput<typeof monthlyReportQuerySchema>,
+        QueryValidatedInput<typeof closingBalancesQuerySchema>,
         {
           200: typeof closingBalancesResponseSchema;
           400: typeof problemDetailsSchema;
+          404: typeof problemDetailsSchema;
         }
       >(
         async (c) => {
+          const query = c.req.valid("query");
           const balances = await getClosingBalances(db, {
             ownerId: c.get("session").user.id,
-            month: c.req.valid("query").month,
+            month: query.month,
+            walletId: query.walletId,
           });
-          return c.json(presentClosingBalances(balances), 200);
+          return answerRead(c, {
+            value: balances,
+            present: presentClosingBalances,
+          });
         },
         {
           200: {
@@ -314,6 +338,7 @@ export function createReportRoutes(db: Database) {
             },
           },
           400: describeProblem(getProblemOptionsForStatus(400)),
+          404: describeProblem(getProblemOptionsForStatus(404)),
         },
       ),
     );

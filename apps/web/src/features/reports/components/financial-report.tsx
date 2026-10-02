@@ -27,6 +27,9 @@ interface FinancialReportProps {
   summary: Readonly<MonthlyReport>;
   categoryBreakdown: Readonly<CategoryBreakdown>;
   balanceTrend: Readonly<BalanceTrend>;
+  /** The wallet drawn beside the total; none by default. */
+  comparedWalletId: string | undefined;
+  onCompareWallet: (walletId: string | undefined) => void;
   currentWallets: readonly WalletSummary[];
   datedWallets: readonly WalletSummary[];
   asOf: CalendarDate;
@@ -51,6 +54,8 @@ export function FinancialReport({
   summary,
   categoryBreakdown,
   balanceTrend,
+  comparedWalletId,
+  onCompareWallet,
   currentWallets,
   datedWallets,
   asOf,
@@ -183,6 +188,9 @@ export function FinancialReport({
           key={`${summary.month} ${asOf}`}
           trend={balanceTrend}
           month={month}
+          wallets={currentWallets}
+          comparedWalletId={comparedWalletId}
+          onCompareWallet={onCompareWallet}
         />
       </section>
     </>

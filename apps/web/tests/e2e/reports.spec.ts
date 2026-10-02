@@ -124,7 +124,7 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   const balanceDay = page.getByRole("slider", { name: "Selected day" });
   await expect(balanceDay).toHaveAttribute(
     "aria-valuetext",
-    "3 Sep 2026, ฿1,700.00",
+    "3 Sep 2026, Total ฿1,700.00",
   );
   const readout = page.locator("[data-balance-readout]");
   await expect(readout).toContainText("3 Sep 2026");
@@ -134,6 +134,40 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   await expect(readout).toContainText("Total balance฿1,700.00");
   await balanceDay.press("ArrowRight");
   await expect(readout).toContainText("Total balance฿1,800.00");
+
+  // One wallet, archived ones included, is drawn beside the total; the
+  // transfer moves its line and leaves the total alone.
+  const compareWallet = page.getByLabel("Compare a wallet");
+  await expect(compareWallet).toHaveText("None");
+  await compareWallet.click();
+  await page.getByRole("option", { name: "Savings · Archived" }).click();
+  await expect(page.locator("[data-wallet-line]")).toHaveCount(1);
+  await expect(readout).toContainText("Savings฿400.00");
+  await balanceDay.press("ArrowLeft");
+  await expect(balanceDay).toHaveAttribute(
+    "aria-valuetext",
+    "4 Sep 2026, Total ฿1,700.00, Savings ฿400.00",
+  );
+  await balanceDay.press("ArrowLeft");
+  await expect(readout).toContainText("Total balance฿1,700.00");
+  await expect(readout).toContainText("Savings฿200.00");
+  // The comparison holds across months without dropping the report.
+  await page.getByLabel("Report month").click();
+  await page.getByRole("button", { name: "August 2026", exact: true }).click();
+  await expect(
+    page
+      .getByRole("region", { name: "Balance over time" })
+      .getByText("No wallets were open in August 2026."),
+  ).toBeVisible();
+  await page.getByLabel("Report month").click();
+  await page
+    .getByRole("button", { name: "September 2026", exact: true })
+    .click();
+  await expect(readout).toContainText("Savings฿200.00");
+  await compareWallet.click();
+  await page.getByRole("option", { name: "None" }).click();
+  await expect(page.locator("[data-wallet-line]")).toHaveCount(0);
+  await expect(readout).not.toContainText("Savings");
 
   const overall = page.locator('[data-balance-row="Overall balance"]');
   await expect(overall).toContainText("Current฿1,800.00");

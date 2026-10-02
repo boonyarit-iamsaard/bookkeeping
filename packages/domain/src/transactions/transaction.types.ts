@@ -155,6 +155,11 @@ export interface ClosingBalanceEntry {
   date: CalendarDate;
   /** Every opened wallet's Closing balance summed; null before any opened. */
   total: bigint | null;
+  /**
+   * The requested wallet's Closing balance; null before its opening date,
+   * absent when no wallet was requested.
+   */
+  wallet?: bigint | null;
 }
 
 export interface ClosingBalances {

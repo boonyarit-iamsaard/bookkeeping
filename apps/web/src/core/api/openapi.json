@@ -1456,6 +1456,16 @@
                 "type": "null"
               }
             ]
+          },
+          "wallet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -3246,6 +3256,16 @@
               }
             }
           },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -3258,7 +3278,7 @@
           }
         },
         "summary": "Get a month's daily closing balances",
-        "description": "The signed-in owner's total Closing balance for each day of one month in YYYY-MM form, from its first day through its last day or today in Bangkok, whichever is earlier, oldest first. A day's total sums every wallet opened by that date, archived ones included: its opening balance plus every current transaction dated on or before it, so transfers between wallets leave it unchanged and recording time plays no part. A day before every wallet's opening date has a null total, and a future month has no entries. A malformed or impossible month is a bad request.",
+        "description": "The signed-in owner's total Closing balance for each day of one month in YYYY-MM form, from its first day through its last day or today in Bangkok, whichever is earlier, oldest first. A day's total sums every wallet opened by that date, archived ones included: its opening balance plus every current transaction dated on or before it, so transfers between wallets leave it unchanged and recording time plays no part. A day before every wallet's opening date has a null total, and a future month has no entries. With an optional `walletId`, each entry also carries that wallet's Closing balance, archived wallets included, null before its opening date. A malformed or impossible month, or a malformed wallet id, is a bad request; a wallet the owner does not hold is not found.",
         "tags": [
           "Reports"
         ],
@@ -3271,6 +3291,15 @@
               "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "walletId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
           }
         ]
       }

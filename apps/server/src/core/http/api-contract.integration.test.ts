@@ -464,7 +464,7 @@ describe("published API contract", () => {
         path: "/v1/reports/closing-balances",
         schema: closingBalancesResponseSchema,
         response: await call({
-          path: `/v1/reports/closing-balances?month=${REPORT_MONTH}`,
+          path: `/v1/reports/closing-balances?month=${REPORT_MONTH}&walletId=${cashId}`,
         }),
       });
       record({
@@ -554,6 +554,15 @@ describe("published API contract", () => {
         schema: problemDetailsSchema,
         response: await call({
           path: `/v1/wallets/${UNKNOWN_WALLET_ID}`,
+        }),
+      });
+      record({
+        operationId: "getClosingBalances",
+        method: "get",
+        path: "/v1/reports/closing-balances",
+        schema: problemDetailsSchema,
+        response: await call({
+          path: `/v1/reports/closing-balances?month=${REPORT_MONTH}&walletId=${UNKNOWN_WALLET_ID}`,
         }),
       });
       record({

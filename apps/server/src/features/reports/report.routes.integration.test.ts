@@ -863,15 +863,16 @@ function getClosingBalances(
 interface DatedRead {
   cookie: string;
   month: string;
+  walletId?: string;
 }
 
 async function readClosingBalances(
   app: Hono<AppEnv>,
-  { cookie, month }: Readonly<DatedRead>,
+  { cookie, month, walletId }: Readonly<DatedRead>,
 ) {
   const response = await getClosingBalances(app, {
     cookie,
-    query: `month=${month}`,
+    query: `month=${month}${walletId ? `&walletId=${walletId}` : ""}`,
   });
   expect(response.status).toBe(200);
   return closingBalancesResponseSchema.parse(await response.json());
@@ -897,6 +898,25 @@ async function readWalletTotal(
     0n,
   );
   return presentMoney({ amountInMinorUnits: total, currency: "THB" });
+}
+
+interface WalletBalanceRead {
+  cookie: string;
+  walletId: string;
+  asOf: string;
+}
+
+/** One wallet's as-of balance in the wallet collection: what its line must match. */
+async function readWalletBalance(
+  app: Hono<AppEnv>,
+  { cookie, walletId, asOf }: Readonly<WalletBalanceRead>,
+) {
+  const response = await app.request(`${WALLETS_URL}?asOf=${asOf}`, {
+    headers: { origin: TEST_CLIENT_ORIGIN, cookie },
+  });
+  expect(response.status).toBe(200);
+  const { items } = walletCollectionResponseSchema.parse(await response.json());
+  return items.find((wallet) => wallet.id === walletId)?.balance;
 }
 
 /** Mid-afternoon on 13 Sep 2026 in Bangkok. */
@@ -1101,6 +1121,166 @@ describe("GET /v1/reports/closing-balances", () => {
       expect(strangers.entries).toHaveLength(13);
       expect(strangers.entries.every((entry) => entry.total === null)).toBe(
         true,
+      );
+    });
+  });
+
+  test("reads one wallet's Closing balance beside the total, the transfer moving only the wallet", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
+      const categories = await defaultCategories(db, owner.ownerId);
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "income",
+        walletId: owner.bankId,
+        categoryId: categories.income,
+        amount: 300_000n,
+        transactionDate: "2026-09-02",
+      });
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "transfer",
+        walletId: owner.cashId,
+        destinationWalletId: owner.bankId,
+        amount: 200_000n,
+        transactionDate: "2026-09-03",
+      });
+      // An archived wallet can still be compared.
+      await db
+        .update(wallets)
+        .set({ archivedAt: new Date() })
+        .where(eq(wallets.id, owner.bankId));
+
+      const balances = await readClosingBalances(app, {
+        cookie: owner.cookie,
+        month: "2026-09",
+        walletId: owner.bankId,
+      });
+
+      expect(balances.entries).toHaveLength(30);
+      expect(balances.entries.slice(0, 4)).toEqual([
+        {
+          date: "2026-09-01",
+          total: { value: "10000.00", currency: "THB" },
+          wallet: { value: "0.00", currency: "THB" },
+        },
+        {
+          date: "2026-09-02",
+          total: { value: "13000.00", currency: "THB" },
+          wallet: { value: "3000.00", currency: "THB" },
+        },
+        {
+          date: "2026-09-03",
+          total: { value: "13000.00", currency: "THB" },
+          wallet: { value: "5000.00", currency: "THB" },
+        },
+        {
+          date: "2026-09-04",
+          total: { value: "13000.00", currency: "THB" },
+          wallet: { value: "5000.00", currency: "THB" },
+        },
+      ]);
+      for (const entry of balances.entries) {
+        expect(entry.wallet).toEqual(
+          await readWalletBalance(app, {
+            cookie: owner.cookie,
+            walletId: owner.bankId,
+            asOf: entry.date,
+          }),
+        );
+      }
+
+      // Without a wallet requested, entries carry the total alone.
+      const totalOnly = await readClosingBalances(app, {
+        cookie: owner.cookie,
+        month: "2026-09",
+      });
+      expect(totalOnly.entries[0]).toEqual({
+        date: "2026-09-01",
+        total: { value: "10000.00", currency: "THB" },
+      });
+    });
+  });
+
+  test("a wallet's figure is null before its opening date, even after the total starts", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
+      const [late] = await db
+        .insert(wallets)
+        .values({
+          userId: owner.ownerId,
+          name: "Late",
+          type: "cash",
+          currency: "THB",
+          openingAmount: 50_000n,
+          openingDate: "2026-09-20",
+        })
+        .returning({ id: wallets.id });
+      if (!late) {
+        throw new Error("Wallet insert returned no rows");
+      }
+
+      const september = await readClosingBalances(app, {
+        cookie: owner.cookie,
+        month: "2026-09",
+        walletId: late.id,
+      });
+      expect(september.entries.slice(18, 20)).toEqual([
+        {
+          date: "2026-09-19",
+          total: { value: "10000.00", currency: "THB" },
+          wallet: null,
+        },
+        {
+          date: "2026-09-20",
+          total: { value: "10500.00", currency: "THB" },
+          wallet: { value: "500.00", currency: "THB" },
+        },
+      ]);
+
+      const august = await readClosingBalances(app, {
+        cookie: owner.cookie,
+        month: "2026-08",
+        walletId: late.id,
+      });
+      expect(
+        august.entries.every(
+          (entry) => entry.total === null && entry.wallet === null,
+        ),
+      ).toBe(true);
+    });
+  });
+
+  test("another owner's or an unknown wallet is not found, even for a future month", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
+      const stranger = await createOwner({ db });
+
+      for (const query of [
+        `month=2026-09&walletId=${stranger.cashId}`,
+        "month=2026-09&walletId=00000000-0000-4000-8000-000000000000",
+        `month=2999-01&walletId=${stranger.cashId}`,
+      ]) {
+        await expectProblem(
+          await getClosingBalances(app, { cookie: owner.cookie, query }),
+          { status: 404, code: "not-found" },
+        );
+      }
+      await expectProblem(
+        await getClosingBalances(app, {
+          cookie: owner.cookie,
+          query: "month=2026-09&walletId=not-a-wallet",
+        }),
+        { status: 400, code: "bad-request" },
       );
     });
   });

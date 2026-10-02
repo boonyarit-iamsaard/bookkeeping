@@ -1,19 +1,41 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
 import { useState } from "react";
+import type { ApiMoney } from "@/core/api/money";
 import { parseApiMoney } from "@/core/api/money";
+import type { components } from "@/core/api/openapi.gen";
 import { ChartSwatch } from "@/shared/components/chart/chart-swatch";
 import { Money } from "@/shared/components/money";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { toPercent } from "@/shared/helpers/bar-scale";
 import type { BalanceDay, BalancePoint, BalanceTrend } from "../balance-trend";
 
-interface BalanceOverTimeProps {
+type WalletSummary = components["schemas"]["Wallet"];
+
+interface WalletComparison {
+  /** Every wallet the owner holds, archived ones included. */
+  wallets: readonly WalletSummary[];
+  /** The wallet drawn beside the total; none by default. */
+  comparedWalletId: string | undefined;
+  onCompareWallet: (walletId: string | undefined) => void;
+}
+
+interface BalanceOverTimeProps extends WalletComparison {
   trend: Readonly<BalanceTrend>;
   /** The chosen month, already formatted, such as "September 2026". */
   month: string;
 }
 
 const NO_WALLETS_OPEN = "No wallets open";
+const NOT_OPEN_YET = "Not open yet";
+const NO_COMPARISON = "None";
 
 /** Plot coordinates: x across 0–100, y down from the top. */
 function plotPoint(point: Readonly<BalancePoint>): string {
@@ -34,27 +56,122 @@ function washPoints(run: readonly BalancePoint[]): string {
   ].join(" ");
 }
 
-function totalText(day: Readonly<BalanceDay>): string {
-  return day.total === null
-    ? NO_WALLETS_OPEN
-    : formatMoney({
-        amountInMinorUnits: parseApiMoney(day.total),
-        currency: day.total.currency,
-      });
+function moneyText(money: Readonly<ApiMoney>): string {
+  return formatMoney({
+    amountInMinorUnits: parseApiMoney(money),
+    currency: money.currency,
+  });
+}
+
+/** What the slider announces for a day: its date, the total, and the compared wallet's figure. */
+function dayText(
+  day: Readonly<BalanceDay>,
+  walletName: string | undefined,
+): string {
+  const total = day.total === null ? NO_WALLETS_OPEN : moneyText(day.total);
+  const parts = [formatCalendarDate(day.date), `Total ${total}`];
+  if (walletName !== undefined) {
+    const wallet = day.wallet ? moneyText(day.wallet) : NOT_OPEN_YET;
+    parts.push(`${walletName} ${wallet}`);
+  }
+  return parts.join(", ");
+}
+
+interface WalletFigureProps {
+  money: ApiMoney | null | undefined;
+}
+
+/** The compared wallet's figure on a day: its balance, or that it had not opened. */
+function WalletFigure({ money }: Readonly<WalletFigureProps>) {
+  return money ? <Money amount={money} /> : NOT_OPEN_YET;
+}
+
+interface ArchivedMarkProps {
+  wallet: Readonly<WalletSummary>;
+  className: string;
+}
+
+function ArchivedMark({ wallet, className }: Readonly<ArchivedMarkProps>) {
+  return wallet.archivedAt ? (
+    <span className={className}> · Archived</span>
+  ) : null;
+}
+
+/**
+ * Chooses the one wallet drawn beside the total. "None" is a real, selectable
+ * first item, so the comparison is cleared from the same list that set it.
+ */
+function WalletPicker({
+  wallets,
+  comparedWalletId,
+  onCompareWallet,
+}: Readonly<WalletComparison>) {
+  const byId = new Map(wallets.map((wallet) => [wallet.id, wallet]));
+  return (
+    <div className="flex min-w-0 flex-col gap-2 font-medium text-sm sm:max-w-xs">
+      <label htmlFor="compare-wallet">Compare a wallet</label>
+      <Select
+        value={comparedWalletId ?? null}
+        onValueChange={(value: string | null) => {
+          onCompareWallet(value ?? undefined);
+        }}
+      >
+        <SelectTrigger id="compare-wallet">
+          <SelectValue>
+            {(selected: string | null) => {
+              const wallet = selected ? byId.get(selected) : undefined;
+              if (!wallet) {
+                return NO_COMPARISON;
+              }
+              return (
+                <>
+                  <span className="truncate">{wallet.name}</span>
+                  <ArchivedMark
+                    wallet={wallet}
+                    className="shrink-0 text-muted-foreground"
+                  />
+                </>
+              );
+            }}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={null} label={NO_COMPARISON}>
+            {NO_COMPARISON}
+          </SelectItem>
+          <SelectSeparator />
+          {wallets.map((wallet) => (
+            <SelectItem key={wallet.id} value={wallet.id} label={wallet.name}>
+              {/* Wraps, so a long name keeps its Archived mark in a narrow column. */}
+              <span className="wrap-break-word">
+                {wallet.name}
+                <ArchivedMark
+                  wallet={wallet}
+                  className="font-normal text-muted-foreground"
+                />
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 }
 
 const PAGE_DAYS = 7;
 
 /**
  * The level 3 balance trend: the total Closing balance across the month as
- * one line, from the earliest opening date to the last day read. The plot is
- * a slider over the days with a balance, so the selected day can be moved by
- * pointer or keys, and its exact figure is read out beneath; a table carries
- * every day for assistive technology.
+ * one line, from the earliest opening date to the last day read, with one
+ * chosen wallet optionally drawn beside it as a dashed line. The plot is a
+ * slider over the days with a total, so the selected day can be moved by
+ * pointer or keys, and its exact figures are read out beneath; a table
+ * carries every day for assistive technology.
  */
 export function BalanceOverTime({
   trend,
   month,
+  ...comparison
 }: Readonly<BalanceOverTimeProps>) {
   if (trend.kind === "future") {
     return (
@@ -68,15 +185,19 @@ export function BalanceOverTime({
       </p>
     );
   }
-  return <BalanceLine trend={trend} month={month} />;
+  return <BalanceLine trend={trend} month={month} {...comparison} />;
 }
 
-interface BalanceLineProps {
+interface BalanceLineProps extends WalletComparison {
   trend: Readonly<Extract<BalanceTrend, { kind: "line" }>>;
   month: string;
 }
 
-function BalanceLine({ trend, month }: Readonly<BalanceLineProps>) {
+function BalanceLine({
+  trend,
+  month,
+  ...comparison
+}: Readonly<BalanceLineProps>) {
   const [selectedDate, setSelectedDate] = useState(trend.selected);
   const points = trend.runs.flat();
   const selectedIndex = Math.max(
@@ -85,6 +206,15 @@ function BalanceLine({ trend, month }: Readonly<BalanceLineProps>) {
   );
   const selectedPoint = points[selectedIndex];
   const selectedDay = trend.days.find((day) => day.date === selectedDate);
+  const selectedWalletPoint = trend.walletRuns
+    .flat()
+    .find((point) => point.date === selectedDate);
+  // The wallet's figures arrive with its read; until then the total stands alone.
+  const comparedWallet = trend.days.some((day) => day.wallet !== undefined)
+    ? comparison.wallets.find(
+        (wallet) => wallet.id === comparison.comparedWalletId,
+      )
+    : undefined;
 
   function select(index: number) {
     const point = points[Math.min(Math.max(index, 0), points.length - 1)];
@@ -120,14 +250,20 @@ function BalanceLine({ trend, month }: Readonly<BalanceLineProps>) {
 
   return (
     <div className="flex flex-col gap-4">
+      <WalletPicker {...comparison} />
       {/* A table ignores the clip of its own sr-only, so a wrapper holds it. */}
       <div className="sr-only">
         <table>
-          <caption>Total closing balance for each day of {month}</caption>
+          <caption>
+            {comparedWallet
+              ? `Total and ${comparedWallet.name} closing balance for each day of ${month}`
+              : `Total closing balance for each day of ${month}`}
+          </caption>
           <thead>
             <tr>
               <th scope="col">Date</th>
               <th scope="col">Total balance</th>
+              {comparedWallet && <th scope="col">{comparedWallet.name}</th>}
             </tr>
           </thead>
           <tbody>
@@ -141,6 +277,11 @@ function BalanceLine({ trend, month }: Readonly<BalanceLineProps>) {
                     <Money amount={day.total} />
                   )}
                 </td>
+                {comparedWallet && (
+                  <td>
+                    <WalletFigure money={day.wallet} />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -154,9 +295,7 @@ function BalanceLine({ trend, month }: Readonly<BalanceLineProps>) {
         aria-valuemax={points.length}
         aria-valuenow={selectedIndex + 1}
         aria-valuetext={
-          selectedDay
-            ? `${formatCalendarDate(selectedDay.date)}, ${totalText(selectedDay)}`
-            : undefined
+          selectedDay ? dayText(selectedDay, comparedWallet?.name) : undefined
         }
         onKeyDown={(event) => {
           const step = keySteps.get(event.key);
@@ -192,6 +331,16 @@ function BalanceLine({ trend, month }: Readonly<BalanceLineProps>) {
               />
             </g>
           ))}
+          {comparedWallet &&
+            trend.walletRuns.map((run) => (
+              <polyline
+                key={run[0]?.date}
+                data-wallet-line
+                points={run.map(plotPoint).join(" ")}
+                vectorEffect="non-scaling-stroke"
+                className="fill-none stroke-2 stroke-chart-2 [stroke-dasharray:6_4] [stroke-linejoin:round]"
+              />
+            ))}
         </svg>
         {trend.zero !== null && (
           <div
@@ -208,6 +357,16 @@ function BalanceLine({ trend, month }: Readonly<BalanceLineProps>) {
             style={{
               left: toPercent(selectedPoint.x),
               bottom: toPercent(selectedPoint.y),
+            }}
+          />
+        )}
+        {comparedWallet && selectedWalletPoint && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute size-1 -translate-x-1/2 translate-y-1/2 rounded-full bg-chart-2"
+            style={{
+              left: toPercent(selectedWalletPoint.x),
+              bottom: toPercent(selectedWalletPoint.y),
             }}
           />
         )}
@@ -233,6 +392,17 @@ function BalanceLine({ trend, month }: Readonly<BalanceLineProps>) {
             )}
           </dd>
         </dl>
+        {comparedWallet && (
+          <dl className="flex items-baseline justify-between gap-3">
+            <dt className="flex min-w-0 items-center gap-2 text-muted-foreground text-sm">
+              <ChartSwatch series="compared" />
+              <span className="truncate">{comparedWallet.name}</span>
+            </dt>
+            <dd className="shrink-0">
+              <WalletFigure money={selectedDay?.wallet} />
+            </dd>
+          </dl>
+        )}
       </div>
     </div>
   );

@@ -18,6 +18,23 @@ function balances(
   };
 }
 
+/** Adds a compared wallet's figures to the same days, in order. */
+function withWallet(
+  totals: Readonly<ClosingBalances>,
+  wallet: readonly (string | null)[],
+): ClosingBalances {
+  return {
+    ...totals,
+    entries: totals.entries.map((entry, index) => {
+      const value = wallet[index] ?? null;
+      return {
+        ...entry,
+        wallet: value === null ? null : { value, currency: "THB" },
+      };
+    }),
+  };
+}
+
 describe("createBalanceTrend", () => {
   test("a future month has nothing yet", () => {
     expect(createBalanceTrend(balances("2026-10", []), "2026-09-30")).toEqual({
@@ -144,5 +161,52 @@ describe("createBalanceTrend", () => {
     expect(beforeOpening.kind === "line" && beforeOpening.selected).toBe(
       "2026-09-03",
     );
+  });
+
+  test("draws no wallet line when no wallet is compared", () => {
+    const trend = createBalanceTrend(
+      balances("2026-09", ["1.00", "2.00"]),
+      "2026-09-02",
+    );
+    expect(trend.kind === "line" && trend.walletRuns).toEqual([]);
+  });
+
+  test("adds the compared wallet as its own series, with its own gaps, on the shared scale", () => {
+    const trend = createBalanceTrend(
+      withWallet(
+        balances("2026-09", ["100.00", "300.00", "400.00", "200.00"]),
+        [null, "0.00", null, "100.00"],
+      ),
+      "2026-09-04",
+    );
+    if (trend.kind !== "line") {
+      throw new Error("Expected a line");
+    }
+    expect(trend.days[1]).toEqual({
+      date: "2026-09-02",
+      total: { value: "300.00", currency: "THB" },
+      wallet: { value: "0.00", currency: "THB" },
+    });
+    // The plot spans both lines: 0.00 at the bottom, 400.00 at the top.
+    expect(trend.runs[0]?.map((point) => point.y)).toEqual([
+      0.25, 0.75, 1, 0.5,
+    ]);
+    expect(trend.walletRuns).toEqual([
+      [{ date: "2026-09-02", x: 1 / 29, y: 0 }],
+      [{ date: "2026-09-04", x: 3 / 29, y: 0.25 }],
+    ]);
+    expect(trend.zero).toBeNull();
+  });
+
+  test("draws the zero line when only the compared wallet is negative", () => {
+    const trend = createBalanceTrend(
+      withWallet(balances("2026-09", ["30.00", "30.00"]), ["-10.00", "10.00"]),
+      "2026-09-02",
+    );
+    if (trend.kind !== "line") {
+      throw new Error("Expected a line");
+    }
+    expect(trend.zero).toBe(0.25);
+    expect(trend.walletRuns[0]?.map((point) => point.y)).toEqual([0, 0.5]);
   });
 });

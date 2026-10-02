@@ -1081,22 +1081,26 @@ export async function getCategorySpending(
   };
 }
 
+interface ClosingBalancesOptions extends MonthlySummaryOptions {
+  /** One of the owner's wallets, archived ones included, to read beside the total. */
+  walletId?: string;
+}
+
 /**
  * The total Closing balance for each day of a month through today in Bangkok
  * (ADR 0001): every wallet opened by that date, archived ones included, at its
  * opening plus every current transaction dated on or before it. A date before
- * every opening date has no total, and a future month has no days yet.
+ * every opening date has no total, and a future month has no days yet. With a
+ * wallet, each day also carries that wallet's Closing balance, null before its
+ * opening date; `null` when the owner has no wallet with that id.
  */
 export async function getClosingBalances(
   db: Database,
-  { ownerId, month }: Readonly<MonthlySummaryOptions>,
-): Promise<ClosingBalances> {
+  { ownerId, month, walletId }: Readonly<ClosingBalancesOptions>,
+): Promise<ClosingBalances | null> {
   const { start, end } = monthBounds(month);
   const today = todayIn({ timeZone: APP_TIME_ZONE });
   const last = end < today ? end : today;
-  if (start > last) {
-    return { month, entries: [] };
-  }
   const [openings, dailyMovements] = await Promise.all([
     db
       .select({
@@ -1132,6 +1136,15 @@ export async function getClosingBalances(
       .groupBy(wallets.id, transactions.transactionDate),
   ]);
 
+  const compared =
+    walletId === undefined
+      ? undefined
+      : // Postgres reads identifiers in either case; ids come back lowercase.
+        openings.find((wallet) => wallet.id === walletId.toLowerCase());
+  if (walletId !== undefined && !compared) {
+    return null;
+  }
+
   const balances = new Map(
     openings.map((wallet) => [
       wallet.id,
@@ -1145,16 +1158,25 @@ export async function getClosingBalances(
       balances.set(row.id, (balances.get(row.id) ?? 0n) + BigInt(row.movement));
     }
     const opened = openings.filter((wallet) => wallet.openingDate <= date);
-    entries.push({
-      date,
-      total:
-        opened.length === 0
-          ? null
-          : opened.reduce(
-              (total, wallet) => total + (balances.get(wallet.id) ?? 0n),
-              0n,
-            ),
-    });
+    const total =
+      opened.length === 0
+        ? null
+        : opened.reduce(
+            (sum, wallet) => sum + (balances.get(wallet.id) ?? 0n),
+            0n,
+          );
+    entries.push(
+      compared
+        ? {
+            date,
+            total,
+            wallet:
+              compared.openingDate <= date
+                ? (balances.get(compared.id) ?? 0n)
+                : null,
+          }
+        : { date, total },
+    );
   }
   return { month, entries };
 }

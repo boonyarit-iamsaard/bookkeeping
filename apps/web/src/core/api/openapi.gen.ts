@@ -177,7 +177,7 @@ export interface paths {
         };
         /**
          * Get a month's daily closing balances
-         * @description The signed-in owner's total Closing balance for each day of one month in YYYY-MM form, from its first day through its last day or today in Bangkok, whichever is earlier, oldest first. A day's total sums every wallet opened by that date, archived ones included: its opening balance plus every current transaction dated on or before it, so transfers between wallets leave it unchanged and recording time plays no part. A day before every wallet's opening date has a null total, and a future month has no entries. A malformed or impossible month is a bad request.
+         * @description The signed-in owner's total Closing balance for each day of one month in YYYY-MM form, from its first day through its last day or today in Bangkok, whichever is earlier, oldest first. A day's total sums every wallet opened by that date, archived ones included: its opening balance plus every current transaction dated on or before it, so transfers between wallets leave it unchanged and recording time plays no part. A day before every wallet's opening date has a null total, and a future month has no entries. With an optional `walletId`, each entry also carries that wallet's Closing balance, archived wallets included, null before its opening date. A malformed or impossible month, or a malformed wallet id, is a bad request; a wallet the owner does not hold is not found.
          */
         get: operations["getClosingBalances"];
         put?: never;
@@ -431,6 +431,7 @@ export interface components {
             /** Format: date */
             date: string;
             total: components["schemas"]["Money"] | null;
+            wallet?: components["schemas"]["Money"] | null;
         };
         ClosingBalances: {
             entries: components["schemas"]["ClosingBalanceEntry"][];
@@ -1263,6 +1264,7 @@ export interface operations {
         parameters: {
             query: {
                 month: string;
+                walletId?: string;
             };
             header?: never;
             path?: never;
@@ -1290,6 +1292,15 @@ export interface operations {
             };
             /** @description Authentication required */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

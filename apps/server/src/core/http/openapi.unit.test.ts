@@ -849,14 +849,16 @@ describe("OpenAPI document", () => {
     expect(balances.operationId).toBe("getClosingBalances");
     expect(balances.parameters).toEqual([
       expect.objectContaining({ in: "query", name: "month", required: true }),
+      expect.objectContaining({ in: "query", name: "walletId" }),
     ]);
+    expect(balances.parameters?.[1]?.required).toBeUndefined();
     expect(
       documentedSchemaRef(balances, {
         status: "200",
         mediaType: "application/json",
       }),
     ).toBe("#/components/schemas/ClosingBalances");
-    expectProblemResponses(balances, ["400", "401"]);
+    expectProblemResponses(balances, ["400", "401", "404"]);
 
     const balancesSchema = documentedSchema(document, "ClosingBalances");
     expect(balancesSchema.required).toEqual(["month", "entries"]);
