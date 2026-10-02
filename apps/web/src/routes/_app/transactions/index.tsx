@@ -1,6 +1,5 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check } from "lucide-react";
 import {
   categoryQueries,
   transactionQueries,
@@ -22,6 +21,7 @@ import {
   historySearchSchema,
   parseHistoryFilters,
 } from "@/features/transactions/history-schema";
+import { SavedNotice } from "@/shared/components/saved-notice";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 /** The page the address names, or null while its filters are invalid. */
@@ -92,17 +92,10 @@ function TransactionsPage() {
         values={search}
       />
       {justDeleted && (
-        <output className="flex items-start gap-3 rounded-2xl bg-secondary px-4 py-3 text-secondary-foreground text-sm leading-normal">
-          <Check
-            aria-hidden="true"
-            strokeWidth={2}
-            className="mt-0.5 size-4 shrink-0"
-          />
-          <span>
-            <span className="font-semibold">Transaction deleted.</span> It no
-            longer counts toward any wallet balance.
-          </span>
-        </output>
+        <SavedNotice>
+          <span className="font-semibold">Transaction deleted.</span> It no
+          longer counts toward any wallet balance.
+        </SavedNotice>
       )}
       <TransactionHistory
         transactions={transactions}

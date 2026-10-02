@@ -4,7 +4,7 @@ import { RowSkeleton, Skeleton } from "@/shared/components/skeleton";
 
 /**
  * The loading shape every transaction route shares, in neutral blocks: a
- * title, then a list. It names no screen, because edit, refund and wallet
+ * title, then a list. It names no screen, because edit and refund
  * pages wait behind it too, and it never shows a figure that could pass for
  * money.
  */

@@ -9,11 +9,13 @@ import {
 } from "@/core/api/queries";
 import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
-import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionList } from "@/features/transactions/components/transaction-list";
+import { groupHistoryByMonth } from "@/features/transactions/history-groups";
 import { historySearchSchema } from "@/features/transactions/history-schema";
 import { WalletBalance } from "@/features/wallets/components/wallet-balance";
 import { WalletPageErrorBoundary } from "@/features/wallets/components/wallet-page-error-boundary";
+import { WalletPageLoading } from "@/features/wallets/components/wallet-page-loading";
+import { ListSection } from "@/shared/components/list-section";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 /** One wallet's history: the list's own address, pinned to this wallet. */
@@ -41,7 +43,7 @@ export const Route = createFileRoute("/_app/wallets/$walletId")({
   head: ({ loaderData }) => ({
     meta: [{ title: loaderData?.walletName ?? "Wallet" }],
   }),
-  pendingComponent: HistoryLoading,
+  pendingComponent: WalletPageLoading,
   errorComponent: WalletPageErrorBoundary,
   component: WalletPage,
 });
@@ -75,19 +77,31 @@ function WalletPage() {
       <WalletBalance wallet={wallet} />
       <section
         aria-labelledby="wallet-transactions-heading"
-        className="flex flex-col gap-2"
+        className="flex flex-col gap-6 sm:gap-8"
       >
-        <h2 id="wallet-transactions-heading" className="font-semibold text-lg">
+        {/* The month headings carry the list visually; this names the region. */}
+        <h2 id="wallet-transactions-heading" className="sr-only">
           Transactions
         </h2>
         {page.items.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No transactions yet</p>
+          <p className="rounded-2xl bg-card p-5 text-muted-foreground text-sm shadow-card sm:p-7">
+            No transactions yet
+          </p>
         ) : (
-          <TransactionList
-            transactions={page.items}
-            savedId={created}
-            pageWalletId={wallet.id}
-          />
+          groupHistoryByMonth(page.items).map((group) => (
+            <ListSection
+              key={group.key}
+              headingId={`wallet-${group.key}-heading`}
+              heading={group.label}
+              level={3}
+            >
+              <TransactionList
+                transactions={group.transactions}
+                savedId={created}
+                pageWalletId={wallet.id}
+              />
+            </ListSection>
+          ))
         )}
       </section>
       {nextCursor && (

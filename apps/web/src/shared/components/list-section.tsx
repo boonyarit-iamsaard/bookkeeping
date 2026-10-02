@@ -7,6 +7,8 @@ interface ListSectionProps {
   /** A quiet link at the heading's end, such as "All transactions →". */
   action?: React.ReactNode;
   children: React.ReactNode;
+  /** 3 when the sections sit inside a region that already has its own h2. */
+  level?: 2 | 3;
   className?: string;
 }
 
@@ -20,20 +22,22 @@ export function ListSection({
   heading,
   action,
   children,
+  level = 2,
   className,
 }: Readonly<ListSectionProps>) {
+  const Heading = level === 2 ? "h2" : "h3";
   return (
     <section
       aria-labelledby={headingId}
       className={cn("flex flex-col gap-3", className)}
     >
       <div className="flex min-h-11 items-center justify-between gap-3 pl-1">
-        <h2
+        <Heading
           id={headingId}
           className="font-bold text-[1.0625rem] tracking-tight sm:text-lg"
         >
           {heading}
-        </h2>
+        </Heading>
         {action}
       </div>
       {children}

@@ -2,6 +2,7 @@ import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { Archive, ArchiveRestore, Trash2, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "@/core/api/client";
 import { formatApiMoneyInput } from "@/core/api/money";
@@ -13,12 +14,16 @@ import {
   forgetReads,
   refreshAfterWrite,
 } from "@/core/query/refresh-after-write";
+import { WalletTile } from "@/features/wallets/components/wallet-tile";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
 import { DatePicker } from "@/shared/components/date-picker";
+import { ErrorNotice } from "@/shared/components/error-notice";
 import { Money } from "@/shared/components/money";
+import { SavedNotice } from "@/shared/components/saved-notice";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import { cn } from "@/shared/helpers/cn";
 
 type Wallet = components["schemas"]["Wallet"];
 type WalletOpeningRequest = components["schemas"]["WalletOpeningRequest"];
@@ -28,6 +33,10 @@ type WalletArchiveStateRequest =
 interface WalletManagementProps {
   wallet: Wallet;
 }
+
+/** Each management task is its own card on the ground. */
+const manageCardClass =
+  "flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-card sm:p-7";
 
 const ERROR_MESSAGES: Record<string, string> = {
   "wallet-not-found": "This wallet is no longer available. Return to Wallets.",
@@ -195,46 +204,67 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
     forgetReads(queryClient, retired);
   }
 
+  const archived = Boolean(wallet.archivedAt);
+
   return (
-    <div className="flex flex-col gap-8">
-      <section aria-label="Wallet balance">
-        <p className="text-muted-foreground text-sm">
-          Current balance{wallet.archivedAt ? " · Archived" : ""}
-        </p>
-        <Money amount={wallet.balance} className="text-3xl" />
+    <div className="flex flex-col gap-6 sm:gap-8">
+      <section
+        aria-label="Wallet balance"
+        className={cn(manageCardClass, "flex-row items-center gap-3.5")}
+      >
+        <WalletTile type={wallet.type} archived={archived} />
+        <div className="flex min-w-0 flex-col">
+          <p className="text-muted-foreground text-sm">
+            Current balance{archived ? " · Archived" : ""}
+          </p>
+          <Money
+            amount={wallet.balance}
+            className="font-bold text-xl leading-snug"
+          />
+        </div>
       </section>
       {error && (
-        <p id="wallet-error" role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
+        <div id="wallet-error">
+          <ErrorNotice>{error}</ErrorNotice>
+        </div>
       )}
-      {notice && <output className="block text-sm">{notice}</output>}
+      {notice && <SavedNotice>{notice}</SavedNotice>}
       <form
         onSubmit={(event) => {
           event.preventDefault();
           void submitOpening();
         }}
         aria-describedby={error ? "wallet-error" : undefined}
-        className="flex flex-col gap-5"
+        className={cn(manageCardClass, "gap-5")}
       >
-        <div>
-          <h2 className="font-semibold text-lg">Correct opening balance</h2>
-          <p className="mt-1 text-muted-foreground text-sm">
+        <div className="flex flex-col gap-1.5">
+          <h2 className="font-bold text-lg tracking-tight">
+            Correct opening balance
+          </h2>
+          <p className="text-muted-foreground text-sm leading-normal">
             Correct the amount held when tracking began. This changes balances,
             with a retained internal history.
           </p>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="opening-amount">Opening balance (THB)</Label>
-          <Input
-            id="opening-amount"
-            inputMode="decimal"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            disabled={pending}
-            className="money min-h-12"
-            required
-          />
+          <div className="relative">
+            <span
+              aria-hidden="true"
+              className="money pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg text-muted-foreground"
+            >
+              ฿
+            </span>
+            <Input
+              id="opening-amount"
+              inputMode="decimal"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              disabled={pending}
+              className="money h-12 pl-9 text-foreground text-lg sm:h-12 md:text-lg"
+              required
+            />
+          </div>
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="opening-date">Opening date</Label>
@@ -245,80 +275,97 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
             value={date}
             onChange={setDate}
             disabled={pending}
-            className="h-12"
           />
         </div>
-        <Button type="submit" size="lg" className="min-h-12" disabled={pending}>
+        <Button
+          type="submit"
+          size="lg"
+          className="h-12 w-full text-base sm:h-10 sm:w-auto sm:self-start sm:text-sm"
+          disabled={pending}
+        >
           {pending ? "Saving…" : "Save opening correction"}
         </Button>
       </form>
-      <section
-        className="flex flex-col items-start gap-3 border-t pt-6"
-        aria-labelledby="archive-heading"
-      >
-        <h2 id="archive-heading" className="font-semibold text-lg">
-          {wallet.archivedAt ? "Unarchive wallet" : "Archive wallet"}
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          {wallet.archivedAt
-            ? "Restore this wallet to new-entry pickers. Its history and balance stay the same."
-            : "Remove this wallet from new-entry pickers at any balance. Existing entries stay editable and its money stays in your totals."}
-        </p>
+      <section aria-labelledby="archive-heading" className={manageCardClass}>
+        <div className="flex flex-col gap-1.5">
+          <h2 id="archive-heading" className="font-bold text-lg tracking-tight">
+            {archived ? "Unarchive wallet" : "Archive wallet"}
+          </h2>
+          <p className="text-muted-foreground text-sm leading-normal">
+            {archived
+              ? "Restore this wallet to new-entry pickers. Its history and balance stay the same."
+              : "Remove this wallet from new-entry pickers at any balance. Existing entries stay editable and its money stays in your totals."}
+          </p>
+        </div>
         <Button
           variant="outline"
           size="lg"
-          className="min-h-12"
+          className="self-start"
           disabled={pending}
-          onClick={() => void submitArchiveState(!wallet.archivedAt)}
+          onClick={() => void submitArchiveState(!archived)}
         >
-          {wallet.archivedAt ? "Unarchive wallet" : "Archive wallet"}
+          {archived ? (
+            <ArchiveRestore data-icon="inline-start" strokeWidth={1.75} />
+          ) : (
+            <Archive data-icon="inline-start" strokeWidth={1.75} />
+          )}
+          {archived ? "Unarchive wallet" : "Archive wallet"}
         </Button>
       </section>
+      {/* Deletion stands apart by space and its pictogram, not color alone. */}
       <section
-        className="flex flex-col items-start gap-3 border-t pt-6"
         aria-labelledby="delete-heading"
+        className={cn(manageCardClass, "mt-4 sm:mt-6")}
       >
-        <h2 id="delete-heading" className="font-semibold text-lg">
-          Permanent deletion
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          Only wallets without transactions or retained change history can be
-          deleted. A zero balance is insufficient.
-        </p>
+        <div className="flex flex-col gap-1.5">
+          <h2 id="delete-heading" className="font-bold text-lg tracking-tight">
+            Permanent deletion
+          </h2>
+          <p className="text-muted-foreground text-sm leading-normal">
+            Only wallets without transactions or retained change history can be
+            deleted. A zero balance is insufficient.
+          </p>
+        </div>
         {confirmDelete ? (
-          <>
-            <p className="text-sm">
+          <div className="flex flex-col gap-4 rounded-xl bg-muted p-4">
+            <p className="flex items-start gap-3 text-foreground text-sm leading-normal">
+              <TriangleAlert
+                aria-hidden="true"
+                strokeWidth={1.75}
+                className="mt-0.5 size-4 shrink-0 text-destructive"
+              />
               Delete this wallet permanently? Its opening balance will leave
               your totals. This cannot be undone.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 variant="destructive"
                 size="lg"
-                className="min-h-12"
                 disabled={pending}
                 onClick={() => void submitDelete()}
               >
+                <Trash2 data-icon="inline-start" strokeWidth={1.75} />
                 Delete permanently
               </Button>
               <Button
-                variant="outline"
-                className="min-h-12"
+                variant="ghost"
+                size="lg"
                 disabled={pending}
                 onClick={() => setConfirmDelete(false)}
               >
                 Cancel
               </Button>
             </div>
-          </>
+          </div>
         ) : (
           <Button
-            variant="outline"
+            variant="destructive"
             size="lg"
-            className="min-h-12"
+            className="self-start"
             disabled={pending}
             onClick={() => setConfirmDelete(true)}
           >
+            <Trash2 data-icon="inline-start" strokeWidth={1.75} />
             Delete wallet…
           </Button>
         )}
