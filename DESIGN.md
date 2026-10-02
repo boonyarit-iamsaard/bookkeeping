@@ -339,7 +339,7 @@ Bookkeeping is a bright banking-app front page for one person's money. A single 
 
 Density is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.
 
-Scope: ticket 01 built this system, the shell, and Home. Capture is restyled by ticket 02, history, filters, and the transaction detail by ticket 03, the wallet list, wallet page, Manage, and the new-wallet form by ticket 04, and Categories, the category editor, and the category picker by ticket 06; reports and authentication by tickets 05 and 07; until then they inherit only the shared primitives recorded here, and their screen-specific composition is not part of this document. Charts are ticket 05; only their tokens exist.
+Scope: ticket 01 built this system, the shell, and Home. Capture is restyled by ticket 02, history, filters, and the transaction detail by ticket 03, the wallet list, wallet page, Manage, and the new-wallet form by ticket 04, Categories, the category editor, and the category picker by ticket 06, and Reports with the chart component by ticket 05; authentication is ticket 07 and inherits only the shared primitives recorded here, so its screen-specific composition is not part of this document.
 
 **Key Characteristics:**
 
@@ -534,6 +534,17 @@ The **Icon Picker** offers up to six recommendations for the typed name, then ev
 
 The **Category Picker** trigger is a field whose leading 32px tile wears the chosen category's hue; the path ("Food & Drink › Groceries") wraps and the field grows rather than truncating. Its sheet holds the search field, then one group per parent divided by Hairlines: parent rows with 44px tiles, child rows with the › slot and 36px tiles, as on Categories. The chosen row fills Iris Tonal at 60% and ends in an Iris Text check. Create “name” and New category lead with a 44px Iris Tonal tile holding a ＋.
 
+### Charts
+
+Ticket 05 adds one chart component family, built on the chart tokens and drawn in plain HTML with no charting library. Every mark stands on a track with a shared **zero line** (a 1px Slate hairline, `--chart-baseline`); a track is Hairline at 50%, 12px tall for a horizontal bar and a 176px plot for the trend. Marks are 4px-cornered and at least 4px long when non-zero, never labeled with a number of their own: the figure is text beside the mark. Series are told apart by position and label as well as hue: **Income** is solid chart income, **Net expenses** is chart expense with a 135-degree hatch (`chart-hatch`, 2px strokes of the card color over the hue), and a wallet's balance is solid chart 1, hatched when negative. The key beside a label is the mark's own fill. No chart ever uses red or green, and none shows an abbreviated axis number: the Always Satang Rule holds, so exact figures live in a readout or beside the bar.
+
+- **Flow bars** (level 1): Income above Net expenses on one scale. Reports states each figure beside its label; Home's This month draws the bars beneath its own figures, hidden from assistive technology because those figures already say it. Shown only when the month has transactions.
+- **Wallet share** (level 1): one bar per wallet from a shared zero line, the track only as wide as the balances need. A negative wallet reaches left of the zero line and is labeled with its true minus; an archived wallet keeps "· Archived"; the total is stated as text beneath. It uses the balance date's as-of balances. A ring would hide the negative slice.
+- **Six-month trend** (level 2): paired Income and Net expenses columns for the six months ending at the chosen month, from six monthly reports, over one zero line (a negative Net expenses month hangs below it). A month is chosen from 44px buttons beneath the plot (current is bold, its column washes), and its exact figures read out below with the series key. An empty month draws no columns; six empty months become one line of text. A visually hidden table carries every figure for assistive technology.
+- **Reports page** (a stated system change): the Midnight hero is the month's Net; below it a Card holds the month's flow bars and the five figures divided by Hairlines, then Last six months, then Wallet balances, which holds the Balance date field, the wallet share bars, the total, and the per-wallet current and dated figures in two columns. Blocks are Cards at 20px corners.
+
+**Level 3 (specified, not built).** Spending by category and balance over time need new server-calculated reads and ship as a separate feature, which adopts these styles without client-side sums. The **category breakdown bar** is one horizontal bar split into segments by each parent's hue in the category order, 2px surface gaps between segments, 4px outer corners, with a legend row per parent that carries the hue swatch, the parent's name, and its exact amount; the share of the whole is stated as text, and Uncategorized uses Category Neutral hatched. The **balance trend** is a single 2px line in chart 1 with a 4px round marker on the selected day, the zero line drawn whenever any balance is negative, a Hairline area wash beneath, and the same selected-day readout and hidden table as the six-month trend; a second wallet takes the next chart hue and a hatched dash, never red or green.
+
 ### Navigation
 
 - **Phone tab bar:** Home, Transactions, New, Wallets, and Reports. Each destination is a 24px Lucide icon over its Tab Label; current is Iris Text with a 2.25 stroke, the rest Slate, and the word always names it. New is a 48px Iris circle with a white ＋, the capture glow, and a 4px Chrome ring, rising above the bar with its word aligned to the others.
@@ -582,6 +593,7 @@ Loading uses still Mist blocks shaped like the content: the hero as a Card-color
 - **Do** give every phone control a tappable area of at least 44 by 44 CSS pixels below 640px; use 48px for the ＋.
 - **Do** use the three shadow tokens as defined, and the 1px light edge in dark.
 - **Do** keep motion to the arriving row or wallet card, the sheet, the segmented indicator, and 150ms hover fades, and remove all of it under reduced motion.
+- **Do** tell every chart series apart by label, position, and pattern as well as hue, and state each charted figure as text.
 - **Do** pair pictograms with words; an icon-only control needs an accessible name and a universal glyph such as ‹ or ✕.
 
 ### Don't
@@ -590,6 +602,7 @@ Loading uses still Mist blocks shaped like the content: the hero as a Card-color
 - **Don't** add a second Midnight card, a second display-size figure, or a stat strip of hero-sized numbers to a screen.
 - **Don't** introduce plain greys, a monospace face, bank green, or a borrowed bank mark.
 - **Don't** fill a second Iris action where the ＋ or the header's New transaction already owns it.
+- **Don't** add a pie or ring for wallets, a dual-axis chart, an abbreviated axis number, or a client-side sum standing in for a level 3 read.
 - **Don't** put shadows on buttons, fields, rows, chrome, or tiles, or invent shadow values outside the three tokens and the capture glow.
 - **Don't** show figures, ฿, or sample money in loading states, or animate skeletons.
 - **Don't** animate popovers, menus, or page changes, or add motion beyond the recorded moments.

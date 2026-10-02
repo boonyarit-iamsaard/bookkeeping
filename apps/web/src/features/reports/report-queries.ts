@@ -2,12 +2,15 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { reportQueries, walletQueries } from "@/core/api/queries";
 import type { ReportSearch, ReportValues } from "./report-schema";
 import { reportSchema, reportValues } from "./report-schema";
+import { trendMonths } from "./trend-series";
 
 interface ReportQueryPlan {
   valid: boolean;
   values: ReportValues;
   invalidFields: ReadonlySet<keyof ReportValues>;
   monthly: ReturnType<typeof reportQueries.monthly>;
+  /** The six months ending at the chosen one, oldest first; none while it is invalid. */
+  trend: ReturnType<typeof reportQueries.monthly>[];
   currentWallets: ReturnType<typeof walletQueries.list>;
   datedWallets: ReturnType<typeof walletQueries.list>;
 }
@@ -34,6 +37,9 @@ export function createReportQueryPlan(
     values,
     invalidFields,
     monthly: reportQueries.monthly(values.month),
+    trend: parsed.success
+      ? trendMonths(values.month).map((month) => reportQueries.monthly(month))
+      : [],
     currentWallets: walletQueries.list(),
     datedWallets: walletQueries.list({ asOf: values.asOf }),
   };

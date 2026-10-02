@@ -3,10 +3,17 @@ import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { Link } from "@tanstack/react-router";
 import type { components } from "@/core/api/openapi.gen";
 import { totalWalletBalance } from "@/features/wallets/wallet-total";
+import { FlowBars } from "@/shared/components/chart/flow-bars";
+import { DisplayFigure } from "@/shared/components/display-figure";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
 import type { ReportFigure } from "../report-labels";
 import { REPORT_FIGURE_LABELS } from "../report-labels";
+import { formatReportMonth } from "../report-month";
+import type { TrendPoint } from "../trend-series";
+import { TrendChart } from "./trend-chart";
+import type { WalletShare } from "./wallet-share-chart";
+import { WalletShareChart } from "./wallet-share-chart";
 
 type MonthlyReport = components["schemas"]["MonthlyReport"];
 type WalletSummary = components["schemas"]["Wallet"];
@@ -17,7 +24,14 @@ interface FinancialReportProps {
   currentWallets: readonly WalletSummary[];
   datedWallets: readonly WalletSummary[];
   asOf: CalendarDate;
+  trend: readonly TrendPoint[];
+  /** The Balance date control, shown with the balances it dates. */
+  balanceDate: React.ReactNode;
 }
+
+const CARD_CLASS =
+  "flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-card sm:p-6";
+const CARD_HEADING_CLASS = "font-bold text-lg tracking-tight";
 
 const SUMMARY_FIGURES = [
   "income",
@@ -32,29 +46,46 @@ export function FinancialReport({
   currentWallets,
   datedWallets,
   asOf,
+  trend,
+  balanceDate,
 }: Readonly<FinancialReportProps>) {
   const currentTotal = totalWalletBalance(currentWallets);
   const datedTotal = totalWalletBalance(datedWallets);
 
+  const shares: WalletShare[] = currentWallets.map((wallet) => ({
+    wallet,
+    balance: datedBalanceOf(wallet, datedWallets),
+  }));
+  const month = formatReportMonth(summary.month);
+
   return (
     <>
-      <section
-        aria-labelledby="monthly-totals-heading"
-        className="flex flex-col gap-4"
-      >
-        <h2 id="monthly-totals-heading" className="font-semibold text-lg">
-          {new Intl.DateTimeFormat("en-US", {
-            month: "long",
-            year: "numeric",
-            timeZone: "UTC",
-          }).format(new Date(`${summary.month}-01T00:00:00Z`))}
+      <DisplayFigure
+        amount={summary.net}
+        heading="Net"
+        headingId="report-net-heading"
+        caption={`${month} · income − net expenses`}
+      />
+      <section aria-labelledby="monthly-totals-heading" className={CARD_CLASS}>
+        <h2 id="monthly-totals-heading" className={CARD_HEADING_CLASS}>
+          {month}
         </h2>
-        <dl className="divide-y">
+        {summary.transactionCount > 0 && (
+          <fieldset className="m-0 min-w-0 border-0 p-0">
+            <legend className="sr-only">Income against net expenses</legend>
+            <FlowBars
+              income={summary.income}
+              netExpenses={summary.netExpenses}
+              showAmounts={false}
+            />
+          </fieldset>
+        )}
+        <dl className="divide-y divide-border/70">
           {SUMMARY_FIGURES.map((key) => (
             <div
               key={key}
               data-summary={key}
-              className={`flex flex-wrap items-center justify-between gap-3 py-4 ${key === "net" ? "font-semibold" : ""}`}
+              className={`flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0 ${key === "net" ? "font-semibold" : ""}`}
             >
               <dt>{REPORT_FIGURE_LABELS[key]}</dt>
               <dd>
@@ -73,13 +104,17 @@ export function FinancialReport({
           </p>
         )}
       </section>
-      <section
-        aria-labelledby="wallet-balances-heading"
-        className="flex flex-col gap-4"
-      >
-        <h2 id="wallet-balances-heading" className="font-semibold text-lg">
+      <section aria-labelledby="trend-heading" className={CARD_CLASS}>
+        <h2 id="trend-heading" className={CARD_HEADING_CLASS}>
+          Last six months
+        </h2>
+        <TrendChart key={summary.month} points={trend} />
+      </section>
+      <section aria-labelledby="wallet-balances-heading" className={CARD_CLASS}>
+        <h2 id="wallet-balances-heading" className={CARD_HEADING_CLASS}>
           Wallet balances
         </h2>
+        {balanceDate}
         <p className="text-muted-foreground text-sm">
           End of day {formatCalendarDate(asOf)} · Bangkok. Archived holdings are
           included; wallets contribute nothing before opening.
@@ -92,31 +127,51 @@ export function FinancialReport({
             </Link>
           </div>
         ) : (
-          <dl className="divide-y">
-            <BalanceRow
-              name="Overall balance"
-              current={currentTotal}
-              dated={datedTotal}
-              asOf={asOf}
-            />
-            {currentWallets.map((wallet) => (
+          <>
+            <WalletShareChart shares={shares} />
+            <p
+              data-share-total
+              className="flex flex-wrap items-baseline justify-between gap-x-3 border-t pt-4 font-semibold"
+            >
+              Total
+              <Money amount={datedTotal} className="text-lg" />
+            </p>
+            <dl className="divide-y divide-border/70 border-t">
               <BalanceRow
-                key={wallet.id}
-                name={wallet.name}
-                walletId={wallet.id}
-                archived={Boolean(wallet.archivedAt)}
-                current={wallet.balance}
+                name="Overall balance"
+                current={currentTotal}
+                dated={datedTotal}
                 asOf={asOf}
-                dated={
-                  datedWallets.find((dated) => dated.id === wallet.id)
-                    ?.balance ?? { value: "0.00", currency: "THB" }
-                }
               />
-            ))}
-          </dl>
+              {shares.map(({ wallet, balance }) => (
+                <BalanceRow
+                  key={wallet.id}
+                  name={wallet.name}
+                  walletId={wallet.id}
+                  archived={Boolean(wallet.archivedAt)}
+                  current={wallet.balance}
+                  asOf={asOf}
+                  dated={balance}
+                />
+              ))}
+            </dl>
+          </>
         )}
       </section>
     </>
+  );
+}
+
+/** A wallet's balance at the report's date; zero when it did not yet exist. */
+function datedBalanceOf(
+  wallet: Readonly<WalletSummary>,
+  datedWallets: readonly WalletSummary[],
+): ApiMoney {
+  return (
+    datedWallets.find((dated) => dated.id === wallet.id)?.balance ?? {
+      value: "0.00",
+      currency: "THB",
+    }
   );
 }
 
@@ -139,7 +194,10 @@ function BalanceRow({
   asOf,
 }: Readonly<BalanceRowProps>) {
   return (
-    <div data-balance-row={name} className="flex flex-col gap-3 py-4">
+    <div
+      data-balance-row={name}
+      className="flex flex-col gap-3 py-4 first:pt-4"
+    >
       <dt className="font-medium">
         {walletId ? (
           <Link
@@ -156,14 +214,14 @@ function BalanceRow({
           <span className="text-muted-foreground text-sm"> · Archived</span>
         )}
       </dt>
-      <dd className="grid gap-3 sm:grid-cols-2">
-        <span className="flex flex-wrap items-baseline justify-between gap-2">
+      <dd className="grid grid-cols-2 gap-x-4">
+        <span className="flex min-w-0 flex-col gap-0.5">
           <span className="text-muted-foreground text-sm">Current</span>
           <Money amount={current} />
         </span>
         <span
           data-balance-total={walletId ? undefined : true}
-          className="flex flex-wrap items-baseline justify-between gap-2"
+          className="flex min-w-0 flex-col gap-0.5"
         >
           <span className="text-muted-foreground text-sm">
             {formatCalendarDate(asOf)}

@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowDownLeft, ArrowUpRight, ChevronRight } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
 import { REPORT_FIGURE_LABELS } from "@/features/reports/report-labels";
+import { FlowBars } from "@/shared/components/chart/flow-bars";
 import { Money } from "@/shared/components/money";
 import { cn } from "@/shared/helpers/cn";
 
@@ -99,6 +100,16 @@ export function ThisMonth({ report }: Readonly<ThisMonthProps>) {
           </dd>
         </div>
       </dl>
+      {/* The figures above already say it in text; the bars only show the balance. */}
+      {report.transactionCount > 0 && (
+        <div aria-hidden="true">
+          <FlowBars
+            income={report.income}
+            netExpenses={report.netExpenses}
+            showAmounts={false}
+          />
+        </div>
+      )}
     </section>
   );
 }

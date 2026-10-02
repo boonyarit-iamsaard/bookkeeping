@@ -232,3 +232,13 @@
     --hue: var(--category-neutral);
   }
 }
+
+/* The second chart series (and a negative balance) is hatched as well as
+   colored, so no series depends on its hue alone. */
+@utility chart-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 3px,
+    color-mix(in oklch, var(--card) 55%, transparent) 3px 5px
+  );
+}
