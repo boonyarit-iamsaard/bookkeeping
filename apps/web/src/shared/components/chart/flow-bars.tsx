@@ -21,7 +21,7 @@ interface FlowRow {
 
 /**
  * The month's Income against its Net expenses on one scale, Income first: the
- * level 1 chart. Net expenses is hatched as well as amber.
+ * level 1 chart. Net expenses is solid amber.
  */
 export function FlowBars({
   income,

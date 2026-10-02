@@ -1,6 +1,6 @@
 # Modern fintech redesign: design brief
 
-Status: ready-for-agent
+Status: done
 
 Confirmed on 2026-10-01 through `/impeccable shape`. Inputs: `PRODUCT.md`
 (Brand Commitments records the standing direction), `CONTEXT.md`, and the

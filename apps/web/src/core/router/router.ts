@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { NotFound } from "@/core/shell/not-found";
+import { RootErrorBoundary } from "@/core/shell/root-error-boundary";
 import { routeTree } from "@/routeTree.gen";
 
 /** What every route's `beforeLoad` and loader can reach. */
@@ -14,6 +15,7 @@ export function createAppRouter(context: Readonly<RouterContext>) {
     context,
     defaultPreload: "intent",
     defaultNotFoundComponent: NotFound,
+    defaultErrorComponent: RootErrorBoundary,
     // Keyed by address rather than history entry, so returning to a tab by
     // its link finds the place it was left.
     scrollRestoration: true,

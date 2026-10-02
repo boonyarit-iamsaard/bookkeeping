@@ -4,6 +4,8 @@ import { Link } from "@tanstack/react-router";
 import type { components } from "@/core/api/openapi.gen";
 import { totalWalletBalance } from "@/features/wallets/wallet-total";
 import { FlowBars } from "@/shared/components/chart/flow-bars";
+import type { WalletShare } from "@/shared/components/chart/wallet-share-chart";
+import { WalletShareChart } from "@/shared/components/chart/wallet-share-chart";
 import { DisplayFigure } from "@/shared/components/display-figure";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
@@ -12,8 +14,6 @@ import { REPORT_FIGURE_LABELS } from "../report-labels";
 import { formatReportMonth } from "../report-month";
 import type { TrendPoint } from "../trend-series";
 import { TrendChart } from "./trend-chart";
-import type { WalletShare } from "./wallet-share-chart";
-import { WalletShareChart } from "./wallet-share-chart";
 
 type MonthlyReport = components["schemas"]["MonthlyReport"];
 type WalletSummary = components["schemas"]["Wallet"];
@@ -219,15 +219,18 @@ function BalanceRow({
           <span className="text-muted-foreground text-sm">Current</span>
           <Money amount={current} />
         </span>
-        <span
-          data-balance-total={walletId ? undefined : true}
-          className="flex min-w-0 flex-col gap-0.5"
-        >
-          <span className="text-muted-foreground text-sm">
-            {formatCalendarDate(asOf)}
+        {/* The date column says something only when it differs from Current. */}
+        {current.value !== dated.value && (
+          <span
+            data-balance-total={walletId ? undefined : true}
+            className="flex min-w-0 flex-col gap-0.5"
+          >
+            <span className="text-muted-foreground text-sm">
+              {formatCalendarDate(asOf)}
+            </span>
+            <Money amount={dated} />
           </span>
-          <Money amount={dated} />
-        </span>
+        )}
       </dd>
     </div>
   );

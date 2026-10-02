@@ -4,6 +4,7 @@ import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { RecentTransactions } from "@/features/home/components/recent-transactions";
 import { ThisMonth } from "@/features/home/components/this-month";
+import { WalletBalances } from "@/features/home/components/wallet-balances";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import { EmptyWallets } from "@/features/wallets/components/wallet-list";
@@ -47,12 +48,14 @@ export function Home({
         <EmptyWallets />
       ) : (
         <div className={HOME_COLUMNS_CLASS}>
-          <div className="flex flex-col gap-6 sm:gap-8 lg:sticky lg:top-24">
+          <div className="flex flex-col gap-6 sm:gap-8">
             <WalletsTotal
               wallets={wallets}
               caption={`Across ${walletCountLabel(wallets.length)}`}
             />
             <ThisMonth report={report} />
+            {/* With one wallet the card would only repeat the total. */}
+            {wallets.length > 1 && <WalletBalances wallets={wallets} />}
           </div>
           <RecentTransactions transactions={recent.items} savedId={savedId} />
         </div>
