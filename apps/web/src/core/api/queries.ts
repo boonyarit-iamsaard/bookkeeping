@@ -155,4 +155,12 @@ export const reportQueries = {
         apiClient.GET("/v1/reports/monthly", { params, signal }),
     });
   },
+  categorySpending(month: string) {
+    return createReadQuery({
+      path: "/v1/reports/category-spending",
+      params: { query: { month } },
+      read: (params, signal) =>
+        apiClient.GET("/v1/reports/category-spending", { params, signal }),
+    });
+  },
 };

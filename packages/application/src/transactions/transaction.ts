@@ -10,6 +10,7 @@ import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import type {
+  CategorySpending,
   ExpenseRefunds,
   MonthlySummary,
   RefundSummary,
@@ -908,16 +909,21 @@ interface MonthlySummaryOptions {
   month: string;
 }
 
+/** A YYYY-MM month's first and last calendar dates. */
+function monthBounds(month: string) {
+  const start = `${month}-01`;
+  const monthEnd = new Date(`${start}T00:00:00Z`);
+  monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+  monthEnd.setUTCDate(0);
+  return { start, end: monthEnd.toISOString().slice(0, 10) };
+}
+
 /** PostgreSQL numeric SUM returns decimal strings, preserving exact large totals. */
 export async function getMonthlySummary(
   db: Database,
   { ownerId, month }: Readonly<MonthlySummaryOptions>,
 ): Promise<MonthlySummary> {
-  const start = `${month}-01`;
-  const monthEnd = new Date(`${start}T00:00:00Z`);
-  monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
-  monthEnd.setUTCDate(0);
-  const end = monthEnd.toISOString().slice(0, 10);
+  const { start, end } = monthBounds(month);
   const [row] = await db
     .select({
       income: sql<string>`coalesce(sum(${transactions.amount}) filter (where ${transactions.type} = 'income'), 0)`,
@@ -949,5 +955,72 @@ export async function getMonthlySummary(
     netExpenses,
     net: income - netExpenses,
     transactionCount: Number(row.transactionCount),
+  };
+}
+
+/**
+ * Category spending per expense parent (ADR 0012): the month's expenses less
+ * its refunds, each counted under the expense's current category rolled up to
+ * its parent. Every expense and refund lands in exactly one parent, so the
+ * parents sum to the monthly summary's Net expenses by construction.
+ */
+export async function getCategorySpending(
+  db: Database,
+  { ownerId, month }: Readonly<MonthlySummaryOptions>,
+): Promise<CategorySpending> {
+  const { start, end } = monthBounds(month);
+  const refundedExpenses = alias(transactions, "refunded_expenses");
+  const parents = alias(categories, "parent_categories");
+  const rows = await db
+    .select({
+      id: parents.id,
+      name: parents.name,
+      sortOrder: parents.sortOrder,
+      isUncategorized: parents.isProtected,
+      spending: sql<string>`sum(case when ${transactions.type} = 'expense' then ${transactions.amount} else -${transactions.amount} end)`,
+    })
+    .from(transactions)
+    .leftJoin(
+      refundedExpenses,
+      eq(refundedExpenses.id, transactions.refundOfTransactionId),
+    )
+    .innerJoin(
+      categories,
+      eq(
+        categories.id,
+        sql`coalesce(${transactions.categoryId}, ${refundedExpenses.categoryId})`,
+      ),
+    )
+    .innerJoin(
+      parents,
+      eq(parents.id, sql`coalesce(${categories.parentId}, ${categories.id})`),
+    )
+    .where(
+      and(
+        eq(transactions.userId, ownerId),
+        isNull(transactions.deletedAt),
+        inArray(transactions.type, ["expense", "refund"]),
+        gte(transactions.transactionDate, start),
+        lte(transactions.transactionDate, end),
+      ),
+    )
+    .groupBy(parents.id)
+    .orderBy(
+      asc(parents.isProtected),
+      asc(parents.sortOrder),
+      asc(parents.name),
+      asc(parents.id),
+    );
+  const parentSpending = rows.map((row) => ({
+    ...row,
+    spending: BigInt(row.spending),
+  }));
+  return {
+    month,
+    netExpenses: parentSpending.reduce(
+      (total, parent) => total + parent.spending,
+      0n,
+    ),
+    parents: parentSpending,
   };
 }

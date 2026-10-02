@@ -84,6 +84,11 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   await page.getByRole("button", { name: "August 2026", exact: true }).click();
   await expect(page).toHaveURL(/\/reports\?month=2026-08$/);
   await expect(page.locator('[data-summary="income"]')).toContainText("฿0.00");
+  await expect(
+    page
+      .getByRole("region", { name: "Spending by category" })
+      .getByText("No spending in August 2026."),
+  ).toBeVisible();
 
   await page.getByLabel("Report month").click();
   await page
@@ -104,6 +109,10 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   for (const [key, value] of Object.entries(expectedSummary)) {
     await expect(page.locator(`[data-summary="${key}"]`)).toContainText(value);
   }
+  // The refund comes off its expense's category in the month it is dated.
+  const spendingRows = page.locator("[data-category-spending]");
+  await expect(spendingRows).toHaveCount(1);
+  await expect(spendingRows).toHaveText("Uncategorized100% of spending฿400.00");
 
   const overall = page.locator('[data-balance-row="Overall balance"]');
   await expect(overall).toContainText("Current฿1,800.00");

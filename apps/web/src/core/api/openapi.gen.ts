@@ -148,6 +148,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reports/category-spending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a month's spending by category
+         * @description The signed-in owner's Category spending for one month in YYYY-MM form, per expense parent category: expenses dated in the month less refunds dated in the month, each counted under its expense's current category and rolled up to the parent. Debt payments count like any other category. Only parents with activity in the month appear, in category order with Uncategorized last, and their signed amounts sum to netExpenses, the monthly report's Net expenses for the same month. A malformed or impossible month is a bad request.
+         */
+        get: operations["getCategorySpending"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/reports/monthly": {
         parameters: {
             query?: never;
@@ -362,6 +382,11 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        CategorySpending: {
+            month: string;
+            netExpenses: components["schemas"]["Money"];
+            parents: components["schemas"]["ParentCategorySpending"][];
+        };
         CategoryUsage: {
             children: number;
             transactions: number;
@@ -482,6 +507,14 @@ export interface components {
         };
         Page: {
             nextCursor: string | null;
+        };
+        ParentCategorySpending: {
+            /** Format: uuid */
+            id: string;
+            isUncategorized: boolean;
+            name: string;
+            sortOrder: number;
+            spending: components["schemas"]["Money"];
         };
         PlainRuleFieldError: {
             /** @enum {string} */
@@ -1117,6 +1150,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryUsageCollection"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getCategorySpending: {
+        parameters: {
+            query: {
+                month: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's spending by parent category */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategorySpending"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Authentication required */

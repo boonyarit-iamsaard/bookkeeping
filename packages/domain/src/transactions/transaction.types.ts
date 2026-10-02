@@ -119,3 +119,20 @@ export interface MonthlySummary {
   net: bigint;
   transactionCount: number;
 }
+
+/** One expense parent's Category spending for a month; it may be negative. */
+export interface ParentCategorySpending {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isUncategorized: boolean;
+  spending: bigint;
+}
+
+export interface CategorySpending {
+  month: string;
+  /** The sum of every parent's spending: the month's Net expenses. */
+  netExpenses: bigint;
+  /** Parents with activity in the month, in category order, Uncategorized last. */
+  parents: readonly ParentCategorySpending[];
+}

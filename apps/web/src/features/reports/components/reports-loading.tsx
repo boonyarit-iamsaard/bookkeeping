@@ -50,6 +50,14 @@ export function ReportsLoading() {
           </div>
         </div>
         <div className={CARD_CLASS}>
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-3" />
+          <div className="divide-y divide-border/70">
+            <FigureRowSkeleton />
+            <FigureRowSkeleton />
+          </div>
+        </div>
+        <div className={CARD_CLASS}>
           <Skeleton className="h-6 w-36" />
           <Skeleton className="h-44" />
           <Skeleton className="h-11" />

@@ -6,6 +6,7 @@ import { TitleBar } from "@/core/shell/title-bar";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import { DatePicker } from "@/shared/components/date-picker";
 import { MonthPicker } from "@/shared/components/month-picker";
+import { createCategoryBreakdown } from "../category-breakdown";
 import { reportMonthOf } from "../report-month";
 import { createReportQueryPlan } from "../report-queries";
 import type { ReportSearch } from "../report-schema";
@@ -23,6 +24,11 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
   const plan = createReportQueryPlan(search, today);
   const report = useQuery({
     ...plan.monthly,
+    enabled: plan.valid,
+    throwOnError: true,
+  });
+  const categorySpending = useQuery({
+    ...plan.categorySpending,
     enabled: plan.valid,
     throwOnError: true,
   });
@@ -98,11 +104,13 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
       />
       {plan.valid &&
       report.data !== undefined &&
+      categorySpending.data !== undefined &&
       currentWallets.data !== undefined &&
       datedWallets.data !== undefined &&
       trendReports.length === plan.trend.length ? (
         <FinancialReport
           summary={report.data}
+          categoryBreakdown={createCategoryBreakdown(categorySpending.data)}
           currentWallets={currentWallets.data.items}
           datedWallets={datedWallets.data.items}
           asOf={plan.values.asOf}

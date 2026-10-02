@@ -20,6 +20,7 @@ const factoryInvocations = [
   transactionQueries.detail("t1"),
   transactionQueries.refunds("t1"),
   reportQueries.monthly("2026-09"),
+  reportQueries.categorySpending("2026-09"),
 ];
 
 function documentedReadPaths(): string[] {

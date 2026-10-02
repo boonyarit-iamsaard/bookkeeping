@@ -1,7 +1,13 @@
-import { getMonthlySummary } from "@bookkeeping/application/transactions";
+import {
+  getCategorySpending,
+  getMonthlySummary,
+} from "@bookkeeping/application/transactions";
 import type { Database } from "@bookkeeping/database/connection";
 import { parseCalendarDate } from "@bookkeeping/domain/dates";
-import type { MonthlySummary } from "@bookkeeping/domain/transactions";
+import type {
+  CategorySpending,
+  MonthlySummary,
+} from "@bookkeeping/domain/transactions";
 import { Hono } from "hono";
 import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
@@ -46,86 +52,165 @@ const monthlyReportQueryMiddleware = createQueryMiddleware(
   monthlyReportQuerySchema,
 );
 
+function presentThb(amountInMinorUnits: bigint) {
+  return presentMoney({ amountInMinorUnits, currency: "THB" });
+}
+
 export function presentMonthlyReport(
   summary: Readonly<MonthlySummary>,
 ): MonthlyReportResponse {
   // The schema constrains every transaction to THB, so the totals carry it.
   return {
     month: summary.month,
-    income: presentMoney({
-      amountInMinorUnits: summary.income,
-      currency: "THB",
-    }),
-    grossExpenses: presentMoney({
-      amountInMinorUnits: summary.grossExpenses,
-      currency: "THB",
-    }),
-    refunds: presentMoney({
-      amountInMinorUnits: summary.refunds,
-      currency: "THB",
-    }),
-    netExpenses: presentMoney({
-      amountInMinorUnits: summary.netExpenses,
-      currency: "THB",
-    }),
-    net: presentMoney({
-      amountInMinorUnits: summary.net,
-      currency: "THB",
-    }),
+    income: presentThb(summary.income),
+    grossExpenses: presentThb(summary.grossExpenses),
+    refunds: presentThb(summary.refunds),
+    netExpenses: presentThb(summary.netExpenses),
+    net: presentThb(summary.net),
     transactionCount: summary.transactionCount,
   };
 }
 
+export const categorySpendingResponseSchema = z
+  .object({
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    netExpenses: moneySchema,
+    parents: z.array(
+      z
+        .object({
+          id: z.uuid(),
+          name: z.string(),
+          sortOrder: z.number().int(),
+          isUncategorized: z.boolean(),
+          spending: moneySchema,
+        })
+        .meta({ id: "ParentCategorySpending" }),
+    ),
+  })
+  .meta({ id: "CategorySpending" });
+
+export type CategorySpendingResponse = z.infer<
+  typeof categorySpendingResponseSchema
+>;
+
+export function presentCategorySpending(
+  spending: Readonly<CategorySpending>,
+): CategorySpendingResponse {
+  // The schema constrains every transaction to THB, so the totals carry it.
+  return {
+    month: spending.month,
+    netExpenses: presentThb(spending.netExpenses),
+    parents: spending.parents.map((parent) => ({
+      id: parent.id,
+      name: parent.name,
+      sortOrder: parent.sortOrder,
+      isUncategorized: parent.isUncategorized,
+      spending: presentThb(parent.spending),
+    })),
+  };
+}
+
 const MONTHLY_REPORT_PATH = "/reports/monthly";
+const CATEGORY_SPENDING_PATH = "/reports/category-spending";
 
 export function createReportRoutes(db: Database) {
-  return new Hono<AuthenticatedEnv>().get(
-    MONTHLY_REPORT_PATH,
-    describeRoute({
-      operationId: "getMonthlyReport",
-      summary: "Get a monthly report",
-      description:
-        "The signed-in owner's server-calculated totals for one month in " +
-        "YYYY-MM form: income, gross expenses, refunds, net expenses, and " +
-        "net as exact Money objects beside the number of counted " +
-        "transactions. Totals follow Bangkok calendar dates, so a refund " +
-        "counts in the month of its own transaction date, while transfers " +
-        "and opening balances never count. A month with no counted " +
-        "transactions reports every amount as zero with a transaction " +
-        "count of zero; aggregates stay exact beyond JavaScript's safe " +
-        "integers. A malformed or impossible month is a bad request.",
-      tags: ["Reports"],
-      responses: {
-        400: describeProblemResponse(400),
-        401: describeProblemResponse(401),
-      },
-    }),
-    monthlyReportQueryMiddleware,
-    describeResponse<
-      AuthenticatedEnv,
-      typeof MONTHLY_REPORT_PATH,
-      QueryValidatedInput<typeof monthlyReportQuerySchema>,
-      {
-        200: typeof monthlyReportResponseSchema;
-        400: typeof problemDetailsSchema;
-      }
-    >(
-      async (c) => {
-        const summary = await getMonthlySummary(db, {
-          ownerId: c.get("session").user.id,
-          month: c.req.valid("query").month,
-        });
-        return c.json(presentMonthlyReport(summary), 200);
-      },
-      {
-        200: {
-          description: "The owner's monthly report",
-          content: {
-            "application/json": { vSchema: monthlyReportResponseSchema },
-          },
+  return new Hono<AuthenticatedEnv>()
+    .get(
+      MONTHLY_REPORT_PATH,
+      describeRoute({
+        operationId: "getMonthlyReport",
+        summary: "Get a monthly report",
+        description:
+          "The signed-in owner's server-calculated totals for one month in " +
+          "YYYY-MM form: income, gross expenses, refunds, net expenses, and " +
+          "net as exact Money objects beside the number of counted " +
+          "transactions. Totals follow Bangkok calendar dates, so a refund " +
+          "counts in the month of its own transaction date, while transfers " +
+          "and opening balances never count. A month with no counted " +
+          "transactions reports every amount as zero with a transaction " +
+          "count of zero; aggregates stay exact beyond JavaScript's safe " +
+          "integers. A malformed or impossible month is a bad request.",
+        tags: ["Reports"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
         },
-        400: describeProblem(getProblemOptionsForStatus(400)),
-      },
-    ),
-  );
+      }),
+      monthlyReportQueryMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof MONTHLY_REPORT_PATH,
+        QueryValidatedInput<typeof monthlyReportQuerySchema>,
+        {
+          200: typeof monthlyReportResponseSchema;
+          400: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const summary = await getMonthlySummary(db, {
+            ownerId: c.get("session").user.id,
+            month: c.req.valid("query").month,
+          });
+          return c.json(presentMonthlyReport(summary), 200);
+        },
+        {
+          200: {
+            description: "The owner's monthly report",
+            content: {
+              "application/json": { vSchema: monthlyReportResponseSchema },
+            },
+          },
+          400: describeProblem(getProblemOptionsForStatus(400)),
+        },
+      ),
+    )
+    .get(
+      CATEGORY_SPENDING_PATH,
+      describeRoute({
+        operationId: "getCategorySpending",
+        summary: "Get a month's spending by category",
+        description:
+          "The signed-in owner's Category spending for one month in YYYY-MM " +
+          "form, per expense parent category: expenses dated in the month " +
+          "less refunds dated in the month, each counted under its expense's " +
+          "current category and rolled up to the parent. Debt payments count " +
+          "like any other category. Only parents with activity in the month " +
+          "appear, in category order with Uncategorized last, and their " +
+          "signed amounts sum to netExpenses, the monthly report's Net " +
+          "expenses for the same month. A malformed or impossible month is a " +
+          "bad request.",
+        tags: ["Reports"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      monthlyReportQueryMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof CATEGORY_SPENDING_PATH,
+        QueryValidatedInput<typeof monthlyReportQuerySchema>,
+        {
+          200: typeof categorySpendingResponseSchema;
+          400: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const spending = await getCategorySpending(db, {
+            ownerId: c.get("session").user.id,
+            month: c.req.valid("query").month,
+          });
+          return c.json(presentCategorySpending(spending), 200);
+        },
+        {
+          200: {
+            description: "The owner's spending by parent category",
+            content: {
+              "application/json": { vSchema: categorySpendingResponseSchema },
+            },
+          },
+          400: describeProblem(getProblemOptionsForStatus(400)),
+        },
+      ),
+    );
 }

@@ -9,10 +9,12 @@ import { WalletShareChart } from "@/shared/components/chart/wallet-share-chart";
 import { DisplayFigure } from "@/shared/components/display-figure";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
+import type { CategoryBreakdown } from "../category-breakdown";
 import type { ReportFigure } from "../report-labels";
 import { REPORT_FIGURE_LABELS } from "../report-labels";
 import { formatReportMonth } from "../report-month";
 import type { TrendPoint } from "../trend-series";
+import { SpendingByCategory } from "./spending-by-category";
 import { TrendChart } from "./trend-chart";
 
 type MonthlyReport = components["schemas"]["MonthlyReport"];
@@ -21,6 +23,7 @@ type ApiMoney = components["schemas"]["Money"];
 
 interface FinancialReportProps {
   summary: Readonly<MonthlyReport>;
+  categoryBreakdown: Readonly<CategoryBreakdown>;
   currentWallets: readonly WalletSummary[];
   datedWallets: readonly WalletSummary[];
   asOf: CalendarDate;
@@ -43,6 +46,7 @@ const SUMMARY_FIGURES = [
 
 export function FinancialReport({
   summary,
+  categoryBreakdown,
   currentWallets,
   datedWallets,
   asOf,
@@ -103,6 +107,15 @@ export function FinancialReport({
             No income, expenses or refunds recorded this month.
           </p>
         )}
+      </section>
+      <section
+        aria-labelledby="category-spending-heading"
+        className={CARD_CLASS}
+      >
+        <h2 id="category-spending-heading" className={CARD_HEADING_CLASS}>
+          Spending by category
+        </h2>
+        <SpendingByCategory breakdown={categoryBreakdown} month={month} />
       </section>
       <section aria-labelledby="trend-heading" className={CARD_CLASS}>
         <h2 id="trend-heading" className={CARD_HEADING_CLASS}>

@@ -9,13 +9,14 @@ interface ReportQueryPlan {
   values: ReportValues;
   invalidFields: ReadonlySet<keyof ReportValues>;
   monthly: ReturnType<typeof reportQueries.monthly>;
+  categorySpending: ReturnType<typeof reportQueries.categorySpending>;
   /** The six months ending at the chosen one, oldest first; none while it is invalid. */
   trend: ReturnType<typeof reportQueries.monthly>[];
   currentWallets: ReturnType<typeof walletQueries.list>;
   datedWallets: ReturnType<typeof walletQueries.list>;
 }
 
-/** One report address translated into validation state and its three reads. */
+/** One report address translated into validation state and its reads. */
 export function createReportQueryPlan(
   search: Readonly<ReportSearch>,
   today: CalendarDate,
@@ -37,6 +38,7 @@ export function createReportQueryPlan(
     values,
     invalidFields,
     monthly: reportQueries.monthly(values.month),
+    categorySpending: reportQueries.categorySpending(values.month),
     trend: parsed.success
       ? trendMonths(values.month).map((month) => reportQueries.monthly(month))
       : [],

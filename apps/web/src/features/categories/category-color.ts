@@ -38,10 +38,22 @@ function hashId(id: string): number {
 }
 
 /**
- * A lookup from category id to its color, read from the categories list. A
- * parent's hue follows from its own id alone, so adding, removing or
- * reordering categories never recolors another; a child takes its parent's.
- * Uncategorized is the fallback rather than a category, so it stays neutral.
+ * A parent category's color, from its own id alone, so adding, removing or
+ * reordering categories never recolors another. Uncategorized is the fallback
+ * rather than a category, so it stays neutral.
+ */
+export function parentCategoryColor(
+  parent: Readonly<Pick<CategorySummary, "id" | "isProtected">>,
+): CategoryColor {
+  if (parent.isProtected) {
+    return "neutral";
+  }
+  return CATEGORY_HUES[hashId(parent.id) % CATEGORY_HUES.length];
+}
+
+/**
+ * A lookup from category id to its color, read from the categories list; a
+ * child takes its parent's.
  */
 export function createCategoryColors(
   categories: readonly CategorySummary[],
@@ -51,9 +63,6 @@ export function createCategoryColors(
     const category = byId.get(categoryId);
     const parent =
       category?.parentId == null ? category : byId.get(category.parentId);
-    if (!parent || parent.isProtected) {
-      return "neutral";
-    }
-    return CATEGORY_HUES[hashId(parent.id) % CATEGORY_HUES.length];
+    return parent ? parentCategoryColor(parent) : "neutral";
   };
 }

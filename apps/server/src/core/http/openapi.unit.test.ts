@@ -783,6 +783,47 @@ describe("OpenAPI document", () => {
     );
   });
 
+  it("documents the category spending read", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+    const spending: DocumentedOperation = documentedOperation(document, {
+      method: "get",
+      path: "/v1/reports/category-spending",
+    });
+
+    expect(spending.operationId).toBe("getCategorySpending");
+    expect(spending.parameters).toEqual([
+      expect.objectContaining({ in: "query", name: "month", required: true }),
+    ]);
+    expect(
+      documentedSchemaRef(spending, {
+        status: "200",
+        mediaType: "application/json",
+      }),
+    ).toBe("#/components/schemas/CategorySpending");
+    expectProblemResponses(spending, ["400", "401"]);
+
+    const spendingSchema = documentedSchema(document, "CategorySpending");
+    expect(spendingSchema.required).toEqual([
+      "month",
+      "netExpenses",
+      "parents",
+    ]);
+    expect(spendingSchema.properties?.netExpenses.$ref).toBe(
+      "#/components/schemas/Money",
+    );
+    const parentSchema = documentedSchema(document, "ParentCategorySpending");
+    expect(parentSchema.required).toEqual([
+      "id",
+      "name",
+      "sortOrder",
+      "isUncategorized",
+      "spending",
+    ]);
+    expect(parentSchema.properties?.spending.$ref).toBe(
+      "#/components/schemas/Money",
+    );
+  });
+
   it("documents every registered route", async () => {
     const app = createUnitTestApp();
     const document = await fetchDocument(app);

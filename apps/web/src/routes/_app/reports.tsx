@@ -16,6 +16,7 @@ export const Route = createFileRoute("/_app/reports")({
     if (plan.valid) {
       await Promise.all([
         context.queryClient.ensureQueryData(plan.monthly),
+        context.queryClient.ensureQueryData(plan.categorySpending),
         ...plan.trend.map((query) =>
           context.queryClient.ensureQueryData(query),
         ),

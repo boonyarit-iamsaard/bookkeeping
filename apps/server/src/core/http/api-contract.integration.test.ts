@@ -11,7 +11,10 @@ import {
   provisioningOutcomeResponseSchema,
 } from "../../features/categories/category.routes.js";
 import { healthResponseSchema } from "../../features/health/health.routes.js";
-import { monthlyReportResponseSchema } from "../../features/reports/report.routes.js";
+import {
+  categorySpendingResponseSchema,
+  monthlyReportResponseSchema,
+} from "../../features/reports/report.routes.js";
 import { signUpResponseSchema } from "../../features/sign-up/sign-up.routes.js";
 import {
   refundsExistProblemSchema,
@@ -443,6 +446,15 @@ describe("published API contract", () => {
         schema: monthlyReportResponseSchema,
         response: await call({
           path: `/v1/reports/monthly?month=${REPORT_MONTH}`,
+        }),
+      });
+      record({
+        operationId: "getCategorySpending",
+        method: "get",
+        path: "/v1/reports/category-spending",
+        schema: categorySpendingResponseSchema,
+        response: await call({
+          path: `/v1/reports/category-spending?month=${REPORT_MONTH}`,
         }),
       });
       record({
