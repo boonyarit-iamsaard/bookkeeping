@@ -24,3 +24,5 @@ current categories.
 - [x] `pnpm run ci` passes, and the focused Reports browser case still passes on one project
 
 Closed by aba17cd: the read adds directSpending and children per parent, the derivation splits positive segments from "More refunded than spent" rows with shares of positive spending and no bar at zero or below, and parents with children expand as disclosure buttons. A parent whose activity nets to zero stays in the legend at 0% with no bar segment.
+
+Decided after review: when no bar is drawn, legend rows state no share either (0e052ee); only parents with children expand; the parent's own amount reads "Directly on {parent}".
