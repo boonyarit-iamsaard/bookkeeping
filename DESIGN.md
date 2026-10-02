@@ -339,7 +339,7 @@ Bookkeeping is a bright banking-app front page for one person's money. A single 
 
 Density is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.
 
-Scope: ticket 01 built this system, the shell, and Home. Capture, history, wallets, reports, categories, and authentication are restyled by tickets 02 to 07; until then they inherit only the shared primitives recorded here, and their screen-specific composition is not part of this document. Charts are ticket 05; only their tokens exist.
+Scope: ticket 01 built this system, the shell, and Home. Capture is restyled by ticket 02; history, wallets, reports, categories, and authentication by tickets 03 to 07; until then they inherit only the shared primitives recorded here, and their screen-specific composition is not part of this document. Charts are ticket 05; only their tokens exist.
 
 **Key Characteristics:**
 
@@ -488,13 +488,21 @@ The app mark is a Midnight squircle (116 on 512) holding a white "b" whose bowl 
 
 ### Inputs and Pickers
 
-All field-like controls share one surface: a 14px-corner Card field (Field Fill Dark in dark) on a Hairline, 44px below 640px and 40px from 640px, padded 14px. Hover darkens the Hairline slightly; focus turns it Iris with a 3px ring at 25%. An invalid field turns the border Signal Red with a 20% red ring without clearing the value, and its message appears in Signal Red Caption beneath. Labels are semibold 14px.
+All field-like controls share one surface: a 14px-corner Card field (Field Fill Dark in dark) on a Hairline, 44px below 640px and 40px from 640px, padded 14px. Hover darkens the Hairline slightly; focus turns it Iris with a 3px ring at 25%. An invalid field turns the border Signal Red with a 20% red ring without clearing the value, and its message appears in Signal Red Caption beneath, led by a 16px circle-alert pictogram so red is never the only signal. Labels are semibold 14px.
 
 Select, date, and month triggers use the same surface with a Slate leading pictogram and a trailing chevron that flips while open. Their lists and calendars float on the 16px Float surface, 8px from the trigger, and appear without animating. Calendar days are circles, 44px on phone and 40px from 640px: today in Iris Tonal, the selected day in Iris. In the month picker this month is Iris Tonal and the chosen month Iris.
 
 ### Segmented Control
 
 A Mist track with 14px corners, 52px on phone and 44px from 640px, holds one Card indicator (Popover Dark in dark) with 10px corners and `--shadow-card`, inset 4px. The indicator slides in 200ms on an exponential ease-out (`cubic-bezier(0.16, 1, 0.3, 1)`); the checked label turns Ink and the rest stay Slate. Base UI radio semantics give arrow-key movement. Reduced motion removes the slide.
+
+### Form Cards
+
+An entry form groups its fields on Cards over the ground rather than on the bare page: the amount and type share one card, and the details (wallet, category or destination, date, note) the next, 20px corners, padded 20px (28px from 640px), 24px apart on phone and 32px from 640px. Fields keep their one surface on the card. The Amount field is the form's figure: a 64px field with the `money` treatment at 30px, a Slate ฿ and THB flanking it; it never takes the Midnight hero, which stays with display figures. A selected date chip (Today, Yesterday) fills Iris Tonal and gains a check, so selection is never color alone. A form-level rejection is a 10% Signal Red card with a circle-alert pictogram and its message in Signal Red. The fixed Save bar is Chrome at 95% over a top Hairline, clearing the home indicator, with the Iris Save as the screen's one action; from 640px it sits in the page.
+
+### Linked Expense
+
+A refund's source expense reads back as a Wash-filled 12px-corner link at least 64px tall: a neutral 44px Category Tile with the category's pictogram, the category in a semibold Row Title ("Refund of" in Slate), the −amount and date in Caption, then what is left to refund as "฿300.00 left to refund" in Iris Tonal Ink semibold, and a trailing Slate chevron to the expense. The tile is neutral because the form is not handed the category's id, so it cannot derive the hue.
 
 ### Navigation
 

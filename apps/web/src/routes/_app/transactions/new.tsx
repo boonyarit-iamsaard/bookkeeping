@@ -20,6 +20,7 @@ import {
   resolveDefaultWalletId,
   toWalletOptions,
 } from "@/features/transactions/wallet-options";
+import { EmptyState } from "@/shared/components/empty-state";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const Route = createFileRoute("/_app/transactions/new")({
@@ -105,31 +106,24 @@ function NewTransactionPage() {
 
 function NoWallet() {
   return (
-    <section
-      aria-labelledby="no-wallet-heading"
-      className="flex flex-col items-start gap-4 rounded-xl border border-dashed p-6 sm:p-8"
-    >
-      <span className="flex size-10 items-center justify-center rounded-full bg-muted">
-        <WalletIcon aria-hidden="true" strokeWidth={1.75} className="size-5" />
-      </span>
-      <div className="flex flex-col gap-1">
-        <h2 id="no-wallet-heading" className="font-semibold text-lg">
-          No active wallets
-        </h2>
-        <p className="max-w-prose text-muted-foreground text-sm leading-normal">
-          Every transaction belongs to a wallet. Add the cash, bank account, or
-          e-wallet the money moved through, then come back to record it.
-        </p>
-      </div>
-      <Link
-        to="/wallets"
-        className={buttonVariants({ variant: "outline", size: "lg" })}
-      >
-        Create or unarchive a wallet
-      </Link>
-      <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
-        Create a wallet
-      </Link>
-    </section>
+    <EmptyState
+      icon={WalletIcon}
+      headingId="no-wallet-heading"
+      title="No active wallets"
+      description="Every transaction belongs to a wallet. Add the cash, bank account, or e-wallet the money moved through, then come back to record it."
+      action={
+        <>
+          <Link
+            to="/wallets"
+            className={buttonVariants({ variant: "outline", size: "lg" })}
+          >
+            Create or unarchive a wallet
+          </Link>
+          <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
+            Create a wallet
+          </Link>
+        </>
+      }
+    />
   );
 }

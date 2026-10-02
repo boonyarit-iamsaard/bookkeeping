@@ -17,6 +17,7 @@ import { TransactionForm } from "@/features/transactions/components/transaction-
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
 import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
 import { toWalletOptions } from "@/features/transactions/wallet-options";
+import { EmptyState } from "@/shared/components/empty-state";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 export const Route = createFileRoute(
@@ -119,49 +120,47 @@ function NoReceivingWallet({
   originalWallet,
 }: Readonly<NoReceivingWalletProps>) {
   return (
-    <section
-      aria-labelledby="no-wallet-heading"
-      className="flex flex-col items-start gap-4 rounded-xl border border-dashed p-6 sm:p-8"
-    >
-      <span className="flex size-10 items-center justify-center rounded-full bg-muted">
-        <WalletIcon aria-hidden="true" strokeWidth={1.75} className="size-5" />
-      </span>
-      <div className="flex flex-col gap-1">
-        <h2 id="no-wallet-heading" className="font-semibold text-lg">
-          No active wallets
-        </h2>
-        <p className="max-w-prose text-muted-foreground text-sm leading-normal">
+    <EmptyState
+      icon={WalletIcon}
+      headingId="no-wallet-heading"
+      title="No active wallets"
+      description={
+        <>
           A refund lands in an active wallet.{" "}
           {originalWallet.archived
             ? `${originalWallet.name}, the expense’s wallet, is archived: unarchive it, or create another wallet, then record the refund.`
             : "Create a wallet or unarchive one, then record the refund."}
-        </p>
-      </div>
-      {originalWallet.archived && (
-        <Link
-          to="/wallets/$walletId/manage"
-          params={{ walletId: originalWallet.id }}
-          className={buttonVariants({ size: "lg" })}
-        >
-          Unarchive {originalWallet.name}
-        </Link>
-      )}
-      <Link
-        to="/wallets/new"
-        className={buttonVariants({
-          variant: originalWallet.archived ? "outline" : "default",
-          size: "lg",
-        })}
-      >
-        Create a wallet
-      </Link>
-      <Link
-        to="/transactions/$transactionId"
-        params={{ transactionId: expenseId }}
-        className={buttonVariants({ variant: "ghost", size: "lg" })}
-      >
-        Back to the expense
-      </Link>
-    </section>
+        </>
+      }
+      action={
+        <>
+          {originalWallet.archived && (
+            <Link
+              to="/wallets/$walletId/manage"
+              params={{ walletId: originalWallet.id }}
+              className={buttonVariants({ size: "lg" })}
+            >
+              Unarchive {originalWallet.name}
+            </Link>
+          )}
+          <Link
+            to="/wallets/new"
+            className={buttonVariants({
+              variant: originalWallet.archived ? "outline" : "default",
+              size: "lg",
+            })}
+          >
+            Create a wallet
+          </Link>
+          <Link
+            to="/transactions/$transactionId"
+            params={{ transactionId: expenseId }}
+            className={buttonVariants({ variant: "ghost", size: "lg" })}
+          >
+            Back to the expense
+          </Link>
+        </>
+      }
+    />
   );
 }
