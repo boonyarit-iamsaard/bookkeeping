@@ -1,0 +1,3 @@
+# Count debt payments as category spending
+
+Category spending breaks a month's Net expenses down by expense category, so debt payments recorded under Debt payments (ADR 0011) count as spending like any other parent category, and the breakdown always sums to the monthly report's Net expenses. Refunds reduce category spending in the month they are dated and under their expense's current category, matching the monthly report rather than restating past months. The cost is that a credit card bill appears as one Debt payments segment instead of the purchases behind it, and that a category can show negative spending in a month with more refunded than spent; a consumption view excluding debt would need a category flag and its own decision.

@@ -19,6 +19,10 @@ _Avoid_: Account when referring to money holdings collectively
 **Opening balance**:
 The amount held in a wallet on the date its tracked history begins.
 
+**Closing balance**:
+A wallet's balance at the end of a calendar date: its opening balance plus every current transaction dated on or before that date.
+_Avoid_: End-of-day balance, daily balance
+
 **Transaction date**:
 The date a money movement occurred, used to determine its effect on wallet balances and period totals.
 
@@ -47,6 +51,10 @@ Money returned for an expense, reducing expenses and increasing the balance of t
 **Refund allowance**:
 The amount of an expense not yet returned by its current refunds; a refund may not exceed it, and an expense may not be corrected below what its refunds already return.
 _Avoid_: Remaining, refundable balance
+
+**Category spending**:
+A month's net expenses for one expense category: its expenses dated in the month less refunds dated in the month, with an expense and its refunds counted under the expense's current category. It includes debt payments and may be negative.
+_Avoid_: Category expenses, budget usage
 
 **Transfer**:
 Movement of money between two holdings owned by the same user.
