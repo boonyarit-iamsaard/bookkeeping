@@ -5,6 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f4f4fa" />
     <meta name="color-scheme" content="light dark" />
+    <!-- Shows the stored Appearance choice before first paint and follows
+         the OS under System; mirrors src/core/shell/appearance.ts and
+         appearance-sync.ts, since this page has no app to take over. -->
+    <script>
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem("bookkeeping.appearance");
+        } catch (error) {}
+        var system = matchMedia("(prefers-color-scheme: dark)");
+        function show() {
+          var dark =
+            stored === "dark" || (stored !== "light" && system.matches);
+          document.documentElement.dataset.scheme = dark ? "dark" : "light";
+          document
+            .querySelector('meta[name="theme-color"]')
+            .setAttribute("content", dark ? "#0e0e14" : "#f4f4fa");
+        }
+        show();
+        // Under System, an open offline page follows the OS like the app.
+        system.addEventListener("change", show);
+      })();
+    </script>
     <link rel="icon" href="/favicon.ico" />
     <title>Bookkeeping</title>
     <!-- Served by the service worker when a launch cannot reach the network,
@@ -13,6 +36,7 @@
          system sans stands in on this one page. -->
     <style>
       :root {
+        color-scheme: light;
         --background: oklch(0.968 0.008 285);
         --card: oklch(1 0 0);
         --foreground: oklch(0.21 0.025 285);
@@ -21,15 +45,14 @@
         --primary-foreground: oklch(1 0 0);
         --ring: oklch(0.54 0.21 285);
       }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --background: oklch(0.165 0.014 285);
-          --card: oklch(0.215 0.018 285);
-          --foreground: oklch(0.965 0.006 285);
-          --muted-foreground: oklch(0.73 0.02 285);
-          --primary: oklch(0.56 0.2 285);
-          --ring: oklch(0.7 0.15 285);
-        }
+      :root[data-scheme="dark"] {
+        color-scheme: dark;
+        --background: oklch(0.165 0.014 285);
+        --card: oklch(0.215 0.018 285);
+        --foreground: oklch(0.965 0.006 285);
+        --muted-foreground: oklch(0.73 0.02 285);
+        --primary: oklch(0.56 0.2 285);
+        --ring: oklch(0.7 0.15 285);
       }
       html {
         height: 100%;

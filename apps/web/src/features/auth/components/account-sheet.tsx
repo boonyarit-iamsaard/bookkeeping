@@ -3,12 +3,15 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Link } from "@tanstack/react-router";
 import { LogOut, Tags } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
+import { APPEARANCE_OPTIONS } from "@/core/shell/appearance-labels";
+import { useAppearance } from "@/core/shell/use-appearance";
 import {
   AccountDisc,
   accountLabel,
 } from "@/features/auth/components/account-disc";
 import { useSignOut } from "@/features/auth/hooks/use-sign-out";
+import { SegmentedControl } from "@/shared/components/ui/segmented-control";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 
 interface AccountSheetProps {
@@ -23,12 +26,15 @@ const ROW_TILE_CLASS =
 
 /**
  * The phone account control in Home's title bar: the initial disc opens a
- * sheet naming the signed-in email, then Categories and Sign out. From 640px
- * the header's account menu does this job instead.
+ * sheet naming the signed-in email, then Categories, this device's
+ * Appearance, and Sign out. From 640px the header's account menu does this
+ * job instead.
  */
 export function AccountSheet({ email }: Readonly<AccountSheetProps>) {
   const [open, setOpen] = useState(false);
   const { signOut, isPending } = useSignOut();
+  const { appearance, setAppearance } = useAppearance();
+  const appearanceLabelId = useId();
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -52,6 +58,17 @@ export function AccountSheet({ email }: Readonly<AccountSheetProps>) {
               </span>
               {"Categories"}
             </Link>
+          </li>
+          <li className="flex flex-col gap-2.5 px-4 py-3.5">
+            <span id={appearanceLabelId} className="font-semibold">
+              Appearance
+            </span>
+            <SegmentedControl
+              aria-labelledby={appearanceLabelId}
+              options={APPEARANCE_OPTIONS}
+              value={appearance}
+              onValueChange={setAppearance}
+            />
           </li>
           <li>
             <button

@@ -337,13 +337,13 @@ components:
 
 Bookkeeping is a bright banking-app front page for one person's money. A single deep Midnight hero card holds the figure a screen is about; everything else sits on white cards over a soft iris-tinted ground, and one Iris action waits under the thumb. It plays clean modern fintech straight, at the craft level of MAKE by KBank and K PLUS, and sits beside them rather than imitating them: no bank green, no borrowed marks. Trust comes from exact money, a calm tonal palette, predictable controls, and a few short motions that confirm what just happened.
 
-Density is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.
+Density is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting unless the person picks one under Appearance, and every neutral in both carries a faint iris cast.
 
 Scope: the whole product is on this system. Ticket 01 built it with the shell and Home; 02 restyled capture, 03 history, filters, and the transaction detail, 04 the wallets, 05 Reports with the chart component, 06 Categories and the pickers, and 07 sign-in and sign-up; 08 swept the seams between them, the offline page, and the not-found screen.
 
 **Key Characteristics:**
 
-- An iris-tinted ground with white cards in light, a near-black indigo ground with lifted indigo cards in dark, chosen by `prefers-color-scheme`.
+- An iris-tinted ground with white cards in light, a near-black indigo ground with lifted indigo cards in dark, chosen by `prefers-color-scheme` or by the device's Appearance choice.
 - One Midnight hero card per screen, carrying the app icon's bowl-and-coin as its only ornament.
 - Iris (violet-blue) for the action, focus, selection, and links; Signal Red only for destruction and failure.
 - Inter throughout, with money in bold Inter at tabular digits; no monospace anywhere.
@@ -375,7 +375,7 @@ A violet-blue family on tinted neutrals: Iris acts, Midnight holds the figure, a
 ### Neutral
 
 - **Ground** (`{colors.ground}`, `{colors.ground-dark}` in dark): the page behind the cards; a soft lavender in light, near-black indigo in dark.
-- **Chrome** (`{colors.chrome}`, `{colors.chrome-dark}` in dark): the phone title bar, the tab bar, and the desktop header; `theme-color` follows it per scheme (`#ffffff` and `#14141c`) so the status bar continues the title bar.
+- **Chrome** (`{colors.chrome}`, `{colors.chrome-dark}` in dark): the phone title bar, the tab bar, and the desktop header; `theme-color` follows it per shown scheme (`#ffffff` and `#14141c`) so the status bar continues the title bar.
 - **Card** (`{colors.card}`, `{colors.card-dark}` in dark): cards, list cards, sheets, fields in light, and the segmented indicator. Floating surfaces use Card in light and the lifted **Popover Dark** (`{colors.popover-dark}`) in dark.
 - **Ink** (`{colors.ink}`, `{colors.ink-dark}` in dark): headings, body, row titles, and every figure off the hero.
 - **Slate** (`{colors.slate}`, `{colors.slate-dark}` in dark): captions, metadata, placeholders, inactive tabs and nav links, and trailing chevrons.
@@ -558,7 +558,8 @@ The offline page is static, because the service worker serves it when a launch c
 - **Phone tab bar:** Home, Transactions, New, Wallets, and Reports. Each destination is a 24px Lucide icon over its Tab Label; current is Iris Text with a 2.25 stroke, the rest Slate, and the word always names it. New is a 48px Iris circle with a white ＋, the capture glow, and a 4px Chrome ring, rising above the bar with its word aligned to the others.
 - **Phone title bar:** the Headline, an optional 44px ‹ to the logical parent (accessibly named, never browser history), and actions on the right at the `lg` size. Home places the 32px account disc there.
 - **Desktop header:** the 32px app mark with the Bookkeeping wordmark (the word appears from 768px), then Home, Transactions, Wallets, and Reports as 40px nav links (Slate, Wash on hover, the current one an Iris Tonal pill), New transaction as the Iris primary at `lg`, and the account trigger.
-- **Account controls:** the initial sits on an Iris Tonal disc. On desktop a 40px ghost circle opens a Float menu naming "Signed in as" and the email, then Categories and Sign out. On phone Home a 44px trigger around the 32px disc opens the Account sheet with the email as its caption and Categories and Sign out as rows on a Ground-filled inset list with 36px Mist tiles. Categories is not a tab.
+- **Account controls:** the initial sits on an Iris Tonal disc. On desktop a 40px ghost circle opens a Float menu naming "Signed in as" and the email, then Categories, an Appearance group, and Sign out. On phone Home a 44px trigger around the 32px disc opens the Account sheet with the email as its caption and Categories and Sign out as rows on a Ground-filled inset list with 36px Mist tiles, with the Appearance Segmented Control between them. Categories is not a tab.
+- **Appearance:** System, Light, or Dark, remembered per device, System by default. System follows the OS setting live. On desktop the choice is three menu radio items under an "Appearance" group label, the current one checked like a chosen Select option, and choosing keeps the menu open; on phone it is a labelled Segmented Control. The choice applies before first paint on every screen, signed-out and offline included, and switches instantly with color transitions suppressed for that frame. Signed-out screens show no control.
 
 ### Sheets and Dialogs
 
@@ -614,4 +615,4 @@ Loading uses still Mist blocks shaped like the content: the hero as its own Midn
 - **Don't** put shadows on buttons, fields, rows, chrome, or tiles, or invent shadow values outside the three tokens and the capture glow.
 - **Don't** show figures, ฿, or sample money in loading states, or animate skeletons.
 - **Don't** animate popovers, menus, or page changes, or add motion beyond the recorded moments.
-- **Don't** add a grab handle to sheets or an in-app theme switch; the system setting chooses light or dark.
+- **Don't** add a grab handle to sheets, or a second theme switch beside Appearance in the account controls.

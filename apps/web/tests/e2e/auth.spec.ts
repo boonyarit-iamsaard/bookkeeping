@@ -31,6 +31,7 @@ test("sign-up lands on Home, whose account control reaches Categories", {
     await expect(sheet.getByRole("heading", { name: "Account" })).toBeVisible();
     await expect(sheet.getByRole("listitem")).toHaveText([
       "Categories",
+      /^Appearance/,
       "Sign out",
     ]);
     // The sheet is a dialog: Escape closes it and focus returns to the disc.
