@@ -7,7 +7,6 @@ import type {
   CategoryBreakdown,
   CategoryLine,
   CategoryRow,
-  CategorySegment,
 } from "../category-breakdown";
 
 interface SpendingByCategoryProps {
@@ -116,13 +115,13 @@ function LegendRow({ row, share }: Readonly<LegendRowProps>) {
 }
 
 interface ShareOfSpendingProps {
-  segment: Readonly<CategorySegment>;
+  shareLabel: string;
 }
 
-function ShareOfSpending({ segment }: Readonly<ShareOfSpendingProps>) {
+function ShareOfSpending({ shareLabel }: Readonly<ShareOfSpendingProps>) {
   return (
     <span className="text-muted-foreground text-sm tabular-nums">
-      {segment.shareLabel}
+      {shareLabel}
       <span className="sr-only"> of spending</span>
     </span>
   );
@@ -169,7 +168,11 @@ export function SpendingByCategory({
             <LegendRow
               key={segment.id}
               row={segment}
-              share={<ShareOfSpending segment={segment} />}
+              share={
+                segment.shareLabel && (
+                  <ShareOfSpending shareLabel={segment.shareLabel} />
+                )
+              }
             />
           ))}
         </ul>

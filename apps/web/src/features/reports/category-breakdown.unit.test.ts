@@ -211,7 +211,7 @@ describe("createCategoryBreakdown", () => {
     ]);
   });
 
-  test("draws no bar when Net expenses is zero or less, keeping the legend rows", () => {
+  test("draws no bar and states no shares when Net expenses is zero or less, keeping the legend rows", () => {
     for (const netExpenses of ["0.00", "-50.00"]) {
       const refunded = netExpenses === "0.00" ? "-100.00" : "-150.00";
       const breakdown = createCategoryBreakdown(
@@ -226,8 +226,8 @@ describe("createCategoryBreakdown", () => {
 
       expect(breakdown.bar).toBeNull();
       expect(
-        breakdown.segments.map(({ id, share }) => ({ id, share })),
-      ).toEqual([{ id: FOOD_ID, share: 1 }]);
+        breakdown.segments.map(({ id, shareLabel }) => ({ id, shareLabel })),
+      ).toEqual([{ id: FOOD_ID, shareLabel: null }]);
       expect(breakdown.moreRefundedThanSpent.map(({ id }) => id)).toEqual([
         TRANSPORT_ID,
       ]);

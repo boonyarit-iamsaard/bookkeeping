@@ -34,8 +34,11 @@ export interface CategoryRow {
 export interface CategorySegment extends CategoryRow {
   /** Its fraction of the month's positive spending, from 0 to 1. */
   share: number;
-  /** The share as a whole percent; never "0%" for a parent with spending. */
-  shareLabel: string;
+  /**
+   * The share as a whole percent, never "0%" for a parent with spending, or
+   * null when no bar is drawn and a proportion would mean nothing.
+   */
+  shareLabel: string | null;
 }
 
 export interface CategoryBreakdown {
@@ -113,6 +116,7 @@ export function createCategoryBreakdown(
   const parents = spending.parents
     .toSorted(inCategoryOrder)
     .map((parent) => ({ parent, amount: parseApiMoney(parent.spending) }));
+  const hasBar = parseApiMoney(spending.netExpenses) > 0n;
   const positiveSpending = parents.reduce(
     (total, { amount }) => (amount > 0n ? total + amount : total),
     0n,
@@ -128,17 +132,20 @@ export function createCategoryBreakdown(
           : 0;
       return {
         amount,
-        segment: { ...rowOf(parent), share, shareLabel: shareLabelOf(share) },
+        segment: {
+          ...rowOf(parent),
+          share,
+          shareLabel: hasBar ? shareLabelOf(share) : null,
+        },
       };
     });
   return {
     segments: segments.map(({ segment }) => segment),
-    bar:
-      parseApiMoney(spending.netExpenses) > 0n
-        ? segments
-            .filter(({ amount }) => amount > 0n)
-            .map(({ segment }) => segment)
-        : null,
+    bar: hasBar
+      ? segments
+          .filter(({ amount }) => amount > 0n)
+          .map(({ segment }) => segment)
+      : null,
     moreRefundedThanSpent: parents
       .filter(({ amount }) => amount < 0n)
       .map(({ parent }) => rowOf(parent)),
