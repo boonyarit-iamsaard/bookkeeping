@@ -818,8 +818,23 @@ describe("OpenAPI document", () => {
       "sortOrder",
       "isUncategorized",
       "spending",
+      "directSpending",
+      "children",
     ]);
     expect(parentSchema.properties?.spending.$ref).toBe(
+      "#/components/schemas/Money",
+    );
+    expect(parentSchema.properties?.directSpending.$ref).toBe(
+      "#/components/schemas/Money",
+    );
+    const childSchema = documentedSchema(document, "ChildCategorySpending");
+    expect(childSchema.required).toEqual([
+      "id",
+      "name",
+      "sortOrder",
+      "spending",
+    ]);
+    expect(childSchema.properties?.spending.$ref).toBe(
       "#/components/schemas/Money",
     );
   });

@@ -13,6 +13,7 @@ import type {
   CategorySpending,
   ExpenseRefunds,
   MonthlySummary,
+  ParentCategorySpending,
   RefundSummary,
   TransactionChange,
   TransactionChangeAction,
@@ -958,11 +959,60 @@ export async function getMonthlySummary(
   };
 }
 
+interface CategorySpendingRow {
+  id: string;
+  name: string;
+  sortOrder: number;
+  parentId: string;
+  parentName: string;
+  parentSortOrder: number;
+  isUncategorized: boolean;
+  spending: string;
+}
+
+/**
+ * Folds per-category sums, already in parent then child category order, into
+ * parents carrying their own amount and their children's.
+ */
+function foldCategorySpending(rows: readonly Readonly<CategorySpendingRow>[]) {
+  const parents = new Map<string, ParentCategorySpending>();
+  for (const row of rows) {
+    const amount = BigInt(row.spending);
+    const parent = parents.get(row.parentId) ?? {
+      id: row.parentId,
+      name: row.parentName,
+      sortOrder: row.parentSortOrder,
+      isUncategorized: row.isUncategorized,
+      spending: 0n,
+      directSpending: 0n,
+      children: [],
+    };
+    const isDirect = row.id === row.parentId;
+    parents.set(row.parentId, {
+      ...parent,
+      spending: parent.spending + amount,
+      directSpending: parent.directSpending + (isDirect ? amount : 0n),
+      children: isDirect
+        ? parent.children
+        : [
+            ...parent.children,
+            {
+              id: row.id,
+              name: row.name,
+              sortOrder: row.sortOrder,
+              spending: amount,
+            },
+          ],
+    });
+  }
+  return [...parents.values()];
+}
+
 /**
  * Category spending per expense parent (ADR 0012): the month's expenses less
- * its refunds, each counted under the expense's current category rolled up to
- * its parent. Every expense and refund lands in exactly one parent, so the
- * parents sum to the monthly summary's Net expenses by construction.
+ * its refunds, each counted under the expense's current category and rolled
+ * up to its parent. Every expense and refund lands in exactly one category,
+ * so the parents sum to the monthly summary's Net expenses by construction.
  */
 export async function getCategorySpending(
   db: Database,
@@ -973,9 +1023,12 @@ export async function getCategorySpending(
   const parents = alias(categories, "parent_categories");
   const rows = await db
     .select({
-      id: parents.id,
-      name: parents.name,
-      sortOrder: parents.sortOrder,
+      id: categories.id,
+      name: categories.name,
+      sortOrder: categories.sortOrder,
+      parentId: parents.id,
+      parentName: parents.name,
+      parentSortOrder: parents.sortOrder,
       isUncategorized: parents.isProtected,
       spending: sql<string>`sum(case when ${transactions.type} = 'expense' then ${transactions.amount} else -${transactions.amount} end)`,
     })
@@ -1004,17 +1057,17 @@ export async function getCategorySpending(
         lte(transactions.transactionDate, end),
       ),
     )
-    .groupBy(parents.id)
+    .groupBy(parents.id, categories.id)
     .orderBy(
       asc(parents.isProtected),
       asc(parents.sortOrder),
       asc(parents.name),
       asc(parents.id),
+      asc(categories.sortOrder),
+      asc(categories.name),
+      asc(categories.id),
     );
-  const parentSpending = rows.map((row) => ({
-    ...row,
-    spending: BigInt(row.spending),
-  }));
+  const parentSpending = foldCategorySpending(rows);
   return {
     month,
     netExpenses: parentSpending.reduce(

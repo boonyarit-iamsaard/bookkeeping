@@ -10,6 +10,9 @@ const FOOD_ID = "0199a0c4-0000-7000-8000-000000000001";
 const TRANSPORT_ID = "0199a0c4-0000-7000-8000-000000000002";
 const DEBT_ID = "0199a0c4-0000-7000-8000-000000000003";
 const UNCATEGORIZED_ID = "0199a0c4-0000-7000-8000-000000000004";
+const GROCERIES_ID = "0199a0c4-0000-7000-8000-000000000005";
+const RESTAURANTS_ID = "0199a0c4-0000-7000-8000-000000000006";
+const FUEL_ID = "0199a0c4-0000-7000-8000-000000000007";
 
 function parent(
   id: string,
@@ -21,6 +24,8 @@ function parent(
     sortOrder: 1,
     isUncategorized: false,
     spending: { value: "0.00", currency: "THB" },
+    directSpending: { value: "0.00", currency: "THB" },
+    children: [],
     ...overrides,
   };
 }
@@ -164,9 +169,165 @@ describe("createCategoryBreakdown", () => {
     ]);
   });
 
+  test("lists parents with more refunded than spent beneath the bar and shares out positive spending", () => {
+    const breakdown = createCategoryBreakdown(
+      spending("300.00", [
+        parent(FOOD_ID, {
+          sortOrder: 1,
+          spending: { value: "300.00", currency: "THB" },
+        }),
+        parent(TRANSPORT_ID, {
+          sortOrder: 2,
+          spending: { value: "-100.00", currency: "THB" },
+        }),
+        parent(DEBT_ID, {
+          sortOrder: 3,
+          spending: { value: "100.00", currency: "THB" },
+        }),
+      ]),
+    );
+
+    expect(
+      breakdown.segments.map(({ id, share, shareLabel }) => ({
+        id,
+        share,
+        shareLabel,
+      })),
+    ).toEqual([
+      { id: FOOD_ID, share: 0.75, shareLabel: "75%" },
+      { id: DEBT_ID, share: 0.25, shareLabel: "25%" },
+    ]);
+    expect(breakdown.bar?.map((segment) => segment.id)).toEqual([
+      FOOD_ID,
+      DEBT_ID,
+    ]);
+    expect(
+      breakdown.moreRefundedThanSpent.map(({ id, spending: amount }) => ({
+        id,
+        amount,
+      })),
+    ).toEqual([
+      { id: TRANSPORT_ID, amount: { value: "-100.00", currency: "THB" } },
+    ]);
+  });
+
+  test("draws no bar when Net expenses is zero or less, keeping the legend rows", () => {
+    for (const netExpenses of ["0.00", "-50.00"]) {
+      const refunded = netExpenses === "0.00" ? "-100.00" : "-150.00";
+      const breakdown = createCategoryBreakdown(
+        spending(netExpenses, [
+          parent(FOOD_ID, { spending: { value: "100.00", currency: "THB" } }),
+          parent(TRANSPORT_ID, {
+            sortOrder: 2,
+            spending: { value: refunded, currency: "THB" },
+          }),
+        ]),
+      );
+
+      expect(breakdown.bar).toBeNull();
+      expect(
+        breakdown.segments.map(({ id, share }) => ({ id, share })),
+      ).toEqual([{ id: FOOD_ID, share: 1 }]);
+      expect(breakdown.moreRefundedThanSpent.map(({ id }) => id)).toEqual([
+        TRANSPORT_ID,
+      ]);
+      expect(breakdown.empty).toBe(false);
+    }
+  });
+
+  test("keeps a parent whose refunds exactly cancel its spending in the legend but out of the bar", () => {
+    const breakdown = createCategoryBreakdown(
+      spending("100.00", [
+        parent(FOOD_ID, { spending: { value: "100.00", currency: "THB" } }),
+        parent(TRANSPORT_ID, { sortOrder: 2 }),
+      ]),
+    );
+
+    expect(
+      breakdown.segments.map(({ id, shareLabel }) => ({ id, shareLabel })),
+    ).toEqual([
+      { id: FOOD_ID, shareLabel: "100%" },
+      { id: TRANSPORT_ID, shareLabel: "0%" },
+    ]);
+    expect(breakdown.bar?.map(({ id }) => id)).toEqual([FOOD_ID]);
+    expect(breakdown.moreRefundedThanSpent).toEqual([]);
+  });
+
+  test("expands a parent into the amount filed directly on it and its children in category order", () => {
+    const breakdown = createCategoryBreakdown(
+      spending("300.00", [
+        parent(FOOD_ID, {
+          spending: { value: "300.00", currency: "THB" },
+          directSpending: { value: "100.00", currency: "THB" },
+          children: [
+            {
+              id: RESTAURANTS_ID,
+              name: "Restaurants",
+              sortOrder: 2,
+              spending: { value: "-50.00", currency: "THB" },
+            },
+            {
+              id: GROCERIES_ID,
+              name: "Groceries",
+              sortOrder: 1,
+              spending: { value: "250.00", currency: "THB" },
+            },
+          ],
+        }),
+        parent(TRANSPORT_ID, {
+          sortOrder: 2,
+          spending: { value: "-80.00", currency: "THB" },
+          children: [
+            {
+              id: FUEL_ID,
+              name: "Fuel",
+              sortOrder: 1,
+              spending: { value: "-80.00", currency: "THB" },
+            },
+          ],
+        }),
+        parent(DEBT_ID, {
+          sortOrder: 3,
+          spending: { value: "80.00", currency: "THB" },
+          directSpending: { value: "80.00", currency: "THB" },
+        }),
+      ]),
+    );
+
+    const [food, debt] = breakdown.segments;
+    expect(food?.lines).toEqual([
+      { kind: "direct", spending: { value: "100.00", currency: "THB" } },
+      {
+        kind: "child",
+        id: GROCERIES_ID,
+        name: "Groceries",
+        spending: { value: "250.00", currency: "THB" },
+      },
+      {
+        kind: "child",
+        id: RESTAURANTS_ID,
+        name: "Restaurants",
+        spending: { value: "-50.00", currency: "THB" },
+      },
+    ]);
+    // Only children make a row worth expanding.
+    expect(debt?.lines).toEqual([]);
+    // No direct line when nothing was filed on the parent itself.
+    expect(breakdown.moreRefundedThanSpent[0]?.lines).toEqual([
+      {
+        kind: "child",
+        id: FUEL_ID,
+        name: "Fuel",
+        spending: { value: "-80.00", currency: "THB" },
+      },
+    ]);
+  });
+
   test("is empty when no expense or refund was dated in the month", () => {
     expect(createCategoryBreakdown(spending("0.00", []))).toEqual({
       segments: [],
+      bar: null,
+      moreRefundedThanSpent: [],
       empty: true,
     });
   });

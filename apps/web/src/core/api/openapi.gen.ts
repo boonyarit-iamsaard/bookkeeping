@@ -157,7 +157,7 @@ export interface paths {
         };
         /**
          * Get a month's spending by category
-         * @description The signed-in owner's Category spending for one month in YYYY-MM form, per expense parent category: expenses dated in the month less refunds dated in the month, each counted under its expense's current category and rolled up to the parent. Debt payments count like any other category. Only parents with activity in the month appear, in category order with Uncategorized last, and their signed amounts sum to netExpenses, the monthly report's Net expenses for the same month. A malformed or impossible month is a bad request.
+         * @description The signed-in owner's Category spending for one month in YYYY-MM form, per expense parent category: expenses dated in the month less refunds dated in the month, each counted under its expense's current category and rolled up to the parent. Debt payments count like any other category. Only parents with activity in the month appear, in category order with Uncategorized last, and their signed amounts sum to netExpenses, the monthly report's Net expenses for the same month. Each parent carries the amount filed directly on it and its children with activity, in category order; the two add up to the parent. Any amount is negative when a refund dated in the month outweighs that month's expenses. A malformed or impossible month is a bad request.
          */
         get: operations["getCategorySpending"];
         put?: never;
@@ -400,6 +400,13 @@ export interface components {
             categoryId: string;
             transactions: number;
         };
+        ChildCategorySpending: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            sortOrder: number;
+            spending: components["schemas"]["Money"];
+        };
         CreateCategoryRequest: {
             iconId: string;
             /** @enum {string} */
@@ -509,6 +516,8 @@ export interface components {
             nextCursor: string | null;
         };
         ParentCategorySpending: {
+            children: components["schemas"]["ChildCategorySpending"][];
+            directSpending: components["schemas"]["Money"];
             /** Format: uuid */
             id: string;
             isUncategorized: boolean;

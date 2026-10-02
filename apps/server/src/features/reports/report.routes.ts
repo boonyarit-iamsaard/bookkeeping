@@ -83,6 +83,17 @@ export const categorySpendingResponseSchema = z
           sortOrder: z.number().int(),
           isUncategorized: z.boolean(),
           spending: moneySchema,
+          directSpending: moneySchema,
+          children: z.array(
+            z
+              .object({
+                id: z.uuid(),
+                name: z.string(),
+                sortOrder: z.number().int(),
+                spending: moneySchema,
+              })
+              .meta({ id: "ChildCategorySpending" }),
+          ),
         })
         .meta({ id: "ParentCategorySpending" }),
     ),
@@ -106,6 +117,13 @@ export function presentCategorySpending(
       sortOrder: parent.sortOrder,
       isUncategorized: parent.isUncategorized,
       spending: presentThb(parent.spending),
+      directSpending: presentThb(parent.directSpending),
+      children: parent.children.map((child) => ({
+        id: child.id,
+        name: child.name,
+        sortOrder: child.sortOrder,
+        spending: presentThb(child.spending),
+      })),
     })),
   };
 }
@@ -177,8 +195,11 @@ export function createReportRoutes(db: Database) {
           "like any other category. Only parents with activity in the month " +
           "appear, in category order with Uncategorized last, and their " +
           "signed amounts sum to netExpenses, the monthly report's Net " +
-          "expenses for the same month. A malformed or impossible month is a " +
-          "bad request.",
+          "expenses for the same month. Each parent carries the amount filed " +
+          "directly on it and its children with activity, in category order; " +
+          "the two add up to the parent. Any amount is negative when a " +
+          "refund dated in the month outweighs that month's expenses. A " +
+          "malformed or impossible month is a bad request.",
         tags: ["Reports"],
         responses: {
           400: describeProblemResponse(400),

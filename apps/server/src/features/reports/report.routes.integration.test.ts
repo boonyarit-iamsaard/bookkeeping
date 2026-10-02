@@ -385,6 +385,23 @@ function getCategorySpending(
   });
 }
 
+interface CategorySpendingRead {
+  cookie: string;
+  month: string;
+}
+
+async function readCategorySpending(
+  app: Hono<AppEnv>,
+  { cookie, month }: Readonly<CategorySpendingRead>,
+) {
+  const response = await getCategorySpending(app, {
+    cookie,
+    query: `month=${month}`,
+  });
+  expect(response.status).toBe(200);
+  return categorySpendingResponseSchema.parse(await response.json());
+}
+
 /** The owner's expense tree by name, with a Debt payments parent added last. */
 async function expenseCategories(db: Database, ownerId: string) {
   const [debtPayments] = await db
@@ -413,6 +430,7 @@ async function expenseCategories(db: Database, ownerId: string) {
   return {
     food: idOf("Food & Drink"),
     groceries: idOf("Groceries"),
+    restaurants: idOf("Restaurants"),
     transport: idOf("Transport"),
     fuel: idOf("Fuel"),
     uncategorized: idOf("Uncategorized"),
@@ -512,6 +530,15 @@ describe("GET /v1/reports/category-spending", () => {
             sortOrder: expect.any(Number),
             isUncategorized: false,
             spending: { value: "450.00", currency: "THB" },
+            directSpending: { value: "200.00", currency: "THB" },
+            children: [
+              {
+                id: tree.groceries,
+                name: "Groceries",
+                sortOrder: expect.any(Number),
+                spending: { value: "250.00", currency: "THB" },
+              },
+            ],
           },
           {
             id: tree.transport,
@@ -519,6 +546,15 @@ describe("GET /v1/reports/category-spending", () => {
             sortOrder: expect.any(Number),
             isUncategorized: false,
             spending: { value: "150.00", currency: "THB" },
+            directSpending: { value: "0.00", currency: "THB" },
+            children: [
+              {
+                id: tree.fuel,
+                name: "Fuel",
+                sortOrder: expect.any(Number),
+                spending: { value: "150.00", currency: "THB" },
+              },
+            ],
           },
           {
             id: tree.debtPayments,
@@ -526,6 +562,8 @@ describe("GET /v1/reports/category-spending", () => {
             sortOrder: 99,
             isUncategorized: false,
             spending: { value: "1000.00", currency: "THB" },
+            directSpending: { value: "1000.00", currency: "THB" },
+            children: [],
           },
         ],
       });
@@ -586,6 +624,155 @@ describe("GET /v1/reports/category-spending", () => {
         ).json(),
       );
       expect(august.parents.map(({ name }) => name)).toEqual(["Food & Drink"]);
+    });
+  });
+
+  test("a later month's refund makes its expense's parent and child negative there and leaves the expense's month alone", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
+      const tree = await expenseCategories(db, owner.ownerId);
+      const groceries = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: tree.groceries,
+        amount: 50_000n,
+        transactionDate: "2026-08-20",
+      });
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "refund",
+        walletId: owner.cashId,
+        refundOfTransactionId: groceries,
+        amount: 20_000n,
+        transactionDate: "2026-09-03",
+      });
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: tree.food,
+        amount: 10_000n,
+        transactionDate: "2026-09-04",
+      });
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: tree.fuel,
+        amount: 30_000n,
+        transactionDate: "2026-09-05",
+      });
+
+      const august = await readCategorySpending(app, {
+        cookie: owner.cookie,
+        month: "2026-08",
+      });
+      expect(august.netExpenses.value).toBe("500.00");
+      expect(august.parents).toEqual([
+        expect.objectContaining({
+          id: tree.food,
+          spending: { value: "500.00", currency: "THB" },
+          directSpending: { value: "0.00", currency: "THB" },
+          children: [
+            expect.objectContaining({
+              id: tree.groceries,
+              spending: { value: "500.00", currency: "THB" },
+            }),
+          ],
+        }),
+      ]);
+
+      const september = await readCategorySpending(app, {
+        cookie: owner.cookie,
+        month: "2026-09",
+      });
+      expect(september.parents).toEqual([
+        expect.objectContaining({
+          id: tree.food,
+          spending: { value: "-100.00", currency: "THB" },
+          directSpending: { value: "100.00", currency: "THB" },
+          children: [
+            expect.objectContaining({
+              id: tree.groceries,
+              spending: { value: "-200.00", currency: "THB" },
+            }),
+          ],
+        }),
+        expect.objectContaining({
+          id: tree.transport,
+          spending: { value: "300.00", currency: "THB" },
+        }),
+      ]);
+      const monthly = monthlyReportResponseSchema.parse(
+        await (
+          await getMonthlyReport(app, {
+            cookie: owner.cookie,
+            query: "month=2026-09",
+          })
+        ).json(),
+      );
+      expect(september.netExpenses).toEqual(monthly.netExpenses);
+      expect(september.netExpenses.value).toBe("200.00");
+    });
+  });
+
+  test("recategorizing an expense moves it and its refunds in past months", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createOwner({ db });
+      const tree = await expenseCategories(db, owner.ownerId);
+      const dinner = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: tree.restaurants,
+        amount: 40_000n,
+        transactionDate: "2026-08-14",
+      });
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "refund",
+        walletId: owner.cashId,
+        refundOfTransactionId: dinner,
+        amount: 15_000n,
+        transactionDate: "2026-09-02",
+      });
+      await db
+        .update(transactions)
+        .set({ categoryId: tree.fuel })
+        .where(eq(transactions.id, dinner));
+
+      for (const [month, value] of [
+        ["2026-08", "400.00"],
+        ["2026-09", "-150.00"],
+      ] as const) {
+        const spending = await readCategorySpending(app, {
+          cookie: owner.cookie,
+          month,
+        });
+        expect(spending.parents).toEqual([
+          expect.objectContaining({
+            id: tree.transport,
+            spending: { value, currency: "THB" },
+            directSpending: { value: "0.00", currency: "THB" },
+            children: [
+              {
+                id: tree.fuel,
+                name: "Fuel",
+                sortOrder: expect.any(Number),
+                spending: { value, currency: "THB" },
+              },
+            ],
+          }),
+        ]);
+        expect(spending.netExpenses.value).toBe(value);
+      }
     });
   });
 

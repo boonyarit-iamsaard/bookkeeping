@@ -120,13 +120,26 @@ export interface MonthlySummary {
   transactionCount: number;
 }
 
+/** One child category's Category spending for a month; it may be negative. */
+export interface ChildCategorySpending {
+  id: string;
+  name: string;
+  sortOrder: number;
+  spending: bigint;
+}
+
 /** One expense parent's Category spending for a month; it may be negative. */
 export interface ParentCategorySpending {
   id: string;
   name: string;
   sortOrder: number;
   isUncategorized: boolean;
+  /** The parent's own amount plus every child's. */
   spending: bigint;
+  /** The amount filed directly on the parent rather than a child. */
+  directSpending: bigint;
+  /** Children with activity in the month, in category order. */
+  children: readonly ChildCategorySpending[];
 }
 
 export interface CategorySpending {
