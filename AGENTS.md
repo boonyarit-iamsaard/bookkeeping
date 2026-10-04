@@ -20,6 +20,15 @@ request, at a migration checkpoint, or in CI. The local resource limits above
 remain unchanged. `pnpm run ci` is the routine gate and excludes browser tests;
 `pnpm run ci:e2e` is the explicit production-build browser gate.
 
+### Git workflow
+
+Before editing tracked files, read `README.md#git-workflow` and inspect the
+current branch and working tree. When on `main`, automatically create and
+switch to a task branch before editing. Reuse an existing branch only for the
+same task; isolate unrelated work in another branch or worktree while
+preserving uncommitted changes. Verify that the task branch is checked out.
+Use the Host commands flow below when branch changes need host access.
+
 ### Host commands
 
 When `pnpm run ci:e2e` or Git writes such as `git add`, `git commit`, or branch
@@ -33,7 +42,8 @@ claiming completion. Follow the browser resource limits above for `ci:e2e`.
 ### Commit messages
 
 A commit message is one lowercase conventional subject of at most 72
-characters, plus any trailers; there is no body. A commit whose staged code
+characters, plus any trailers. The only permitted body is
+`This reverts commit <full sha>.` on a `revert:` commit. A commit whose staged code
 touches exactly one domain feature carries that feature's scope, and any other
 commit has none. `commitlint.config.ts` is the authority and the commit-msg
 hook enforces it; read its scope list before writing a message.

@@ -42,6 +42,50 @@ an account at `/sign-up`. The API answers at
 Global styles are in `apps/web/src/styles/globals.css`. Fonts are Inter and
 JetBrains Mono, declared in `apps/web/src/styles/fonts.css`.
 
+## Git workflow
+
+Work on a task branch before editing tracked files, including documentation.
+At the start of a task, inspect `git status --short` and
+`git branch --show-current`. When on `main`, create and switch to the task
+branch automatically. Reuse an existing branch when continuing the same task.
+Keep one branch and pull request per coherent task.
+
+Name branches `<type>/<short-kebab-case-description>`, using a conventional
+commit type: `feat`, `fix`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
+`docs`, `chore`, or `revert`. Use lowercase words separated by hyphens for the
+description, for example:
+
+- `feat/wallet-opening-corrections`
+- `fix/sign-in-return-navigation`
+- `docs/reconcile-project-tickets`
+
+For a new task with a clean working tree, fetch and update `main` before
+creating the branch:
+
+```sh
+git fetch origin
+git switch main
+git pull --ff-only
+git switch -c docs/reconcile-project-tickets
+```
+
+Preserve uncommitted changes. If the current task already has edits on `main`,
+create its branch from the current checkout so those edits stay with the task.
+When another task's work would interfere, use a separate branch or worktree
+without discarding or stashing unrelated changes. Agents execute Git writes
+through the [host-command policy](AGENTS.md#host-commands) when sandbox access
+requires it.
+
+Merge changes through pull requests with the required `CI`, `SPA browser suite`
+and `Dependency Review` checks passing; `main` is protected against direct
+pushes. See [ADR 0010](docs/adr/0010-protected-main-and-gated-deploys.md).
+
+Use the [commit-message rules](AGENTS.md#commit-messages) for each staged diff;
+`commitlint.config.ts` is authoritative and the commit-msg hook enforces it.
+The branch type describes the task; each commit's type describes its own
+changes. The commit-message skill must follow the repository's type, scope and
+body rules when they differ from its defaults.
+
 ## Project structure
 
 The repo is a pnpm workspace with Turborepo (see
