@@ -26,12 +26,12 @@
     "@bookkeeping/auth": "workspace:*",
     "@bookkeeping/database": "workspace:*",
     "@bookkeeping/domain": "workspace:*",
-    "@dotenvx/dotenvx": "^2.30.0",
+    "@dotenvx/dotenvx": "^2.32.4",
     "@seriousme/openapi-schema-validator": "^2.11.0",
     "@types/node": "^24",
     "esbuild": "^0.28.2",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.3"
   }
 }
