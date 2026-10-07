@@ -99,6 +99,62 @@ The review dates are recorded responsibilities, not an automated reminder or
 expiry enforced by pnpm. `audit.ignore` matches the GHSA across package versions,
 so changes to the assessed dependency path require review even if audit passes.
 
+## Additional exceptions, 2026-10-07
+
+Two advisories published in September 2026 have no patched release. The same
+handling applies: bounded source and usage analysis, owner acceptance, weekly
+review, and removal once a fix is installed. Patchable advisories assessed on the
+same day were fixed instead, by lockfile updates and a scoped
+`markdownlint-cli>smol-toml` override.
+
+### braces (`GHSA-vfj7-8cjw-p6xm` / `CVE-2026-93687`)
+
+The [advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) affects braces
+through 3.0.3: deeply nested brace patterns exhaust the call stack and throw an
+uncaught `RangeError`. The attacker must control the pattern.
+
+The only installed path is `shadcn@4.21.0` → `fast-glob@3.3.3` (directly and via
+`ts-morph`) → `micromatch@4.0.8` → `braces@3.0.3`. Although `shadcn` is listed
+under the web app's `dependencies`, the app imports only `shadcn/tailwind.css`
+from `apps/web/src/styles/globals.css`, which Tailwind resolves at build time.
+The glob code runs only in the shadcn CLI, with patterns from the developer and
+`components.json`. A search of the built `apps/web/dist/assets` found no braces,
+micromatch or ts-morph code. Inference: no untrusted input reaches braces, and a
+crash would end only a developer's own CLI run.
+
+### sprintf-js (`GHSA-hp3w-g68c-fv3c` / `CVE-2026-97058`)
+
+The [advisory](https://github.com/advisories/GHSA-hp3w-g68c-fv3c) affects
+sprintf-js through 1.1.3: precision specifiers that exceed ECMAScript limits
+throw an uncaught `RangeError`. The attacker must control the format string.
+
+The only installed path is `@dotenvx/dotenvx@2.30.0` → `global-agent@3.0.0` →
+`roarr@2.15.4` → `sprintf-js@1.1.3`, as a development dependency. dotenvx requires
+global-agent only in `src/lib/proxy/proxyPreload.js`, and only when
+`DOTENVX_PROXY_URL` is set. No such variable appears in the repository.
+roarr's `createLogger` passes the first message argument to `sprintf` as the
+format string. global-agent's call sites in `dist/classes/Agent.js` pass constant
+messages, with request data only in the context object. Inference: no attacker
+controls a format string, and the production images do not include dotenvx.
+
+### Accepted exception record
+
+- Advisories: `GHSA-vfj7-8cjw-p6xm` and `GHSA-hp3w-g68c-fv3c`.
+- Owner: repository owner, who accepted these temporary exceptions on
+  2026-10-07.
+- Assessed versions: `shadcn@4.21.0` with `braces@3.0.3`, and
+  `@dotenvx/dotenvx@2.30.0` with `global-agent@3.0.0`, `roarr@2.15.4` and
+  `sprintf-js@1.1.3`.
+- Basis: the analysis above indicates that untrusted patterns and format strings
+  do not reach the vulnerable operations. The dependencies remain vulnerable.
+- Next review: 2026-10-14, then weekly, checking the upstream advisories and
+  releases.
+- Earlier review triggers: changed dependency versions or paths, any runtime
+  import of shadcn beyond its stylesheet, dotenvx proxy use, or changed advisory
+  details.
+- Exit: install and test a patched release, then remove each GHSA exception once
+  the affected version is absent.
+
 ## What passing CI establishes
 
 The pinned pnpm version is 11.28.2. Its supported `audit.ignore` setting filters
