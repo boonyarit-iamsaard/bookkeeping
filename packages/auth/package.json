@@ -17,7 +17,7 @@
     "@bookkeeping/application": "workspace:*",
     "@bookkeeping/database": "workspace:*",
     "@bookkeeping/domain": "workspace:*",
-    "better-auth": "^1.7.6",
+    "better-auth": "^1.7.7",
     "drizzle-orm": "^0.45.3"
   },
   "devDependencies": {
