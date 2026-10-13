@@ -26,31 +26,18 @@ engineStrict: true
 verifyDepsBeforeRun: "error"
 verifyStoreIntegrity: true
 
-# Owner: repository owner; temporary exception accepted 2026-10-02.
-# Assessed: dotenvx 2.30.0 / node-forge 1.4.0; no published fix.
-# Observed Forge calls generate/sign proxy certificates, not RSA verification.
-# Module loading still occurs during dotenvx run; this is a usage assessment.
-# Next review: 2026-10-09, then weekly against upstream advisory/releases.
-# Reassess on dependency, proxy configuration, usage, or advisory changes.
+# Owner: repository owner; temporary exception accepted 2026-10-07.
+# Assessed: shadcn 4.21.0 / braces 3.0.3; no published fix. The web app imports
+# only shadcn's stylesheet; braces is reached through the shadcn CLI with
+# developer-written globs.
+# Next review: 2026-10-14, then weekly against upstream advisory/releases.
+# Reassess on dependency, usage, or advisory changes.
 # Install/test a patched release and remove this exception after upgrading.
 # Evidence: docs/research/unpatched-dependency-audit-exceptions.md
-# https://github.com/advisories/GHSA-86w9-cpqp-85rv
-#
-# Owner: repository owner; temporary exceptions accepted 2026-10-07.
-# Assessed: shadcn 4.21.0 / braces 3.0.3 and dotenvx 2.30.0 / sprintf-js 1.1.3;
-# no published fix for either. The web app imports only shadcn's stylesheet;
-# braces is reached through the shadcn CLI with developer-written globs.
-# sprintf-js loads via global-agent only when DOTENVX_PROXY_URL is set, and
-# its callers pass constant format strings.
-# Next review: 2026-10-14, then weekly, with the same triggers as above.
-# Evidence: docs/research/unpatched-dependency-audit-exceptions.md
 # https://github.com/advisories/GHSA-vfj7-8cjw-p6xm
-# https://github.com/advisories/GHSA-hp3w-g68c-fv3c
 audit:
   ignore:
-    - GHSA-86w9-cpqp-85rv
     - GHSA-vfj7-8cjw-p6xm
-    - GHSA-hp3w-g68c-fv3c
 
 # drizzle-kit's deprecated @esbuild-kit loader bundles esbuild 0.18.20
 # (GHSA-67mh-4wv8-2f99). Point it at the 0.25 that drizzle-kit itself uses.

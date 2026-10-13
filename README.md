@@ -527,10 +527,14 @@ and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
 `pnpm format` formats Markdown, YAML, and HTML files; `pnpm fix` runs both and
 the Markdown lint fixes.
 
+`pnpm security:audit` fails on a moderate or worse advisory, then verifies
+registry signatures. It needs the network and its result changes as advisories
+are published, so `pnpm run ci` leaves it out; run it after changing
+dependencies, such as reviewing a Dependabot update or an audit exception.
+
 GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
 `main`. Two jobs run side by side, each installing dependencies with a frozen
-lockfile: `CI` audits advisories (`pnpm audit --audit-level moderate`) and
-registry signatures (`pnpm audit signatures`), then runs `pnpm run ci`, and
+lockfile: `CI` runs `pnpm run security:audit`, then `pnpm run ci`, and
 `SPA browser suite` installs Chromium (cached by Playwright version) and runs
 the SPA browser suite on two workers. A third job, `Dependency Review`, runs on
 pull requests only and fails on a moderate or worse vulnerability. The browser
