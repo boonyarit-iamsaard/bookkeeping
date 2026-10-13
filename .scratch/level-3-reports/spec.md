@@ -182,3 +182,11 @@ Reports gains two sections for the chosen month, both calculated by the server:
   ADR 0012 were written during the grilling and are not yet committed.
 - Category spending can be negative for a month, by design: a refund dated
   after its expense's month reduces the refund's month.
+
+## Comments
+
+### 2026-10-13: closed
+
+All four tickets are done. They shipped in squash commit `1e28c17` (PR #10),
+which also committed the **Category spending** and **Closing balance** glossary
+terms and ADR 0012 that Further Notes lists as not yet committed.
