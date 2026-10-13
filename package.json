@@ -26,6 +26,7 @@
     "lint:md:fix": "markdownlint --fix \"**/*.md\" --ignore-path .gitignore",
     "password:reset": "pnpm --filter @bookkeeping/server password:reset",
     "prepare": "husky || true",
+    "security:audit": "pnpm audit --audit-level moderate && pnpm audit signatures",
     "sonar:clean": "tsx scripts/sonar-clean.ts",
     "sonar:scan": "tsx scripts/sonar-scan.ts",
     "stack:build": "docker compose --profile stack build server && docker compose --profile stack build web",

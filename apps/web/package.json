@@ -37,7 +37,7 @@
   "devDependencies": {
     "@bookkeeping/database": "workspace:*",
     "@bookkeeping/server": "workspace:*",
-    "@dotenvx/dotenvx": "^2.32.4",
+    "@dotenvx/dotenvx": "^2.34.2",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4",
     "@tanstack/router-plugin": "^1.168.42",

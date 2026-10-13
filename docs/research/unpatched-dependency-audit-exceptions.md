@@ -155,6 +155,24 @@ controls a format string, and the production images do not include dotenvx.
 - Exit: install and test a patched release, then remove each GHSA exception once
   the affected version is absent.
 
+## Retired exceptions, 2026-10-13
+
+`GHSA-86w9-cpqp-85rv` (node-forge) and `GHSA-hp3w-g68c-fv3c` (sprintf-js) are
+retired. Neither advisory has a patched release; instead, dotenvx dropped the
+dependencies that carried them. `@dotenvx/dotenvx` 2.33.0 no longer depends on
+node-forge, and 2.34.0 no longer depends on global-agent, the only path to
+roarr and sprintf-js. The repository moved to `^2.34.2`, and the lockfile no
+longer contains node-forge, global-agent, roarr or sprintf-js. Both GHSAs are
+removed from `audit.ignore`. The repository owner accepted the dependency's
+removal as the fix, in place of a patched release, for both advisories on
+2026-10-13. Evidence and check results are in
+`.scratch/supply-chain-hardening/issues/07-review-and-retire-node-forge-audit-exception.md`.
+
+The braces exception (`GHSA-vfj7-8cjw-p6xm`) remains. A dependency update had
+already moved its installed path to `shadcn@4.21.1` and `@shadcn/registry@0.1.0`,
+away from the assessed `shadcn@4.21.0`, without triggering a review; its
+2026-10-14 review covers the new path.
+
 ## What passing CI establishes
 
 The pinned pnpm version is 11.28.2. Its supported `audit.ignore` setting filters

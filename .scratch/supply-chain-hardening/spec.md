@@ -211,3 +211,8 @@ including successful local image builds and isolated install-policy probes.
 an ongoing follow-up: the temporary node-forge audit exception still needs
 review on 2026-10-09, or earlier if its exposure changes. Completing the initial
 hardening does not retire that exception.
+
+2026-10-13: 07's node-forge exception, and the sprintf-js exception from
+2026-10-07, are retired on branch `build/retire-node-forge-audit-exception` by
+upgrading dotenvx, which no longer depends on either package. 07 closes once
+that branch merges with passing hosted checks.

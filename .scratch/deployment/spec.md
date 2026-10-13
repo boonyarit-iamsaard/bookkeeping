@@ -1,6 +1,6 @@
 # Trial deployment on Railway
 
-Status: ready
+Status: done
 
 Decided on 2026-09-25 by grilling. Decision recorded in
 `docs/adr/0008-railway-single-hosting-provider.md`. This picks up the image
@@ -81,3 +81,10 @@ either service, and a client-visible sign-up state.
 
 Agents read `worker-brief.md` before any ticket. 01 and 02 are independent;
 03 follows 02; 04 (human) follows all three.
+
+## Comments
+
+### 2026-10-13: closed
+
+All five tickets are done. The API and web images landed in `2c15bed` and
+`0a6eaba`, and ticket 05's first-week review closed in `c310cef`.

@@ -47,11 +47,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Audit advisories
-        run: pnpm audit --audit-level moderate
-
-      - name: Audit registry signatures
-        run: pnpm audit signatures
+      - name: Audit dependencies
+        run: pnpm run security:audit
 
       # Static checks, every workspace type check, the package and app test
       # suites, and then the SPA and server builds, in that order.
