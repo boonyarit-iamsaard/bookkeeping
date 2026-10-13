@@ -1,6 +1,6 @@
 # Level 3 reports: category spending and balance over time
 
-Status: ready-for-agent
+Status: done
 
 Decided on 2026-10-02 by grilling. This is the level 3 data that
 `.scratch/modern-fintech-redesign/design-brief.md` deferred. Read

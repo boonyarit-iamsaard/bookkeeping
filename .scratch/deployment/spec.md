@@ -1,6 +1,6 @@
 # Trial deployment on Railway
 
-Status: ready
+Status: done
 
 Decided on 2026-09-25 by grilling. Decision recorded in
 `docs/adr/0008-railway-single-hosting-provider.md`. This picks up the image
