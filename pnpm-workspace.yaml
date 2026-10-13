@@ -29,7 +29,7 @@ verifyStoreIntegrity: true
 # Owner: repository owner; temporary exception accepted 2026-10-07.
 # Assessed: shadcn 4.21.0 / braces 3.0.3; no published fix. The web app imports
 # only shadcn's stylesheet; braces is reached through the shadcn CLI with
-# developer-written globs.
+# developer-written globs. Installed since: shadcn 4.21.1, to be reassessed.
 # Next review: 2026-10-14, then weekly against upstream advisory/releases.
 # Reassess on dependency, usage, or advisory changes.
 # Install/test a patched release and remove this exception after upgrading.

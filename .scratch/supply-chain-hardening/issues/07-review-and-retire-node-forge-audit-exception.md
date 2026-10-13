@@ -16,10 +16,12 @@ the exception. Preserve enforcement for other moderate-or-higher advisories.
 
 - [x] On October 9, check the upstream advisory and node-forge/dotenvx releases
       for a published fix, and record the findings under Comments with dated sources.
-- [x] Reassess the installed dependency paths and dotenvx execution paths against
+- [ ] Reassess the installed dependency paths and dotenvx execution paths against
       the affected RSA signature verification operation. The original assessment
       covered dotenvx 2.30.0 and node-forge 1.4.0; loading Forge does not by itself
       establish that its vulnerable verification operation is reachable.
+      Superseded on 2026-10-13: the upgrade removes node-forge, so the path was
+      not reassessed.
 - [x] Review earlier if dependency versions or paths, dotenvx usage, proxy
       configuration, or advisory details change.
 - [ ] If no supported fix is available and the exposure assessment still holds,
@@ -93,6 +95,15 @@ Verification, 2026-10-13, local:
 - `pnpm run ci`: passes, including 86 test files across seven packages.
 - No browser test ran: dotenvx only loads the e2e runner's environment, and the
   hosted e2e job exercises `test:e2e:ci`.
+
+A second copy, `@dotenvx/dotenvx@1.75.1`, stays installed through `shadcn@4.21.1`
+and `@shadcn/registry@0.1.0`. Its dependencies include none of the four removed
+packages, so the affected versions remain absent.
+
+Owner decisions, 2026-10-13: the repository owner accepted removing the
+dependency as this ticket's supported fix, in place of a patched node-forge
+release, and accepted retiring `GHSA-hp3w-g68c-fv3c`, which was accepted on
+2026-10-07 outside this ticket, in the same change.
 
 Remaining before `done`: hosted required PR checks, including Dependency Review,
 then record the merged commit here.
