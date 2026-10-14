@@ -21,8 +21,8 @@
   "dependencies": {
     "@bookkeeping/database": "workspace:*",
     "@bookkeeping/domain": "workspace:*",
-    "drizzle-orm": "^0.45.3",
-    "zod": "^4.6.5"
+    "drizzle-orm": "^0.45.4",
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/node": "^24",
