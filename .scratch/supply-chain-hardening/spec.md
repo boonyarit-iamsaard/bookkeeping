@@ -216,3 +216,6 @@ hardening does not retire that exception.
 2026-10-07, are retired on branch `build/retire-node-forge-audit-exception` by
 upgrading dotenvx, which no longer depends on either package. 07 closes once
 that branch merges with passing hosted checks.
+
+2026-10-17: 07 is done. The branch merged as `d8809cb` (#17) with passing
+hosted checks.
