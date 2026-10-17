@@ -93,12 +93,15 @@ same day as a stopgap.
   wrong. The migrations spec now has to adopt the existing schema as its
   baseline instead of starting from an empty database.
 
-- **The first diagram took three layouts.** D2's `elk` engine drew the
-  architecture either as one very wide strip or as one very tall column;
-  `dagre` with the Railway and AWS groups stacked inside gave a readable
-  shape. D2 also read the `$` in "Budgets · $1 alert" as a substitution until
-  the label was single-quoted, and the first S3 icon URL pointed at an icon
-  that does not exist.
+- **The diagram went through three tools.** D2 laid itself out but read
+  either as one very wide strip or one very tall column until the `dagre`
+  engine and stacked groups gave a usable shape; it also read the `$` in
+  "Budgets · $1 alert" as a substitution. Mermaid cut off long group titles
+  and placed the owner inside the AWS box. Neither looked like the clean
+  Eraser style the article wanted, so the final diagram is hand-written SVG
+  with CSS custom properties for light and dark, checked by screenshotting it
+  in both schemes. Mermaid stays as the fallback for quick diagrams inside
+  GitHub documents.
 
 ### Numbers
 
