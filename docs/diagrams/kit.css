@@ -1,0 +1,318 @@
+/*
+ * Diagram kit: the shared look for `*.diagram.html` files.
+ * Layout is plain CSS; `kit.js` draws the edges after layout.
+ * See README.md#diagrams.
+ */
+
+:root {
+  --bg: #ffffff;
+  --ink: #1f2330;
+  --muted: #6b7183;
+  --line: #8a90a2;
+  --card: #ffffff;
+  --card-stroke: #e3e5ec;
+  --shadow: rgba(24, 28, 40, 0.08);
+  --sub: #9aa0b2;
+  --accent: #1f6feb;
+
+  --tone-purple: #7c3aed;
+  --tone-orange: #e8890c;
+  --tone-blue: #1f6feb;
+  --tone-green: #2f855a;
+  --tone-gray: #6b7183;
+
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13151c;
+    --ink: #e8eaf0;
+    --muted: #9aa0b2;
+    --line: #7d8396;
+    --card: #1c1f29;
+    --card-stroke: #2c3040;
+    --shadow: rgba(0, 0, 0, 0.35);
+    --sub: #5d6378;
+    --accent: #58a6ff;
+
+    --tone-purple: #a78bfa;
+    --tone-orange: #f5a524;
+    --tone-blue: #58a6ff;
+    --tone-green: #4ade80;
+    --tone-gray: #9aa0b2;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #13151c;
+  --ink: #e8eaf0;
+  --muted: #9aa0b2;
+  --line: #7d8396;
+  --card: #1c1f29;
+  --card-stroke: #2c3040;
+  --shadow: rgba(0, 0, 0, 0.35);
+  --sub: #5d6378;
+  --accent: #58a6ff;
+
+  --tone-purple: #a78bfa;
+  --tone-orange: #f5a524;
+  --tone-blue: #58a6ff;
+  --tone-green: #4ade80;
+  --tone-gray: #9aa0b2;
+
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The rendered area: the renderer screenshots exactly this element. */
+.diagram {
+  position: relative;
+  box-sizing: border-box;
+  width: max-content;
+  margin: 0;
+  padding: 32px;
+  background: var(--bg);
+}
+
+.diagram *,
+.diagram *::before,
+.diagram *::after {
+  box-sizing: border-box;
+}
+
+.diagram > figcaption {
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Layout helpers. */
+.row {
+  display: flex;
+  gap: var(--gap, 48px);
+  align-items: var(--align, flex-start);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap, 28px);
+  align-items: var(--align, stretch);
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* A group: a tinted, outlined area with a labelled header. */
+.group {
+  --tone: var(--tone-gray);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 18px 20px 24px;
+  border: 1.5px solid var(--tone);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--tone) 5%, transparent);
+}
+
+.group[data-tone="purple"] {
+  --tone: var(--tone-purple);
+}
+
+.group[data-tone="orange"] {
+  --tone: var(--tone-orange);
+}
+
+.group[data-tone="blue"] {
+  --tone: var(--tone-blue);
+}
+
+.group[data-tone="green"] {
+  --tone: var(--tone-green);
+}
+
+.group-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--tone);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.group-label .meta {
+  margin-left: auto;
+  padding-left: 24px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* A sub-group: a dashed outline inside a group, such as a network. */
+.group.sub {
+  border: 1.5px dashed var(--sub);
+  background: none;
+  padding: 14px 18px 20px;
+}
+
+.group.sub > .group-label {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* A card: one component. */
+.card {
+  /* Positioned, so a card paints over the edge layer drawn before it. */
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  align-items: center;
+  min-width: var(--card-width, 260px);
+  padding: 12px 14px;
+  border: 1px solid var(--card-stroke);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow:
+    0 1px 2px var(--shadow),
+    0 4px 10px var(--shadow);
+}
+
+.card.dashed {
+  border: 1.5px dashed var(--sub);
+  box-shadow: none;
+}
+
+.card .title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.card .meta {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.card .body {
+  grid-column: 1 / -1;
+  margin: 10px 2px 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+/* An icon tile: a coloured square holding letters or a small inline SVG. */
+.tile {
+  --tile: var(--tone-gray);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--tile);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.tile.round {
+  border-radius: 50%;
+}
+
+.tile svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.group-label .tile {
+  --tile: var(--tone);
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+}
+
+/* Edges: declared as `<a-edge>` elements, drawn by kit.js into an SVG layer. */
+a-edge {
+  display: none;
+}
+
+.edge-layer {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.edge-layer path.edge {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.edge-layer path.edge.dash {
+  stroke-dasharray: 5 5;
+}
+
+.edge-layer path.edge.accent {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.edge-layer .head {
+  fill: var(--line);
+}
+
+.edge-layer .head.accent {
+  fill: var(--accent);
+}
+
+.edge-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.edge-label.accent {
+  color: var(--accent);
+  font-weight: 600;
+}
