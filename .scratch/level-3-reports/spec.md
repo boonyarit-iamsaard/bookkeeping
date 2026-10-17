@@ -190,3 +190,11 @@ Reports gains two sections for the chosen month, both calculated by the server:
 All four tickets are done. They shipped in squash commit `1e28c17` (PR #10),
 which also committed the **Category spending** and **Closing balance** glossary
 terms and ADR 0012 that Further Notes lists as not yet committed.
+
+### 2026-10-17: DESIGN.md caught up
+
+`DESIGN.md` still marked these charts "Level 3 (specified, not built)". That
+heading is now "Level 3" under Charts and describes what shipped: refunded
+parents beneath the bar, rows that open to their children, the slider plot,
+and Compare a wallet as a dashed chart 2 line. The Reports page entry now lists
+the two new Cards.
