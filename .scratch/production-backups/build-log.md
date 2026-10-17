@@ -19,7 +19,11 @@ were closed, and then the recap of milestone one exposed the real problem:
 the production database had held the real ledger for three weeks with no
 copy anywhere outside Railway. A grilling session turned that into
 `spec.md`, six tickets and ADR 0013. A manual encrypted dump was taken the
-same day as a stopgap.
+same day as a stopgap. The architecture diagram for the article then led to
+a small diagram toolchain (`pnpm diagrams`), and verifying that change
+surfaced a flaky database test, which was diagnosed and fixed in #29. No
+backup code exists yet: the day produced the design, the tooling, and a
+clean `main` to build on.
 
 ### Why
 
@@ -92,7 +96,6 @@ same day as a stopgap.
 - **The plan said "wipe the trial data".** Three weeks of real use made that
   wrong. The migrations spec now has to adopt the existing schema as its
   baseline instead of starting from an empty database.
-
 - **The diagram went through four approaches.** D2 laid itself out but read
   as one very wide strip or one very tall column until the `dagre` engine
   and stacked groups gave a usable shape, and it read the `$` in "Budgets ·
@@ -107,6 +110,18 @@ same day as a stopgap.
   module scripts from `file://` pages, and the repository root is CommonJS,
   so the render script cannot use top-level `await`. Mermaid stays as the
   fallback for quick diagrams inside GitHub documents.
+- **A flaky test that only failed under load.** `pnpm run ci` failed now and
+  then with `relation "users" does not exist`, never when the database
+  package ran alone. Waiting for chance gave no usable signal: 0 failures in
+  17 ordinary and loaded runs. The breakthrough was making the slowness
+  deliberate: a script throttled the test Postgres container to 5% of one CPU
+  with `docker update --cpus`, after setup had migrated it, and the failure
+  appeared every time in 17 seconds. The cause was a test that dropped the
+  shared schema, ran past Vitest's 5 s timeout, and left the next test file
+  with an empty database. The fix gave that test its own throwaway database
+  and a longer timeout for the two migration tests only. Lesson for the
+  article: a backup restore drill and a flaky-test hunt need the same thing,
+  a loop that turns "sometimes" into "every time".
 
 ### Numbers
 
@@ -120,6 +135,21 @@ same day as a stopgap.
 | Most data a failure can lose        | one day                            |
 | Off-provider retention              | 35 days nightly, 12 months monthly |
 | Dependency PRs merged before design | 5 from Dependabot, 1 by hand       |
+| Diagram approaches tried            | 4 (D2, Mermaid, SVG, HTML kit)     |
+| Flaky test, ordinary runs           | 0 failures in 17                   |
+| Flaky test, throttled container     | 3 of 3 failures, 17 s per run      |
 
 Screenshots (private): Railway query tab with the database stats; terminal
-showing the manual dump's table list.
+showing the manual dump's table list. Committed figures: the architecture
+diagram in `diagrams/`, light and dark.
+
+### Where it stands
+
+- Owner, ticket 01: the AWS Organization, the `backups` account, Identity
+  Center with MFA, Railway's own backup schedules, and three loose ends from
+  today: replace the exposed `age` key, re-encrypt the manual dump, and
+  confirm the temporary TCP proxy is off.
+- Agent, ticket 02 next: the CloudFormation template for the bucket, the
+  uploader and the budget.
+- The branch `feat/production-backups` holds the spec, tickets, ADR, build
+  log, diagram kit and diagram; it is not pushed yet.
