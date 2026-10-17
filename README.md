@@ -503,25 +503,21 @@ and [scanner guide](https://docs.sonarsource.com/sonarqube-community-build/analy
 
 ## Diagrams
 
-Diagrams are written in [D2](https://d2lang.com) and kept beside the spec or
-document they illustrate, as a `.d2` source with its rendered `.svg`
-committed next to it. D2 is an optional tool, not a project dependency;
-install it with Homebrew (`brew install d2`, version 0.9.0 when first used).
+Diagrams are hand-written SVG, kept beside the spec or document they
+illustrate, with a small `.html` page that previews it. The SVG is the
+source: it carries its own styles as CSS custom properties, so it follows the
+viewer's `prefers-color-scheme` when used as an image, and a
+`data-theme="light"` or `data-theme="dark"` attribute on the page root when
+inlined into a page. Give it a `<title>` and a `<desc>` that says what the
+diagram shows, and place every box and line by coordinates in its `viewBox`.
 
-Each source sets its own render options in a `vars.d2-config` block: the
-`dagre` layout engine, theme `0` for light and `200` for dark, and 40px of
-padding. One command then renders an SVG that follows the viewer's
-`prefers-color-scheme`:
+Check a change by screenshotting the preview page in both colour schemes with
+the Playwright Chromium the web app already installs, and look for labels
+that collide or cross a border. Keep the screenshots out of the repository.
 
-```bash
-d2 architecture.d2 architecture.svg
-```
-
-Run `d2 fmt` on a source before committing it. Write `$` in a label inside
-single quotes (`'Budgets · $1 alert'`), because D2 reads an unquoted `$` as a
-substitution. Icons such as the AWS set come from `icons.terrastruct.com` by
-URL and are embedded when rendering. For a quick visual check, render a PNG
-to a scratch location instead of committing it.
+When a diagram only needs to read inside a GitHub document, such as a quick
+flow in a spec or a pull request, a Mermaid block is the fallback: GitHub
+renders it with no build step, at the cost of layout control.
 
 ## Checks
 
