@@ -196,6 +196,13 @@ volume backups stay on as a faster first layer for everyday mistakes.
   screenshot during the grilling. The owner was asked to replace it and
   re-encrypt that dump; the automated job must use the replacement.
 
+## Build log
+
+`build-log.md` collects material for an article about this feature. Closing
+any ticket includes adding a dated entry covering what happened, why, how,
+and the struggles overcome. The repository is public, so entries hold no
+secrets, account IDs or real financial figures.
+
 ## Order of tickets
 
 01 (owner) and 02 are independent. 03 (owner) follows both. 04 can be written
