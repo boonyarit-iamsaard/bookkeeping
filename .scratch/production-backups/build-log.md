@@ -93,15 +93,20 @@ same day as a stopgap.
   wrong. The migrations spec now has to adopt the existing schema as its
   baseline instead of starting from an empty database.
 
-- **The diagram went through three tools.** D2 laid itself out but read
-  either as one very wide strip or one very tall column until the `dagre`
-  engine and stacked groups gave a usable shape; it also read the `$` in
-  "Budgets · $1 alert" as a substitution. Mermaid cut off long group titles
-  and placed the owner inside the AWS box. Neither looked like the clean
-  Eraser style the article wanted, so the final diagram is hand-written SVG
-  with CSS custom properties for light and dark, checked by screenshotting it
-  in both schemes. Mermaid stays as the fallback for quick diagrams inside
-  GitHub documents.
+- **The diagram went through four approaches.** D2 laid itself out but read
+  as one very wide strip or one very tall column until the `dagre` engine
+  and stacked groups gave a usable shape, and it read the `$` in "Budgets ·
+  $1 alert" as a substitution. Mermaid cut off long group titles and placed
+  the owner inside the AWS box. Hand-written SVG finally looked like the
+  clean Eraser style the article wanted, but every box and line was placed
+  by coordinates. The final approach keeps that look and lets the browser do
+  the layout: the diagram is an HTML page styled by a small shared kit,
+  edges are declared by the ids they join and drawn after layout, and
+  `pnpm diagrams` renders light and dark PNGs with the Playwright Chromium
+  the browser tests already install. Two snags on the way: Chromium refuses
+  module scripts from `file://` pages, and the repository root is CommonJS,
+  so the render script cannot use top-level `await`. Mermaid stays as the
+  fallback for quick diagrams inside GitHub documents.
 
 ### Numbers
 

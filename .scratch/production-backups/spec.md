@@ -32,7 +32,8 @@ and lifecycle rules keep nightly copies for 35 days and monthly copies for
 completely, once to close this spec and then every quarter. Railway's own
 volume backups stay on as a faster first layer for everyday mistakes.
 
-![Production backup architecture](diagrams/architecture.svg)
+![Production backup architecture](diagrams/architecture.light.png#gh-light-mode-only)
+![Production backup architecture](diagrams/architecture.dark.png#gh-dark-mode-only)
 
 ## User Stories
 
