@@ -31,3 +31,12 @@ domain's existing DNS host.
   automated backups stored off Railway; a backup kept with the same provider
   does not cover losing access to that account.
 - Production disables public sign-up once the owner's account exists.
+
+## Amendment, 2026-10-17
+
+The trial's data stopped being disposable: the owner has kept their real
+ledger in the production database since 2026-09-27, before the migration
+strategy and the off-Railway backups existed. That data is kept, not wiped.
+Off-Railway backups are decided in
+`docs/adr/0013-nightly-encrypted-backups-to-aws-s3.md`, and applying
+migrations to production follows in its own spec.

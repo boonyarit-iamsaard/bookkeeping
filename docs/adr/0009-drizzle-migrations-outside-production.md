@@ -37,3 +37,13 @@ the rest of real-data readiness; until then the trial database keeps receiving
   One developer makes this unlikely; Drizzle v1's folder format removes it.
 - Naming, the rename hand-off, and the local reset live in
   `docs/code-conventions.md`, not here.
+
+## Amendment, 2026-10-17
+
+The production database will not be wiped: it has held the owner's real
+ledger since 2026-09-27. So the production step cannot start from an empty
+database. It has to adopt the existing schema as `0000_baseline` without
+running it, because production has only ever received `db:push` and has no
+Drizzle migrations table. That step waits for the first passing restore drill
+(`docs/adr/0013-nightly-encrypted-backups-to-aws-s3.md`) and gets its own
+spec. Committed migrations may still be squashed until then.

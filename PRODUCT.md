@@ -23,18 +23,15 @@ first milestone is tracking: income, expenses, refunds, and transfers between
 user-owned wallets (cash, bank account, e-wallet), with two-level categories
 and monthly income/expense/net totals. The milestone ends when the deployed
 app can hold the user's real ledger: automated backups stored off the hosting
-provider with a proven restore, a schema migration strategy, and the trial
-data cleared, per `docs/adr/0008`.
+provider with a proven restore, and a schema migration strategy for
+production, per `docs/adr/0008`.
 
-Status (2026-10-01): the user has kept their real ledger in the deployed app
-since September 2026, but milestone one is not closed. Off-provider automated
-backups, a proven restore, and the first-week usage review
-(`.scratch/deployment/issues/05-first-week-usage-review.md`) are still open.
-
-Current focus is a redesign that replaces the whole visual world. Product
-truth, flows, and domain vocabulary carry over. The trigger is that the
-previous look no longer fits the user; no usability failure was reported. A
-milestone after tracking (budgeting or forecasting) has not been chosen.
+Status (2026-10-17): the user has kept their real ledger in the deployed app
+since 2026-09-27, so that data is kept rather than cleared. Milestone one
+closes after two specs: off-provider backups with a proven restore
+(`.scratch/production-backups/spec.md`, ADR 0013), then applying migrations to
+production. A milestone after tracking (budgeting or forecasting) has not been
+chosen.
 
 Success is a ledger the user trusts enough to keep: every transaction captured
 close to the moment of spend, balances that reconcile with reality, and

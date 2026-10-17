@@ -69,6 +69,10 @@ Real data may not be recorded until both of these exist:
   stored in Cloudflare R2 (off Railway), with retention and a restore drill
   still to be decided.
 
+2026-10-17: backups moved to AWS S3 instead of R2, in
+`.scratch/production-backups/spec.md` and ADR 0013. The production database
+now holds real data and is kept; migrations for it get their own spec.
+
 Deferred: per-client auth rate limiting. Behind Railway's proxy Better Auth
 cannot find the client IP, so its limits would fall back to one bucket shared
 by every caller. The trial sets `AUTH_RATE_LIMIT_ENABLED=false` until the
