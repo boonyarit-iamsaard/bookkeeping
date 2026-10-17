@@ -501,6 +501,28 @@ server.
 See the official [Docker setup](https://docs.sonarsource.com/sonarqube-community-build/server-installation/from-docker-image/set-up-and-start-container)
 and [scanner guide](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/sonarscanner).
 
+## Diagrams
+
+Diagrams are written in [D2](https://d2lang.com) and kept beside the spec or
+document they illustrate, as a `.d2` source with its rendered `.svg`
+committed next to it. D2 is an optional tool, not a project dependency;
+install it with Homebrew (`brew install d2`, version 0.9.0 when first used).
+
+Each source sets its own render options in a `vars.d2-config` block: the
+`dagre` layout engine, theme `0` for light and `200` for dark, and 40px of
+padding. One command then renders an SVG that follows the viewer's
+`prefers-color-scheme`:
+
+```bash
+d2 architecture.d2 architecture.svg
+```
+
+Run `d2 fmt` on a source before committing it. Write `$` in a label inside
+single quotes (`'Budgets · $1 alert'`), because D2 reads an unquoted `$` as a
+substitution. Icons such as the AWS set come from `icons.terrastruct.com` by
+URL and are embedded when rendering. For a quick visual check, render a PNG
+to a scratch location instead of committing it.
+
 ## Checks
 
 ```bash

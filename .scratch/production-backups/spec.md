@@ -32,6 +32,8 @@ and lifecycle rules keep nightly copies for 35 days and monthly copies for
 completely, once to close this spec and then every quarter. Railway's own
 volume backups stay on as a faster first layer for everyday mistakes.
 
+![Production backup architecture](diagrams/architecture.svg)
+
 ## User Stories
 
 1. As the owner, I want a copy of my ledger outside Railway every night, so that losing the Railway account loses at most one day of entries.
