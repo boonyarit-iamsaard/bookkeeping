@@ -1,10 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
+import { Pool } from "pg";
 import { describe, expect, test } from "vitest";
 import { users } from "./auth/auth.schema";
 import { createDatabase } from "./connection";
 import { freshDatabase, migrateDatabase } from "./migrate";
 import { createTestUser } from "./testing/test-database";
 import { testDatabaseUrl } from "./testing/url";
+
+// Migrations can exceed Vitest's 5 s default on a loaded machine; matches the
+// integration project's hookTimeout.
+const migrationTestOptions = { timeout: 60_000 };
 
 async function readAppliedMigrationHashes(url: string): Promise<string[]> {
   const connection = createDatabase(url);
@@ -18,57 +24,98 @@ async function readAppliedMigrationHashes(url: string): Promise<string[]> {
   }
 }
 
-describe("migrateDatabase", () => {
-  test("changes nothing when run again and leaves the schema usable", async () => {
-    const url = testDatabaseUrl();
-    const appliedBefore = await readAppliedMigrationHashes(url);
-
-    await migrateDatabase(url);
-
-    expect(appliedBefore).not.toHaveLength(0);
-    expect(await readAppliedMigrationHashes(url)).toEqual(appliedBefore);
-
-    const connection = createDatabase(url);
+// Runs `use` against a migrated database of its own in the test container, so
+// a reset that fails halfway cannot leave later test files without a schema.
+async function withOwnDatabase(
+  use: (url: string) => Promise<void>,
+): Promise<void> {
+  const sharedUrl = testDatabaseUrl();
+  const name = `fresh_${randomUUID().replaceAll("-", "")}`;
+  const url = new URL(sharedUrl);
+  url.pathname = `/${name}`;
+  const admin = new Pool({ connectionString: sharedUrl });
+  try {
+    await admin.query(`CREATE DATABASE "${name}"`);
+    let succeeded = false;
     try {
-      const user = await createTestUser(connection.db);
-      const [storedUser] = await connection.db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.id, user.id));
-
-      expect(storedUser?.id).toBe(user.id);
+      await migrateDatabase(url.href);
+      await use(url.href);
+      succeeded = true;
     } finally {
-      await connection.close();
+      // A failed drop must not replace the error that failed the test.
+      await admin
+        .query(`DROP DATABASE "${name}" WITH (FORCE)`)
+        .catch((error: unknown) => {
+          if (succeeded) {
+            throw error;
+          }
+        });
     }
-  });
+  } finally {
+    await admin.end();
+  }
+}
+
+describe("migrateDatabase", () => {
+  test(
+    "changes nothing when run again and leaves the schema usable",
+    migrationTestOptions,
+    async () => {
+      const url = testDatabaseUrl();
+      const appliedBefore = await readAppliedMigrationHashes(url);
+
+      await migrateDatabase(url);
+
+      expect(appliedBefore).not.toHaveLength(0);
+      expect(await readAppliedMigrationHashes(url)).toEqual(appliedBefore);
+
+      const connection = createDatabase(url);
+      try {
+        const user = await createTestUser(connection.db);
+        const [storedUser] = await connection.db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, user.id));
+
+        expect(storedUser?.id).toBe(user.id);
+      } finally {
+        await connection.close();
+      }
+    },
+  );
 });
 
 describe("freshDatabase", () => {
-  test("resets the schema and reapplies migrations", async () => {
-    const url = testDatabaseUrl();
-    const connection = createDatabase(url);
-    let userId: string;
-    try {
-      const user = await createTestUser(connection.db);
-      userId = user.id;
-    } finally {
-      await connection.close();
-    }
+  test(
+    "resets the schema and reapplies migrations",
+    migrationTestOptions,
+    async () => {
+      await withOwnDatabase(async (url) => {
+        const connection = createDatabase(url);
+        let userId: string;
+        try {
+          const user = await createTestUser(connection.db);
+          userId = user.id;
+        } finally {
+          await connection.close();
+        }
 
-    await freshDatabase(url);
+        await freshDatabase(url);
 
-    const resetConnection = createDatabase(url);
-    try {
-      const rows = await resetConnection.db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.id, userId));
-      expect(rows).toHaveLength(0);
+        const resetConnection = createDatabase(url);
+        try {
+          const rows = await resetConnection.db
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.id, userId));
+          expect(rows).toHaveLength(0);
 
-      const newUser = await createTestUser(resetConnection.db);
-      expect(newUser.id).not.toBe(userId);
-    } finally {
-      await resetConnection.close();
-    }
-  });
+          const newUser = await createTestUser(resetConnection.db);
+          expect(newUser.id).not.toBe(userId);
+        } finally {
+          await resetConnection.close();
+        }
+      });
+    },
+  );
 });
