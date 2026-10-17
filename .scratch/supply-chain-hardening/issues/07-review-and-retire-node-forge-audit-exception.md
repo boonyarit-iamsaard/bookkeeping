@@ -8,11 +8,11 @@ the exception. Preserve enforcement for other moderate-or-higher advisories.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Owner:** Repository owner.
 
-**Next review:** none; the exception is retired on the branch below and awaits merge.
+**Next review:** none; the exception is retired in `d8809cb` (#17).
 
 - [x] On October 9, check the upstream advisory and node-forge/dotenvx releases
       for a published fix, and record the findings under Comments with dated sources.
@@ -35,9 +35,9 @@ the exception. Preserve enforcement for other moderate-or-higher advisories.
       is absent, and remove this advisory's exception. Run the frozen-lockfile
       install, moderate-level audit, registry signature verification, and routine CI
       gate. Apply the repository's browser policy if the change touches that boundary.
-- [ ] Verify the hosted required PR checks before claiming the PR is unblocked;
+- [x] Verify the hosted required PR checks before claiming the PR is unblocked;
       Dependency Review is separate from pnpm's audit exception.
-- [ ] Close this ticket only after the exception is retired and the verified
+- [x] Close this ticket only after the exception is retired and the verified
       remediation commit is recorded. Document the final versions and check results.
 
 ## Comments
@@ -107,3 +107,13 @@ release, and accepted retiring `GHSA-hp3w-g68c-fv3c`, which was accepted on
 
 Remaining before `done`: hosted required PR checks, including Dependency Review,
 then record the merged commit here.
+
+### 2026-10-17: closed
+
+The branch merged as `d8809cb` (#17) on 2026-10-13 with the required `CI`,
+`SPA browser suite` and `Dependency Review` checks passing.
+
+Rechecked on `main` at the time of closing, after the Dependabot bumps in #24
+and #25: `pnpm-lock.yaml` has no `node-forge`, `global-agent`, `roarr` or
+`sprintf-js` entries. Installed versions are `@dotenvx/dotenvx` 2.35.0, and
+1.75.1 through `shadcn` 4.21.4. Both PRs passed Dependency Review.
