@@ -83,6 +83,9 @@
         color: var(--muted);
         font-size: 17px;
       }
+      a {
+        color: var(--accent);
+      }
       code,
       pre {
         font-family:
@@ -172,6 +175,10 @@
         later. They cover how the AWS pieces relate, how a sign-in reaches an
         account, and the gotchas the runbook met. Real identifiers live in the
         password manager and on screen, never here: this repository is public.
+        For the exam view of the same ground, see
+        <a href="saa-c03-identity-and-organizations.html"
+          >SAA-C03: identity and organizations</a
+        >.
       </p>
 
       <figure>
@@ -227,10 +234,13 @@
               </td>
             </tr>
             <tr>
-              <td>Default SCP</td>
+              <td>Default SCPs</td>
               <td>
-                Attached when the Organization was created; it stops member
-                accounts leaving the Organization or closing themselves.
+                Two, attached when the Organization was created in the console.
+                <code>FullAWSAccess</code> allows everything, which is what
+                keeps SCPs from blocking all actions, since an SCP only filters
+                and never grants. The second stops member accounts leaving the
+                Organization or closing themselves.
               </td>
             </tr>
             <tr>
