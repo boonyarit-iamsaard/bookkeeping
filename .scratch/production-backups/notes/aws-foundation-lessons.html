@@ -350,6 +350,58 @@ aws sso logout</code></pre>
         <code>AWSReservedSSO_AdministratorAccess</code>.
       </p>
 
+      <h3>After a restart or in a new terminal</h3>
+      <p>
+        Nothing lives in the shell, so a restart logs nothing out. Everything is
+        on disk under <code>~/.aws</code>:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>What</th>
+              <th>Where</th>
+              <th>How long it lasts</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Profiles and the session</td>
+              <td><code>~/.aws/config</code></td>
+              <td>Permanent.</td>
+            </tr>
+            <tr>
+              <td>SSO token</td>
+              <td><code>~/.aws/sso/cache/</code></td>
+              <td>
+                An hour per access token, refreshed by the CLI on its own for as
+                long as the Identity Center session lasts: 8 hours, the
+                <em>user interactive sessions</em> setting.
+              </td>
+            </tr>
+            <tr>
+              <td>Role credentials</td>
+              <td><code>~/.aws/cli/cache/</code></td>
+              <td>
+                One hour, the permission set's session; fetched again on their
+                own.
+              </td>
+            </tr>
+            <tr>
+              <td>CLI client registration</td>
+              <td><code>~/.aws/sso/cache/</code></td>
+              <td>About 90 days; renewed on its own.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Run <code>aws sso login --sso-session bookkeeping</code> again only when
+        the 8-hour session has ended, after <code>aws sso logout</code>, or when
+        a command reports an expired SSO token. In practice: about once a
+        working day.
+      </p>
+
       <h2>Lessons from the run</h2>
 
       <div class="lesson warn">
@@ -391,6 +443,18 @@ aws sso logout</code></pre>
           <code>( … )</code> subshell kept them out of the shell and the screen.
           <code>get-login-profile</code> failing with
           <code>NoSuchEntity</code> means no root password.
+        </p>
+      </div>
+
+      <div class="lesson warn">
+        <h3>The token cache was readable by everyone</h3>
+        <p>
+          Under WSL, <code>~/.aws/sso/cache</code> and
+          <code>~/.aws/cli/cache</code> came out <code>rwxrwxrwx</code>, so any
+          user on the machine could read the SSO token and the role credentials.
+          <code>chmod -R go-rwx ~/.aws</code> closes it; check that new cache
+          files stay <code>rw-------</code>, and look at the shell's
+          <code>umask</code> if they don't.
         </p>
       </div>
 
