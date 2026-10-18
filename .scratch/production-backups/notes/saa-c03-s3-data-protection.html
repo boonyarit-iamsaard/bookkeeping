@@ -1,0 +1,1119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SAA-C03 S3 data protection</title>
+    <meta
+      name="description"
+      content="An SAA-C03 study sheet for S3 data protection (versioning, Object Lock, lifecycle, encryption, Block Public Access) and AWS Budgets, worked through this project's backup bucket."
+    />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --ink: #1f2330;
+        --muted: #6b7183;
+        --rule: #e3e5ec;
+        --panel: #f6f7fa;
+        --accent: #1f6feb;
+        --warn: #b45309;
+        --deny: #c2410c;
+        --allow: #15803d;
+        --code: #f0f2f6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #13151c;
+          --ink: #e8eaf0;
+          --muted: #9aa0b2;
+          --rule: #2c3040;
+          --panel: #1c1f29;
+          --accent: #58a6ff;
+          --warn: #f5a524;
+          --deny: #fb923c;
+          --allow: #4ade80;
+          --code: #232736;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #13151c;
+        --ink: #e8eaf0;
+        --muted: #9aa0b2;
+        --rule: #2c3040;
+        --panel: #1c1f29;
+        --accent: #58a6ff;
+        --warn: #f5a524;
+        --deny: #fb923c;
+        --allow: #4ade80;
+        --code: #232736;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.6 Inter,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 48px 16px 80px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+        line-height: 1.2;
+      }
+      h2 {
+        margin: 56px 0 12px;
+        padding-top: 16px;
+        border-top: 1px solid var(--rule);
+        font-size: 21px;
+      }
+      h3 {
+        margin: 28px 0 6px;
+        font-size: 16px;
+      }
+      p,
+      li {
+        max-width: 72ch;
+      }
+      a {
+        color: var(--accent);
+      }
+      .lede {
+        color: var(--muted);
+        font-size: 17px;
+      }
+      code {
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--code);
+        font-family:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.88em;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+      }
+      th,
+      td {
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--rule);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      td:first-child {
+        font-weight: 600;
+      }
+      .lesson {
+        margin: 16px 0;
+        padding: 14px 18px;
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        background: var(--panel);
+      }
+      .lesson.warn {
+        border-left-color: var(--warn);
+      }
+      .lesson h3 {
+        margin-top: 0;
+      }
+      .lesson p {
+        margin: 6px 0 0;
+      }
+      ol.gates {
+        margin: 20px 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: gate;
+      }
+      ol.gates > li {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 16px;
+        align-items: center;
+        max-width: none;
+        margin: 0 0 22px;
+        padding: 12px 16px 12px 52px;
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        background: var(--panel);
+        counter-increment: gate;
+      }
+      ol.gates > li::before {
+        content: counter(gate);
+        position: absolute;
+        top: 12px;
+        left: 16px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: var(--bg);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 24px;
+        text-align: center;
+      }
+      ol.gates > li:not(:last-child)::after {
+        content: "↓";
+        position: absolute;
+        bottom: -21px;
+        left: 22px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .gate-name {
+        font-weight: 600;
+      }
+      .gate-detail {
+        grid-column: 1;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .outcome {
+        grid-row: 1 / span 2;
+        grid-column: 2;
+        padding: 2px 10px;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .outcome.deny {
+        color: var(--deny);
+      }
+      .outcome.allow {
+        color: var(--allow);
+      }
+      .formula {
+        padding: 14px 16px;
+        border-radius: 8px;
+        background: var(--code);
+        font-family:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        overflow-x: auto;
+      }
+      details {
+        margin: 10px 0;
+        padding: 10px 16px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+      }
+      details[open] {
+        background: var(--panel);
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      details p {
+        margin: 8px 0 0;
+      }
+      .verdict {
+        font-weight: 700;
+      }
+      .verdict.false {
+        color: var(--deny);
+      }
+      .verdict.true {
+        color: var(--allow);
+      }
+      .tag {
+        display: inline-block;
+        padding: 0 7px;
+        border-radius: 4px;
+        background: var(--code);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        vertical-align: 1px;
+      }
+      @media (max-width: 560px) {
+        ol.gates > li {
+          grid-template-columns: 1fr;
+        }
+        .outcome {
+          grid-row: auto;
+          grid-column: 1;
+          justify-self: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>SAA-C03: S3 data protection and budgets</h1>
+      <p class="lede">
+        The exam view of the ground tickets 02 and 03 covered: keeping objects
+        from being exposed, overwritten or deleted, encrypting them, expiring
+        them, and capping what it all costs. Most of it sits in domain 1, Design
+        Secure Architectures; the backup and retention parts reach into domain
+        2, Resilient Architectures, and lifecycle and Budgets into domain 4,
+        Cost-Optimized Architectures. Each part uses this project's backup
+        bucket as the example. It follows
+        <a href="saa-c03-identity-and-organizations.html">the identity sheet</a
+        >; the operational record is the ticket 03 runbook.
+      </p>
+
+      <h2>Which control answers which threat</h2>
+      <p>
+        Exam scenarios name a threat or a requirement. Match it to the S3
+        feature built for it, and watch for options that solve a neighbouring
+        problem instead.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Threat or requirement</th>
+              <th>Choose</th>
+              <th>Wrong-answer bait</th>
+              <th>Here</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>The bucket must never become public</td>
+              <td>
+                Block Public Access, all four settings, ideally at the account
+                or organization level
+              </td>
+              <td>Reviewing ACLs one object at a time</td>
+              <td>All four on, from the template</td>
+            </tr>
+            <tr>
+              <td>Objects written by other accounts end up owned by them</td>
+              <td>
+                Object Ownership <em>bucket owner enforced</em>: ACLs off,
+                policies only
+              </td>
+              <td>
+                Requiring <code>bucket-owner-full-control</code> on uploads
+              </td>
+              <td>Bucket owner enforced</td>
+            </tr>
+            <tr>
+              <td>Recover from an accidental overwrite or delete</td>
+              <td>Versioning</td>
+              <td>A nightly copy to a second bucket</td>
+              <td>On, and can never be suspended because of Object Lock</td>
+            </tr>
+            <tr>
+              <td>
+                Nobody, including a stolen admin login or root, may delete
+                recent copies
+              </td>
+              <td>Object Lock in compliance mode with a default retention</td>
+              <td>
+                MFA Delete, which stops casual deletes but not a holder of the
+                root MFA device
+              </td>
+              <td>Compliance mode, 35 days</td>
+            </tr>
+            <tr>
+              <td>WORM, but a few trusted admins may override it</td>
+              <td>
+                Object Lock governance mode, with
+                <code>s3:BypassGovernanceRetention</code> for those admins
+              </td>
+              <td>Compliance mode, which nobody can override</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>Keep evidence until an investigation ends, date unknown</td>
+              <td>A legal hold on the object versions</td>
+              <td>A long retention period</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>Stop eavesdropping in transit</td>
+              <td>
+                A bucket policy that denies requests where
+                <code>aws:SecureTransport</code> is false
+              </td>
+              <td>Turning on default encryption, which is at rest only</td>
+              <td>The template's <code>DenyInsecureTransport</code></td>
+            </tr>
+            <tr>
+              <td>Audit and control who can decrypt</td>
+              <td>
+                SSE-KMS with a customer managed key; key policy plus CloudTrail
+                records of every <code>Decrypt</code>
+              </td>
+              <td>SSE-S3, which has no key you control</td>
+              <td>
+                SSE-S3, because the dumps are already <code>age</code>-encrypted
+                on the client
+              </td>
+            </tr>
+            <tr>
+              <td>Survive the loss of a whole Region</td>
+              <td>
+                Cross-Region Replication; versioning must be on in both buckets
+              </td>
+              <td>More Availability Zones, which S3 Standard already spans</td>
+              <td>Out of scope in the spec</td>
+            </tr>
+            <tr>
+              <td>Old data costs too much</td>
+              <td>Lifecycle transitions and expiration</td>
+              <td>A scheduled script that deletes old keys</td>
+              <td>Expiry at 35 and 365 days</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Versioning and how deletes really work</h2>
+      <p>
+        A bucket is <em>unversioned</em> (the default),
+        <em>versioning-enabled</em> or <em>versioning-suspended</em>. Once
+        enabled, it can never return to unversioned, only be suspended. Objects
+        stored before versioning keep the version ID <code>null</code>. Every
+        version is a whole object and is billed as one.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Request</th>
+              <th>Versioned bucket</th>
+              <th>Under Object Lock retention</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>PUT an existing key</td>
+              <td>A new current version; the old one becomes noncurrent</td>
+              <td>Allowed; the locked version stays locked</td>
+            </tr>
+            <tr>
+              <td>DELETE without a version ID</td>
+              <td>
+                <code>200</code>, and a delete marker becomes the current
+                version. Nothing is removed.
+              </td>
+              <td>Same: <code>200</code> and a marker</td>
+            </tr>
+            <tr>
+              <td>DELETE with a version ID</td>
+              <td>That version is permanently removed</td>
+              <td><code>403 Access Denied</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <strong>MFA Delete</strong> adds an MFA code to two requests: changing
+        the versioning state and permanently deleting a version. Only the bucket
+        owner's root user can enable it, through the CLI or API and never the
+        console, and it cannot be used together with a lifecycle configuration.
+      </p>
+
+      <h3>Worked through this project</h3>
+      <div class="lesson">
+        <h3>The uploader tries <code>aws s3 rm</code> on the probe</h3>
+        <p>
+          It is refused before versioning matters: the uploader has no
+          <code>s3:DeleteObject</code>, so IAM says
+          <code>no identity-based policy allows the s3:DeleteObject action</code
+          >. Had it held that permission, the delete would have
+          <em>succeeded</em> by adding a delete marker, and the backup would
+          still have been there underneath.
+        </p>
+      </div>
+      <div class="lesson warn">
+        <h3>The owner deletes the probe by its version ID</h3>
+        <p>
+          <code>AdministratorAccess</code> allows <code>s3:DeleteObject</code>,
+          and S3 still answered
+          <code>Access Denied because object protected by object lock</code>.
+          The test had to name the version ID: a plain
+          <code>aws s3 rm</code> would have returned success and proved nothing.
+        </p>
+      </div>
+
+      <h2>Object Lock</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Protection</th>
+              <th>Who can remove it early</th>
+              <th>Use it when</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Compliance mode</td>
+              <td>
+                Nobody, not even root. The mode can't change and the period
+                can't shorten. The only way out is closing the account.
+              </td>
+              <td>Regulations (SEC 17a-4 style) or ransomware-proof backups</td>
+            </tr>
+            <tr>
+              <td>Governance mode</td>
+              <td>
+                Anyone with <code>s3:BypassGovernanceRetention</code> who sends
+                the bypass header; the console sends it automatically
+              </td>
+              <td>Testing retention, or WORM with an emergency override</td>
+            </tr>
+            <tr>
+              <td>Legal hold</td>
+              <td>Anyone with <code>s3:PutObjectLegalHold</code></td>
+              <td>No known end date; independent of any retention period</td>
+            </tr>
+            <tr>
+              <td>Variable retention <span class="tag">newer</span></td>
+              <td>
+                As its mode; the clock starts when the event hold is released
+              </td>
+              <td>
+                Retention that begins at a future event, such as account closure
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>
+          Object Lock needs versioning. Once on, neither Object Lock nor
+          versioning can be turned off. It can now be enabled on an existing
+          versioned bucket, not only at creation.
+        </li>
+        <li>
+          A bucket's default retention gives every new version a retain-until
+          date of its creation time plus the period. An explicit retention on
+          the PUT overrides the default.
+        </li>
+        <li>
+          Retention protects a version, not a key: new versions and delete
+          markers can still be added on top. Delete markers themselves are never
+          protected.
+        </li>
+        <li>
+          Uploads that get a retention period must carry
+          <code>Content-MD5</code> or an SDK checksum header. Current SDKs and
+          CLI v2 send a CRC checksum by default.
+        </li>
+        <li>
+          A bucket with Object Lock can't be the destination for server access
+          logs.
+        </li>
+      </ul>
+
+      <h2>Lifecycle</h2>
+      <p>
+        Lifecycle rules act on a prefix or tag filter. On a versioned bucket,
+        each kind of action does a different job:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>What it does</th>
+              <th>Here</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Expiration</td>
+              <td>
+                Adds a delete marker to the <em>current</em> version; on an
+                unversioned bucket it deletes the object
+              </td>
+              <td>
+                <code>daily/</code> 35 days, <code>monthly/</code> 365 days
+              </td>
+            </tr>
+            <tr>
+              <td>Noncurrent version expiration</td>
+              <td>
+                Permanently deletes versions some days after they became
+                noncurrent. Without it, expiry on a versioned bucket keeps every
+                version forever.
+              </td>
+              <td>1 day</td>
+            </tr>
+            <tr>
+              <td>Expired delete marker cleanup</td>
+              <td>Removes markers with no versions left behind them</td>
+              <td>On</td>
+            </tr>
+            <tr>
+              <td>Transition</td>
+              <td>Moves objects to a cheaper storage class</td>
+              <td>None; the dumps are tiny</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Lifecycle never deletes a version that is still locked; it waits.
+        Transitions only go down a waterfall towards colder classes, and never
+        back up. Standard can go to any colder class. One Zone-IA can go only to
+        Glacier Flexible Retrieval or Deep Archive, Flexible Retrieval only to
+        Deep Archive, and Deep Archive nowhere. Moving an archived object back
+        up takes a restore and a copy. By default, objects under 128 KB don't
+        transition at all, because the per-object request would cost more than
+        it saves. Leaving a class before its minimum duration is billed as if
+        the object had stayed.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Storage class</th>
+              <th>Minimum duration</th>
+              <th>Minimum billed size</th>
+              <th>Access</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Standard</td>
+              <td>None</td>
+              <td>None</td>
+              <td>Milliseconds, 3+ AZs</td>
+            </tr>
+            <tr>
+              <td>Intelligent-Tiering</td>
+              <td>None</td>
+              <td>None (under 128 KB stays in Frequent Access)</td>
+              <td>Milliseconds; monitoring fee, no retrieval fee</td>
+            </tr>
+            <tr>
+              <td>Standard-IA</td>
+              <td>30 days</td>
+              <td>128 KB</td>
+              <td>Milliseconds; retrieval fee</td>
+            </tr>
+            <tr>
+              <td>One Zone-IA</td>
+              <td>30 days</td>
+              <td>128 KB</td>
+              <td>Milliseconds; 1 AZ, so only for re-creatable data</td>
+            </tr>
+            <tr>
+              <td>Glacier Instant Retrieval</td>
+              <td>90 days</td>
+              <td>128 KB</td>
+              <td>Milliseconds; for data read about once a quarter</td>
+            </tr>
+            <tr>
+              <td>Glacier Flexible Retrieval</td>
+              <td>90 days</td>
+              <td>40 KB metadata overhead per object</td>
+              <td>Restore first: minutes to hours</td>
+            </tr>
+            <tr>
+              <td>Glacier Deep Archive</td>
+              <td>180 days</td>
+              <td>40 KB metadata overhead per object</td>
+              <td>Restore first: hours</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Encryption</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Who holds the key</th>
+              <th>Pick it when</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>SSE-S3</td>
+              <td>S3, per-object keys under a rotated root key; AES-256</td>
+              <td>
+                Default for every bucket since 2023, free. Enough when nobody
+                needs to audit key use.
+              </td>
+            </tr>
+            <tr>
+              <td>SSE-KMS</td>
+              <td>AWS KMS: an AWS managed key or a customer managed key</td>
+              <td>
+                You need a key policy, CloudTrail records of key use, or
+                cross-account access. Only a customer managed key can be shared
+                across accounts.
+              </td>
+            </tr>
+            <tr>
+              <td>DSSE-KMS</td>
+              <td>KMS plus S3, two independent layers</td>
+              <td>A compliance rule demands two layers of encryption</td>
+            </tr>
+            <tr>
+              <td>SSE-C <span class="tag">changed</span></td>
+              <td>You send the key with every request</td>
+              <td>
+                Rarely. Since April 2026 it is blocked by default on new buckets
+                and must be turned on deliberately.
+              </td>
+            </tr>
+            <tr>
+              <td>Client-side</td>
+              <td>You, before upload</td>
+              <td>AWS must never see plaintext</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>
+          SSE-KMS permissions: uploads need <code>kms:GenerateDataKey</code> and
+          downloads <code>kms:Decrypt</code>, on top of the S3 permissions. A
+          missing KMS permission fails the S3 request, so check both.
+        </li>
+        <li>
+          S3 Bucket Keys cut KMS request costs by up to 99%, by using a
+          bucket-level key to make data keys.
+        </li>
+        <li>
+          Changing default encryption doesn't re-encrypt existing objects; S3
+          Batch Operations with a copy does.
+        </li>
+        <li>
+          The KMS key must be in the bucket's Region. A server access log
+          destination bucket must use SSE-S3.
+        </li>
+      </ul>
+      <div class="lesson">
+        <h3>Why this bucket uses SSE-S3, not KMS</h3>
+        <p>
+          The dumps are <code>age</code>-encrypted before they leave Railway, so
+          only the owner's private key can read them, whatever happens to AWS.
+          SSE-S3 adds encryption at rest for free. A customer managed KMS key
+          would cost money and protect nothing the client-side encryption
+          doesn't. The spec rules it out.
+        </p>
+      </div>
+
+      <h2>Block Public Access and Object Ownership</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Setting</th>
+              <th>Effect</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>BlockPublicAcls</code></td>
+              <td>Rejects requests that set a public ACL</td>
+            </tr>
+            <tr>
+              <td><code>IgnorePublicAcls</code></td>
+              <td>Ignores public ACLs that already exist</td>
+            </tr>
+            <tr>
+              <td><code>BlockPublicPolicy</code></td>
+              <td>Rejects a bucket policy that would grant public access</td>
+            </tr>
+            <tr>
+              <td><code>RestrictPublicBuckets</code></td>
+              <td>
+                If a policy is public anyway, only AWS services and the owner's
+                own account may use the bucket; all cross-account access stops
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>
+          Settings exist at the organization <span class="tag">newer</span>,
+          account, bucket and access point level. S3 applies the most
+          restrictive combination, so a bucket can't opt out of an account
+          setting.
+        </li>
+        <li>
+          The settings never edit policies or ACLs. Turning one off makes
+          whatever was public public again.
+        </li>
+        <li>
+          A policy counts as public unless it limits access to fixed principals,
+          accounts, VPCs, endpoints or narrow IP ranges.
+        </li>
+        <li>
+          Object Ownership: <em>bucket owner enforced</em> (the default) turns
+          ACLs off and gives the bucket owner every object;
+          <em>bucket owner preferred</em> and <em>object writer</em> keep ACLs.
+          Keep ACLs off unless each object needs its own access.
+        </li>
+      </ul>
+
+      <h2>AWS Budgets</h2>
+      <ul>
+        <li>
+          Types: cost, usage, RI utilization and coverage, and Savings Plans
+          utilization and coverage. Periods are daily, monthly, quarterly,
+          yearly or a custom range.
+        </li>
+        <li>
+          Monitoring and alerts are free. Budget actions are free for the first
+          two action-enabled budgets, then $0.10 a day each.
+        </li>
+        <li>
+          Alerts fire on <em>actual</em> or <em>forecasted</em> spend. An actual
+          alert fires once per period; a forecast alert can fire again if the
+          forecast dips and climbs. Forecasts need about five weeks of usage
+          data.
+        </li>
+        <li>
+          Each alert goes to up to 10 email addresses and one SNS topic, in the
+          budget's own account. An SNS topic needs a policy that lets
+          <code>budgets.amazonaws.com</code> publish.
+        </li>
+        <li>
+          Billing data refreshes up to three times a day, so an alert can arrive
+          after the threshold has already been passed. A budget warns; only a
+          budget <em>action</em>, such as applying a deny policy or an SCP,
+          stops spending.
+        </li>
+        <li>
+          A member account can create budgets for itself. The management account
+          can track any member's costs, but its budgets stay invisible to that
+          member.
+        </li>
+      </ul>
+      <div class="lesson">
+        <h3>This project's budget</h3>
+        <p>
+          A $1 monthly cost budget in <code>backups</code>, emailing the owner
+          at 80% actual and 100% forecast. Both alerts email the owner directly,
+          so there is no SNS subscription to confirm. The forecast alert can't
+          fire before about five weeks of usage, late November 2026.
+        </p>
+      </div>
+
+      <h2>From the run</h2>
+      <div class="lesson">
+        <h3>A name nobody else can take <span class="tag">newer</span></h3>
+        <p>
+          Bucket names share one global namespace, and a deleted name can be
+          claimed by another account, which then receives requests meant for
+          you. The account regional namespace (names ending
+          <code>-&lt;account id&gt;-&lt;region&gt;-an</code>) can only ever
+          belong to one account. It is new enough to be unlikely on the exam;
+          the global uniqueness rule is not.
+        </p>
+      </div>
+      <div class="lesson">
+        <h3>Least privilege needs no deny</h3>
+        <p>
+          The uploader's only policy allows <code>s3:PutObject</code> on two
+          prefixes. List, read and delete all failed with "no identity-based
+          policy allows", which is an implicit deny. Note that
+          <code>aws s3 cp</code> to stdout fails on <code>HeadObject</code>,
+          which also needs <code>s3:GetObject</code>.
+        </p>
+      </div>
+      <div class="lesson warn">
+        <h3>Look before an irreversible create</h3>
+        <p>
+          The stack was first deployed as a change set
+          (<code>--no-execute-changeset</code>) and read back before it ran.
+          Once an Object Lock bucket exists, neither the lock nor the name can
+          be undone.
+        </p>
+      </div>
+
+      <h2>Trap statements</h2>
+      <p>Decide true or false, then open each one to check.</p>
+
+      <details>
+        <summary>
+          Deleting an object in a versioned bucket without a version ID removes
+          it permanently.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> It adds a delete marker.
+          Every version is still there, and deleting the marker restores the
+          object.
+        </p>
+      </details>
+      <details>
+        <summary>Versioning can be turned off once enabled.</summary>
+        <p>
+          <span class="verdict false">False.</span> It can only be suspended.
+          With Object Lock on, it can't even be suspended.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Under compliance mode, root can shorten the retention period.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> Nobody can shorten it or
+          change the mode. It can only be extended.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Object Lock can only be enabled when a bucket is created.
+        </summary>
+        <p>
+          <span class="verdict false">False</span>, now. It can be enabled on an
+          existing versioned bucket. Older study material says otherwise.
+        </p>
+      </details>
+      <details>
+        <summary>A legal hold expires after a set number of days.</summary>
+        <p>
+          <span class="verdict false">False.</span> It has no end date and stays
+          until someone with <code>s3:PutObjectLegalHold</code> removes it.
+        </p>
+      </details>
+      <details>
+        <summary>
+          A lifecycle expiration rule can delete a version still under Object
+          Lock retention.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> It can add delete markers,
+          but the locked version stays until its retention ends.
+        </p>
+      </details>
+      <details>
+        <summary>
+          MFA Delete can be enabled by an IAM administrator in the console.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> Only the bucket owner's root
+          user can, and only through the CLI or API.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Default bucket encryption also protects data in transit.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> It covers data at rest.
+          In-transit protection is TLS, enforced with a deny on
+          <code>aws:SecureTransport</code> false.
+        </p>
+      </details>
+      <details>
+        <summary>
+          SSE-KMS with the AWS managed <code>aws/s3</code> key lets another
+          account read the objects.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> Cross-account access needs a
+          customer managed key whose key policy allows the other account.
+        </p>
+      </details>
+      <details>
+        <summary>
+          A user with <code>s3:GetObject</code> can always download an SSE-KMS
+          object.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> They also need
+          <code>kms:Decrypt</code> on the key.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Turning off Block Public Access leaves the bucket as private as it
+          was.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> The settings only override
+          policies and ACLs; they don't edit them. Anything public underneath
+          becomes public again.
+        </p>
+      </details>
+      <details>
+        <summary>
+          A bucket-level Block Public Access setting can override a stricter
+          account-level one.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> S3 applies the most
+          restrictive combination across levels.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Transitioning 50 KB objects to Glacier Deep Archive saves money.
+        </summary>
+        <p>
+          <span class="verdict false">False</span>, usually. Each archived
+          object adds 40 KB of metadata and a transition request, so by default
+          objects under 128 KB don't transition at all.
+        </p>
+      </details>
+      <details>
+        <summary>
+          One Zone-IA is a good home for the only copy of backups.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> It lives in one Availability
+          Zone. Use it only for data you can re-create, such as a replica.
+        </p>
+      </details>
+      <details>
+        <summary>An AWS Budgets alert stops further spending.</summary>
+        <p>
+          <span class="verdict false">False.</span> An alert only notifies. A
+          budget action, such as attaching a deny policy or an SCP, is what
+          restricts.
+        </p>
+      </details>
+      <details>
+        <summary>
+          A forecasted-spend alert works from the first day of a new account.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> Budgets needs about five
+          weeks of usage before it can forecast.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Cross-Region Replication needs versioning on both buckets.
+        </summary>
+        <p>
+          <span class="verdict true">True.</span> Source and destination must
+          both be versioning-enabled.
+        </p>
+      </details>
+
+      <h2>Next sheets</h2>
+      <p>
+        Ticket 05 adds the missing-backup alert: an EventBridge Scheduler
+        schedule, a Lambda function with its own narrowly scoped role, an SNS
+        topic and a CloudWatch alarm. That ground is worth a sheet once it
+        ships.
+      </p>
+
+      <h2>Sources</h2>
+      <ul>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html"
+            >S3 Versioning</a
+          >
+          and
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html"
+            >MFA delete</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html"
+            >Locking objects with Object Lock</a
+          >,
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-managing.html"
+            >Object Lock considerations</a
+          >
+          and
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-configure.html"
+            >configuring Object Lock</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html"
+            >Lifecycle transitions</a
+          >
+          and
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html"
+            >storage classes</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html"
+            >Server-side encryption</a
+          >
+          and
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html"
+            >SSE-KMS</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+            >Block Public Access</a
+          >,
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html"
+            >Object Ownership</a
+          >
+          and
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/security-best-practices.html"
+            >S3 security best practices</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/gpbucketnamespaces.html"
+            >Namespaces for general purpose buckets</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html"
+            >Managing costs with AWS Budgets</a
+          >,
+          <a
+            href="https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-best-practices.html"
+            >Budgets best practices</a
+          >
+          and
+          <a
+            href="https://aws.amazon.com/aws-cost-management/aws-budgets/pricing/"
+            >Budgets pricing</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html"
+            >SAA-C03 exam guide</a
+          >
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>
