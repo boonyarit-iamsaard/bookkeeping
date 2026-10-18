@@ -402,6 +402,27 @@ aws sso logout</code></pre>
         working day.
       </p>
 
+      <h3>Every command names its account</h3>
+      <p>
+        <code>[default]</code> holds settings only, no credentials, so a command
+        without <code>--profile</code> fails with <code>NoCredentials</code>
+        instead of running somewhere by accident. Each profile also sets
+        <code>cli_pager =</code>, which prints output straight to the terminal
+        rather than through <code>less</code>; named profiles don't inherit it
+        from <code>[default]</code>.
+      </p>
+      <pre><code>[default]
+region = ap-southeast-1
+cli_pager =
+
+[profile bookkeeping-backups]
+sso_session = bookkeeping
+sso_account_id = &lt;BACKUPS_ACCOUNT_ID&gt;
+sso_role_name = AdministratorAccess
+region = ap-southeast-1
+output = json
+cli_pager =</code></pre>
+
       <h2>Lessons from the run</h2>
 
       <div class="lesson warn">
@@ -468,6 +489,20 @@ aws sso logout</code></pre>
           <code>AWS - portal &lt;user&gt;</code> in both the password manager
           and the authenticator, with each password-manager note naming its
           authenticator entry, make the pairing obvious.
+        </p>
+      </div>
+
+      <div class="lesson warn">
+        <h3>The default profile was signed in as root</h3>
+        <p>
+          An earlier <code>aws login</code> had left
+          <code>login_session = arn:aws:iam::&lt;account&gt;:root</code> in
+          <code>[default]</code>, so every command without
+          <code>--profile</code> ran as root in the management account.
+          <code>aws logout</code> cleared the cached session (tokens already
+          loaded by a tool live up to 15 minutes more), and the line was
+          deleted. For a break-glass task from the CLI, run
+          <code>aws login</code> on purpose and <code>aws logout</code> after.
         </p>
       </div>
 
