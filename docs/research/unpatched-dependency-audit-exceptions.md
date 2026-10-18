@@ -173,6 +173,17 @@ already moved its installed path to `shadcn@4.21.1` and `@shadcn/registry@0.1.0`
 away from the assessed `shadcn@4.21.0`, without triggering a review; its
 2026-10-14 review covers the new path.
 
+## Braces review, 2026-10-18
+
+The overdue 2026-10-14 review of `GHSA-vfj7-8cjw-p6xm` ran on 2026-10-18. The
+advisory still lists no patched release; braces 3.0.3 remains the latest. The
+installed path is now `shadcn@4.21.4` → `@shadcn/registry@0.1.3` and `ts-morph`
+→ `fast-glob@3.3.3` → `micromatch@4.0.8` → `braces@3.0.3`, still the only path.
+The latest `shadcn@4.22.0` still depends on `fast-glob` and `ts-morph`, so
+upgrading would not remove braces. The web app still imports only
+`shadcn/tailwind.css`. The built assets were not re-inspected, because the
+import surface did not change. The exception stands. Next review: 2026-10-25.
+
 ## What passing CI establishes
 
 The pinned pnpm version is 11.28.2. Its supported `audit.ignore` setting filters
