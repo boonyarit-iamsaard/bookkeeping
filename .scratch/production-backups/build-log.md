@@ -131,7 +131,7 @@ clean `main` to build on.
 | Ledger after three weeks            | ~40 transactions, 7 wallets        |
 | Estimated S3 cost                   | under $0.01 a month                |
 | Budget alert                        | $1 a month (AWS), within $10 total |
-| Railway's own backups               | dropped: needs the Pro plan        |
+| Railway's own backups               | kept 6, 27 and 89 days             |
 | Most data a failure can lose        | one day                            |
 | Off-provider retention              | 35 days nightly, 12 months monthly |
 | Dependency PRs merged before design | 5 from Dependabot, 1 by hand       |
@@ -145,12 +145,106 @@ diagram in `diagrams/`, light and dark.
 
 ### Where it stands
 
-- Ticket 01 is done: the AWS Organization, the `backups` account with no root
-  credentials, Identity Center with MFA and two CLI profiles, the `age` key
-  replaced and the manual dump re-encrypted, and the TCP proxy confirmed off.
-  Railway's own backups were dropped because they need the Pro plan; until
-  ticket 04 ships, the re-encrypted dump is the only copy outside Railway.
+- Owner, ticket 01: the AWS Organization, the `backups` account, Identity
+  Center with MFA, Railway's own backup schedules, and three loose ends from
+  today: replace the exposed `age` key, re-encrypt the manual dump, and
+  confirm the temporary TCP proxy is off.
 - Agent, ticket 02 next: the CloudFormation template for the bucket, the
   uploader and the budget.
 - The branch `feat/production-backups` holds the spec, tickets, ADR, build
   log, diagram kit and diagram; it is not pushed yet.
+
+## 2026-10-18: the AWS foundation, by hand
+
+### What
+
+Ticket 01 was the owner's to perform, so the agent wrote a runbook from the
+current AWS and Railway docs and then walked through it one step at a time,
+checking each result read-only. The old personal AWS account became the
+management account of an Organization with a new `backups` member account
+that has no root credentials at all. IAM Identity Center gives the owner one
+MFA-protected sign-in to both accounts, in the browser and in the CLI, with no
+access keys on disk. The `age` key exposed in a screenshot the day before was
+replaced and the manual dump re-encrypted. The temporary TCP proxy was
+confirmed gone. Railway's own backups were dropped: they need the Pro plan.
+The session ended with a learning note and a second diagram of how the AWS
+pieces relate: `notes/aws-foundation-lessons.html` and
+`diagrams/aws-access.diagram.html`.
+
+### Why
+
+- Root credentials are the one thing no policy can limit. Removing them from
+  `backups` and keeping the management account's root for break-glass use
+  leaves the everyday path, Identity Center with MFA, as the only door.
+- The backup job in later tickets needs a place to upload to and a way for
+  the owner to restore; both start from these accounts and CLI profiles.
+- A private key that has appeared in a screenshot is burned, even if the
+  screenshot is deleted. Every backup encrypted to it would be readable by
+  whoever saw it.
+
+### How
+
+- **Runbook first, then companion.** Every step had a goal, the exact
+  console path or command, what to expect, a read-only verify check, how to
+  undo it, and the official page behind it. During the run the agent ran the
+  checks itself where it could and asked for a screenshot where it could not.
+- **Order chosen for a reason.** Centralized root access went on before the
+  member account was created, so the account was born with no root password,
+  keys or MFA, and nothing needed deleting afterwards.
+- **Proof from the API, not the console.** Once the CLI profiles existed, one
+  batch of read-only calls confirmed the feature set, both accounts, the root
+  access features, the Identity Center instance and root's MFA. An audit-only
+  `sts:AssumeRoot` session, kept inside a subshell, showed `backups` has no
+  root password, keys, MFA or certificates.
+- **Key rotation without plaintext on disk.** The dump was re-encrypted in a
+  single pipe and both decryptions hashed to the same value. The new key went
+  to the password manager through the clipboard, never the screen, and a
+  passphrase-encrypted copy went to a cloud drive. Both copies were tested
+  against the dump before the old key was deleted.
+
+### Struggles
+
+- **The console said done; the API said nothing was on.** Turning on IAM's
+  trusted access from Organizations made the Root access management page show
+  the account tree, with no capability choices left to make. The API listed
+  no enabled features. Two CLI calls from CloudShell turned them on. Had the
+  `backups` account been created then, it would have been born with root
+  credentials. Lesson: check with the API before any step that cannot be
+  undone.
+- **A plan limit nobody checked.** The spec assumed Railway's Hobby plan
+  includes volume backups. The Backups tab disagreed: creating backups and
+  schedules needs Pro. The owner kept Hobby and dropped the criterion; the
+  off-Railway job was always the real requirement.
+- **A public repo and a chatty run log.** The run log picked up account IDs,
+  emails and the portal URL as the steps were ticked. They were scrubbed
+  before the first commit, and the runbook skill is getting a check for it.
+- **Names on the screen.** The production database service is called
+  `database`, not `Postgres` as the runbook assumed; and two AWS sign-ins
+  looked alike in the password manager and the authenticator until both were
+  renamed with matching labels.
+
+### Numbers
+
+| Item                                       | Value                   |
+| ------------------------------------------ | ----------------------- |
+| Runbook steps                              | 16 (15 done, 1 skipped) |
+| Ticket criteria                            | 9 (8 passed, 1 dropped) |
+| AWS accounts                               | 2                       |
+| Root credentials in `backups`              | 0                       |
+| Access keys on the owner's machine         | 0                       |
+| Identity Center session length             | 1 hour                  |
+| Copies of the new `age` key                | 2, both tested          |
+| Steps where the console differed from docs | 2                       |
+| AWS cost so far                            | $0                      |
+
+Screenshots (private): the AWS console pages for each step, the access
+portal, and the terminal output of the CLI checks. Committed figures: the
+AWS access diagram in `diagrams/`, light and dark, and the learning note in
+`notes/`.
+
+### Where it stands
+
+- Ticket 01 is done. Until ticket 04 ships, the re-encrypted 2026-10-17 dump
+  is the only copy of the data outside Railway.
+- Agent, ticket 02 next: the CloudFormation template for the bucket, the
+  uploader and the budget.

@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AWS foundation lessons</title>
+    <meta
+      name="description"
+      content="What ticket 01 of production backups taught: how the AWS Organization, Identity Center, root access and the CLI fit together, and the gotchas met on the way."
+    />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --ink: #1f2330;
+        --muted: #6b7183;
+        --rule: #e3e5ec;
+        --panel: #f6f7fa;
+        --accent: #1f6feb;
+        --warn: #b45309;
+        --code: #f0f2f6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #13151c;
+          --ink: #e8eaf0;
+          --muted: #9aa0b2;
+          --rule: #2c3040;
+          --panel: #1c1f29;
+          --accent: #58a6ff;
+          --warn: #f5a524;
+          --code: #232736;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #13151c;
+        --ink: #e8eaf0;
+        --muted: #9aa0b2;
+        --rule: #2c3040;
+        --panel: #1c1f29;
+        --accent: #58a6ff;
+        --warn: #f5a524;
+        --code: #232736;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.6 Inter,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 48px 16px 80px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+        line-height: 1.2;
+      }
+      h2 {
+        margin: 56px 0 12px;
+        padding-top: 16px;
+        border-top: 1px solid var(--rule);
+        font-size: 21px;
+      }
+      h3 {
+        margin: 28px 0 6px;
+        font-size: 16px;
+      }
+      p,
+      li {
+        max-width: 72ch;
+      }
+      .lede {
+        color: var(--muted);
+        font-size: 17px;
+      }
+      code,
+      pre {
+        font-family:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.88em;
+      }
+      code {
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--code);
+      }
+      pre {
+        overflow-x: auto;
+        padding: 14px 16px;
+        border-radius: 8px;
+        background: var(--code);
+        line-height: 1.5;
+      }
+      pre code {
+        padding: 0;
+        background: none;
+      }
+      figure {
+        margin: 32px 0;
+      }
+      figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+      }
+      figcaption {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+      }
+      th,
+      td {
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--rule);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      td:first-child {
+        white-space: nowrap;
+        font-weight: 600;
+      }
+      ol.flow li {
+        margin-bottom: 6px;
+      }
+      .lesson {
+        margin: 16px 0;
+        padding: 14px 18px;
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        background: var(--panel);
+      }
+      .lesson.warn {
+        border-left-color: var(--warn);
+      }
+      .lesson h3 {
+        margin-top: 0;
+      }
+      .lesson p {
+        margin: 6px 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>AWS foundation: what ticket 01 taught</h1>
+      <p class="lede">
+        Notes from 2026-10-18, written for the owner coming back to this months
+        later. They cover how the AWS pieces relate, how a sign-in reaches an
+        account, and the gotchas the runbook met. Real identifiers live in the
+        password manager and on screen, never here: this repository is public.
+      </p>
+
+      <figure>
+        <picture>
+          <source
+            srcset="../diagrams/aws-access.dark.png"
+            media="(prefers-color-scheme: dark)"
+          />
+          <img
+            src="../diagrams/aws-access.light.png"
+            alt="The owner reaches the management and backups accounts through IAM Identity Center; root access management audits the backups account's absent root user."
+          />
+        </picture>
+        <figcaption>
+          Source: <code>../diagrams/aws-access.diagram.html</code>, rendered
+          with <code>pnpm diagrams</code>.
+        </figcaption>
+      </figure>
+
+      <h2>The pieces</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Term</th>
+              <th>What it is here</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Organization</td>
+              <td>
+                A container for AWS accounts with one bill. Created with
+                <em>all features</em>, which unlocks service control policies
+                (SCPs) and centralized root access; "consolidated billing only"
+                would not.
+              </td>
+            </tr>
+            <tr>
+              <td>Management account</td>
+              <td>
+                The old personal account. It pays for everything, owns the
+                Organization, and hosts Identity Center. SCPs never restrict it,
+                so it stays lean.
+              </td>
+            </tr>
+            <tr>
+              <td>Member account</td>
+              <td>
+                <code>backups</code>: a separate blast radius for the S3 bucket,
+                away from SAA-C03 practice. Its root email is a plus address in
+                the owner's normal inbox.
+              </td>
+            </tr>
+            <tr>
+              <td>Default SCP</td>
+              <td>
+                Attached when the Organization was created; it stops member
+                accounts leaving the Organization or closing themselves.
+              </td>
+            </tr>
+            <tr>
+              <td>Trusted access</td>
+              <td>
+                Permission for one AWS service to act across the Organization.
+                IAM needed it before root access management would work.
+              </td>
+            </tr>
+            <tr>
+              <td>Centralized root access</td>
+              <td>
+                Two features: <code>RootCredentialsManagement</code> (new member
+                accounts get no root password, keys or MFA) and
+                <code>RootSessions</code> (the management account can call
+                <code>sts:AssumeRoot</code> into a member account for one narrow
+                task, such as an audit).
+              </td>
+            </tr>
+            <tr>
+              <td>Root user</td>
+              <td>
+                In the management account: kept for <em>break-glass</em> use
+                only, meaning lockouts and the few root-only tasks. In
+                <code>backups</code>: absent.
+              </td>
+            </tr>
+            <tr>
+              <td>Identity Center instance</td>
+              <td>
+                An <em>organization instance</em>, single-Region, in
+                <code>ap-southeast-1</code>. The Region is permanent; the
+                multi-Region option would have created a paid KMS key.
+              </td>
+            </tr>
+            <tr>
+              <td>Identity Center user</td>
+              <td>
+                The owner's everyday sign-in, with a password and MFA asked for
+                every time. Its username cannot change, so it names the person,
+                not a role.
+              </td>
+            </tr>
+            <tr>
+              <td>Permission set</td>
+              <td>
+                A template of permissions: <code>AdministratorAccess</code>,
+                one-hour sessions.
+              </td>
+            </tr>
+            <tr>
+              <td>Assignment, provisioning</td>
+              <td>
+                Assigning a user and a permission set to an account makes
+                Identity Center create an IAM role in that account,
+                <code>AWSReservedSSO_AdministratorAccess_…</code>. Signing in
+                means assuming that role.
+              </td>
+            </tr>
+            <tr>
+              <td>OrganizationAccountAccessRole</td>
+              <td>
+                Made when Organizations created <code>backups</code>; lets the
+                management account assume admin there. Unused, since Identity
+                Center replaces it.
+              </td>
+            </tr>
+            <tr>
+              <td>Access portal</td>
+              <td>
+                The Identity Center sign-in page. It has two URLs, an IPv4-only
+                <code>…awsapps.com/start</code> and a dual-stack
+                <code>…portal.ap-southeast-1.app.aws</code>; the CLI uses the
+                first.
+              </td>
+            </tr>
+            <tr>
+              <td>sso-session, profile</td>
+              <td>
+                In <code>~/.aws/config</code>, one <code>sso-session</code>
+                holds the portal URL and Region; each profile picks an account
+                and role from it. One login serves both profiles.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>How a sign-in reaches an account</h2>
+      <h3>Browser</h3>
+      <ol class="flow">
+        <li>Open the access portal; enter the username and password.</li>
+        <li>Enter the authenticator code (always asked).</li>
+        <li>
+          Pick an account and <code>AdministratorAccess</code>; the console
+          opens as the provisioned role, for at most one hour.
+        </li>
+      </ol>
+      <h3>CLI</h3>
+      <ol class="flow">
+        <li>
+          <code>aws sso login --sso-session bookkeeping</code> opens the
+          browser; approve the <code>botocore-client-…</code> request.
+        </li>
+        <li>
+          The CLI caches a token, then trades it for short-lived role
+          credentials per profile. No access key is ever written to disk.
+        </li>
+      </ol>
+      <pre><code>aws sso login --sso-session bookkeeping
+aws sts get-caller-identity --profile bookkeeping-backups
+aws sts get-caller-identity --profile bookkeeping-management
+aws sso logout</code></pre>
+      <p>
+        A healthy <code>get-caller-identity</code> shows the expected account
+        and an <code>Arn</code> containing
+        <code>AWSReservedSSO_AdministratorAccess</code>.
+      </p>
+
+      <h2>Lessons from the run</h2>
+
+      <div class="lesson warn">
+        <h3>Order matters: root access before the member account</h3>
+        <p>
+          Accounts created after <code>RootCredentialsManagement</code> is on
+          are born with no root credentials. Created before, they would need
+          their root credentials deleted afterwards.
+        </p>
+      </div>
+
+      <div class="lesson warn">
+        <h3>The console turned on less than it looked</h3>
+        <p>
+          After trusted access was enabled, IAM's Root access management page
+          showed the account tree and no capability choices, as if done.
+          <code>aws iam list-organizations-features</code> in CloudShell said
+          <code>[]</code>. The two <code>aws iam enable-organizations-…</code>
+          commands fixed it. Checking with the API before the next irreversible
+          step is what caught it.
+        </p>
+      </div>
+
+      <div class="lesson">
+        <h3>CloudShell is the read-only tool before profiles exist</h3>
+        <p>
+          It runs as whoever is signed in to the console, with the CLI
+          installed, so it can check a step long before
+          <code>aws configure sso</code> has run locally.
+        </p>
+      </div>
+
+      <div class="lesson">
+        <h3>Audit a member's root without keeping its credentials</h3>
+        <p>
+          <code>aws sts assume-root</code> with the
+          <code>IAMAuditRootUserCredentials</code> task policy returns
+          credentials that can only read root settings. Exporting them inside a
+          <code>( … )</code> subshell kept them out of the shell and the screen.
+          <code>get-login-profile</code> failing with
+          <code>NoSuchEntity</code> means no root password.
+        </p>
+      </div>
+
+      <div class="lesson">
+        <h3>Labels that match across apps</h3>
+        <p>
+          Root and portal sign-ins are easy to mix up. Entries named
+          <code>AWS - root &lt;account&gt;</code> and
+          <code>AWS - portal &lt;user&gt;</code> in both the password manager
+          and the authenticator, with each password-manager note naming its
+          authenticator entry, make the pairing obvious.
+        </p>
+      </div>
+
+      <div class="lesson">
+        <h3>Say no to the agent tooling prompt</h3>
+        <p>
+          <code>aws configure sso</code> now ends by offering to set up AWS
+          skills and an MCP server for AI coding agents. Declined: it changes
+          agent configuration and hands agents an admin session.
+        </p>
+      </div>
+
+      <div class="lesson warn">
+        <h3>Railway's own backups need the Pro plan</h3>
+        <p>
+          On Hobby the Backups tab can only view, restore and delete. The spec
+          assumed otherwise; the criterion was dropped. Until ticket 04 ships,
+          the re-encrypted 2026-10-17 dump is the only copy outside Railway.
+        </p>
+      </div>
+
+      <div class="lesson">
+        <h3>Rotating an <code>age</code> key without plaintext on disk</h3>
+        <p>
+          Re-encrypt in one pipe (<code>age -d … | age -r … -o …</code>), then
+          compare <code>sha256sum</code> of both decryptions. Copy the key with
+          <code>clip.exe &lt; key</code> instead of printing it, and test the
+          password-manager copy by piping the clipboard into
+          <code>age -d -i -</code>. A second copy can sit in a cloud drive if it
+          is passphrase-encrypted (<code>age -p</code>) and the passphrase lives
+          outside the password manager.
+        </p>
+      </div>
+
+      <div class="lesson warn">
+        <h3>Public repo, private identifiers</h3>
+        <p>
+          Account IDs, emails and portal URLs crept into the run log during the
+          session and had to be scrubbed before the first commit. Write
+          placeholders or descriptions in the file from the start.
+        </p>
+      </div>
+    </main>
+  </body>
+</html>
