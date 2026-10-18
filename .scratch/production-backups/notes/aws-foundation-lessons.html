@@ -446,15 +446,17 @@ aws sso logout</code></pre>
         </p>
       </div>
 
-      <div class="lesson warn">
-        <h3>The token cache was readable by everyone</h3>
+      <div class="lesson">
+        <h3><code>rwxrwxrwx</code> under <code>~/.aws</code> is not real</h3>
         <p>
-          Under WSL, <code>~/.aws/sso/cache</code> and
-          <code>~/.aws/cli/cache</code> came out <code>rwxrwxrwx</code>, so any
-          user on the machine could read the SSO token and the role credentials.
-          <code>chmod -R go-rwx ~/.aws</code> closes it; check that new cache
-          files stay <code>rw-------</code>, and look at the shell's
-          <code>umask</code> if they don't.
+          On this machine <code>~/.aws</code> links to the Windows profile's
+          <code>.aws</code> folder, which WSL mounts without Linux permission
+          metadata: every file shows <code>rwxrwxrwx</code> and
+          <code>chmod</code> changes nothing. Windows ACLs do the guarding, and
+          on the cache they allow only SYSTEM, Administrators and the owner's
+          Windows user. Check with <code>Get-Acl</code>, not <code>ls</code>.
+          The link also means the Windows and WSL CLIs share one config and one
+          login.
         </p>
       </div>
 
