@@ -22,3 +22,14 @@ owner holds the private key and the read access.
 - [ ] Spec status set to `done`, and the `production-migrations` spec unblocked.
 
 ## Comments
+
+### 2026-10-18: README drift from the branch review
+
+The review of `feat/production-backups` before the 04 merge found README
+sections that the branch outdated. Fix them in this ticket's pull request:
+
+- "Local SonarQube" omits `infra/aws`, which `sonar-project.properties` now
+  scans.
+- "Dependency updates" says both Dockerfiles pin by digest; there are now
+  three, and the `postgres` major ignore for `/apps/backup` is not mentioned.
+- "Project structure" lists neither `apps/backup/` nor `infra/aws/`.
