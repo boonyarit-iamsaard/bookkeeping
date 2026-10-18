@@ -100,13 +100,16 @@ volume backups stay on as a faster first layer for everyday mistakes.
 
 ### Backup job
 
-- Lives in `apps/backup/`: a Dockerfile, a `railway.json`, and the job script.
-  It is not a pnpm workspace package. The base image is `postgres:18-alpine`
-  pinned by tag and index digest (ADR 0010), with `age`, the AWS CLI and
-  `bash` added from Alpine packages.
+- Lives in `apps/backup/`: a Dockerfile, the job script and the manifest
+  query. It is not a pnpm workspace package. The base image is
+  `postgres:18-alpine` pinned by tag and index digest (ADR 0010), with `age`,
+  the AWS CLI and `bash` added from Alpine packages.
 - Railway runs it as a cron service named `backup` in the production project:
   schedule `0 20 * * *` (UTC, which is 03:00 Asia/Bangkok), restart policy
-  `NEVER`, no public networking. It watches only `/apps/backup/**`.
+  `NEVER`, no public networking. It watches only `/apps/backup/**`. These
+  settings live in the service's dashboard, not a `railway.json`: Railway
+  deprecated config as code, and new services cannot use it (ticket 04's
+  Comments).
 - Variables: `DATABASE_URL` referencing the Postgres service's private URL,
   `AGE_RECIPIENT` (the owner's public key), `BACKUP_BUCKET`, `AWS_REGION`,
   `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`.

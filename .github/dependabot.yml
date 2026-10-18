@@ -67,3 +67,15 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: caddy
         update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: docker
+    directory: /apps/backup
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+    # pg_dump must match the production server's major, so `postgres` moves
+    # with the Railway database, not when a tag appears.
+    ignore:
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
