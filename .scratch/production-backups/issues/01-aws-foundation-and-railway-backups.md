@@ -9,7 +9,7 @@ on the production Postgres service.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** done
 
 **Notes:** Accounts, credentials and MFA are the owner's to handle. An agent
 can prepare a step-by-step walkthrough (the `/wizard` skill) but does not
@@ -35,3 +35,10 @@ and delete existing ones. The owner chose to stay on Hobby. Railway's own
 backups were a faster restore path, not the ADR 0008 requirement, which the
 off-Railway job in tickets 02 to 06 meets. Until ticket 04 ships, the
 re-encrypted 2026-10-17 dump is the only copy outside the volume.
+
+### 2026-10-18: Closed
+
+Done in bb540d6. Eight criteria pass, verified from the CLI and the owner's
+screenshots; the Railway backups criterion is dropped, as noted above. The
+runbook's Run log, `../runbooks/01-aws-foundation-and-railway-backups.md`,
+records each step and the deviations from the docs.
