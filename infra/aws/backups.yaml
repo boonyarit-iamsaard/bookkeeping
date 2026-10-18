@@ -20,6 +20,9 @@ Resources:
     Type: AWS::S3::Bucket
     # Compliance-mode Object Lock keeps every version for 35 days whatever
     # happens to the stack, so the bucket outlives it too.
+    # No server access logging (Sonar S6258, accepted): every object is
+    # age-encrypted, so a logged read would only show ciphertext was taken,
+    # and CloudTrail already records changes to the bucket and its policy.
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
