@@ -9,11 +9,17 @@ Parameters:
     Description: The owner's email address for budget alerts.
     AllowedPattern: ^[^@\s]+@[^@\s]+\.[^@\s]+$
     ConstraintDescription: Must be an email address.
-  BucketName:
+  BucketNamePrefix:
     Type: String
-    Description: The backup bucket's globally unique name.
-    AllowedPattern: ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$
-    ConstraintDescription: Must be a valid S3 bucket name.
+    Default: bookkeeping-backups
+    Description: >-
+      The backup bucket's name before the account regional suffix, which S3
+      adds as -<account id>-<region>-an.
+    # The 31-character suffix leaves 32 of the 63 for the prefix.
+    AllowedPattern: ^[a-z0-9][a-z0-9-]{0,30}[a-z0-9]$
+    ConstraintDescription: >-
+      Must be 2 to 32 lowercase letters, digits or hyphens, starting and
+      ending with a letter or digit.
 
 Resources:
   BackupBucket:
@@ -26,7 +32,10 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      BucketName: !Ref BucketName
+      # The account regional namespace means no other account can ever
+      # create this name, even if the bucket is deleted.
+      BucketNamePrefix: !Ref BucketNamePrefix
+      BucketNamespace: account-regional
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true

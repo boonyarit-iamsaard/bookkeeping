@@ -8,8 +8,11 @@ hand to the `backups` account; CI never holds AWS credentials (ADR 0013).
 ## Deploy
 
 Sign in with `aws sso login --profile bookkeeping-backups`, then deploy. The
-bucket name must be globally unique, and Object Lock makes it permanent for
-the stack's life, so choose it once.
+bucket lives in the account regional namespace: S3 appends
+`-<account id>-<region>-an` to `BucketNamePrefix` (default
+`bookkeeping-backups`), so no other account can ever take the name. Object
+Lock makes the bucket permanent for the stack's life, so choose the prefix
+once.
 
 ```sh
 aws cloudformation deploy \
@@ -18,7 +21,7 @@ aws cloudformation deploy \
   --stack-name bookkeeping-backups \
   --template-file infra/aws/backups.yaml \
   --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides AlertEmail=<owner email> BucketName=<bucket name>
+  --parameter-overrides AlertEmail=<owner email>
 ```
 
 `CAPABILITY_NAMED_IAM` is needed because the uploader user has a fixed name.
