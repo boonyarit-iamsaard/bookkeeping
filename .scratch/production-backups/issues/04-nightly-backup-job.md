@@ -41,8 +41,9 @@ The `backup` service's settings:
 
 - Source: this repository, branch `main`, root directory unset, so the build
   context is the repository root.
-- Builder: Dockerfile, with the service variable
-  `RAILWAY_DOCKERFILE_PATH=apps/backup/Dockerfile`.
+- Builder: Dockerfile, with Dockerfile Path `/apps/backup/Dockerfile`. The
+  field only suggests Dockerfiles already on `main`, so type it in before
+  this branch merges.
 - Watch paths: `/apps/backup/**`.
 - Wait for CI: on, as for the server and web services (ADR 0010).
 - Cron schedule: `0 20 * * *`, which is 03:00 Asia/Bangkok.
