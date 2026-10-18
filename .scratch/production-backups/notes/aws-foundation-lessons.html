@@ -350,6 +350,67 @@ aws sso logout</code></pre>
         <code>AWSReservedSSO_AdministratorAccess</code>.
       </p>
 
+      <h3>Session versus profile</h3>
+      <p>
+        The two kinds of section in <code>~/.aws/config</code> answer different
+        questions. The <code>sso-session</code> says <em>how you sign in</em>; a
+        <code>profile</code> says <em>what you act as</em>, and borrows the
+        sign-in from the session it names.
+      </p>
+      <pre><code>[sso-session bookkeeping]
+sso_start_url = &lt;PORTAL_URL&gt;          # which access portal
+sso_region = ap-southeast-1           # where Identity Center lives
+sso_registration_scopes = sso:account:access
+
+[profile bookkeeping-backups]
+sso_session = bookkeeping             # use that sign-in
+sso_account_id = &lt;BACKUPS_ACCOUNT_ID&gt; # which account
+sso_role_name = AdministratorAccess   # which permission set's role
+region = ap-southeast-1               # where commands run</code></pre>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th><code>sso-session</code></th>
+              <th><code>profile</code></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Represents</td>
+              <td>You, signed in</td>
+              <td>One account and one role</td>
+            </tr>
+            <tr>
+              <td>How many</td>
+              <td>One per access portal</td>
+              <td>One per account and role you use</td>
+            </tr>
+            <tr>
+              <td>Produces</td>
+              <td>The SSO token, for the 8-hour session</td>
+              <td>Role credentials, for one hour</td>
+            </tr>
+            <tr>
+              <td>Used by</td>
+              <td><code>aws sso login --sso-session …</code></td>
+              <td><code>aws … --profile …</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        One sign-in serves every profile, so a third account later means one
+        more <code>[profile …]</code> and no new login. The two Regions differ
+        too: <code>sso_region</code> is where Identity Center lives and never
+        changes, while a profile's <code>region</code> is where its commands act
+        and could be any Region. Older configs repeated the portal URL in every
+        profile and could not refresh tokens on their own; the
+        <code>sso-session</code> section, which <code>aws configure sso</code>
+        now writes by default, fixes both.
+      </p>
+
       <h3>After a restart or in a new terminal</h3>
       <p>
         Nothing lives in the shell, so a restart logs nothing out. Everything is
