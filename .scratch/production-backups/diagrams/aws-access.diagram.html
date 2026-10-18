@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AWS access</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400&display=block"
+    />
+    <link rel="stylesheet" href="../../../docs/diagrams/kit.css" />
+    <script defer src="../../../docs/diagrams/kit.js"></script>
+  </head>
+  <body>
+    <figure
+      class="diagram"
+      role="img"
+      aria-label="The owner signs in to the IAM Identity Center access portal with a password and MFA, or runs aws sso login from the CLI. Identity Center lives in the management account of an AWS Organization and provisions an AdministratorAccess role into both the management account and the backups member account. The management account's root user is kept for break-glass use. Centralized root access management lets the management account run audit-only root sessions in the backups account, which has no root credentials of its own."
+    >
+      <div class="row" style="--gap: 110px; --align: stretch">
+        <section class="group">
+          <div class="group-label">
+            <span class="tile round">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="9" r="3.5" />
+                <path d="M5.5 19c1-3.5 12-3.5 13 0" />
+              </svg>
+            </span>
+            Owner's machine
+          </div>
+          <div class="column" style="--gap: 64px">
+            <div class="card" id="owner" style="--card-width: 250px">
+              <span class="tile" style="--tile: #6d4aff">
+                <svg viewBox="0 0 24 24">
+                  <rect x="6" y="10" width="12" height="9" rx="2" />
+                  <path d="M9 10V7a3 3 0 0 1 6 0v3" />
+                </svg>
+              </span>
+              <div>
+                <div class="title">Password manager and phone</div>
+                <div class="meta">passwords · authenticator codes</div>
+              </div>
+            </div>
+            <div class="card" id="portal" style="--card-width: 250px">
+              <span class="tile" style="--tile: #1f6feb">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="8" />
+                  <path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16" />
+                </svg>
+              </span>
+              <div>
+                <div class="title">Access portal</div>
+                <div class="meta">browser · console for either account</div>
+              </div>
+            </div>
+            <div class="card" id="cli" style="--card-width: 250px">
+              <span class="tile" style="--tile: #4b5563">&gt;_</span>
+              <div>
+                <div class="title">AWS CLI</div>
+                <div class="meta">~/.aws/config · no access keys</div>
+              </div>
+              <pre class="body">
+[sso-session bookkeeping]
+profile bookkeeping-backups
+profile bookkeeping-management</pre>
+            </div>
+          </div>
+        </section>
+
+        <section class="group" data-tone="orange">
+          <div class="group-label">
+            <span class="tile">aws</span>
+            AWS Organization · all features
+            <span class="meta">default SCP: members can't leave</span>
+          </div>
+          <div class="row" style="--gap: 110px; --align: stretch">
+            <div class="group sub" id="management">
+              <div class="group-label">management account · pays the bill</div>
+              <div class="column" style="--gap: 30px">
+                <div class="card dashed" id="root">
+                  <span class="tile" style="--tile: #b91c1c">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div class="title">Root user</div>
+                    <div class="meta">password, MFA · break-glass only</div>
+                  </div>
+                </div>
+                <div class="card" id="rootaccess">
+                  <span class="tile" style="--tile: #dd344c">IAM</span>
+                  <div>
+                    <div class="title">Root access management</div>
+                    <div class="meta">needs IAM trusted access first</div>
+                  </div>
+                  <pre class="body">
+RootCredentialsManagement
+RootSessions  (sts:AssumeRoot)</pre>
+                </div>
+
+                <div class="card" id="organizations">
+                  <span class="tile" style="--tile: #e7157b">
+                    <svg viewBox="0 0 24 24">
+                      <rect x="9" y="3" width="6" height="5" rx="1" />
+                      <rect x="3" y="16" width="6" height="5" rx="1" />
+                      <rect x="15" y="16" width="6" height="5" rx="1" />
+                      <path d="M12 8v4M6 16v-4h12v4" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div class="title">Organizations</div>
+                    <div class="meta">creates and governs accounts</div>
+                  </div>
+                </div>
+                <div class="card" id="idc" style="--card-width: 290px">
+                  <span class="tile" style="--tile: #dd344c">IdC</span>
+                  <div>
+                    <div class="title">IAM Identity Center</div>
+                    <div class="meta">
+                      organization instance · ap-southeast-1
+                    </div>
+                  </div>
+                  <pre class="body">
+user          owner, MFA always-on
+permission    AdministratorAccess, 1 h
+set           assigned to both accounts</pre>
+                </div>
+                <div class="card" id="mgmtrole">
+                  <span class="tile" style="--tile: #4b5563">
+                    <svg viewBox="0 0 24 24">
+                      <circle cx="9" cy="12" r="3.5" />
+                      <path d="M12.5 12H20M17 12v3" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div class="title">AWSReservedSSO_Administrator…</div>
+                    <div class="meta">IAM role · created by provisioning</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="group sub" id="backups">
+              <div class="group-label">backups member account</div>
+              <div class="column" style="--gap: 30px">
+                <div
+                  class="card dashed"
+                  id="backupsroot"
+                  style="margin-top: 150px"
+                >
+                  <span class="tile" style="--tile: #9ca3af">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z" />
+                      <path d="m9 9 6 6M15 9l-6 6" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div class="title">Root user</div>
+                    <div class="meta">no password, keys or MFA</div>
+                  </div>
+                </div>
+                <div class="card" id="oaar">
+                  <span class="tile" style="--tile: #4b5563">
+                    <svg viewBox="0 0 24 24">
+                      <circle cx="9" cy="12" r="3.5" />
+                      <path d="M12.5 12H20M17 12v3" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div class="title">OrganizationAccountAccessRole</div>
+                    <div class="meta">made at account creation · unused</div>
+                  </div>
+                </div>
+                <div class="card" id="backupsrole" style="margin-top: 70px">
+                  <span class="tile" style="--tile: #4b5563">
+                    <svg viewBox="0 0 24 24">
+                      <circle cx="9" cy="12" r="3.5" />
+                      <path d="M12.5 12H20M17 12v3" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div class="title">AWSReservedSSO_Administrator…</div>
+                    <div class="meta">IAM role · created by provisioning</div>
+                  </div>
+                </div>
+                <div class="card dashed" id="bucket">
+                  <span class="tile" style="--tile: #3f8624">S3</span>
+                  <div>
+                    <div class="title">Backup bucket</div>
+                    <div class="meta">next: tickets 02 and 03</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <figcaption>
+        One sign-in with MFA reaches both accounts through roles that Identity
+        Center provisions; root stays sealed in one account and absent in the
+        other.
+      </figcaption>
+
+      <a-edge from="owner" to="portal">password, MFA code</a-edge>
+      <a-edge from="portal" to="idc" to-side="left" dy="-14">sign in</a-edge>
+      <a-edge from="cli" to="idc" to-side="left" dy="14"
+        >aws sso login<br />cached token</a-edge
+      >
+      <a-edge from="idc" to="mgmtrole" dx="62">provisions</a-edge>
+      <a-edge from="idc" to="backupsrole" to-side="left" dy="-16"
+        >provisions</a-edge
+      >
+      <a-edge
+        from="organizations"
+        to="oaar"
+        to-side="left"
+        variant="dash"
+        dy="-14"
+        >created backups</a-edge
+      >
+      <a-edge
+        from="rootaccess"
+        to="backupsroot"
+        to-side="left"
+        variant="accent"
+        dy="-16"
+        >AssumeRoot<br />audit only</a-edge
+      >
+    </figure>
+  </body>
+</html>

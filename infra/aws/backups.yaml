@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Bookkeeping production backups: the Object Lock bucket, the write-only
+  uploader user and the monthly cost budget.
+
+Parameters:
+  AlertEmail:
+    Type: String
+    Description: The owner's email address for budget alerts.
+    AllowedPattern: ^[^@\s]+@[^@\s]+\.[^@\s]+$
+    ConstraintDescription: Must be an email address.
+  BucketNamePrefix:
+    Type: String
+    Default: bookkeeping-backups
+    Description: >-
+      The backup bucket's name before the account regional suffix, which S3
+      adds as -<account id>-<region>-an.
+    # The 31-character suffix leaves 32 of the 63 for the prefix.
+    AllowedPattern: ^[a-z0-9][a-z0-9-]{0,30}[a-z0-9]$
+    ConstraintDescription: >-
+      Must be 2 to 32 lowercase letters, digits or hyphens, starting and
+      ending with a letter or digit.
+
+Resources:
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    # Compliance-mode Object Lock keeps every version for 35 days whatever
+    # happens to the stack, so the bucket outlives it too.
+    # No server access logging (Sonar S6258, accepted): every object is
+    # age-encrypted, so a logged read would only show ciphertext was taken,
+    # and CloudTrail already records changes to the bucket and its policy.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      # The account regional namespace means no other account can ever
+      # create this name, even if the bucket is deleted.
+      BucketNamePrefix: !Ref BucketNamePrefix
+      BucketNamespace: account-regional
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      ObjectLockEnabled: true
+      ObjectLockConfiguration:
+        ObjectLockEnabled: Enabled
+        Rule:
+          DefaultRetention:
+            Mode: COMPLIANCE
+            Days: 35
+      # Expiry only adds a delete marker; the locked version itself goes once
+      # its retention has passed.
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-daily
+            Status: Enabled
+            Prefix: daily/
+            ExpirationInDays: 35
+          - Id: expire-monthly
+            Status: Enabled
+            Prefix: monthly/
+            ExpirationInDays: 365
+          - Id: expire-noncurrent-and-delete-markers
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 1
+            ExpiredObjectDeleteMarker: true
+
+  BackupBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BackupBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource:
+              - !GetAtt BackupBucket.Arn
+              - !Sub ${BackupBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  # Its access key is created by hand and lives only in Railway's variables.
+  UploaderUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: bookkeeping-backup-uploader
+      Policies:
+        - PolicyName: put-backups
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: PutBackupObjects
+                Effect: Allow
+                Action: s3:PutObject
+                Resource:
+                  - !Sub ${BackupBucket.Arn}/daily/*
+                  - !Sub ${BackupBucket.Arn}/monthly/*
+
+  MonthlyCostBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: bookkeeping-backups-monthly
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 1
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+
+Outputs:
+  BucketName:
+    Description: The backup bucket, for the job's BACKUP_BUCKET variable.
+    Value: !Ref BackupBucket
+  UploaderUserName:
+    Description: The IAM user whose access key the backup job uses.
+    Value: !Ref UploaderUser

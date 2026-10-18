@@ -12,6 +12,37 @@
     "files.trimTrailingWhitespace": false,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  // CloudFormation's short-form intrinsic functions, such as `!Ref` and
+  // `!Sub` in `infra/aws/`, which the YAML extension otherwise flags as
+  // unresolved tags.
+  "yaml.customTags": [
+    "!And sequence",
+    "!Base64 scalar",
+    "!Base64 mapping",
+    "!Cidr sequence",
+    "!Condition scalar",
+    "!Equals sequence",
+    "!FindInMap sequence",
+    "!GetAtt scalar",
+    "!GetAtt sequence",
+    "!GetAZs scalar",
+    "!If sequence",
+    "!ImportValue scalar",
+    "!ImportValue mapping",
+    "!Join sequence",
+    "!Not sequence",
+    "!Or sequence",
+    "!Ref scalar",
+    "!Select sequence",
+    "!Split sequence",
+    "!Sub scalar",
+    "!Sub sequence"
+  ],
+  // SonarLint does not read sonar-project.properties, so the accepted S3
+  // access-logging rule is turned off here too; see infra/aws/backups.yaml.
+  "sonarlint.rules": {
+    "cloudformation:S6258": { "level": "off" }
+  },
   "[yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },

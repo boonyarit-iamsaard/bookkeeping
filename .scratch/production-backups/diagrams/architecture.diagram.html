@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Production backups</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400&display=block"
+    />
+    <link rel="stylesheet" href="../../../docs/diagrams/kit.css" />
+    <script defer src="../../../docs/diagrams/kit.js"></script>
+  </head>
+  <body>
+    <figure
+      class="diagram"
+      role="img"
+      aria-label="A nightly cron service inside Railway dumps PostgreSQL and uploads an age-encrypted copy, with upload-only access, to an S3 bucket under Object Lock in a dedicated AWS account. An EventBridge schedule runs a Lambda that emails the owner through SNS when a backup is missing. The owner restores backups on their own machine to prove they work."
+    >
+      <div class="column" style="--gap: 72px">
+        <div class="row" style="--gap: 72px; --align: stretch">
+          <section class="group" data-tone="purple">
+            <div class="group-label">
+              <span class="tile">
+                <svg viewBox="0 0 24 24">
+                  <path d="M5 17 12 7l7 10M8 13h8" />
+                </svg>
+              </span>
+              Railway · production
+            </div>
+            <div class="group sub">
+              <div class="group-label">private network</div>
+              <div class="column" style="--gap: 56px">
+                <div class="card" id="postgres">
+                  <span class="tile" style="--tile: #336791">PG</span>
+                  <div>
+                    <div class="title">PostgreSQL 18</div>
+                    <div class="meta">ledger · auth · receipts</div>
+                  </div>
+                </div>
+                <div class="card" id="cron">
+                  <span class="tile" style="--tile: var(--tone-purple)">
+                    <svg viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="8" />
+                      <path d="M12 8v4l3 2" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div class="title">backup cron</div>
+                    <div class="meta">03:00 Asia/Bangkok · nightly</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card dashed" id="snapshots" style="margin-left: 38px">
+              <span class="tile">
+                <svg viewBox="0 0 24 24">
+                  <rect x="5" y="7" width="14" height="10" rx="2" />
+                </svg>
+              </span>
+              <div>
+                <div class="title">Railway volume backups</div>
+                <div class="meta">first layer · same account</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="group" data-tone="orange" style="padding-right: 64px">
+            <div class="group-label">
+              <span class="tile">aws</span>
+              AWS · backups account
+              <span class="meta">ap-southeast-1</span>
+            </div>
+            <div class="row" style="--gap: 72px; --align: center">
+              <div class="card" id="bucket" style="--card-width: 280px">
+                <span class="tile" style="--tile: #3f8624">S3</span>
+                <div>
+                  <div class="title">S3 bucket</div>
+                  <div class="meta">versioned · SSE-S3 · TLS only</div>
+                </div>
+                <pre class="body">
+Object Lock  compliance · 35 d
+daily/       kept 35 days
+monthly/     kept 12 months</pre>
+              </div>
+              <div class="column" style="--gap: 28px">
+                <div class="group sub">
+                  <div class="group-label">missing-backup check</div>
+                  <div class="column" style="--gap: 32px">
+                    <div class="card" id="eventbridge">
+                      <span class="tile" style="--tile: #e7157b">EB</span>
+                      <div>
+                        <div class="title">EventBridge</div>
+                        <div class="meta">09:00 every morning</div>
+                      </div>
+                    </div>
+                    <div class="card" id="lambda">
+                      <span
+                        class="tile"
+                        style="--tile: #ed7100; font-size: 15px"
+                        >λ</span
+                      >
+                      <div>
+                        <div class="title">Lambda</div>
+                        <div class="meta">newest backup older than 26 h?</div>
+                      </div>
+                    </div>
+                    <div class="card" id="sns">
+                      <span
+                        class="tile"
+                        style="--tile: #e7157b; font-size: 9.5px"
+                        >SNS</span
+                      >
+                      <div>
+                        <div class="title">SNS topic</div>
+                        <div class="meta">one email subscription</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="card"
+                  id="budgets"
+                  style="
+                    --card-width: 240px;
+                    align-self: flex-start;
+                    margin-left: 18px;
+                  "
+                >
+                  <span class="tile" style="--tile: #3f8624">$</span>
+                  <div>
+                    <div class="title">Budgets</div>
+                    <div class="meta">alert past $1 a month</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div
+          class="row"
+          style="--gap: 220px; justify-content: flex-end; padding-right: 40px"
+        >
+          <div class="card" id="drill" style="--card-width: 280px">
+            <span class="tile" style="--tile: #4b5563">
+              <svg viewBox="0 0 24 24">
+                <rect x="5" y="6" width="14" height="10" rx="1.5" />
+                <path d="M3 19h18" />
+              </svg>
+            </span>
+            <div>
+              <div class="title">Restore drill</div>
+              <div class="meta">postgres:18 · compare to manifest</div>
+            </div>
+          </div>
+          <div class="card" id="owner" style="--card-width: 180px">
+            <span class="tile round" style="--tile: #4b5563">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="9" r="3.5" />
+                <path d="M5.5 19c1-3.5 12-3.5 13 0" />
+              </svg>
+            </span>
+            <div>
+              <div class="title">Owner</div>
+              <div class="meta">holds the age private key</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <figcaption>
+        Every night the ledger leaves Railway encrypted, lands in a bucket
+        nobody can empty, and is proven restorable on the owner's machine.
+      </figcaption>
+
+      <a-edge from="postgres" to="cron" dx="78"
+        >pg_dump + manifest<br />one snapshot</a-edge
+      >
+      <a-edge
+        from="postgres"
+        to="snapshots"
+        from-side="left"
+        to-side="left"
+        variant="dash"
+        reach="44"
+        at="0.92"
+        dx="122"
+        dy="-42"
+        >daily · weekly · monthly</a-edge
+      >
+      <a-edge from="cron" to="bucket" variant="accent"
+        >PutObject only<br />age-encrypted</a-edge
+      >
+      <a-edge from="eventbridge" to="lambda"></a-edge>
+      <a-edge from="lambda" to="sns" dx="30">missing</a-edge>
+      <a-edge
+        from="lambda"
+        to="bucket"
+        from-side="left"
+        to-side="right"
+        dy="-18"
+        >list daily/</a-edge
+      >
+      <a-edge
+        from="sns"
+        to="owner"
+        from-side="right"
+        to-side="right"
+        reach="44"
+        dx="-2"
+        >email</a-edge
+      >
+      <a-edge
+        from="budgets"
+        to="owner"
+        from-side="bottom"
+        to-side="top"
+        variant="dash"
+        dx="-26"
+        >email</a-edge
+      >
+      <a-edge from="owner" to="drill" dy="-12">age private key</a-edge>
+      <a-edge from="drill" to="bucket" from-side="top" to-side="bottom" dx="70"
+        >aws sso login · read</a-edge
+      >
+    </figure>
+  </body>
+</html>

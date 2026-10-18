@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SAA-C03 identity sheet</title>
+    <meta
+      name="description"
+      content="An SAA-C03 study sheet for identity, IAM policy evaluation, AWS Organizations and the root user, worked through this project's own AWS setup."
+    />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --ink: #1f2330;
+        --muted: #6b7183;
+        --rule: #e3e5ec;
+        --panel: #f6f7fa;
+        --accent: #1f6feb;
+        --warn: #b45309;
+        --deny: #c2410c;
+        --allow: #15803d;
+        --code: #f0f2f6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #13151c;
+          --ink: #e8eaf0;
+          --muted: #9aa0b2;
+          --rule: #2c3040;
+          --panel: #1c1f29;
+          --accent: #58a6ff;
+          --warn: #f5a524;
+          --deny: #fb923c;
+          --allow: #4ade80;
+          --code: #232736;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #13151c;
+        --ink: #e8eaf0;
+        --muted: #9aa0b2;
+        --rule: #2c3040;
+        --panel: #1c1f29;
+        --accent: #58a6ff;
+        --warn: #f5a524;
+        --deny: #fb923c;
+        --allow: #4ade80;
+        --code: #232736;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.6 Inter,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 48px 16px 80px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+        line-height: 1.2;
+      }
+      h2 {
+        margin: 56px 0 12px;
+        padding-top: 16px;
+        border-top: 1px solid var(--rule);
+        font-size: 21px;
+      }
+      h3 {
+        margin: 28px 0 6px;
+        font-size: 16px;
+      }
+      p,
+      li {
+        max-width: 72ch;
+      }
+      a {
+        color: var(--accent);
+      }
+      .lede {
+        color: var(--muted);
+        font-size: 17px;
+      }
+      code {
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--code);
+        font-family:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.88em;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+      }
+      th,
+      td {
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--rule);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      td:first-child {
+        font-weight: 600;
+      }
+      .lesson {
+        margin: 16px 0;
+        padding: 14px 18px;
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        background: var(--panel);
+      }
+      .lesson.warn {
+        border-left-color: var(--warn);
+      }
+      .lesson h3 {
+        margin-top: 0;
+      }
+      .lesson p {
+        margin: 6px 0 0;
+      }
+      ol.gates {
+        margin: 20px 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: gate;
+      }
+      ol.gates > li {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 16px;
+        align-items: center;
+        max-width: none;
+        margin: 0 0 22px;
+        padding: 12px 16px 12px 52px;
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        background: var(--panel);
+        counter-increment: gate;
+      }
+      ol.gates > li::before {
+        content: counter(gate);
+        position: absolute;
+        top: 12px;
+        left: 16px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: var(--bg);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 24px;
+        text-align: center;
+      }
+      ol.gates > li:not(:last-child)::after {
+        content: "↓";
+        position: absolute;
+        bottom: -21px;
+        left: 22px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .gate-name {
+        font-weight: 600;
+      }
+      .gate-detail {
+        grid-column: 1;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .outcome {
+        grid-row: 1 / span 2;
+        grid-column: 2;
+        padding: 2px 10px;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .outcome.deny {
+        color: var(--deny);
+      }
+      .outcome.allow {
+        color: var(--allow);
+      }
+      .formula {
+        padding: 14px 16px;
+        border-radius: 8px;
+        background: var(--code);
+        font-family:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 14px;
+        line-height: 1.7;
+        overflow-x: auto;
+      }
+      details {
+        margin: 10px 0;
+        padding: 10px 16px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+      }
+      details[open] {
+        background: var(--panel);
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      details p {
+        margin: 8px 0 0;
+      }
+      .verdict {
+        font-weight: 700;
+      }
+      .verdict.false {
+        color: var(--deny);
+      }
+      .verdict.true {
+        color: var(--allow);
+      }
+      .tag {
+        display: inline-block;
+        padding: 0 7px;
+        border-radius: 4px;
+        background: var(--code);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        vertical-align: 1px;
+      }
+      @media (max-width: 560px) {
+        ol.gates > li {
+          grid-template-columns: 1fr;
+        }
+        .outcome {
+          grid-row: auto;
+          grid-column: 1;
+          justify-self: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>SAA-C03: identity and organizations</h1>
+      <p class="lede">
+        The exam view of the ground ticket 01 covered: who gets access through
+        what, how AWS decides a request, and what Organizations and the root
+        user do. It sits in domain 1, Design Secure Architectures, the largest
+        domain at 30% of scored content. Each part uses this project's own setup
+        as the example; the operational detail is in
+        <a href="aws-foundation-lessons.html">AWS foundation lessons</a>.
+      </p>
+
+      <h2>Who needs access, and through what</h2>
+      <p>
+        Exam scenarios describe who or what needs access, and the right answer
+        nearly always swaps long-term keys for temporary credentials.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Who needs access</th>
+              <th>Choose</th>
+              <th>Wrong-answer bait</th>
+              <th>Here</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Staff across several accounts</td>
+              <td>
+                IAM Identity Center: users or groups, permission sets, account
+                assignments
+              </td>
+              <td>An IAM user per person in every account</td>
+              <td>The owner's sign-in</td>
+            </tr>
+            <tr>
+              <td>Staff already in a corporate directory</td>
+              <td>
+                Identity Center with an external IdP (SAML 2.0, with SCIM to
+                provision users), or Active Directory through AWS Managed
+                Microsoft AD or AD Connector
+              </td>
+              <td>Recreating the users in IAM</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>Customers of a web or mobile app</td>
+              <td>
+                Amazon Cognito: a user pool signs them in; an identity pool
+                trades that for temporary AWS credentials
+              </td>
+              <td>Identity Center, or IAM users</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>Code running on AWS</td>
+              <td>
+                An IAM role: an EC2 instance profile, a Lambda execution role,
+                an ECS task role, EKS Pod Identity
+              </td>
+              <td>Access keys in code, environment variables or AMIs</td>
+              <td>The missing-backup Lambda's role (ticket 05)</td>
+            </tr>
+            <tr>
+              <td>An admin from another account in the org</td>
+              <td>
+                A role in the target account whose trust policy names the source
+                account; callers use <code>sts:AssumeRole</code>
+              </td>
+              <td>An IAM user in every account</td>
+              <td><code>OrganizationAccountAccessRole</code></td>
+            </tr>
+            <tr>
+              <td>A third-party vendor</td>
+              <td>
+                A cross-account role with an <code>sts:ExternalId</code>
+                condition in its trust policy, which stops the confused-deputy
+                problem
+              </td>
+              <td>Handing the vendor an IAM user's keys</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td>A workload outside AWS</td>
+              <td>
+                IAM Roles Anywhere (X.509 certificates), or OIDC web-identity
+                federation when the platform issues OIDC tokens, as GitHub
+                Actions does
+              </td>
+              <td>A long-lived access key</td>
+              <td>
+                The Railway uploader is the exception: an IAM user whose key can
+                only <code>s3:PutObject</code> two prefixes and is replaced
+                every year. On the exam, an option offering temporary
+                credentials beats this.
+              </td>
+            </tr>
+            <tr>
+              <td>A root-only task</td>
+              <td>The root user, with MFA, for that task only</td>
+              <td>Root for daily admin, or root access keys</td>
+              <td>Management account root, kept for break-glass use</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Policy types</h2>
+      <p>
+        Only two kinds of policy grant anything. Every other kind sets a
+        ceiling, and an action must fit under every ceiling that applies.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Policy</th>
+              <th>Attached to</th>
+              <th>Effect</th>
+              <th>Grants?</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Identity-based</td>
+              <td>An IAM user, group or role</td>
+              <td>What that principal may do</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>Resource-based</td>
+              <td>
+                A resource: S3 bucket policy, KMS key policy, SQS, SNS, Lambda
+              </td>
+              <td>
+                Who may act on that resource, named in <code>Principal</code>.
+                It is how one account grants access to another.
+              </td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>Role trust policy</td>
+              <td>An IAM role</td>
+              <td>The resource-based policy of a role: who may assume it</td>
+              <td>Only <code>sts:AssumeRole</code></td>
+            </tr>
+            <tr>
+              <td>Permissions boundary</td>
+              <td>An IAM user or role</td>
+              <td>
+                The most its identity-based policies can allow. Use one to let
+                developers create roles without escalating their own access.
+              </td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td>Session policy</td>
+              <td>One <code>AssumeRole</code> or federation session</td>
+              <td>Narrows that one session</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td>SCP</td>
+              <td>The org root, an OU or an account</td>
+              <td>
+                The most any IAM user or role in a member account can do,
+                including that account's root user. It does not affect the
+                management account or service-linked roles.
+              </td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td>RCP <span class="tag">newer</span></td>
+              <td>The org root, an OU or an account</td>
+              <td>
+                The most anyone, even another account, can do to resources in a
+                member account, for services such as S3, STS, KMS, SQS and
+                Secrets Manager
+              </td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td>Tag, backup and AI opt-out policies</td>
+              <td>The org root, an OU or an account</td>
+              <td>
+                Management settings, not permissions. A backup policy rolls an
+                AWS Backup plan out across accounts.
+              </td>
+              <td>Not a permission</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>How AWS decides a request</h2>
+      <p>
+        Everything starts denied. These are the gates, simplified to the depth
+        the exam tests; the IAM guide's flowchart has edge cases beyond it.
+      </p>
+      <ol class="gates">
+        <li>
+          <span class="gate-name">Any explicit <code>Deny</code>?</span>
+          <span class="gate-detail"
+            >In any policy that applies, of any type. An explicit deny always
+            wins.</span
+          >
+          <span class="outcome deny">yes → denied</span>
+        </li>
+        <li>
+          <span class="gate-name">RCPs allow it?</span>
+          <span class="gate-detail"
+            >Only for resources in member accounts.</span
+          >
+          <span class="outcome deny">no → denied</span>
+        </li>
+        <li>
+          <span class="gate-name">SCPs allow it at every level?</span>
+          <span class="gate-detail"
+            >The org root, each OU on the path, and the account. Only for
+            principals in member accounts.</span
+          >
+          <span class="outcome deny">no → denied</span>
+        </li>
+        <li>
+          <span class="gate-name">Identity-based or resource-based allow?</span>
+          <span class="gate-detail"
+            >Within one account, either is enough. Across accounts, both are
+            needed: the caller's identity policy and the resource's
+            policy.</span
+          >
+          <span class="outcome deny">neither → denied</span>
+        </li>
+        <li>
+          <span class="gate-name"
+            >Permissions boundary and session policy?</span
+          >
+          <span class="gate-detail"
+            >Where present, each must also allow the action.</span
+          >
+          <span class="outcome deny">no → denied</span>
+        </li>
+        <li>
+          <span class="gate-name">Every gate passed</span>
+          <span class="gate-detail">The request runs.</span>
+          <span class="outcome allow">allowed</span>
+        </li>
+      </ol>
+      <div class="formula">
+        allowed = no explicit deny<br />
+        &nbsp;&nbsp;and RCPs allow and SCPs allow at every level<br />
+        &nbsp;&nbsp;and (identity policy allows or resource policy allows)<br />
+        &nbsp;&nbsp;and boundary allows and session policy allows
+      </div>
+
+      <h3>Worked through this project</h3>
+      <div class="lesson">
+        <h3>
+          The owner tries to take <code>backups</code> out of the Organization
+        </h3>
+        <p>
+          Signed in through Identity Center as
+          <code>AdministratorAccess</code>, the owner calls
+          <code>organizations:LeaveOrganization</code> in <code>backups</code>.
+          The identity policy allows it, but the default SCP's explicit deny
+          stops it at gate 1. Administrator access in a member account is still
+          capped by SCPs.
+        </p>
+      </div>
+      <div class="lesson">
+        <h3>The same role in the management account</h3>
+        <p>
+          SCPs never reach the management account, so no SCP could stop the
+          owner there. That is why the management account holds no workloads:
+          nothing in the Organization can restrict it.
+        </p>
+      </div>
+      <div class="lesson">
+        <h3>The uploader writes, then tries to read</h3>
+        <p>
+          <code>s3:PutObject</code> on <code>daily/…</code> over HTTPS: there is
+          no explicit deny, <code>FullAWSAccess</code> passes the SCP gate, and
+          the identity policy allows it, so it runs.
+          <code>s3:GetObject</code> on the same key: nothing allows it, so it is
+          an implicit deny. No deny statement is needed to keep the uploader
+          out.
+        </p>
+      </div>
+      <div class="lesson">
+        <h3>The uploader sends over plain HTTP</h3>
+        <p>
+          The bucket policy denies any request where
+          <code>aws:SecureTransport</code> is false. That explicit deny beats
+          the identity policy's allow at gate 1.
+        </p>
+      </div>
+      <div class="lesson warn">
+        <h3>The owner deletes a locked backup version</h3>
+        <p>
+          IAM allows it, and S3 still refuses. Object Lock in compliance mode is
+          a property of the object version, not a policy, and not even root can
+          shorten it. Governance mode, by contrast, lets anyone holding
+          <code>s3:BypassGovernanceRetention</code> override it. Not every
+          refusal comes from IAM.
+        </p>
+      </div>
+
+      <h2>Organizations</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fact</th>
+              <th>What to remember</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>All features vs consolidated billing</td>
+              <td>
+                Consolidated billing gives one bill and nothing else. SCPs,
+                RCPs, other policy types, trusted access, delegated
+                administrators and centralized root access all need
+                <em>all features</em>. Organizations itself costs nothing.
+              </td>
+            </tr>
+            <tr>
+              <td>Consolidated billing savings</td>
+              <td>
+                Usage across accounts is combined to reach volume pricing tiers,
+                and Reserved Instance and Savings Plans discounts are shared
+                across accounts unless sharing is turned off. This is a common
+                answer in the cost-optimization domain.
+              </td>
+            </tr>
+            <tr>
+              <td>Management account</td>
+              <td>
+                Pays the bill, owns the Organization, and cannot be restricted
+                by SCPs. Keep workloads out of it, and hand service
+                administration to a member account as a delegated administrator.
+              </td>
+            </tr>
+            <tr>
+              <td>OUs and inheritance</td>
+              <td>
+                An SCP on an OU applies to everything under it. Denies add up
+                down the path; an allow must exist at every level. With the
+                default <code>FullAWSAccess</code> in place you write deny
+                lists; removing it means writing allow lists. Removing it with
+                nothing in its place blocks everything below.
+              </td>
+            </tr>
+            <tr>
+              <td>Why use several accounts</td>
+              <td>
+                To separate blast radius, billing, security boundaries and
+                service quotas. Here, <code>backups</code> is isolated from the
+                planned <code>sandbox</code> for exam practice.
+              </td>
+            </tr>
+            <tr>
+              <td>Control Tower</td>
+              <td>
+                The answer when a question asks for a multi-account
+                <em>landing zone</em> with built-in guardrails and an account
+                factory, set up quickly. It is built on Organizations, Identity
+                Center, SCPs, Config and CloudTrail. Two accounts did not need
+                it.
+              </td>
+            </tr>
+            <tr>
+              <td>Org-wide services</td>
+              <td>
+                An organization trail in CloudTrail logs every account in one
+                place. AWS RAM shares resources such as subnets or a Transit
+                Gateway with other accounts. Both need trusted access.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>IAM Identity Center</h2>
+      <ul>
+        <li>
+          The successor to AWS SSO, and AWS's recommended way to give people
+          access. It is free. An <em>organization instance</em> covers every
+          account and lives in one home Region.
+        </li>
+        <li>
+          A permission set is a template. Assigning it to a user or group in an
+          account provisions an <code>AWSReservedSSO_…</code> role there.
+          Session duration is 1 to 12 hours, 1 by default.
+        </li>
+        <li>
+          Identity sources: its own directory (used here), Active Directory, or
+          an external SAML 2.0 IdP such as Entra ID or Okta, with SCIM to
+          provision users.
+        </li>
+        <li>
+          Attribute-based access control: user attributes arrive as session
+          tags, so a single permission set can scope access by tag, for example
+          by team or cost center.
+        </li>
+        <li>
+          Its administration can be delegated to a member account, keeping
+          people out of the management account.
+        </li>
+      </ul>
+
+      <h2>The root user</h2>
+      <ul>
+        <li>
+          Turn on MFA, create no access keys, keep the contact details current,
+          and never use it for daily work.
+        </li>
+        <li>
+          Root-only tasks: changing a standalone account's root email or
+          password, and closing a standalone account; restoring IAM permissions
+          after an admin lockout; activating IAM access to Billing; enabling MFA
+          Delete on an S3 bucket; editing or deleting a bucket or SQS policy
+          that denies every principal; registering as a seller in the Reserved
+          Instance Marketplace.
+        </li>
+        <li>
+          SCPs restrict a member account's root user; nothing restricts the
+          management account's root.
+        </li>
+        <li>
+          Centralized root access <span class="tag">newer</span> removes member
+          accounts' root credentials and runs single-task root sessions with
+          <code>sts:AssumeRoot</code>: auditing, unlocking a deny-all bucket or
+          queue policy, deleting credentials, or allowing password recovery. It
+          is new enough to appear rarely on the exam; the principles above are
+          what get tested.
+        </li>
+      </ul>
+
+      <h2>Trap statements</h2>
+      <p>Decide true or false, then open each one to check.</p>
+
+      <details>
+        <summary>
+          An SCP attached to the org root also limits the management account.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> SCPs never affect the
+          management account, wherever they are attached.
+        </p>
+      </details>
+      <details>
+        <summary>
+          An SCP that allows <code>s3:*</code> gives a user S3 access.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> SCPs only set a ceiling. The
+          user still needs an identity-based or resource-based allow.
+        </p>
+      </details>
+      <details>
+        <summary>An SCP can stop a member account's root user.</summary>
+        <p>
+          <span class="verdict true">True.</span> That is one of the main
+          reasons to use SCPs.
+        </p>
+      </details>
+      <details>
+        <summary>SCPs restrict service-linked roles.</summary>
+        <p>
+          <span class="verdict false">False.</span> Service-linked roles are
+          exempt so that AWS services keep working.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Detaching <code>FullAWSAccess</code> from an OU, with nothing else
+          attached, changes nothing.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> No SCP allows anything there
+          any more, so every action in accounts under that OU is denied.
+        </p>
+      </details>
+      <details>
+        <summary>
+          An organization with consolidated billing only can use SCPs.
+        </summary>
+        <p><span class="verdict false">False.</span> SCPs need all features.</p>
+      </details>
+      <details>
+        <summary>
+          A permissions boundary can give a role extra permissions.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> A boundary only caps; the
+          effective permissions are where the identity policy and the boundary
+          overlap.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Within one account, an S3 bucket policy alone can let a role read the
+          bucket.
+        </summary>
+        <p>
+          <span class="verdict true">True.</span> In the same account, an allow
+          in either the identity policy or the resource policy is enough. Across
+          accounts, both sides must allow it.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Mobile app users should sign in through IAM Identity Center.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> Identity Center is for the
+          workforce. App customers use Cognito.
+        </p>
+      </details>
+      <details>
+        <summary>
+          The safe way to give a vendor access is an IAM user with keys you
+          rotate.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> Use a cross-account role
+          whose trust policy requires an external ID.
+        </p>
+      </details>
+      <details>
+        <summary>
+          An EC2 application should read its keys from an encrypted environment
+          variable.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> Attach an instance profile;
+          the SDK gets temporary, rotated credentials from instance metadata.
+        </p>
+      </details>
+      <details>
+        <summary>Root with MFA is fine for daily admin work.</summary>
+        <p>
+          <span class="verdict false">False.</span> MFA is required, but root is
+          for root-only tasks. Daily work goes through Identity Center.
+        </p>
+      </details>
+      <details>
+        <summary>Enabling MFA Delete on a bucket needs the root user.</summary>
+        <p>
+          <span class="verdict true">True.</span> It is one of the few root-only
+          tasks, and it is done through the API or CLI, not the console.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Under Object Lock compliance mode, an admin with
+          <code>s3:BypassGovernanceRetention</code> can delete a locked version
+          early.
+        </summary>
+        <p>
+          <span class="verdict false">False.</span> That permission only
+          overrides governance mode. Under compliance mode nobody can, not even
+          root, until the retention period ends.
+        </p>
+      </details>
+      <details>
+        <summary>
+          Linked accounts in one organization share Reserved Instance discounts.
+        </summary>
+        <p>
+          <span class="verdict true">True</span>, by default. The management
+          account can turn off sharing.
+        </p>
+      </details>
+
+      <h2>Next sheets</h2>
+      <p>
+        Tickets 02 and 03 now have
+        <a href="saa-c03-s3-data-protection.html"
+          >the S3 data protection sheet</a
+        >: Block Public Access, versioning, Object Lock, lifecycle, encryption
+        and AWS Budgets. Ticket 05 covers EventBridge Scheduler, Lambda, SNS and
+        CloudWatch alarms, worth a sheet once it ships.
+      </p>
+
+      <h2>Sources</h2>
+      <ul>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html"
+            >IAM policy evaluation logic</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps_evaluation.html"
+            >SCP evaluation</a
+          >
+          and
+          <a
+            href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html"
+            >service control policies</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html"
+            >AWS account root user</a
+          >
+          and
+          <a
+            href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-enable-root-access.html"
+            >centralized root access</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html"
+            >IAM Identity Center user guide</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html"
+            >SAA-C03 exam guide</a
+          >
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>
