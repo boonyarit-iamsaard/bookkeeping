@@ -248,3 +248,51 @@ AWS access diagram in `diagrams/`, light and dark, and the learning note in
   is the only copy of the data outside Railway.
 - Agent, ticket 02 next: the CloudFormation template for the bucket, the
   uploader and the budget.
+
+## 2026-10-18: the storage stack, as one template
+
+### What
+
+The agent wrote `infra/aws/backups.yaml`, the CloudFormation stack the owner
+deploys in ticket 03: the bucket with versioning, compliance-mode Object Lock
+for 35 days, lifecycle rules and a TLS-only policy; the
+`bookkeeping-backup-uploader` user, which can only `s3:PutObject` under
+`daily/` and `monthly/`; and a $1 monthly budget. `infra/aws/README.md`
+holds the deploy command, the access-key steps and the uploader checks. No
+AWS resources were created, and the agent held no AWS credentials.
+
+### Why
+
+- One template the owner deploys by hand keeps the AWS side reviewable in
+  the repository, and CI never needs AWS credentials (ADR 0013).
+- The template names no region or account, so the same file could rebuild
+  the stack elsewhere; the region lives only in the deploy command.
+
+### How
+
+- **Lifecycle under Object Lock.** Expiry on a versioned bucket only adds a
+  delete marker. The locked version becomes noncurrent and is removed one
+  day later, but never before its 35 days pass. The delete marker rule
+  cannot share a rule with day-based expiry, so it sits with the noncurrent
+  rule, which covers the whole bucket.
+- **Retain the bucket.** The stack's bucket has `DeletionPolicy: Retain`,
+  because compliance mode would block deleting it anyway while any version
+  is locked.
+- **Linting without a dependency.** `cfn-lint` has no official container
+  image, so it runs inside a digest-pinned `python:3.13-alpine` with a
+  pinned `cfn-lint`, thrown away after each run. A deliberately misspelt
+  property proved the run checks something.
+
+### Struggles
+
+- **A key with nowhere to go.** The first README told the owner to paste the
+  new key into the Railway `backup` service, which ticket 04 creates. The
+  review caught it, so the owner now creates the service empty first. The
+  uploader checks for ticket 03 read the key into the shell with `read -s`,
+  so it never reaches a file.
+
+### Where it stands
+
+- Ticket 02 is done. Owner, ticket 03 next: deploy the stack, create the
+  key, and prove the bucket refuses the uploader's reads and the owner's
+  deletes.
