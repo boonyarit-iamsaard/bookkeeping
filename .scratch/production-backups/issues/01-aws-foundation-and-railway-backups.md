@@ -15,14 +15,23 @@ on the production Postgres service.
 can prepare a step-by-step walkthrough (the `/wizard` skill) but does not
 enter credentials.
 
-- [ ] Root of the existing account has MFA; no root access keys exist.
-- [ ] AWS Organizations enabled with all features; the existing account is the management account.
-- [ ] Member account `backups` created with a plus-addressed root email in the owner's usual inbox.
-- [ ] IAM Identity Center enabled in `ap-southeast-1`, one owner user with MFA, assigned to `backups` with administrator access.
-- [ ] Centralized root access management enabled for member accounts, and root credentials removed from `backups`, or a note under Comments if it was unavailable.
-- [ ] `aws sso login` works locally with a profile named `bookkeeping-backups`; `aws sts get-caller-identity --profile bookkeeping-backups` shows the `backups` account.
-- [ ] Railway Postgres service, Backups tab: daily, weekly and monthly schedules enabled; one manual backup taken.
-- [ ] The Railway TCP proxy used for the 2026-10-17 manual dump is disabled and `DATABASE_PUBLIC_URL` is gone.
-- [ ] The exposed `age` key from 2026-10-17 is replaced, the manual dump re-encrypted with the new key, and the new key stored in two places.
+- [x] Root of the existing account has MFA; no root access keys exist.
+- [x] AWS Organizations enabled with all features; the existing account is the management account.
+- [x] Member account `backups` created with a plus-addressed root email in the owner's usual inbox.
+- [x] IAM Identity Center enabled in `ap-southeast-1`, one owner user with MFA, assigned to `backups` with administrator access.
+- [x] Centralized root access management enabled for member accounts, and root credentials removed from `backups`, or a note under Comments if it was unavailable.
+- [x] `aws sso login` works locally with a profile named `bookkeeping-backups`; `aws sts get-caller-identity --profile bookkeeping-backups` shows the `backups` account.
+- [ ] ~~Railway Postgres service, Backups tab: daily, weekly and monthly schedules enabled; one manual backup taken.~~ Dropped; see Comments.
+- [x] The Railway TCP proxy used for the 2026-10-17 manual dump is disabled and `DATABASE_PUBLIC_URL` is gone.
+- [x] The exposed `age` key from 2026-10-17 is replaced, the manual dump re-encrypted with the new key, and the new key stored in two places.
 
 ## Comments
+
+### 2026-10-18: Railway's own backups dropped
+
+Railway's Backups tab offers creating backups, schedules and point-in-time
+recovery only on the Pro plan; on the current plan it can only view, restore
+and delete existing ones. The owner chose to stay on Hobby. Railway's own
+backups were a faster restore path, not the ADR 0008 requirement, which the
+off-Railway job in tickets 02 to 06 meets. Until ticket 04 ships, the
+re-encrypted 2026-10-17 dump is the only copy outside the volume.

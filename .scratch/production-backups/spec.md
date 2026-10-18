@@ -156,6 +156,8 @@ volume backups stay on as a faster first layer for everyday mistakes.
   (kept 6, 27 and 89 days per Railway's documentation). These restore fastest
   but do not satisfy ADR 0008: they live in the same account and are deleted
   with the volume.
+- Dropped on 2026-10-18: creating backups and schedules needs Railway's Pro
+  plan, and the project stays on Hobby. See ticket 01's Comments.
 
 ### Key custody
 

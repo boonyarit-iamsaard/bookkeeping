@@ -131,7 +131,7 @@ clean `main` to build on.
 | Ledger after three weeks            | ~40 transactions, 7 wallets        |
 | Estimated S3 cost                   | under $0.01 a month                |
 | Budget alert                        | $1 a month (AWS), within $10 total |
-| Railway's own backups               | kept 6, 27 and 89 days             |
+| Railway's own backups               | dropped: needs the Pro plan        |
 | Most data a failure can lose        | one day                            |
 | Off-provider retention              | 35 days nightly, 12 months monthly |
 | Dependency PRs merged before design | 5 from Dependabot, 1 by hand       |
@@ -145,10 +145,11 @@ diagram in `diagrams/`, light and dark.
 
 ### Where it stands
 
-- Owner, ticket 01: the AWS Organization, the `backups` account, Identity
-  Center with MFA, Railway's own backup schedules, and three loose ends from
-  today: replace the exposed `age` key, re-encrypt the manual dump, and
-  confirm the temporary TCP proxy is off.
+- Ticket 01 is done: the AWS Organization, the `backups` account with no root
+  credentials, Identity Center with MFA and two CLI profiles, the `age` key
+  replaced and the manual dump re-encrypted, and the TCP proxy confirmed off.
+  Railway's own backups were dropped because they need the Pro plan; until
+  ticket 04 ships, the re-encrypted dump is the only copy outside Railway.
 - Agent, ticket 02 next: the CloudFormation template for the bucket, the
   uploader and the budget.
 - The branch `feat/production-backups` holds the spec, tickets, ADR, build
