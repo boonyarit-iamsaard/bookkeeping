@@ -37,10 +37,10 @@
   "devDependencies": {
     "@bookkeeping/database": "workspace:*",
     "@bookkeeping/server": "workspace:*",
-    "@dotenvx/dotenvx": "^2.35.0",
-    "@playwright/test": "^1.64.0",
+    "@dotenvx/dotenvx": "^2.36.0",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4",
-    "@tanstack/router-plugin": "^1.168.45",
+    "@tanstack/router-plugin": "^1.168.46",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",

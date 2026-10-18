@@ -32,7 +32,7 @@
     "pg-connection-string": "^2.14.1"
   },
   "devDependencies": {
-    "@dotenvx/dotenvx": "^2.35.0",
+    "@dotenvx/dotenvx": "^2.36.0",
     "@testcontainers/postgresql": "^12.2.1",
     "@types/node": "^24",
     "@types/pg": "^8.23.1",
