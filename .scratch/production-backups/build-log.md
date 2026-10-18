@@ -296,3 +296,66 @@ AWS resources were created, and the agent held no AWS credentials.
 - Ticket 02 is done. Owner, ticket 03 next: deploy the stack, create the
   key, and prove the bucket refuses the uploader's reads and the owner's
   deletes.
+
+## 2026-10-18: the storage stack goes live
+
+### What
+
+The owner deployed `infra/aws/backups.yaml` to the `backups` account in
+`ap-southeast-1` and created the uploader's access key. The agent wrote a
+runbook from the current AWS and Railway docs and checked each step with
+read-only calls. The key went straight from the IAM page into a new, empty
+Railway `backup` service, where the secret is sealed. A probe object then
+proved the protections: the uploader can write but not list, read or
+delete, and even the owner can't delete a locked version.
+
+### Why
+
+- Ticket 04's job needs somewhere to write and a key to write with. Proving
+  the refusals now means a leaked key is known to be harmless before any
+  real backup depends on it.
+- Sealing the secret in Railway means nobody can read it back, from the UI,
+  the API or the CLI. The yearly replacement overwrites it instead.
+
+### How
+
+- **A name nobody else can take.** Since the template was written, S3 has
+  gained an account regional namespace: a bucket name ending in
+  `-<account id>-<region>-an` can only ever belong to that account, even
+  after deletion. The template switched to `BucketNamePrefix` with
+  `BucketNamespace: account-regional` before the deploy. Because the full
+  name contains the account ID, the repository records it only as a
+  placeholder.
+- **Review before the irreversible step.** `deploy --no-execute-changeset`
+  created a change set with four resources, which was read back before
+  executing it. Nothing could be undone once an Object Lock bucket existed.
+- **The key in a subshell.** The uploader checks read the key with
+  `read -rs` inside `( … )`, so it vanished when the block ended. The
+  values were pasted with the console's copy icons, without ever pressing
+  **Show**.
+- **A real refusal, not a delete marker.** A delete without a version ID
+  succeeds on a versioned bucket and only hides the object. The owner's
+  check named the version ID, and S3 answered `Access Denied because object
+protected by object lock`.
+
+### Struggles
+
+- **An empty variable.** The runbook's first verification block used the
+  bucket name variable without setting it, so every bucket check failed with
+  `Invalid bucket name ""`. It now reads the name from the stack output
+  first.
+- **The checksum question.** S3 rejects uploads to an Object Lock bucket
+  that carry no checksum. The probe's metadata showed a `CRC64NVME`
+  checksum, which the CLI sends by default, so no flag is needed on this
+  machine. Ticket 04 still has to confirm the same for Alpine's `aws-cli`.
+- **Docs that trail the console.** Railway's staged-changes dialog offers
+  only **Deploy Changes**, even for a service with no source, and the AWS
+  console opened in another region by default. Neither mattered, but the
+  runbook now says so.
+
+### Where it stands
+
+- Ticket 03 has five of six criteria ticked. The first month's AWS cost is
+  recorded once November's bill is issued.
+- Agent, ticket 04 next: the backup job in `apps/backup/`, pointed at the
+  `backup` service, which already holds the key.
