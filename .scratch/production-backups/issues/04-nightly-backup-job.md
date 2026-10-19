@@ -11,7 +11,7 @@ first nightly backup is in the bucket.
 
 **Blocked by:** 02 to start, 03 to close
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Notes:** The agent writes and verifies the job locally with `--local-dir`.
 The owner configures the Railway service and sets its variables; the agent
@@ -112,3 +112,12 @@ The Railway `backup` service ran on its cron schedule and completed in 6
 seconds. S3 holds `daily/2026-10-19/bookkeeping.dump.age` (46.5 KB) and
 `daily/2026-10-19/manifest.json.age` (1.1 KB), both in Standard storage. The
 timestamps are 03:04 Asia/Bangkok, four minutes after the 20:00 UTC trigger.
+
+### 2026-10-19: Closed as done
+
+All acceptance criteria are met. The job was built and verified in
+`9e79755`, which records the first manual Railway run, and the first
+scheduled run's objects are in S3, recorded above. This ticket's close
+records that verification in `2ed2fce`. Ticket 03 is still `ready-for-human`
+with its AWS cost note open, so the spec's "03 to close" dependency is not
+yet satisfied; the owner accepted closing 04 regardless.
