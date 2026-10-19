@@ -2,7 +2,8 @@
 
 `backups.yaml` is the CloudFormation stack behind the production backups
 (`.scratch/production-backups/spec.md`): the Object Lock bucket, the
-write-only uploader user and the $1 monthly budget. The owner deploys it by
+write-only uploader user, the $1 monthly budget and the missing-backup alert.
+The owner deploys it by
 hand to the `backups` account; CI never holds AWS credentials (ADR 0013).
 
 ## Deploy
@@ -24,7 +25,8 @@ aws cloudformation deploy \
   --parameter-overrides AlertEmail=<owner email>
 ```
 
-`CAPABILITY_NAMED_IAM` is needed because the uploader user has a fixed name.
+`CAPABILITY_NAMED_IAM` is needed because the uploader user and the alert's
+roles have fixed names.
 Read the outputs back with:
 
 ```sh
