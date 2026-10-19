@@ -25,7 +25,7 @@ does not handle the AWS secret key.
 - [x] Verified locally: the image built and run with `--local-dir` against a local PostgreSQL 18 database built by `db:migrate` and seeded with a few rows; both files decrypt with a throwaway key; the manifest's counts match the seed.
 - [x] `.github/dependabot.yml` has a `docker` entry for `/apps/backup` with a three-day cooldown, ignoring `postgres` major updates.
 - [x] Owner: Railway service `backup` configured in its dashboard with the settings above and the spec's variables, and no public networking; one run triggered by hand succeeds.
-- [ ] The first scheduled run's objects appear in S3; date recorded under Comments.
+- [x] The first scheduled run's objects appear in S3; date recorded under Comments.
 
 ## Comments
 
@@ -105,3 +105,10 @@ The upload closes 03's checksum question: S3 accepted the explicit
 `CRC64NVME` checksum on the Object Lock bucket. Railway labels the progress
 lines `[err]` because the job logs to stderr. The first scheduled run is at
 20:00 UTC, 03:00 on 2026-10-19 in Bangkok.
+
+### 2026-10-19: First scheduled run in S3
+
+The Railway `backup` service ran on its cron schedule and completed in 6
+seconds. S3 holds `daily/2026-10-19/bookkeeping.dump.age` (46.5 KB) and
+`daily/2026-10-19/manifest.json.age` (1.1 KB), both in Standard storage. The
+timestamps are 03:04 Asia/Bangkok, four minutes after the 20:00 UTC trigger.
