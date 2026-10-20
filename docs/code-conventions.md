@@ -75,6 +75,20 @@ app factories in `apps/server/src/testing/`. Playwright helpers stay beside the
 specs in `apps/web/tests/e2e/helpers/`. Test helpers are excluded from
 production builds.
 
+## File size
+
+No committed text file exceeds 5,000 tokens, where tokens are estimated as
+bytes divided by four. `scripts/check-file-token-budget.ts` enforces the limit
+on staged files and again over every tracked file in `pnpm run ci`. Lockfiles,
+`*.gen.ts`, `openapi.json`, drizzle migrations, and binary files are exempt.
+
+The limit is a size budget, not a design verdict. Split a file when it holds
+more than one concept, and let review judge the boundary. Files already over
+the limit are recorded in `scripts/file-token-budget/baseline.json`. Such a file
+may shrink but may not grow. Only the owner decides whether it stays on the
+list, so an agent proposes the split and waits for the decision before
+editing.
+
 ## Rule ownership
 
 Every business rule has exactly one author module in `@bookkeeping/application`,
