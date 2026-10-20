@@ -67,6 +67,9 @@
     "node": ">=24"
   },
   "lint-staged": {
+    "*": [
+      "tsx scripts/check-file-token-budget.ts"
+    ],
     "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css}": [
       "biome check --no-errors-on-unmatched --files-ignore-unknown=true"
     ],
