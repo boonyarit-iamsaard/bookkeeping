@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-    "ci": "pnpm check:database-migrations && pnpm check:file-token-budget && pnpm check:public-identifiers &&biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && turbo run types:check types:check:scripts test test:scripts && turbo run build",
+    "ci": "pnpm check:database-migrations && pnpm check:file-token-budget && pnpm check:public-identifiers && biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && turbo run types:check types:check:scripts test test:scripts && turbo run build",
     "ci:e2e": "turbo run test:e2e:ci",
     "db:push": "pnpm --filter @bookkeeping/database db:push",
     "db:migrate": "pnpm --filter @bookkeeping/database db:migrate",

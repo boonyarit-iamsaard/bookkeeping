@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { TrackedFile } from "./token-budget";
 import {
-  buildBaseline,
+  findBaselineChanges,
   findViolations,
   isExemptPath,
   MAX_BYTES,
+  parseBaseline,
 } from "./token-budget";
 
 function textFile(path: string, bytes: number): TrackedFile {
@@ -64,12 +65,19 @@ describe("findViolations", () => {
     ).toEqual([]);
   });
 
-  it("allows a baselined file that has shrunk but is still over the limit", () => {
+  it("flags a baselined file that shrank, so its entry is lowered", () => {
     const files = [textFile("src/big.ts", MAX_BYTES + 100)];
     const baseline = { "src/big.ts": MAX_BYTES + 400 };
     expect(
       findViolations(files, { trackedPaths: ["src/big.ts"], baseline }),
-    ).toEqual([]);
+    ).toEqual([
+      {
+        kind: "shrank",
+        path: "src/big.ts",
+        bytes: MAX_BYTES + 100,
+        baselineBytes: MAX_BYTES + 400,
+      },
+    ]);
   });
 
   it("flags a baselined file that grew past its recorded size", () => {
@@ -110,19 +118,44 @@ describe("findViolations", () => {
   });
 });
 
-describe("buildBaseline", () => {
-  it("records only counted files over the limit, sorted by path", () => {
-    const files = [
-      textFile("src/small.ts", 100),
-      textFile("src/z.ts", MAX_BYTES + 1),
-      textFile("src/a.ts", MAX_BYTES + 2),
-      textFile("pnpm-lock.yaml", MAX_BYTES * 10),
-    ];
-    expect(Object.keys(buildBaseline(files))).toEqual(["src/a.ts", "src/z.ts"]);
-    expect(buildBaseline(files)).toEqual({
-      "src/a.ts": MAX_BYTES + 2,
-      "src/z.ts": MAX_BYTES + 1,
+describe("findBaselineChanges", () => {
+  it("flags entries the commit adds or raises", () => {
+    const committed = { "src/big.ts": MAX_BYTES + 400 };
+    const staged = {
+      "src/big.ts": MAX_BYTES + 500,
+      "src/new.ts": MAX_BYTES + 1,
+    };
+    expect(findBaselineChanges(committed, staged)).toEqual([
+      {
+        kind: "baseline-raised",
+        path: "src/big.ts",
+        bytes: MAX_BYTES + 500,
+        committedBytes: MAX_BYTES + 400,
+      },
+      { kind: "baseline-added", path: "src/new.ts" },
+    ]);
+  });
+
+  it("allows entries the commit lowers or removes", () => {
+    const committed = {
+      "src/big.ts": MAX_BYTES + 400,
+      "src/gone.ts": MAX_BYTES + 1,
+    };
+    const staged = { "src/big.ts": MAX_BYTES + 100 };
+    expect(findBaselineChanges(committed, staged)).toEqual([]);
+  });
+});
+
+describe("parseBaseline", () => {
+  it("reads a map of paths to byte sizes", () => {
+    expect(parseBaseline('{"src/big.ts": 20400}')).toEqual({
+      "src/big.ts": 20_400,
     });
+  });
+
+  it("rejects an entry that is not a positive whole byte count", () => {
+    expect(() => parseBaseline('{"src/big.ts": "20400"}')).toThrow();
+    expect(() => parseBaseline('{"src/big.ts": 1.5}')).toThrow();
   });
 });
 

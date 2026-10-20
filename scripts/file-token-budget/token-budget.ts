@@ -1,9 +1,11 @@
+import { z } from "zod";
+
 export const TOKEN_LIMIT = 5_000;
 export const BYTES_PER_TOKEN = 4;
 export const MAX_BYTES = TOKEN_LIMIT * BYTES_PER_TOKEN;
 
-// Files the agents did not author. Lockfiles and codegen are written by tools,
-// and splitting them by hand would break their regeneration.
+// Files the agents did not author. The lockfile and codegen are written by
+// tools, and splitting them by hand would break their regeneration.
 const EXEMPT_PATH_PATTERNS = [
   /(^|\/)pnpm-lock\.yaml$/,
   /\.gen\.ts$/,
@@ -16,15 +18,29 @@ export interface TrackedFile {
   content: Buffer;
 }
 
-// Maps each path that already exceeds the limit to its byte size when the
-// baseline was written. Such a file may shrink, but it may not grow.
-export type Baseline = Record<string, number>;
+// Maps each path that already exceeds the limit to its current byte size. Such
+// a file may shrink, but it may not grow, and its entry shrinks with it.
+const baselineSchema = z.record(z.string(), z.number().int().positive());
+
+export type Baseline = z.infer<typeof baselineSchema>;
 
 export type Violation =
   | { kind: "oversized"; path: string; tokens: number }
   | { kind: "grew"; path: string; bytes: number; baselineBytes: number }
+  | { kind: "shrank"; path: string; bytes: number; baselineBytes: number }
   | { kind: "within-limit"; path: string }
-  | { kind: "untracked"; path: string };
+  | { kind: "untracked"; path: string }
+  | { kind: "baseline-added"; path: string }
+  | {
+      kind: "baseline-raised";
+      path: string;
+      bytes: number;
+      committedBytes: number;
+    };
+
+export function parseBaseline(text: string): Baseline {
+  return baselineSchema.parse(JSON.parse(text));
+}
 
 export function isExemptPath(path: string): boolean {
   return EXEMPT_PATH_PATTERNS.some((pattern) => pattern.test(path));
@@ -36,11 +52,11 @@ function isBinary(content: Buffer): boolean {
   return content.includes(0);
 }
 
-export function estimateTokens(content: Buffer): number {
+function estimateTokens(content: Buffer): number {
   return Math.ceil(content.length / BYTES_PER_TOKEN);
 }
 
-export function isCountedFile({ path, content }: TrackedFile): boolean {
+function isCountedFile({ path, content }: TrackedFile): boolean {
   return !isExemptPath(path) && !isBinary(content);
 }
 
@@ -57,9 +73,9 @@ export function findViolations(
 ): Violation[] {
   const violations: Violation[] = [];
 
-  for (const file of files.filter(isCountedFile)) {
-    const { path, content } = file;
+  for (const { path, content } of files.filter(isCountedFile)) {
     const tokens = estimateTokens(content);
+    const bytes = content.length;
     const baselineBytes = baseline[path];
 
     if (baselineBytes === undefined) {
@@ -68,13 +84,10 @@ export function findViolations(
       }
     } else if (tokens <= TOKEN_LIMIT) {
       violations.push({ kind: "within-limit", path });
-    } else if (content.length > baselineBytes) {
-      violations.push({
-        kind: "grew",
-        path,
-        bytes: content.length,
-        baselineBytes,
-      });
+    } else if (bytes > baselineBytes) {
+      violations.push({ kind: "grew", path, bytes, baselineBytes });
+    } else if (bytes < baselineBytes) {
+      violations.push({ kind: "shrank", path, bytes, baselineBytes });
     }
   }
 
@@ -88,14 +101,22 @@ export function findViolations(
   return violations;
 }
 
-export function buildBaseline(files: readonly TrackedFile[]): Baseline {
-  const baseline: Baseline = {};
-  for (const file of files.filter(isCountedFile)) {
-    if (estimateTokens(file.content) > TOKEN_LIMIT) {
-      baseline[file.path] = file.content.length;
+// Only the owner adds a file to the baseline or raises its entry; anyone may
+// lower or remove one.
+export function findBaselineChanges(
+  committed: Baseline,
+  staged: Baseline,
+): Violation[] {
+  const violations: Violation[] = [];
+
+  for (const [path, bytes] of Object.entries(staged)) {
+    const committedBytes = committed[path];
+    if (committedBytes === undefined) {
+      violations.push({ kind: "baseline-added", path });
+    } else if (bytes > committedBytes) {
+      violations.push({ kind: "baseline-raised", path, bytes, committedBytes });
     }
   }
-  return Object.fromEntries(
-    Object.entries(baseline).sort(([a], [b]) => a.localeCompare(b)),
-  );
+
+  return violations;
 }
