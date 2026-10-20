@@ -146,6 +146,10 @@ Resources:
               Address: !Ref AlertEmail
 
   # The owner confirms this subscription from the email AWS sends.
+  # No KMS encryption (Sonar S6327, accepted): messages hold only backup
+  # timestamps and leave as plain email anyway. The alarm below cannot publish
+  # with the AWS managed aws/sns key, and a customer managed key alone would
+  # cost the whole monthly budget.
   AlertTopic:
     Type: AWS::SNS::Topic
     Properties:

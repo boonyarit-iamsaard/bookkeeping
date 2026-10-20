@@ -39,9 +39,11 @@
     "!Sub sequence"
   ],
   // SonarLint does not read sonar-project.properties, so the accepted S3
-  // access-logging rule is turned off here too; see infra/aws/backups.yaml.
+  // access-logging and SNS encryption rules are turned off here too; see
+  // infra/aws/backups.yaml.
   "sonarlint.rules": {
-    "cloudformation:S6258": { "level": "off" }
+    "cloudformation:S6258": { "level": "off" },
+    "cloudformation:S6327": { "level": "off" }
   },
   "[yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
