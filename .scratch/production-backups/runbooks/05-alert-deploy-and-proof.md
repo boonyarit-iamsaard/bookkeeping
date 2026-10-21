@@ -23,7 +23,7 @@ never write it into this file. The repository is public.
       the docs were checked, so step 1 renews it.
 - [x] The stack `bookkeeping-backups` exists in `ap-southeast-1`, deployed in
       ticket 03.
-- [ ] Access to the owner's inbox, `<OWNER_EMAIL>`, for the SNS confirmation
+- [x] Access to the owner's inbox, `<OWNER_EMAIL>`, for the SNS confirmation
       and the alert email.
 - Region: `ap-southeast-1`. Profile: `bookkeeping-backups`. Stack:
   `bookkeeping-backups`. Run every command from the repository root.
@@ -40,7 +40,7 @@ never write it into this file. The repository is public.
 
 ### 1. Renew the SSO session
 
-- [ ] **Done** (tick once Verify passes)
+- [x] **Done** (tick once Verify passes)
 - **Goal:** Your terminal holds a fresh `bookkeeping-backups` session.
 - **Why:** Every later step calls AWS with this profile. The session had
   expired when the docs were checked.
@@ -58,7 +58,7 @@ never write it into this file. The repository is public.
 
 ### 2. Read the live stack's parameters and status
 
-- [ ] **Done** (tick once Verify passes)
+- [x] **Done** (tick once Verify passes)
 - **Goal:** You know the stack's current parameter values, so the redeploys
   in steps 3, 7 and 9 keep the same bucket name and email.
 - **Why:** `BucketNamePrefix` must match the deployed value. A different
@@ -84,7 +84,7 @@ never write it into this file. The repository is public.
 
 ### 3. Create the change set for the alert template
 
-- [ ] **Done** (tick once Verify passes)
+- [x] **Done** (tick once Verify passes)
 - **Goal:** A change set exists that adds the alert resources. It is not yet
   executed.
 - **Why:** Reviewing the change set before executing it shows whether the
@@ -119,7 +119,7 @@ never write it into this file. The repository is public.
 
 ### 4. Review the change set before executing it
 
-- [ ] **Done** (tick once Verify passes)
+- [x] **Done** (tick once Verify passes)
 - **Goal:** You have read what the change set will do, and it does not
   replace the backup bucket.
 - **Why:** The bucket is Object Lock with `DeletionPolicy: Retain`. A
@@ -145,7 +145,7 @@ never write it into this file. The repository is public.
 
 ### 5. Execute the change set
 
-- [ ] **Done** (tick once Verify passes)
+- [x] **Done** (tick once Verify passes)
 - **Goal:** The alert resources exist in the `backups` account.
 - **Why:** This applies the reviewed change set.
 - **Where:** This machine's terminal.
@@ -184,7 +184,7 @@ never write it into this file. The repository is public.
 
 ### 6. Confirm the SNS subscription
 
-- [ ] **Done** (tick once Verify passes)
+- [x] **Done** (tick once Verify passes)
 - **Goal:** The owner's email is a confirmed subscription on the alert topic.
 - **Why:** An unconfirmed email subscription receives no messages, so the
   alert would be silent.
@@ -208,7 +208,7 @@ Confirmation`, sent after step 5, and choose **Confirm subscription**.
 
 ### 7. Set the threshold to 1 hour
 
-- [ ] **Done** (tick once Verify passes)
+- [x] **Done** (tick once Verify passes)
 - **Goal:** The live alert uses a 1-hour threshold, so a stale check fires.
 - **Why:** The backup at 20:00 UTC is already more than an hour old, so a
   1-hour check must alert. That proves the path end to end without waiting.
@@ -249,7 +249,7 @@ Confirmation`, sent after step 5, and choose **Confirm subscription**.
 
 ### 8. Invoke the Lambda once
 
-- [ ] **Done** (tick once Verify passes)
+- [x] **Done** (tick once Verify passes)
 - **Goal:** The checker runs, finds the 20:00 UTC backup older than an hour,
   and emails the owner.
 - **Why:** This is the alert's proof. The run is manual; the schedule stays
@@ -285,7 +285,7 @@ Confirmation`, sent after step 5, and choose **Confirm subscription**.
 
 ### 9. Restore the threshold to 26 hours
 
-- [ ] **Done** (tick once Verify passes)
+- [x] **Done** (tick once Verify passes)
 - **Goal:** The live alert uses the default 26-hour threshold again.
 - **Why:** The spec's threshold is 26 hours. A 1-hour alert would email the
   owner every morning.
@@ -344,3 +344,34 @@ Confirmation`, sent after step 5, and choose **Confirm subscription**.
 - Completed: none yet.
 - Deviations from docs: the `cloudformation deploy` reference page returned 404
   when fetched. The flags were checked against the installed CLI's own help.
+
+### 2026-10-21
+
+- Completed: steps 1 to 5. The update started at 14:19 UTC and the stack
+  reached `UPDATE_COMPLETE` at 14:20 UTC. Its events show only the seven alert
+  resources created; `BackupBucket`, `BackupBucketPolicy`, `UploaderUser` and
+  `MonthlyCostBudget` have no update events. `BackupMaxAgeHours` is `26`, the
+  function is `Active` on `python3.13`, the schedule is `ENABLED` at
+  `cron(0 9 * * ? *)` in `Asia/Bangkok`, and the errors alarm is `OK`.
+- Completed: step 6. The owner confirmed the subscription at about
+  14:22 UTC; `list-subscriptions` shows a subscription ARN in place of
+  `PendingConfirmation`.
+- Completed: step 7. The change set showed `AlertFunction` as `Modify` on
+  `Environment` (`Static`, caused by `BackupMaxAgeHours`), and
+  `AlertSchedulerRole` and `AlertSchedule` as `Dynamic` `Modify` caused by
+  `AlertFunction.Arn`. None required recreation and the bucket was absent.
+  The stack reached `UPDATE_COMPLETE` at 14:27 UTC; `MAX_AGE_HOURS` is `"1"`.
+- Completed: step 8. The invoke returned `"StatusCode": 200` and no
+  `FunctionError`. The response was `"stale"`, with the newest backup at
+  `2026-10-20T20:04:24+00:00`. SNS reported one notification delivered and
+  none failed. The email `Bookkeeping backup is missing` arrived at 14:30 UTC
+  (21:30 Bangkok), naming that backup and the check time
+  `2026-10-21T14:30:10Z`.
+- Completed: step 9. The change set matched step 7's three `Modify` entries,
+  none requiring recreation. Two first attempts at the execute command failed
+  on a zsh parse error at the literal `<CHANGE_SET_ARN>` placeholder and ran
+  nothing. Executed with the real ARN, the stack ran one update at 14:35 UTC,
+  in which only `AlertFunction` changed, and reached `UPDATE_COMPLETE`.
+  `MAX_AGE_HOURS` is `"26"`, the schedule is `ENABLED`, and no change sets
+  remain.
+- Next: step 10, after 02:00 UTC on 2026-10-22 (09:00 Bangkok).

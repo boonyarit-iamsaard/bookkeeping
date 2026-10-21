@@ -17,8 +17,8 @@ confirms the email subscription.
 - [x] The Lambda's role may only list the `daily/` prefix of the bucket, publish to the topic, and write its own logs. Its log group keeps 30 days.
 - [x] The age threshold is a template parameter defaulting to 26 hours.
 - [x] Lints clean with the same `cfn-lint` command as 02.
-- [ ] Owner: stack updated, SNS subscription confirmed.
-- [ ] Owner: the alert proven by redeploying with a threshold of 1 hour and invoking the Lambda, or by waiting for a stale backup; the email arrived; the threshold restored to 26 hours.
+- [x] Owner: stack updated, SNS subscription confirmed.
+- [x] Owner: the alert proven by redeploying with a threshold of 1 hour and invoking the Lambda, or by waiting for a stale backup; the email arrived; the threshold restored to 26 hours.
 
 ## Comments
 
@@ -50,3 +50,18 @@ names the Errors alarm as the check, so this is a known limit, not added here.
 The two owner items stay open: deploy the stack and confirm the subscription,
 then prove the alert by setting the threshold to 1 hour, invoking the Lambda,
 and restoring 26.
+
+### 2026-10-21: Deployed and proven
+
+The owner followed `runbooks/05-alert-deploy-and-proof.md`. The stack update
+at 14:19 UTC created only the seven alert resources; the bucket, its policy,
+the uploader user and the budget were untouched. The owner confirmed the SNS
+email subscription at about 14:22 UTC.
+
+The threshold was set to 1 hour at 14:27 UTC. A manual invoke at 14:30 UTC
+returned `"stale"` for the newest backup, `2026-10-20T20:04:24+00:00`, and the
+email `Bookkeeping backup is missing` arrived at 14:30 UTC. The threshold was
+restored to 26 hours at 14:35 UTC, and `MAX_AGE_HOURS` reads `"26"`.
+
+Still to check: the first scheduled run at 02:00 UTC on 2026-10-22 should
+appear in the function's log with no email (runbook step 10).
