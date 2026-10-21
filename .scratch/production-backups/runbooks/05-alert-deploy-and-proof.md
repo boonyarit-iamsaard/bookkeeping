@@ -155,10 +155,13 @@ never write it into this file. The repository is public.
      ```bash
      aws cloudformation execute-change-set --profile bookkeeping-backups \
        --region ap-southeast-1 --change-set-name <CHANGE_SET_ARN>
+     aws cloudformation wait stack-update-complete --profile bookkeeping-backups \
+       --region ap-southeast-1 --stack-name bookkeeping-backups
      ```
 
-- **Expect:** The command returns without output. The stack later reaches
-  `UPDATE_COMPLETE`.
+  2. Wait for the prompt to return. The wait polls every 30 seconds.
+- **Expect:** `execute-change-set` returns without output, and the wait
+  returns without error once the stack reaches `UPDATE_COMPLETE`.
 - **Verify:**
 
   ```bash
@@ -167,13 +170,17 @@ never write it into this file. The repository is public.
     --query "Stacks[0].StackStatus"
   ```
 
-  returns `"UPDATE_COMPLETE"`.
+  returns `"UPDATE_COMPLETE"`. If the wait fails, or the status is
+  `UPDATE_ROLLBACK_COMPLETE` or `UPDATE_ROLLBACK_FAILED`, stop and tell the
+  agent.
 
-- **Undo:** The stack can be updated back, but the SNS topic and its
-  subscription would be removed. Nothing in the bucket is touched.
+- **Undo:** The stack can be updated back, but the SNS topic, its
+  subscription, and the log group with its logs would be removed. Nothing in
+  the bucket is touched.
 - **Ticks:** Ticket 05's "Owner: stack updated" waits for step 6.
 - **Source:** <https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-changesets-create.html>
-  (the CLI command is the one runbook 03 used.)
+  (the CLI command is the one runbook 03 used.) and
+  <https://docs.aws.amazon.com/cli/latest/reference/cloudformation/wait/stack-update-complete.html>
 
 ### 6. Confirm the SNS subscription
 
@@ -182,7 +189,7 @@ never write it into this file. The repository is public.
 - **Why:** An unconfirmed email subscription receives no messages, so the
   alert would be silent.
 - **Where:** Owner's inbox `<OWNER_EMAIL>`, then the SNS console in the
-  `backups` account (per docs, verify on screen).
+  `backups` account, region `ap-southeast-1` (per docs, verify on screen).
 - **Do:**
   1. Open the email with subject `AWS Notification - Subscription
 Confirmation`, sent after step 5, and choose **Confirm subscription**.
@@ -191,8 +198,10 @@ Confirmation`, sent after step 5, and choose **Confirm subscription**.
 - **Expect:** The page confirms the subscription, and its status is
   `Confirmed`, not `Pending confirmation`.
 - **Verify:** The subscription's status is `Confirmed`.
-- **Undo:** Not needed; an unconfirmed subscription can be deleted in the
-  console.
+- **Undo:** Not needed. If the email is lost or its link has expired, select
+  the pending subscription in the console and choose **Request
+  confirmation**. Do not delete it there: the stack owns it, and deleting it
+  by hand would leave the stack out of step with AWS.
 - **Ticks:** Ticket 05's "Owner: stack updated, SNS subscription confirmed"
   (after steps 5 and 6).
 - **Source:** <https://docs.aws.amazon.com/sns/latest/dg/sns-create-subscribe-endpoint-to-topic.html>
@@ -203,13 +212,23 @@ Confirmation`, sent after step 5, and choose **Confirm subscription**.
 - **Goal:** The live alert uses a 1-hour threshold, so a stale check fires.
 - **Why:** The backup at 20:00 UTC is already more than an hour old, so a
   1-hour check must alert. That proves the path end to end without waiting.
+- **When:** Run steps 7 to 9 in one sitting, finishing before 02:00 UTC
+  (09:00 Bangkok) and outside 20:00 to 21:00 UTC (03:00 to 04:00 Bangkok).
+  The scheduled check at 02:00 UTC would send a real alert while the
+  threshold is 1. Within an hour after the nightly backup, the backup is
+  too fresh for a 1-hour check to alert, and step 8 would look like a
+  failure.
 - **Where:** This machine's terminal, from the repository root.
 - **Do:**
   1. Repeat step 3 with `BackupMaxAgeHours=1` added to `--parameter-overrides`,
      and `--no-execute-changeset`. Keep the same `AlertEmail` and
      `BucketNamePrefix`.
-  2. Review the new change set as in step 4. The only change should be the
-     `MAX_AGE_HOURS` environment variable of `AlertFunction`.
+  2. Review the new change set as in step 4. `AlertFunction` should be
+     `Modify` with no `Replacement: True`, its change in `Environment`.
+     Resources that reference it (`AlertErrorsAlarm`, `AlertSchedulerRole`,
+     `AlertSchedule`) may also appear as `Modify` with `Evaluation: Dynamic`.
+     That is expected if none shows `Replacement: True`. `BackupBucket` must
+     not appear.
   3. Execute it as in step 5.
 - **Expect:** The stack reaches `UPDATE_COMPLETE`. `AlertFunction` changes
   only in its environment.
@@ -240,21 +259,26 @@ Confirmation`, sent after step 5, and choose **Confirm subscription**.
   1. Run:
 
      ```bash
+     out="$(mktemp)"
      aws lambda invoke --profile bookkeeping-backups \
        --region ap-southeast-1 --function-name bookkeeping-backup-alert \
-       --cli-binary-format raw-in-base64-out --payload '{}' "$(mktemp)"
+       --cli-binary-format raw-in-base64-out --payload '{}' "$out" \
+       && cat "$out"
      ```
 
-     The payload goes to a temporary file, not the repository.
+     The response goes to a temporary file, not the repository, and `cat`
+     prints it.
 
   2. Check the owner's inbox for an email titled
      `Bookkeeping backup is missing`.
-- **Expect:** The command prints `"StatusCode": 200`, with no `FunctionError`.
-  The email arrives within a few minutes. Its body names the newest
-  `daily/` backup and the check time.
-- **Verify:** `FunctionError` is absent from the output, and the email
-  arrived. If there is no `FunctionError` but no email, check the SNS
-  subscription status from step 6.
+- **Expect:** The command prints `"StatusCode": 200`, with no `FunctionError`,
+  then the response `{"status": "stale", "newest": "…"}`. The email arrives
+  within a few minutes. Its body names the newest `daily/` backup and the
+  check time.
+- **Verify:** `FunctionError` is absent, the response says `"stale"`, and the
+  email arrived. A `"stale"` response with no email points to the SNS
+  subscription from step 6. An `"ok"` response means the threshold is not 1
+  or a backup landed within the hour; check step 7's Verify and the timing.
 - **Undo:** Not needed; invoking is read-only apart from the alert.
 - **Ticks:** Ticket 05's "the email arrived" (with step 9).
 - **Source:** <https://docs.aws.amazon.com/cli/latest/reference/lambda/invoke.html>
@@ -280,24 +304,38 @@ Confirmation`, sent after step 5, and choose **Confirm subscription**.
 
 ### 10. Check the next morning's run
 
-- [ ] **Done** (tick once you have checked the inbox)
+- [ ] **Done** (tick once the log shows the run and the inbox is quiet)
 - **Goal:** The scheduled check runs at 09:00 Bangkok and stays quiet while the
   nightly backup is fresh.
 - **Why:** The scheduled path is separate from the manual invoke in step 8.
-  It has not run yet.
-- **Where:** Owner's inbox, the next morning.
+  It has not run yet. A quiet inbox alone cannot tell a passing check from a
+  schedule that never fired, and the `Errors` alarm cannot see a scheduler
+  fault, so the log must show the run.
+- **Where:** Owner's inbox and this machine's terminal, the next morning
+  after 09:00 Bangkok.
 - **Do:**
   1. At 09:00 Asia/Bangkok, which is 02:00 UTC, the schedule invokes the
      Lambda. The newest backup, from 20:00 UTC the night before, is about
      6 hours old, within the 26-hour threshold.
   2. Confirm no `Bookkeeping backup is missing` email arrived.
-- **Expect:** No alert email. The Scheduler's next run is shown in the
-  EventBridge Scheduler console.
-- **Verify:** No email, and no `Errors` alarm.
+  3. Run `aws sso login --sso-session bookkeeping` if the session has
+     expired, then:
+
+     ```bash
+     aws logs tail /aws/lambda/bookkeeping-backup-alert \
+       --profile bookkeeping-backups --region ap-southeast-1 --since 12h
+     ```
+
+- **Expect:** No alert email. The log shows a `START` and `END` line for a
+  run at about 02:00 UTC, with no error between them.
+- **Verify:** The 02:00 UTC run is in the log, no email arrived, and the
+  `bookkeeping-backup-alert-errors` alarm is `OK`. No run in the log means the
+  schedule did not fire; tell the agent.
 - **Undo:** Not applicable.
 - **Ticks:** Nothing directly; this confirms the scheduled path after the
   ticket closes.
 - **Source:** <https://docs.aws.amazon.com/scheduler/latest/UserGuide/schedule-types.html>
+  and <https://docs.aws.amazon.com/cli/latest/reference/logs/tail.html>
 
 ## Run log
 
