@@ -80,7 +80,8 @@
         "required": [
           "pointer",
           "code"
-        ]
+        ],
+        "additionalProperties": false
       },
       "HealthResponse": {
         "type": "object",
@@ -92,7 +93,8 @@
         },
         "required": [
           "status"
-        ]
+        ],
+        "additionalProperties": false
       },
       "SignUpStatus": {
         "type": "object",
@@ -107,7 +109,8 @@
         },
         "required": [
           "signUp"
-        ]
+        ],
+        "additionalProperties": false
       },
       "CreateWalletRequest": {
         "type": "object",
@@ -216,7 +219,8 @@
           "openingDate",
           "archivedAt",
           "balance"
-        ]
+        ],
+        "additionalProperties": false
       },
       "Money": {
         "type": "object",
@@ -232,7 +236,8 @@
         "required": [
           "value",
           "currency"
-        ]
+        ],
+        "additionalProperties": false
       },
       "WalletCollection": {
         "type": "object",
@@ -250,7 +255,8 @@
         "required": [
           "items",
           "page"
-        ]
+        ],
+        "additionalProperties": false
       },
       "Page": {
         "type": "object",
@@ -264,7 +270,8 @@
         },
         "required": [
           "nextCursor"
-        ]
+        ],
+        "additionalProperties": false
       },
       "WalletOpeningRequest": {
         "type": "object",
@@ -449,7 +456,8 @@
           "name",
           "iconId",
           "isProtected"
-        ]
+        ],
+        "additionalProperties": false
       },
       "CategoryCollection": {
         "type": "object",
@@ -467,7 +475,8 @@
         "required": [
           "items",
           "page"
-        ]
+        ],
+        "additionalProperties": false
       },
       "CategoryUsageCollection": {
         "type": "object",
@@ -485,7 +494,8 @@
         "required": [
           "items",
           "page"
-        ]
+        ],
+        "additionalProperties": false
       },
       "CategoryUsageEntry": {
         "type": "object",
@@ -504,7 +514,8 @@
         "required": [
           "categoryId",
           "transactions"
-        ]
+        ],
+        "additionalProperties": false
       },
       "UpdateCategoryRequest": {
         "type": "object",
@@ -582,7 +593,8 @@
         "required": [
           "transactions",
           "children"
-        ]
+        ],
+        "additionalProperties": false
       },
       "ProvisioningOutcome": {
         "type": "object",
@@ -600,7 +612,8 @@
         },
         "required": [
           "seededKinds"
-        ]
+        ],
+        "additionalProperties": false
       },
       "CreateTransactionRequest": {
         "oneOf": [
@@ -794,7 +807,8 @@
                   "name",
                   "iconId",
                   "parentName"
-                ]
+                ],
+                "additionalProperties": false
               },
               {
                 "type": "null"
@@ -824,7 +838,8 @@
                   "id",
                   "amount",
                   "transactionDate"
-                ]
+                ],
+                "additionalProperties": false
               },
               {
                 "type": "null"
@@ -843,7 +858,8 @@
           "destinationWallet",
           "category",
           "refundOf"
-        ]
+        ],
+        "additionalProperties": false
       },
       "TransactionWallet": {
         "type": "object",
@@ -873,7 +889,8 @@
           "name",
           "type",
           "archived"
-        ]
+        ],
+        "additionalProperties": false
       },
       "TransactionRejectionProblem": {
         "type": "object",
@@ -985,7 +1002,8 @@
           "pointer",
           "code",
           "refundAllowance"
-        ]
+        ],
+        "additionalProperties": false
       },
       "RefundedTotalFieldError": {
         "type": "object",
@@ -1008,7 +1026,8 @@
           "pointer",
           "code",
           "refundedTotal"
-        ]
+        ],
+        "additionalProperties": false
       },
       "RefundDateFieldError": {
         "type": "object",
@@ -1033,7 +1052,8 @@
           "pointer",
           "code",
           "refundDate"
-        ]
+        ],
+        "additionalProperties": false
       },
       "ExpenseDateFieldError": {
         "type": "object",
@@ -1058,7 +1078,8 @@
           "pointer",
           "code",
           "expenseDate"
-        ]
+        ],
+        "additionalProperties": false
       },
       "OpeningDateFieldError": {
         "type": "object",
@@ -1083,7 +1104,8 @@
           "pointer",
           "code",
           "openingDate"
-        ]
+        ],
+        "additionalProperties": false
       },
       "PlainRuleFieldError": {
         "type": "object",
@@ -1116,9 +1138,27 @@
         "required": [
           "pointer",
           "code"
-        ]
+        ],
+        "additionalProperties": false
       },
       "TransactionValidationFieldError": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pointer",
+          "code"
+        ],
+        "additionalProperties": false,
         "$ref": "#/components/schemas/ProblemFieldError"
       },
       "TransactionCollection": {
@@ -1137,7 +1177,8 @@
         "required": [
           "items",
           "page"
-        ]
+        ],
+        "additionalProperties": false
       },
       "TransactionEntryDefaults": {
         "type": "object",
@@ -1157,7 +1198,8 @@
         },
         "required": [
           "lastUsedWalletId"
-        ]
+        ],
+        "additionalProperties": false
       },
       "UpdateTransactionRequest": {
         "type": "object",
@@ -1266,7 +1308,8 @@
           "amount",
           "transactionDate",
           "wallet"
-        ]
+        ],
+        "additionalProperties": false
       },
       "TransactionRefunds": {
         "type": "object",
@@ -1288,7 +1331,8 @@
           "refunds",
           "refundedTotal",
           "refundAllowance"
-        ]
+        ],
+        "additionalProperties": false
       },
       "MonthlyReport": {
         "type": "object",
@@ -1326,7 +1370,8 @@
           "netExpenses",
           "net",
           "transactionCount"
-        ]
+        ],
+        "additionalProperties": false
       },
       "CategorySpending": {
         "type": "object",
@@ -1349,7 +1394,8 @@
           "month",
           "netExpenses",
           "parents"
-        ]
+        ],
+        "additionalProperties": false
       },
       "ParentCategorySpending": {
         "type": "object",
@@ -1391,7 +1437,8 @@
           "spending",
           "directSpending",
           "children"
-        ]
+        ],
+        "additionalProperties": false
       },
       "ChildCategorySpending": {
         "type": "object",
@@ -1418,7 +1465,8 @@
           "name",
           "sortOrder",
           "spending"
-        ]
+        ],
+        "additionalProperties": false
       },
       "ClosingBalances": {
         "type": "object",
@@ -1437,7 +1485,8 @@
         "required": [
           "month",
           "entries"
-        ]
+        ],
+        "additionalProperties": false
       },
       "ClosingBalanceEntry": {
         "type": "object",
@@ -1471,7 +1520,8 @@
         "required": [
           "date",
           "total"
-        ]
+        ],
+        "additionalProperties": false
       }
     }
   },
@@ -1899,7 +1949,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "vendor": "zod"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -2399,7 +2449,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "vendor": "zod"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -2988,7 +3038,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "vendor": "zod"
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
