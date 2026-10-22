@@ -206,10 +206,10 @@ volume backups stay on as a faster first layer for everyday mistakes.
 
 ## Build log
 
-`build-log.md` collects material for an article about this feature. Closing
-any ticket includes adding a dated entry covering what happened, why, how,
-and the struggles overcome. The repository is public, so entries hold no
-secrets, account IDs or real financial figures.
+`build-log-1.md`, continued in `build-log-2.md`, collects material for an
+article about this feature. Closing any ticket includes adding a dated entry
+covering what happened, why, how, and the struggles overcome. The repository
+is public, so entries hold no secrets, account IDs or real financial figures.
 
 ## Order of tickets
 
