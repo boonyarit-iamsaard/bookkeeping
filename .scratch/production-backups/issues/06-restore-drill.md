@@ -8,7 +8,7 @@ its manifest. The first passing drill closes this spec.
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Notes:** The agent writes and verifies the script against local backups
 from 04's `--local-dir`. Only the owner runs it against S3, because only the
@@ -19,8 +19,8 @@ owner holds the private key and the read access.
 - [x] Exits non-zero and names the differing tables on any mismatch; removes the container and the plaintext files whether it passes or fails.
 - [x] Against S3, refuses before restoring when the chosen backup's dump or manifest has more than one object version, naming the key: a leaked uploader key can add a newer version, encrypted to the public `AGE_RECIPIENT`, that the drill would otherwise restore and pass.
 - [x] Verified locally against a `--local-dir` backup from 04: passes unchanged, fails after one restored row or one manifest value is altered.
-- [ ] Owner: drill run against the newest S3 backup and passed; date and backup key recorded under this spec's Comments, with the next drill due in three months.
-- [ ] Spec status set to `done`, and the `production-migrations` spec unblocked.
+- [x] Owner: drill run against the newest S3 backup and passed; date and backup key recorded under this spec's Comments, with the next drill due in three months.
+- [x] Spec status set to `done`, and the `production-migrations` spec unblocked.
 
 ## Comments
 
@@ -100,3 +100,14 @@ because the root README is on the file-size baseline.
 
 Left for the owner: run the drill against the newest S3 backup with the real
 identity file, then record the date and backup key under the spec's Comments.
+
+### 2026-10-22: First drill against S3, and closed as done
+
+The owner ran the drill against the newest S3 backup with the real identity
+and it passed: 10 tables match `daily/2026-10-22/`, dumped at
+`2026-10-21T20:04:01.622866Z`. The run is recorded under the spec's Comments,
+with the next drill due 2027-01-22. The spec is `done`, and
+`production-migrations` may start.
+
+All acceptance criteria are met. The drill was built and verified in
+`f23449a`.

@@ -1,6 +1,6 @@
 # Production backups off Railway
 
-Status: ready-for-agent
+Status: done
 
 Decided on 2026-10-17 by grilling. Decision recorded in
 `docs/adr/0013-nightly-encrypted-backups-to-aws-s3.md`. Read it, ADR 0008 and
@@ -215,3 +215,15 @@ secrets, account IDs or real financial figures.
 
 01 (owner) and 02 are independent. 03 (owner) follows both. 04 can be written
 after 02 and closes after 03. 05 and 06 follow 04; 06 closes this spec.
+
+## Comments
+
+### 2026-10-22: Restore drills
+
+| Date       | Backup              | Dumped at (UTC)             | Result                  |
+| ---------- | ------------------- | --------------------------- | ----------------------- |
+| 2026-10-22 | `daily/2026-10-22/` | 2026-10-21T20:04:01.622866Z | Passed: 10 tables match |
+
+The next drill is due 2027-01-22, then quarterly. This first pass closes the
+spec and unblocks `production-migrations`. Ticket 03 stays open only for its
+first-month AWS cost note, due once November's bill is issued.
