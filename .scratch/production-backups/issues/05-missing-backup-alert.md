@@ -8,7 +8,7 @@ a broken checker also sends an email.
 
 **Blocked by:** 04
 
-**Status:** ready-for-human
+**Status:** done
 
 **Notes:** The agent extends the template from 02; the owner redeploys it and
 confirms the email subscription.
@@ -65,3 +65,13 @@ restored to 26 hours at 14:35 UTC, and `MAX_AGE_HOURS` reads `"26"`.
 
 Still to check: the first scheduled run at 02:00 UTC on 2026-10-22 should
 appear in the function's log with no email (runbook step 10).
+
+### 2026-10-22: First scheduled run, and closed as done
+
+The schedule invoked the function at 02:00:28 UTC (09:00 Bangkok), and the
+log shows a clean run with no error. The newest backup was about six hours
+old, so no email was sent, and the owner's inbox is quiet. The errors alarm
+is `OK`. Runbook step 10 is recorded.
+
+All acceptance criteria are met. The alert was built in `d481c81`, and its
+deploy and proof were recorded in `ab37193`.

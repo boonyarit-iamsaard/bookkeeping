@@ -19,7 +19,7 @@ never write it into this file. The repository is public.
 
 - [x] AWS CLI v2. Installed here: `aws-cli/2.38.1`.
       Source: <https://docs.aws.amazon.com/cli/latest/userguide/sso-configure-profile-token.html>
-- [ ] A fresh `bookkeeping-backups` SSO session. The session had expired when
+- [x] A fresh `bookkeeping-backups` SSO session. The session had expired when
       the docs were checked, so step 1 renews it.
 - [x] The stack `bookkeeping-backups` exists in `ap-southeast-1`, deployed in
       ticket 03.
@@ -304,7 +304,7 @@ Confirmation`, sent after step 5, and choose **Confirm subscription**.
 
 ### 10. Check the next morning's run
 
-- [ ] **Done** (tick once the log shows the run and the inbox is quiet)
+- [x] **Done** (tick once the log shows the run and the inbox is quiet)
 - **Goal:** The scheduled check runs at 09:00 Bangkok and stays quiet while the
   nightly backup is fresh.
 - **Why:** The scheduled path is separate from the manual invoke in step 8.
@@ -375,3 +375,11 @@ Confirmation`, sent after step 5, and choose **Confirm subscription**.
   `MAX_AGE_HOURS` is `"26"`, the schedule is `ENABLED`, and no change sets
   remain.
 - Next: step 10, after 02:00 UTC on 2026-10-22 (09:00 Bangkok).
+
+### 2026-10-22
+
+- Completed: step 10. The schedule invoked the function at 02:00:28 UTC
+  (09:00 Bangkok), and its log shows `START`, `END` and `REPORT` with no
+  error, in 588 ms. The newest backup, `daily/2026-10-22/`, was uploaded at
+  20:04 UTC on 2026-10-21, about six hours earlier, so no email was sent; the
+  owner's inbox is quiet. The errors alarm is `OK`.
