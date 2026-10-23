@@ -7,7 +7,7 @@ connect with it, and nobody else holds a session.
 
 **Blocked by:** 01
 
-**Status:** ready-for-human
+**Status:** done
 
 **Notes:** Follow Railway's "Rotate PostgreSQL Database Credentials" guide.
 Use **Regenerate**: never edit `POSTGRES_PASSWORD` or `PGPASSWORD` by hand,
@@ -18,7 +18,7 @@ redeploys, so start right after a nightly backup, never near 20:00 UTC.
 - [x] api and backup both read `DATABASE_URL` from `${{Postgres.DATABASE_URL}}`, and both are redeployed.
 - [x] api deploy logs show no `password authentication failed`; recording a transaction from the phone works.
 - [x] A manually triggered backup run succeeds, and its objects appear in S3.
-- [ ] `pg_stat_activity` shows only the expected sessions, and `pg_roles` has no role nobody created; findings recorded under Comments.
+- [x] `pg_stat_activity` shows only the expected sessions, and `pg_roles` has no role nobody created; findings recorded under Comments.
 - [x] Postgres still has no TCP proxy.
 
 ## Comments
@@ -50,3 +50,12 @@ have one version per key, and there are no delete markers.
 `daily/2026-10-23/` has the two expected versions per key: the nightly run at
 20:04:10–11 UTC on 2026-10-22 (not latest), and the manual run at
 02:01:12–13 UTC on 2026-10-23 (latest). Nothing else was uploaded.
+
+**2026-10-23 (owner):** In `railway connect database`, `pg_stat_activity`
+returned one session, the owner's own psql session as `postgres`. `pg_roles`,
+excluding the built-in `pg_*` roles, returned only `postgres`. No unexpected
+sessions or roles. A re-run gave the same result.
+
+**Closed:** the password is regenerated, and api and backup connect with it.
+Tickets 03 and 04 are unblocked. Before ticket 04's manual backup run, decide
+how manual runs avoid sharing a `daily/` key with that day's nightly run.
