@@ -16,11 +16,10 @@ console's copy icons, straight into the sealed variables, as in ticket 03.
 
 Don't trigger a backup run by hand. It writes a second version of that
 Bangkok date's `daily/` keys, which the restore drill refuses (see ticket 02's
-Comments). The scheduled runs prove the new key, so finish the first step
-before 20:00 UTC.
+Comments). The one exception, on 2026-10-23, is recorded under Comments.
 
 - [x] A second key is created for the uploader user and sealed into the backup service's AWS variables; backup is redeployed.
-- [ ] The next scheduled run succeeds, and the key's last-used date shows the new key made the upload.
+- [x] A backup run succeeds, and the key's last-used date shows the new key made the upload.
 - [ ] The old key is deactivated, and the following scheduled run succeeds.
 - [ ] A week after deactivation, with no failed run, the old key is deleted.
 - [ ] The next rotation, October 2027, is recorded under Comments.
@@ -35,3 +34,13 @@ the previous deployment ran. The old key (`…MFTDTPPQ`) is still active. It was
 last used by S3 at 02:01 UTC, the manual run in ticket 02. Next: after the
 20:00 UTC run on 2026-10-23, confirm the run succeeded and that the new key
 made the upload, then deactivate the old key.
+
+**2026-10-23, 02:59 UTC (agent):** To deactivate the old key sooner, the
+owner chose one more manual run on `daily/2026-10-23/`, which already had two
+versions per key. That folder now has three versions per key: 20:04 UTC on
+2026-10-22, then 02:01 and 02:49 UTC on 2026-10-23. Tonight's run writes
+`daily/2026-10-24/`, which the drill accepts. The run at 02:49 UTC succeeded
+and logged `uploaded to daily/2026-10-23/`. IAM shows the new key
+(`…CTHTTX3P`) last used by S3 in ap-southeast-1 at 02:49 UTC. The old key
+(`…MFTDTPPQ`) is unchanged at 02:01 UTC, so the new key made the upload. The
+old key can be deactivated.
