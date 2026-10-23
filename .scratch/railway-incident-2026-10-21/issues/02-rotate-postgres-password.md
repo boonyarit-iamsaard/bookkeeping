@@ -14,9 +14,32 @@ Use **Regenerate**: never edit `POSTGRES_PASSWORD` or `PGPASSWORD` by hand,
 and never run `ALTER USER`. The database restarts, and api is down until it
 redeploys, so start right after a nightly backup, never near 20:00 UTC.
 
-- [ ] Postgres → Database → Config → **Regenerate** done.
-- [ ] api and backup both read `DATABASE_URL` from `${{Postgres.DATABASE_URL}}`, and both are redeployed.
-- [ ] api deploy logs show no `password authentication failed`; recording a transaction from the phone works.
+- [x] Postgres → Database → Config → **Regenerate** done.
+- [x] api and backup both read `DATABASE_URL` from `${{Postgres.DATABASE_URL}}`, and both are redeployed.
+- [x] api deploy logs show no `password authentication failed`; recording a transaction from the phone works.
 - [ ] A manually triggered backup run succeeds, and its objects appear in S3.
 - [ ] `pg_stat_activity` shows only the expected sessions, and `pg_roles` has no role nobody created; findings recorded under Comments.
-- [ ] Postgres still has no TCP proxy.
+- [x] Postgres still has no TCP proxy.
+
+## Comments
+
+**2026-10-23, 02:10 UTC (agent):** The owner confirmed that api and backup
+use `${{database.DATABASE_URL}}`; the Postgres service is named `database`.
+They regenerated the password and redeployed api (`2afde4c1`, `0cd87f9`) and
+backup (`8e22384b`). Both deployments are `SUCCESS`. api `/health` returns
+`{"status":"ok"}`, the api logs have no `password authentication failed`, and
+the owner recorded a transaction from the phone. The database still has no
+TCP proxy.
+
+The manual backup run at 02:01 UTC logged `uploaded to daily/2026-10-23/`.
+`backup.sh` names the prefix by the Bangkok date and uses fixed object names,
+and last night's 20:04 UTC run already wrote that prefix. So each of the
+prefix's two keys now has two versions, which Object Lock keeps. That is the
+planted-backup signature, and the restore drill refuses it (see the spec's
+Decisions). Every manual run collides with that Bangkok date's nightly run,
+before or after it. Ticket 04 needs a manual run too, so this has to be
+decided first.
+
+Still open: the S3 version listing for `daily/2026-10-23/`, and a re-run of the
+`pg_stat_activity` and `pg_roles` queries. The first attempt returned no rows,
+which can't be right: `pg_roles` always has `postgres`.
