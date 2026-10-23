@@ -14,9 +14,11 @@ old key no longer works.
 before deleting, so a broken step can be undone. Paste values with the
 console's copy icons, straight into the sealed variables, as in ticket 03.
 
-Don't trigger a backup run by hand. It writes a second version of that
+Before PR #42, a backup run triggered by hand wrote a second version of that
 Bangkok date's `daily/` keys, which the restore drill refuses (see ticket 02's
-Comments). The one exception, on 2026-10-23, is recorded under Comments.
+Comments). The one exception, on 2026-10-23, is recorded under Comments. Since
+PR #42, a run triggered by hand outside 20:00–20:59 UTC writes to `manual/`
+instead; see production-backups ticket 07.
 
 - [x] A second key is created for the uploader user and sealed into the backup service's AWS variables; backup is redeployed.
 - [x] A backup run succeeds, and the key's last-used date shows the new key made the upload.

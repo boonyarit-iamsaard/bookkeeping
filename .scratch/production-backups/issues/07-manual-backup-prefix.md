@@ -11,7 +11,7 @@ because that is what a backup planted with a leaked uploader key looks like.
 
 **Blocked by:** none
 
-**Status:** ready-for-human
+**Status:** done
 
 **Notes:** Railway starts a scheduled run and a hand-triggered run with the same
 command, so `backup.sh` tells them apart by the clock. The schedule is
@@ -36,8 +36,8 @@ Two limits follow from the clock rule:
 - [x] `infra/aws/backups.yaml`: the uploader may `s3:PutObject` on `manual/*`, and an `expire-manual` lifecycle rule expires it after 35 days. Lints clean with ticket 02's `cfn-lint` command.
 - [x] Verified with the job image against a local PostgreSQL 18, with `aws` and `date` stubbed: 20:00:05 UTC on 2026-10-23 → `daily/2026-10-24/`; 20:03 UTC on 2026-10-31 → `daily/2026-11-01/` and `monthly/2026-11/`; 02:49:12, 19:59:59 and 21:00:00 UTC → `manual/<stamp>/` only. `--local-dir` is unchanged.
 - [x] Owner: stack updated through a change set whose only direct modifications are `UploaderUser`'s policy and `BackupBucket`'s lifecycle, with no replacement (runbook 05's deploy steps). Resources that reference the bucket's or the alert's ARNs also appear as `Modify`, re-evaluated only.
-- [ ] Owner: after the merge redeploys `backup`, one run triggered by hand outside 20:00–20:59 UTC logs `uploaded to manual/…`, and its two objects each have one version.
-- [ ] Railway incident ticket 04's "Don't trigger a backup run by hand" note is updated to point here.
+- [x] Owner: after the merge redeploys `backup`, one run triggered by hand outside 20:00–20:59 UTC logs `uploaded to manual/…`, and its two objects each have one version.
+- [x] Railway incident ticket 04's "Don't trigger a backup run by hand" note is updated to point here.
 
 ## Comments
 
@@ -51,3 +51,17 @@ entry had `Replacement: True`, and the parameters kept their live values. The
 owner executed it, and the stack is `UPDATE_COMPLETE`. The uploader's
 `put-backups` policy now lists `daily/*`, `monthly/*` and `manual/*`, and the
 bucket has the `expire-manual` rule (`manual/`, 35 days).
+
+**2026-10-23, 04:05 UTC (agent):** PR #42 merged as `03b5f05`, and `backup`
+deployed it by itself (`SUCCESS` at 04:01 UTC, after CI). With the owner's
+go-ahead, `railway cron run --service backup` started a run at 04:01:55 UTC.
+It logged `uploaded to manual/2026-10-23T040156Z/` and exited after 7 s. In
+S3, `manual/2026-10-23T040156Z/bookkeeping.dump.age` and `manifest.json.age`
+each have one version, with no delete markers, and the dump is locked in
+`COMPLIANCE` mode until 2026-11-27. `daily/2026-10-23/` still has three
+versions per key, as before the run. The old uploader key is `Inactive`, so
+the new key made the upload. Railway incident ticket 04's note now points
+here.
+
+**Closed:** all criteria are met. Built in `03b5f05` (#42); this proof is
+recorded on `docs/production-backups-after-merge`.

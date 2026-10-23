@@ -146,7 +146,7 @@ email arrived within the minute. The threshold went back to 26 hours.
 ### Struggles
 
 <!-- Owner: add what was hard during the deploy, if anything. The runbook
-was tightened before the run (4b72b1c); say what changed and why. -->
+was tightened before the run (4b72b1c, merged as 03b5f05); say what changed and why. -->
 
 ### Where it stands
 
@@ -228,3 +228,56 @@ records above miss, and name the private screenshots. -->
 - The same pause holds back a Node 24.22.1 security bump. It rides on this
   branch instead of its own pull request.
 - Owner, next: push `feat/production-backups` and open its pull request.
+
+## 2026-10-23: hand-triggered runs get their own prefix
+
+### What
+
+Ticket 07: a backup run started outside the 20:00 UTC hour now uploads to
+`manual/<UTC start>/` instead of that night's `daily/` keys. The uploader may
+write there, and a lifecycle rule expires it after 35 days. The proof run at
+04:01 UTC wrote `manual/2026-10-23T040156Z/`, one version per file.
+
+### Why
+
+- During the incident, two runs triggered by hand left `daily/2026-10-23/`
+  with three versions per key. That is exactly what a backup planted with a
+  leaked key looks like, so the restore drill refuses it.
+- Runs by hand are still needed: after a password change, a key change, or
+  before a risky operation.
+
+### How
+
+- **Tell them apart by the clock.** Railway starts a scheduled run and a run
+  triggered by hand with the same command, so `backup.sh` reads the UTC hour
+  once, at the start. The 20:00 hour is the nightly run; any other hour is
+  manual, and never writes `monthly/`.
+- **Rejected: a conditional write.** Uploading with `If-None-Match` and
+  falling back to `manual/` would let a planted `daily/` key push the real
+  nightly run aside, leaving the planted one as the only version.
+- **Rejected: a variable.** Setting `BACKUP_MODE=manual` for each run means a
+  redeploy per change, and forgetting to clear it diverts the nightly runs.
+- **Stack first.** The owner updated the stack through a reviewed change set
+  before the merge, so the new code never ran without its permission.
+
+### Struggles
+
+- **Two limits came with the clock.** A run triggered by hand at 20:xx UTC
+  still collides with the nightly run, and a scheduled run Railway delays
+  past 20:59 UTC lands in `manual/`. The next morning's alert reports the
+  second, so it fails loudly.
+- **A change set lists more than it changes.** Five resources showed as
+  `Modify` only because they reference the bucket's ARN. Their `Dynamic`
+  evaluation, with `ResourceAttribute` as the source, showed nothing really
+  changed.
+
+<!-- Owner: add anything about the decision or the proof run that the
+records above miss. -->
+
+### Where it stands
+
+- Ticket 07 is done. The spec stays open only for ticket 03's AWS cost
+  note. It now uses October's bill, due about 2026-11-03; October's
+  month-to-date cost reads $0.00.
+- `production-migrations` also waits on backlog ticket 03, recovering
+  production from a backup.
