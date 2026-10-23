@@ -13,8 +13,8 @@ builds for Hobby workspaces.
 **Notes:** Railway asked customers not to re-trigger queued deployments. Wait
 for the queue first, and redeploy by hand only if it dropped them.
 
-- [ ] Railway's status page shows Hobby builds enabled.
-- [ ] api and web each have an active deployment built from the commit of #40, or a later `main` commit.
+- [x] Railway's status page shows Hobby builds enabled.
+- [x] api and web each have an active deployment built from the commit of #40, or a later `main` commit.
 - [ ] api `/health` returns `{"status":"ok"}` and the web app loads on the phone.
 - [ ] Recording a transaction from the phone works.
 
@@ -39,3 +39,10 @@ no watch patterns, the trigger is `main` with "wait for CI", and CI passed on
 all three commits. Railway seems to have dropped the push webhooks during the
 outage. The fix is
 `railway redeploy --service <api|web> --commit 0cd87f9e39b332c538103faeae06a82d2140a211`.
+
+**2026-10-23, 01:47 UTC (agent):** The owner ran the `--commit` redeploys at
+01:44 UTC. Both api (`058b0ba9`) and web (`0d24d616`) deployments of
+`0cd87f9` reached `SUCCESS` by 01:46 UTC. api `/health` returns
+`{"status":"ok"}`, its log shows `Server listening` with no errors, and web
+serves a build from 01:45:53 UTC. Still open: loading the app and recording a
+transaction from the phone.
