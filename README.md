@@ -549,6 +549,7 @@ renders it with no build step, at the cost of layout control.
 pnpm lint
 pnpm format:check
 pnpm lint:md
+pnpm lint:sh
 pnpm types:check
 pnpm test
 pnpm build
@@ -563,8 +564,8 @@ The explicit `pnpm run ci:e2e` gate builds the client and runs the full
 browser matrix against `vite preview`; run it on its own, never beside another
 heavy task.
 `pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
-caches and parallelizes per-workspace tasks across `apps/web`, `apps/server`,
-and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
+caches and parallelizes per-workspace tasks (see
+[ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
 `pnpm check` applies Biome fixes;
 `pnpm format` formats Markdown, YAML, and HTML files; `pnpm fix` runs both and
 the Markdown lint fixes.

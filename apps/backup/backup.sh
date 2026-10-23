@@ -11,6 +11,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_dir
+# shellcheck source=common.sh
 source "$script_dir/common.sh"
 readonly end_marker="__backup_query_end__"
 # Railway's cron schedule for the backup service, 0 20 * * *, set in its
@@ -68,6 +69,8 @@ coproc psql_session {
   exec psql --no-psqlrc --quiet --tuples-only --no-align \
     --set ON_ERROR_STOP=1 --dbname="$DATABASE_URL"
 }
+# coproc sets psql_session_PID, which shellcheck cannot see.
+# shellcheck disable=SC2154
 psql_pid="$psql_session_PID"
 exec {psql_in}>&"${psql_session[1]}" {psql_out}<&"${psql_session[0]}"
 

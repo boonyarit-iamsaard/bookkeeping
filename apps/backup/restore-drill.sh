@@ -13,6 +13,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_dir
+# shellcheck source=common.sh
 source "$script_dir/common.sh"
 readonly stack_name="bookkeeping-backups"
 readonly region="ap-southeast-1"
