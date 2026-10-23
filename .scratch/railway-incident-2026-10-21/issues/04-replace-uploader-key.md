@@ -44,3 +44,9 @@ and logged `uploaded to daily/2026-10-23/`. IAM shows the new key
 (`…CTHTTX3P`) last used by S3 in ap-southeast-1 at 02:49 UTC. The old key
 (`…MFTDTPPQ`) is unchanged at 02:01 UTC, so the new key made the upload. The
 old key can be deactivated.
+
+**2026-10-23, 03:00 UTC (agent):** The owner deactivated the old key.
+`list-access-keys` shows `…MFTDTPPQ` `Inactive` and `…CTHTTX3P` `Active`.
+Next: confirm the scheduled run at 20:00 UTC on 2026-10-23 succeeds and
+writes `daily/2026-10-24/` with one version per key. Then delete the old key
+after a week with no failed run, on or after 2026-10-30.
