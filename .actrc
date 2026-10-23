@@ -2,3 +2,9 @@
 # The default runner image has no node, git, or docker CLI; this one does.
 -P ubuntu-latest=catthehacker/ubuntu:act-latest
 --container-architecture linux/amd64
+# The runner shares the local Docker host's network. Keep disposable database
+# URLs on loopback so db:fresh's local-only guard can accept them.
+--network host
+--env TESTCONTAINERS_HOST_OVERRIDE=localhost
+# Keep local type checks and integration tests from competing for memory/CPU.
+--env TURBO_CONCURRENCY=2
