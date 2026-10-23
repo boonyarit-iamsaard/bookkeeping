@@ -78,9 +78,12 @@ volume backups stay on as a faster first layer for everyday mistakes.
   - `monthly/YYYY-MM/bookkeeping.dump.age` and
     `monthly/YYYY-MM/manifest.json.age`, also written on the first night of
     each month.
-- Lifecycle: objects under `daily/` expire after 35 days and objects under
-  `monthly/` after 365 days; noncurrent versions expire one day after becoming
-  noncurrent, and expired delete markers are removed. Expiry can only take
+  - `manual/YYYY-MM-DDTHHMMSSZ/bookkeeping.dump.age` and
+    `manual/YYYY-MM-DDTHHMMSSZ/manifest.json.age`, written by a run triggered
+    by hand, named by its UTC start time (ticket 07).
+- Lifecycle: objects under `daily/` and `manual/` expire after 35 days and
+  objects under `monthly/` after 365 days; noncurrent versions expire one day
+  after becoming noncurrent, and expired delete markers are removed. Expiry can only take
   effect once the Object Lock retention has passed.
 - An AWS Budgets monthly cost budget of $1 for the `backups` account, emailing
   the owner on 80% actual and 100% forecast.
@@ -90,8 +93,8 @@ volume backups stay on as a faster first layer for everyday mistakes.
 ### Uploader
 
 - One IAM user, `bookkeeping-backup-uploader`, whose only permission is
-  `s3:PutObject` on `daily/*` and `monthly/*` in the bucket. It cannot list,
-  read, delete, change retention, or bypass governance. Its access key is the
+  `s3:PutObject` on `daily/*`, `monthly/*` and `manual/*` in the bucket. It
+  cannot list, read, delete, change retention, or bypass governance. Its access key is the
   only long-lived AWS secret, stored only in the Railway service's variables.
 - The key is replaced every year, and immediately on any suspected exposure:
   create the new key, update the Railway variables, confirm the next nightly
@@ -122,7 +125,9 @@ volume backups stay on as a faster first layer for everyday mistakes.
      version, and for every table in `public` its row count and a checksum of
      its rows in primary-key order.
   4. Encrypt both with `AGE_RECIPIENT` and upload them under `daily/`, and on
-     the first of the month also under `monthly/`.
+     the first of the month also under `monthly/`. A run that starts outside
+     the 20:00 UTC hour was triggered by hand and uploads only under
+     `manual/`, so it never adds a version to a `daily/` key.
   5. Exit non-zero on any failure, so Railway marks the run failed. Plaintext
      never touches disk outside the container's temporary directory.
 - A `--local-dir <path>` mode writes the two encrypted files to a directory
@@ -214,7 +219,8 @@ is public, so entries hold no secrets, account IDs or real financial figures.
 ## Order of tickets
 
 01 (owner) and 02 are independent. 03 (owner) follows both. 04 can be written
-after 02 and closes after 03. 05 and 06 follow 04; 06 closes this spec.
+after 02 and closes after 03. 05 and 06 follow 04; 06 closes this spec. 07,
+added after the Railway incident of 2026-10-21, follows 04.
 
 ## Comments
 

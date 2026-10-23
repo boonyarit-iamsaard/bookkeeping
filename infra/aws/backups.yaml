@@ -76,6 +76,10 @@ Resources:
             Status: Enabled
             Prefix: monthly/
             ExpirationInDays: 365
+          - Id: expire-manual
+            Status: Enabled
+            Prefix: manual/
+            ExpirationInDays: 35
           - Id: expire-noncurrent-and-delete-markers
             Status: Enabled
             NoncurrentVersionExpiration:
@@ -116,6 +120,7 @@ Resources:
                 Resource:
                   - !Sub ${BackupBucket.Arn}/daily/*
                   - !Sub ${BackupBucket.Arn}/monthly/*
+                  - !Sub ${BackupBucket.Arn}/manual/*
 
   MonthlyCostBudget:
     Type: AWS::Budgets::Budget

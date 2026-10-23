@@ -50,3 +50,11 @@ before production migrations and then quarterly. The design is in
   never holds AWS credentials.
 - Applying migrations to production waits for the first passing restore
   drill, because ADR 0009 relies on backups to undo a bad migration.
+
+## Amendment, 2026-10-23
+
+The uploader key can also add objects under `manual/`. A backup run triggered
+by hand writes there, never to `daily/`, because a second version of a
+`daily/` key looks like a planted backup and the restore drill refuses it.
+`manual/` gets the same Object Lock retention and expires after 35 days. See
+`.scratch/production-backups/issues/07-manual-backup-prefix.md`.

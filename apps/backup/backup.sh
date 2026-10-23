@@ -45,6 +45,11 @@ while (($# > 0)); do
   esac
 done
 
+# Read the clock once, at the start, so a slow run keeps the prefix it began
+# with.
+read -r year month day <<<"$(TZ=Asia/Bangkok date '+%Y %m %d')"
+read -r utc_hour utc_stamp <<<"$(date -u '+%H %Y-%m-%dT%H%M%SZ')"
+
 require_env DATABASE_URL AGE_RECIPIENT
 if [[ -z "$local_dir" ]]; then
   require_env BACKUP_BUCKET AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
@@ -114,11 +119,17 @@ if [[ -n "$local_dir" ]]; then
   exit 0
 fi
 
-# The schedule runs at 20:00 UTC, which is 03:00 the next day in Bangkok.
-read -r year month day <<<"$(TZ=Asia/Bangkok date '+%Y %m %d')"
-prefixes=("daily/$year-$month-$day")
-if [[ "$day" == "01" ]]; then
-  prefixes+=("monthly/$year-$month")
+# The schedule runs at 20:00 UTC, which is 03:00 the next day in Bangkok. A run
+# that starts in any other hour was triggered by hand. It goes under its own
+# manual/ prefix, because a second version of a daily/ key is what a planted
+# backup looks like, and the restore drill refuses it.
+if [[ "$utc_hour" == "20" ]]; then
+  prefixes=("daily/$year-$month-$day")
+  if [[ "$day" == "01" ]]; then
+    prefixes+=("monthly/$year-$month")
+  fi
+else
+  prefixes=("manual/$utc_stamp")
 fi
 
 for prefix in "${prefixes[@]}"; do
