@@ -27,4 +27,6 @@ deployment `f1ca1630` (`0cd87f9`) reached `SUCCESS` at 02:32 UTC, and
 signing in and recording a transaction then worked. The deployment's logs
 show only `Server listening`, with no auth errors before or after the sign-in.
 
+**2026-10-23 (owner):** The clipboard is cleared.
+
 **Closed:** sessions signed with the old secret no longer work.
