@@ -8,7 +8,7 @@ without losing the transaction they are entering.
 
 **Blocked by:** phone-first-redesign 07, done (Avatar menu, the Categories entry, and the milestone check)
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Out of scope:** creating categories from the picker, which already works
 inline with the icon picker.
@@ -25,3 +25,9 @@ Moved out of `phone-first-redesign` (where it was 09) because the
 maintainer doesn't expect to want this behaviour soon. It is a deferral, not a
 rejection, so nothing was written to `.out-of-scope/`. It stays
 `needs-triage`; run `/triage` on `.scratch/backlog/` to pick it back up.
+
+### 2026-10-23: declined after production use
+
+After about a month of production use, the owner confirmed that editing a
+category from the transaction picker is not needed. This is no longer
+deferred work; no implementation is planned.
