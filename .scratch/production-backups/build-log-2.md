@@ -146,7 +146,7 @@ email arrived within the minute. The threshold went back to 26 hours.
 ### Struggles
 
 <!-- Owner: add what was hard during the deploy, if anything. The runbook
-was tightened before the run (29cc6e8); say what changed and why. -->
+was tightened before the run (4b72b1c); say what changed and why. -->
 
 ### Where it stands
 

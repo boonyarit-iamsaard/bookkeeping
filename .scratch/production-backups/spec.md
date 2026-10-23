@@ -1,6 +1,6 @@
 # Production backups off Railway
 
-Status: done
+Status: ready-for-human
 
 Decided on 2026-10-17 by grilling. Decision recorded in
 `docs/adr/0013-nightly-encrypted-backups-to-aws-s3.md`. Read it, ADR 0008 and
@@ -83,8 +83,8 @@ volume backups stay on as a faster first layer for everyday mistakes.
     by hand, named by its UTC start time (ticket 07).
 - Lifecycle: objects under `daily/` and `manual/` expire after 35 days and
   objects under `monthly/` after 365 days; noncurrent versions expire one day
-  after becoming noncurrent, and expired delete markers are removed. Expiry can only take
-  effect once the Object Lock retention has passed.
+  after becoming noncurrent, and expired delete markers are removed. Expiry
+  can only take effect once the Object Lock retention has passed.
 - An AWS Budgets monthly cost budget of $1 for the `backups` account, emailing
   the owner on 80% actual and 100% forecast.
 - None of these: NAT Gateway, Secrets Manager, customer-managed KMS keys, or
@@ -94,8 +94,9 @@ volume backups stay on as a faster first layer for everyday mistakes.
 
 - One IAM user, `bookkeeping-backup-uploader`, whose only permission is
   `s3:PutObject` on `daily/*`, `monthly/*` and `manual/*` in the bucket. It
-  cannot list, read, delete, change retention, or bypass governance. Its access key is the
-  only long-lived AWS secret, stored only in the Railway service's variables.
+  cannot list, read, delete, change retention, or bypass governance. Its
+  access key is the only long-lived AWS secret, stored only in the Railway
+  service's variables.
 - The key is replaced every year, and immediately on any suspected exposure:
   create the new key, update the Railway variables, confirm the next nightly
   upload, then delete the old key. The next due date is recorded under
@@ -233,3 +234,12 @@ added after the Railway incident of 2026-10-21, follows 04.
 The next drill is due 2027-01-22, then quarterly. This first pass closes the
 spec and unblocks `production-migrations`. Ticket 03 stays open only for its
 first-month AWS cost note, due once November's bill is issued.
+
+### 2026-10-23: Reopened until 07 and 03 close
+
+Status goes back from `done` to `ready-for-human`. Ticket 07, added after the
+Railway incident, waits on the owner's hand-triggered run after the merge.
+Ticket 03 waits on November's bill. The spec closes when both do. The drill
+above still clears this spec's part of the `production-migrations` gate.
+`../backlog/issues/03-recover-production-from-a-backup.md` is a separate
+blocker for `production-migrations`.

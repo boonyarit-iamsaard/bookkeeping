@@ -109,5 +109,12 @@ and it passed: 10 tables match `daily/2026-10-22/`, dumped at
 with the next drill due 2027-01-22. The spec is `done`, and
 `production-migrations` may start.
 
-All acceptance criteria are met. The drill was built and verified in
-`f23449a`.
+All acceptance criteria are met. The drill was built and verified locally in
+`cd9dcce`, and the S3 run and this close are recorded in `f2da376`.
+
+### 2026-10-23: Spec reopened
+
+The spec went back to `ready-for-human` until tickets 07 and 03 close; see
+its Comments. This ticket stays `done`. Its drill still clears this spec's
+part of the `production-migrations` gate, but `production-migrations` also
+waits on `../../backlog/issues/03-recover-production-from-a-backup.md`.

@@ -38,7 +38,8 @@ re-encrypted 2026-10-17 dump is the only copy outside the volume.
 
 ### 2026-10-18: Closed
 
-Done in bb540d6. Eight criteria pass, verified from the CLI and the owner's
-screenshots; the Railway backups criterion is dropped, as noted above. The
-runbook's Run log, `../runbooks/01-aws-foundation-and-railway-backups.md`,
-records each step and the deviations from the docs.
+Done in bb540d6, merged as ab86a12 (#31). Eight criteria pass, verified from
+the CLI and the owner's screenshots; the Railway backups criterion is dropped,
+as noted above. The runbook's Run log,
+`../runbooks/01-aws-foundation-and-railway-backups.md`, records each step and
+the deviations from the docs.

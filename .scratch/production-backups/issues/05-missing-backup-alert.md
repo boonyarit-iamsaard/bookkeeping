@@ -73,5 +73,5 @@ log shows a clean run with no error. The newest backup was about six hours
 old, so no email was sent, and the owner's inbox is quiet. The errors alarm
 is `OK`. Runbook step 10 is recorded.
 
-All acceptance criteria are met. The alert was built in `d481c81`, and its
-deploy and proof were recorded in `ab37193`.
+All acceptance criteria are met. The alert was built in `bcaee45`, and its
+deploy and proof were recorded in `182e514`.
