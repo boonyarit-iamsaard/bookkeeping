@@ -13,21 +13,13 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_dir
-readonly dump_name="bookkeeping.dump.age"
-readonly manifest_name="manifest.json.age"
+source "$script_dir/common.sh"
 readonly stack_name="bookkeeping-backups"
 readonly region="ap-southeast-1"
 readonly database="bookkeeping"
 readonly container="bookkeeping-restore-drill-$$"
-
-log() {
-  printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2
-}
-
-fail() {
-  log "error: $*"
-  exit 1
-}
+# How every client inside the throwaway container reaches its server.
+readonly container_connection=(--host=127.0.0.1 --username=postgres)
 
 identity=""
 local_dir=""
@@ -157,7 +149,8 @@ docker run --detach --name "$container" --network none \
 # once the final server is up.
 ready=""
 for _ in $(seq 1 60); do
-  if docker exec "$container" pg_isready --quiet --host=127.0.0.1 --username=postgres; then
+  if docker exec "$container" pg_isready --quiet \
+    "${container_connection[@]}"; then
     ready="yes"
     break
   fi
@@ -168,12 +161,12 @@ done
 psql_drill() {
   docker exec --interactive "$container" psql --no-psqlrc --quiet \
     --tuples-only --no-align --set ON_ERROR_STOP=1 \
-    --host=127.0.0.1 --username=postgres --dbname="$database" "$@"
+    "${container_connection[@]}" --dbname="$database" "$@"
 }
 
 age --decrypt --identity "$identity" "$work_dir/$dump_name" |
   docker exec --interactive "$container" pg_restore --exit-on-error \
-    --no-owner --no-privileges --host=127.0.0.1 --username=postgres \
+    --no-owner --no-privileges "${container_connection[@]}" \
     --dbname="$database" ||
   fail "cannot restore the dump"
 log "restored the dump"

@@ -11,6 +11,8 @@ cron schedule; the storage it uploads to is `infra/aws/backups.yaml`.
   `AGE_RECIPIENT`, and uploads them under `daily/`, or writes them to a
   directory with `--local-dir`. A run started outside 20:00–20:59 UTC was
   triggered by hand and uploads under `manual/<UTC time>/` instead.
+- `common.sh`: the backup's file names and the logging, sourced by the job and
+  the drill.
 - `manifest.sql`: every `public` table's row count and checksum, shared by the
   job and the drill.
 - `restore-drill.sh`: restores a backup into a throwaway container and

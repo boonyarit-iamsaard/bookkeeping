@@ -11,18 +11,11 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_dir
-readonly dump_name="bookkeeping.dump.age"
-readonly manifest_name="manifest.json.age"
+source "$script_dir/common.sh"
 readonly end_marker="__backup_query_end__"
-
-log() {
-  printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2
-}
-
-fail() {
-  log "error: $*"
-  exit 1
-}
+# Railway's cron schedule for the backup service, 0 20 * * *, set in its
+# dashboard. A run that starts in another hour was triggered by hand.
+readonly scheduled_utc_hour="20"
 
 require_env() {
   local name
@@ -119,11 +112,11 @@ if [[ -n "$local_dir" ]]; then
   exit 0
 fi
 
-# The schedule runs at 20:00 UTC, which is 03:00 the next day in Bangkok. A run
-# that starts in any other hour was triggered by hand. It goes under its own
-# manual/ prefix, because a second version of a daily/ key is what a planted
-# backup looks like, and the restore drill refuses it.
-if [[ "$utc_hour" == "20" ]]; then
+# The nightly run is dated by Bangkok, where 20:00 UTC is 03:00 the next day.
+# A run triggered by hand goes under its own manual/ prefix, because a second
+# version of a daily/ key is what a planted backup looks like, and the restore
+# drill refuses it.
+if [[ "$utc_hour" == "$scheduled_utc_hour" ]]; then
   prefixes=("daily/$year-$month-$day")
   if [[ "$day" == "01" ]]; then
     prefixes+=("monthly/$year-$month")
