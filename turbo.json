@@ -19,7 +19,9 @@
     "//#types:check:scripts": {},
     "//#test:scripts": {},
     "types:check": {},
-    "test": {},
+    "test": {
+      "passThroughEnv": ["TESTCONTAINERS_HOST_OVERRIDE"]
+    },
     "test:watch": {
       "cache": false,
       "persistent": true

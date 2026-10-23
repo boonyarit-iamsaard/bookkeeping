@@ -616,6 +616,5 @@ To run the workflow locally, install `act`, start Docker, and run:
 act push -j ci
 ```
 
-`.actrc` selects the `catthehacker/ubuntu:act-latest` runner image and
-`linux/amd64` architecture. Testcontainers manages PostgreSQL, so local CI
-needs Docker access.
+`act` uses host networking, loopback Testcontainers URLs, and two Turbo tasks at
+a time. Docker Desktop needs host networking enabled. See [.actrc](.actrc).

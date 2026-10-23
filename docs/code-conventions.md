@@ -156,6 +156,13 @@ Budget: `pnpm test`, as Turborepo runs it with packages in parallel, completes
 in three minutes or less on the development machine. Check it by hand; it is
 not gated in CI, which keeps CI free of hardware-dependent flakes.
 
+Each Vitest invocation sets `test.fsModuleCachePath` to
+`node_modules/.vitest-cache`, resolved from its own root. Vitest's default is
+one module cache at the monorepo root; after a lockfile change, parallel
+invocations can delete that shared directory while another writes to it.
+Keep the root script suite's cache separate from each workspace's cache so
+Turborepo can continue running tests in parallel.
+
 ## TypeScript house style
 
 Biome enforces the supported mechanical rules, including filename and identifier
