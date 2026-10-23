@@ -276,7 +276,8 @@ records above miss. -->
 
 ### Where it stands
 
-- Ticket 07 is done. The spec stays open only for ticket 03's first-month
-  AWS cost note, due once November's bill is issued.
+- Ticket 07 is done. The spec stays open only for ticket 03's AWS cost
+  note. It now uses October's bill, due about 2026-11-03; October's
+  month-to-date cost reads $0.00.
 - `production-migrations` also waits on backlog ticket 03, recovering
   production from a backup.

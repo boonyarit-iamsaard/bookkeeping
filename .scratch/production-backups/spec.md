@@ -239,7 +239,8 @@ first-month AWS cost note, due once November's bill is issued.
 
 Status goes back from `done` to `ready-for-human`. Ticket 07, added after the
 Railway incident, waits on the owner's hand-triggered run after the merge.
-Ticket 03 waits on November's bill. The spec closes when both do. The drill
+Ticket 03 waits on October's bill, about 2026-11-03; the owner chose it over
+November, the first full month. The spec closes when both do. The drill
 above still clears this spec's part of the `production-migrations` gate.
 `../backlog/issues/03-recover-production-from-a-backup.md` is a separate
 blocker for `production-migrations`.

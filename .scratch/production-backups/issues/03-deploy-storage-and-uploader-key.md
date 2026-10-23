@@ -19,7 +19,7 @@ pasted into a conversation.
 - [x] Access key created for `bookkeeping-backup-uploader`; its creation date and the next replacement date (one year later) recorded under Comments.
 - [x] As the uploader: uploading `daily/test/probe.txt` succeeds; listing the bucket, reading that object, and deleting it are refused.
 - [x] As the owner: deleting that object's version is refused because of Object Lock.
-- [ ] The first month's AWS cost noted under Comments once the billing period ends.
+- [ ] October 2026's AWS cost noted under Comments once that bill is issued, about 2026-11-03. The stack went live on 2026-10-18, so October is a partial month of 14 days.
 
 ## Comments
 
@@ -76,3 +76,12 @@ As the owner, with `AdministratorAccess` in `backups`, deleting the probe's
 version by its version ID failed with `AccessDenied ... because object
 protected by object lock`. The version is still there, with no delete
 marker.
+
+### 2026-10-23: The cost check moves to October
+
+The owner chose October's partial bill over waiting for November, the first
+full month. At tens of KB a night, two weeks already shows whether the cost
+rounds to zero, and the wait would only add a December reminder. On
+2026-10-23 the owner read October's month-to-date cost in the Billing
+console: $0.00. The October bill is final once its status changes from
+**Pending** to **Issued**, about 2026-11-03.

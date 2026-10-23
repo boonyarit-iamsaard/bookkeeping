@@ -399,15 +399,15 @@ It is the only place the secret can ever be read.
 ### 10. Record the first month's cost (after the billing period closes)
 
 - [ ] **Done**
-- **Goal:** The issue records what `backups` cost in its first full month.
+- **Goal:** The issue records what `backups` cost in October 2026.
 - **Why:** The spec estimated, but didn't check, under $0.01 a month.
 - **Where:** Access portal → management account → `AdministratorAccess` →
-  Billing and Cost Management → **Bills** → **Billing period** (November 2026) → **Charges by account** → `backups` (per docs, verify on screen).
-  Wait for the bill status to change from **Pending** to **Issued**, in early
-  December.
+  Billing and Cost Management → **Bills** → **Billing period** (October 2026) → **Charges by account** → `backups` (per docs, verify on screen).
+  Wait for the bill status to change from **Pending** to **Issued**, about
+  2026-11-03.
 - **Do:**
   1. Read the `backups` total and its services.
-  2. Tell me the total. October's partial month can be noted too.
+  2. Tell me the total.
 - **Expect:** A few cents at most.
 - **Verify:** Your report of the screen. The Cost Explorer API is not used,
   because it charges per request.
@@ -490,5 +490,5 @@ It is the only place the secret can ever be read.
   failed: `AccessDenied ... because object protected by object lock`, exit 254. Afterwards one version remains, with no delete markers.
 - Completed: step 9. The issue's Comments record the outputs (bucket as a
   placeholder), the key's dates, the budget, and both sets of checks; the
-  build log has a dated entry. Open: step 10, after November's bill is
+  build log has a dated entry. Open: step 10, after October's bill is
   issued.
