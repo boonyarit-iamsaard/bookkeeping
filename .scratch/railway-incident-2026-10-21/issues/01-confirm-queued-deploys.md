@@ -8,15 +8,15 @@ run the code from #39, #37 and #40, which merged while builds were paused.
 **Blocked by:** None (can start immediately). Railway must first re-enable
 builds for Hobby workspaces.
 
-**Status:** ready-for-human
+**Status:** done
 
 **Notes:** Railway asked customers not to re-trigger queued deployments. Wait
 for the queue first, and redeploy by hand only if it dropped them.
 
 - [x] Railway's status page shows Hobby builds enabled.
 - [x] api and web each have an active deployment built from the commit of #40, or a later `main` commit.
-- [ ] api `/health` returns `{"status":"ok"}` and the web app loads on the phone.
-- [ ] Recording a transaction from the phone works.
+- [x] api `/health` returns `{"status":"ok"}` and the web app loads on the phone.
+- [x] Recording a transaction from the phone works.
 
 ## Comments
 
@@ -46,3 +46,9 @@ outage. The fix is
 `{"status":"ok"}`, its log shows `Server listening` with no errors, and web
 serves a build from 01:45:53 UTC. Still open: loading the app and recording a
 transaction from the phone.
+
+**2026-10-23 (owner):** The app loads on the phone, and recording a
+transaction works.
+
+**Closed:** production api and web run `0cd87f9` (#40). Ticket 02 is
+unblocked.
