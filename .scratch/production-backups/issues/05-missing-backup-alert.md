@@ -74,4 +74,4 @@ old, so no email was sent, and the owner's inbox is quiet. The errors alarm
 is `OK`. Runbook step 10 is recorded.
 
 All acceptance criteria are met. The alert was built in `bcaee45`, and its
-deploy and proof were recorded in `182e514`.
+deploy and proof were recorded in `182e514`; both merged as `03b5f05` (#42).

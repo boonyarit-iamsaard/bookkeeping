@@ -110,7 +110,8 @@ with the next drill due 2027-01-22. The spec is `done`, and
 `production-migrations` may start.
 
 All acceptance criteria are met. The drill was built and verified locally in
-`cd9dcce`, and the S3 run and this close are recorded in `f2da376`.
+`cd9dcce`, and the S3 run and this close are recorded in `f2da376`; both
+merged as `03b5f05` (#42).
 
 ### 2026-10-23: Spec reopened
 

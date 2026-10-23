@@ -117,6 +117,7 @@ timestamps are 03:04 Asia/Bangkok, four minutes after the 20:00 UTC trigger.
 
 All acceptance criteria are met. The job was built in `ab86a12` (#31).
 `ce441b9` records the first manual Railway run, and `903a67b` records the
-first scheduled run's objects in S3, both above. Ticket 03 is still
+first scheduled run's objects in S3, both above; both merged as `03b5f05`
+(#42). Ticket 03 is still
 `ready-for-human` with its AWS cost note open, so the spec's "03 to close"
 dependency is not yet satisfied; the owner accepted closing 04 regardless.
