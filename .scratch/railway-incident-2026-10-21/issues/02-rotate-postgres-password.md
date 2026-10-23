@@ -59,3 +59,11 @@ sessions or roles. A re-run gave the same result.
 **Closed:** the password is regenerated, and api and backup connect with it.
 Tickets 03 and 04 are unblocked. Before ticket 04's manual backup run, decide
 how manual runs avoid sharing a `daily/` key with that day's nightly run.
+
+**2026-10-23, 02:22 UTC (owner):** The exact output: `pg_stat_activity` had
+one row, `postgres` / `psql` / `127.0.0.1`, started at 02:22:11 UTC.
+`pg_roles` returned only `postgres`. `railway connect database` reaches the
+database through an SSH tunnel on `127.0.0.1`, not a TCP proxy, and needed an
+SSH key registered with Railway. The owner kept that key. It is a new
+credential on the Railway account, so the incident's closing review should
+list it.
