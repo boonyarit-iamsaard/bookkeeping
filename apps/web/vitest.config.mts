@@ -6,6 +6,7 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   test: {
+    fsModuleCachePath: "node_modules/.vitest-cache",
     name: "unit",
     environment: "node",
     include: ["src/**/*.unit.test.ts"],
