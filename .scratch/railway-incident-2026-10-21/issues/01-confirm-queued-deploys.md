@@ -30,3 +30,12 @@ at 15:07 UTC on 2026-10-20. `467c517` (#39), `95320c2` (#37) and `0cd87f9`
 returns `{"status":"ok"}` and web `/` returns 200. The next step is a manual
 **Deploy Latest Commit** on api and web, from the dashboard's command palette,
 since Railway reported plain Redeploy failing during the incident.
+
+**2026-10-23, 01:35 UTC (agent):** The Railway CLI confirms api and web both
+run `6f19fb8`, with no deployment for any later commit. Being a Dependabot
+merge doesn't explain the skip. Dependabot merges #25, #32, #33 and #34 all
+deployed, and #39 was the owner's. Neither do the settings: api and web have
+no watch patterns, the trigger is `main` with "wait for CI", and CI passed on
+all three commits. Railway seems to have dropped the push webhooks during the
+outage. The fix is
+`railway redeploy --service <api|web> --commit 0cd87f9e39b332c538103faeae06a82d2140a211`.
