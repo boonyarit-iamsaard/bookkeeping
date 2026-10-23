@@ -21,7 +21,7 @@ local secret.
 
 **2026-10-23, 02:34 UTC (agent):** The owner generated a new 32-byte secret
 straight to the clipboard (`openssl rand -base64 32 | tr -d '\n' | clip.exe`),
-replaced only `BETTER_AUTH_SECRET` on api, and cleared the clipboard. api
+replaced only `BETTER_AUTH_SECRET` on api. api
 deployment `f1ca1630` (`0cd87f9`) reached `SUCCESS` at 02:32 UTC, and
 `/health` returns `{"status":"ok"}`. The phone app signed out on its own, and
 signing in and recording a transaction then worked. The deployment's logs
