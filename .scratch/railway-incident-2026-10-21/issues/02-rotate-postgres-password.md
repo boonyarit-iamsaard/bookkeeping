@@ -17,7 +17,7 @@ redeploys, so start right after a nightly backup, never near 20:00 UTC.
 - [x] Postgres → Database → Config → **Regenerate** done.
 - [x] api and backup both read `DATABASE_URL` from `${{Postgres.DATABASE_URL}}`, and both are redeployed.
 - [x] api deploy logs show no `password authentication failed`; recording a transaction from the phone works.
-- [ ] A manually triggered backup run succeeds, and its objects appear in S3.
+- [x] A manually triggered backup run succeeds, and its objects appear in S3.
 - [ ] `pg_stat_activity` shows only the expected sessions, and `pg_roles` has no role nobody created; findings recorded under Comments.
 - [x] Postgres still has no TCP proxy.
 
@@ -43,3 +43,10 @@ decided first.
 Still open: the S3 version listing for `daily/2026-10-23/`, and a re-run of the
 `pg_stat_activity` and `pg_roles` queries. The first attempt returned no rows,
 which can't be right: `pg_roles` always has `postgres`.
+
+**2026-10-23, 02:20 UTC (agent):** The S3 version listing for `daily/2026-10-2`
+confirms the manual run's objects. `daily/2026-10-20/` to `daily/2026-10-22/`
+have one version per key, and there are no delete markers.
+`daily/2026-10-23/` has the two expected versions per key: the nightly run at
+20:04:10–11 UTC on 2026-10-22 (not latest), and the manual run at
+02:01:12–13 UTC on 2026-10-23 (latest). Nothing else was uploaded.
