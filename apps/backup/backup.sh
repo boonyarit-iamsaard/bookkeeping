@@ -11,18 +11,12 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_dir
-readonly dump_name="bookkeeping.dump.age"
-readonly manifest_name="manifest.json.age"
+# shellcheck source=common.sh
+source "$script_dir/common.sh"
 readonly end_marker="__backup_query_end__"
-
-log() {
-  printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2
-}
-
-fail() {
-  log "error: $*"
-  exit 1
-}
+# Railway's cron schedule for the backup service, 0 20 * * *, set in its
+# dashboard. A run that starts in another hour was triggered by hand.
+readonly scheduled_utc_hour="20"
 
 require_env() {
   local name
@@ -44,6 +38,11 @@ while (($# > 0)); do
       ;;
   esac
 done
+
+# Read the clock once, at the start, so a slow run keeps the prefix it began
+# with.
+read -r year month day <<<"$(TZ=Asia/Bangkok date '+%Y %m %d')"
+read -r utc_hour utc_stamp <<<"$(date -u '+%H %Y-%m-%dT%H%M%SZ')"
 
 require_env DATABASE_URL AGE_RECIPIENT
 if [[ -z "$local_dir" ]]; then
@@ -70,6 +69,8 @@ coproc psql_session {
   exec psql --no-psqlrc --quiet --tuples-only --no-align \
     --set ON_ERROR_STOP=1 --dbname="$DATABASE_URL"
 }
+# coproc sets psql_session_PID, which shellcheck cannot see.
+# shellcheck disable=SC2154
 psql_pid="$psql_session_PID"
 exec {psql_in}>&"${psql_session[1]}" {psql_out}<&"${psql_session[0]}"
 
@@ -114,11 +115,17 @@ if [[ -n "$local_dir" ]]; then
   exit 0
 fi
 
-# The schedule runs at 20:00 UTC, which is 03:00 the next day in Bangkok.
-read -r year month day <<<"$(TZ=Asia/Bangkok date '+%Y %m %d')"
-prefixes=("daily/$year-$month-$day")
-if [[ "$day" == "01" ]]; then
-  prefixes+=("monthly/$year-$month")
+# The nightly run is dated by Bangkok, where 20:00 UTC is 03:00 the next day.
+# A run triggered by hand goes under its own manual/ prefix, because a second
+# version of a daily/ key is what a planted backup looks like, and the restore
+# drill refuses it.
+if [[ "$utc_hour" == "$scheduled_utc_hour" ]]; then
+  prefixes=("daily/$year-$month-$day")
+  if [[ "$day" == "01" ]]; then
+    prefixes+=("monthly/$year-$month")
+  fi
+else
+  prefixes=("manual/$utc_stamp")
 fi
 
 for prefix in "${prefixes[@]}"; do

@@ -11,7 +11,7 @@ first nightly backup is in the bucket.
 
 **Blocked by:** 02 to start, 03 to close
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Notes:** The agent writes and verifies the job locally with `--local-dir`.
 The owner configures the Railway service and sets its variables; the agent
@@ -24,8 +24,8 @@ does not handle the AWS secret key.
 - [x] `--local-dir <path>` writes the encrypted files to a directory instead of S3.
 - [x] Verified locally: the image built and run with `--local-dir` against a local PostgreSQL 18 database built by `db:migrate` and seeded with a few rows; both files decrypt with a throwaway key; the manifest's counts match the seed.
 - [x] `.github/dependabot.yml` has a `docker` entry for `/apps/backup` with a three-day cooldown, ignoring `postgres` major updates.
-- [ ] Owner: Railway service `backup` configured in its dashboard with the settings above and the spec's variables, and no public networking; one run triggered by hand succeeds.
-- [ ] The first scheduled run's objects appear in S3; date recorded under Comments.
+- [x] Owner: Railway service `backup` configured in its dashboard with the settings above and the spec's variables, and no public networking; one run triggered by hand succeeds.
+- [x] The first scheduled run's objects appear in S3; date recorded under Comments.
 
 ## Comments
 
@@ -85,3 +85,38 @@ transaction:
 - From 03: the job passes `--checksum-algorithm CRC64NVME` explicitly rather
   than relying on the CLI's default. Alpine's CLI accepted the flag. The
   first manual run on Railway proves that S3 accepts the upload.
+
+### 2026-10-18: Service deployed and first manual run
+
+PR #31 merged at 12:36 UTC. The owner configured the `backup` service in
+the dashboard with the settings above (restart policy was already Never),
+0.5 vCPU and 500 MB, and `DATABASE_URL` as `${{database.DATABASE_URL}}`.
+The build pulled the pinned digest and installed `age` 1.3.2-r1 and
+`aws-cli` 2.34.63-r0. A run triggered by hand at 12:55 UTC took 7 seconds:
+
+```text
+exported snapshot
+dumped and encrypted the database
+built and encrypted the manifest
+uploaded to daily/2026-10-18/
+```
+
+The upload closes 03's checksum question: S3 accepted the explicit
+`CRC64NVME` checksum on the Object Lock bucket. Railway labels the progress
+lines `[err]` because the job logs to stderr. The first scheduled run is at
+20:00 UTC, 03:00 on 2026-10-19 in Bangkok.
+
+### 2026-10-19: First scheduled run in S3
+
+The Railway `backup` service ran on its cron schedule and completed in 6
+seconds. S3 holds `daily/2026-10-19/bookkeeping.dump.age` (46.5 KB) and
+`daily/2026-10-19/manifest.json.age` (1.1 KB), both in Standard storage. The
+timestamps are 03:04 Asia/Bangkok, four minutes after the 20:00 UTC trigger.
+
+### 2026-10-19: Closed as done
+
+All acceptance criteria are met. The job was built in `ab86a12` (#31).
+`ce441b9` records the first manual Railway run, and `903a67b` records the
+first scheduled run's objects in S3, both above. Ticket 03 is still
+`ready-for-human` with its AWS cost note open, so the spec's "03 to close"
+dependency is not yet satisfied; the owner accepted closing 04 regardless.

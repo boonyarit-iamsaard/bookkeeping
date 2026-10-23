@@ -43,11 +43,11 @@ misspelt property fails with E3002, so the run does check the template.
 
 ### 2026-10-18: Closed
 
-Done in 9c749bf. All eight criteria pass: the template lints clean and the
-README gives the deploy command and the access-key steps. A two-axis review
-found nothing wrong in the template. It did catch that the README sent the
-key to a Railway service that ticket 04 creates, so the README now has the
-owner create that service empty first. It also gives the uploader checks for
+Done in 9c749bf, merged as ab86a12 (#31). All eight criteria pass: the
+template lints clean and the README gives the deploy command and the
+access-key steps. A two-axis review found nothing wrong in the template. It
+did catch that the README sent the key to a Railway service that ticket 04
+creates, so the README now has the owner create that service empty first. It also gives the uploader checks for
 ticket 03, with the key kept in the shell only. Ticket 04 should confirm that
 Alpine's `aws-cli` sends an upload checksum, because S3 rejects uploads
 without one to a bucket with Object Lock retention.

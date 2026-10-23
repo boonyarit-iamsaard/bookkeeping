@@ -1,6 +1,6 @@
 # Production backups off Railway
 
-Status: ready-for-agent
+Status: ready-for-human
 
 Decided on 2026-10-17 by grilling. Decision recorded in
 `docs/adr/0013-nightly-encrypted-backups-to-aws-s3.md`. Read it, ADR 0008 and
@@ -78,10 +78,13 @@ volume backups stay on as a faster first layer for everyday mistakes.
   - `monthly/YYYY-MM/bookkeeping.dump.age` and
     `monthly/YYYY-MM/manifest.json.age`, also written on the first night of
     each month.
-- Lifecycle: objects under `daily/` expire after 35 days and objects under
-  `monthly/` after 365 days; noncurrent versions expire one day after becoming
-  noncurrent, and expired delete markers are removed. Expiry can only take
-  effect once the Object Lock retention has passed.
+  - `manual/YYYY-MM-DDTHHMMSSZ/bookkeeping.dump.age` and
+    `manual/YYYY-MM-DDTHHMMSSZ/manifest.json.age`, written by a run triggered
+    by hand, named by its UTC start time (ticket 07).
+- Lifecycle: objects under `daily/` and `manual/` expire after 35 days and
+  objects under `monthly/` after 365 days; noncurrent versions expire one day
+  after becoming noncurrent, and expired delete markers are removed. Expiry
+  can only take effect once the Object Lock retention has passed.
 - An AWS Budgets monthly cost budget of $1 for the `backups` account, emailing
   the owner on 80% actual and 100% forecast.
 - None of these: NAT Gateway, Secrets Manager, customer-managed KMS keys, or
@@ -90,9 +93,10 @@ volume backups stay on as a faster first layer for everyday mistakes.
 ### Uploader
 
 - One IAM user, `bookkeeping-backup-uploader`, whose only permission is
-  `s3:PutObject` on `daily/*` and `monthly/*` in the bucket. It cannot list,
-  read, delete, change retention, or bypass governance. Its access key is the
-  only long-lived AWS secret, stored only in the Railway service's variables.
+  `s3:PutObject` on `daily/*`, `monthly/*` and `manual/*` in the bucket. It
+  cannot list, read, delete, change retention, or bypass governance. Its
+  access key is the only long-lived AWS secret, stored only in the Railway
+  service's variables.
 - The key is replaced every year, and immediately on any suspected exposure:
   create the new key, update the Railway variables, confirm the next nightly
   upload, then delete the old key. The next due date is recorded under
@@ -122,7 +126,9 @@ volume backups stay on as a faster first layer for everyday mistakes.
      version, and for every table in `public` its row count and a checksum of
      its rows in primary-key order.
   4. Encrypt both with `AGE_RECIPIENT` and upload them under `daily/`, and on
-     the first of the month also under `monthly/`.
+     the first of the month also under `monthly/`. A run that starts outside
+     the 20:00 UTC hour was triggered by hand and uploads only under
+     `manual/`, so it never adds a version to a `daily/` key.
   5. Exit non-zero on any failure, so Railway marks the run failed. Plaintext
      never touches disk outside the container's temporary directory.
 - A `--local-dir <path>` mode writes the two encrypted files to a directory
@@ -206,12 +212,34 @@ volume backups stay on as a faster first layer for everyday mistakes.
 
 ## Build log
 
-`build-log.md` collects material for an article about this feature. Closing
-any ticket includes adding a dated entry covering what happened, why, how,
-and the struggles overcome. The repository is public, so entries hold no
-secrets, account IDs or real financial figures.
+`build-log-1.md`, continued in `build-log-2.md`, collects material for an
+article about this feature. Closing any ticket includes adding a dated entry
+covering what happened, why, how, and the struggles overcome. The repository
+is public, so entries hold no secrets, account IDs or real financial figures.
 
 ## Order of tickets
 
 01 (owner) and 02 are independent. 03 (owner) follows both. 04 can be written
-after 02 and closes after 03. 05 and 06 follow 04; 06 closes this spec.
+after 02 and closes after 03. 05 and 06 follow 04; 06 closes this spec. 07,
+added after the Railway incident of 2026-10-21, follows 04.
+
+## Comments
+
+### 2026-10-22: Restore drills
+
+| Date       | Backup              | Dumped at (UTC)             | Result                  |
+| ---------- | ------------------- | --------------------------- | ----------------------- |
+| 2026-10-22 | `daily/2026-10-22/` | 2026-10-21T20:04:01.622866Z | Passed: 10 tables match |
+
+The next drill is due 2027-01-22, then quarterly. This first pass closes the
+spec and unblocks `production-migrations`. Ticket 03 stays open only for its
+first-month AWS cost note, due once November's bill is issued.
+
+### 2026-10-23: Reopened until 07 and 03 close
+
+Status goes back from `done` to `ready-for-human`. Ticket 07, added after the
+Railway incident, waits on the owner's hand-triggered run after the merge.
+Ticket 03 waits on November's bill. The spec closes when both do. The drill
+above still clears this spec's part of the `production-migrations` gate.
+`../backlog/issues/03-recover-production-from-a-backup.md` is a separate
+blocker for `production-migrations`.

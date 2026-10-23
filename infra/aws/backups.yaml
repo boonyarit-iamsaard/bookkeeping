@@ -1,12 +1,12 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   Bookkeeping production backups: the Object Lock bucket, the write-only
-  uploader user and the monthly cost budget.
+  uploader user, the monthly cost budget and the missing-backup alert.
 
 Parameters:
   AlertEmail:
     Type: String
-    Description: The owner's email address for budget alerts.
+    Description: The owner's email address for budget and backup alerts.
     AllowedPattern: ^[^@\s]+@[^@\s]+\.[^@\s]+$
     ConstraintDescription: Must be an email address.
   BucketNamePrefix:
@@ -20,6 +20,13 @@ Parameters:
     ConstraintDescription: >-
       Must be 2 to 32 lowercase letters, digits or hyphens, starting and
       ending with a letter or digit.
+  BackupMaxAgeHours:
+    Type: Number
+    Default: 26
+    MinValue: 1
+    Description: >-
+      How old the newest nightly backup may be before the owner is emailed.
+      The job runs every 24 hours, so 26 leaves two hours of slack.
 
 Resources:
   BackupBucket:
@@ -69,6 +76,10 @@ Resources:
             Status: Enabled
             Prefix: monthly/
             ExpirationInDays: 365
+          - Id: expire-manual
+            Status: Enabled
+            Prefix: manual/
+            ExpirationInDays: 35
           - Id: expire-noncurrent-and-delete-markers
             Status: Enabled
             NoncurrentVersionExpiration:
@@ -109,6 +120,7 @@ Resources:
                 Resource:
                   - !Sub ${BackupBucket.Arn}/daily/*
                   - !Sub ${BackupBucket.Arn}/monthly/*
+                  - !Sub ${BackupBucket.Arn}/manual/*
 
   MonthlyCostBudget:
     Type: AWS::Budgets::Budget
@@ -137,6 +149,169 @@ Resources:
           Subscribers:
             - SubscriptionType: EMAIL
               Address: !Ref AlertEmail
+
+  # The owner confirms this subscription from the email AWS sends.
+  # No KMS encryption (Sonar S6327, accepted): messages hold only backup
+  # timestamps and leave as plain email anyway. The alarm below cannot publish
+  # with the AWS managed aws/sns key, and a customer managed key alone would
+  # cost the whole monthly budget.
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: bookkeeping-backup-alert
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref AlertEmail
+
+  AlertLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/bookkeeping-backup-alert
+      RetentionInDays: 30
+
+  # Lists the daily/ prefix and publishes; it cannot read or delete objects.
+  AlertRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: bookkeeping-backup-alert
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: check-daily-backups
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ListDailyPrefixOnly
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt BackupBucket.Arn
+                Condition:
+                  StringLike:
+                    s3:prefix: daily/*
+              - Sid: PublishAlert
+                Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref AlertTopic
+              - Sid: WriteOwnLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${AlertLogGroup}:*
+
+  AlertFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: bookkeeping-backup-alert
+      Runtime: python3.13
+      Handler: index.handler
+      Role: !GetAtt AlertRole.Arn
+      Timeout: 30
+      MemorySize: 128
+      Environment:
+        Variables:
+          BUCKET: !Ref BackupBucket
+          TOPIC_ARN: !Ref AlertTopic
+          MAX_AGE_HOURS: !Ref BackupMaxAgeHours
+      LoggingConfig:
+        LogGroup: !Ref AlertLogGroup
+      Code:
+        ZipFile: |
+          import datetime
+          import os
+
+          import boto3
+
+          s3 = boto3.client("s3")
+          sns = boto3.client("sns")
+
+
+          def newest_daily_backup(bucket):
+              newest = None
+              pages = s3.get_paginator("list_objects_v2").paginate(
+                  Bucket=bucket, Prefix="daily/"
+              )
+              for page in pages:
+                  for item in page.get("Contents", []):
+                      if newest is None or item["LastModified"] > newest:
+                          newest = item["LastModified"]
+              return newest
+
+
+          def handler(event, context):
+              now = datetime.datetime.now(datetime.timezone.utc)
+              limit = datetime.timedelta(hours=float(os.environ["MAX_AGE_HOURS"]))
+              newest = newest_daily_backup(os.environ["BUCKET"])
+              if newest is not None and now - newest <= limit:
+                  return {"status": "ok", "newest": newest.isoformat()}
+              if newest is None:
+                  detail = "No backup exists under daily/."
+              else:
+                  detail = f"The newest backup under daily/ is from {newest.isoformat()}."
+              sns.publish(
+                  TopicArn=os.environ["TOPIC_ARN"],
+                  Subject="Bookkeeping backup is missing",
+                  Message=f"{detail} The check ran at {now.isoformat()}.",
+              )
+              return {"status": "stale", "newest": newest and newest.isoformat()}
+
+  # Reaches the same topic when the checker itself fails, so a broken check
+  # is noticed too.
+  AlertErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: bookkeeping-backup-alert-errors
+      AlarmDescription: The missing-backup checker raised an error.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AlertFunction
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertTopic
+
+  AlertSchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: bookkeeping-backup-alert-scheduler
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: invoke-alert
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt AlertFunction.Arn
+
+  AlertSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: bookkeeping-backup-alert
+      ScheduleExpression: cron(0 9 * * ? *)
+      ScheduleExpressionTimezone: Asia/Bangkok
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: !GetAtt AlertFunction.Arn
+        RoleArn: !GetAtt AlertSchedulerRole.Arn
 
 Outputs:
   BucketName:

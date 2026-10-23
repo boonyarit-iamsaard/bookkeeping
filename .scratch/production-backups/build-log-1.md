@@ -1,4 +1,4 @@
-# Build log: production backups
+# Build log: production backups, part 1
 
 Raw material for a future article on boonyarit.me about this feature. One
 dated entry per working session, each answering **What** happened, **Why**,
@@ -8,6 +8,9 @@ This repository is public, so every entry must be safe to publish: no
 secrets, account IDs, hostnames beyond the public ones, or real financial
 figures. Screenshots stay in a private folder outside the repository; an
 entry only names them.
+
+Entries after the storage stack went live on 2026-10-18 continue in
+`build-log-2.md`.
 
 ## 2026-10-17: from "where are we?" to a spec
 

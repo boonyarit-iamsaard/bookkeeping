@@ -26,7 +26,7 @@ Set `BETTER_AUTH_SECRET` in `apps/server/.env` to a random secret of at least
 
 ```bash
 pnpm db:start
-pnpm db:push
+pnpm db:migrate
 pnpm dev
 ```
 
@@ -83,8 +83,7 @@ pushes. See [ADR 0010](docs/adr/0010-protected-main-and-gated-deploys.md).
 Use the [commit-message rules](AGENTS.md#commit-messages) for each staged diff;
 `commitlint.config.ts` is authoritative and the commit-msg hook enforces it.
 The branch type describes the task; each commit's type describes its own
-changes. The commit-message skill must follow the repository's type, scope and
-body rules when they differ from its defaults.
+changes.
 
 ## Project structure
 
@@ -267,6 +266,9 @@ validated `DATABASE_URL` to `createDatabase` from
 `@bookkeeping/database/connection`. The Drizzle CLI reads the schema through
 `packages/database/drizzle.config.ts`.
 
+`apps/backup/` (backup job, restore drill) and `infra/aws/` sit outside the
+pnpm workspace; see their READMEs.
+
 ## Environment configuration
 
 Each app validates its own environment with Zod.
@@ -371,10 +373,6 @@ in `docker-compose.yaml`. The browser opens the web container at
 Building an image is a heavy task, so `stack:build` builds one at a time. Stop
 `pnpm dev:server` and `pnpm dev:web` first, since they use the same ports.
 
-The schema-change policy in [AGENTS.md](AGENTS.md#database-schema-changes)
-uses committed migrations outside production; use `db:push` only for experiments
-on a throwaway database.
-
 PostgreSQL stores its initialized credentials in the persistent data volume, so
 editing `POSTGRES_PASSWORD` in `docker-compose.yaml` does not change an already
 initialized database. The fixed credentials are safe because the port listens
@@ -421,9 +419,9 @@ no Docker or `.env` file. Run one workspace's suite with, for example,
 
 Integration tests (`*.integration.test.ts`) use Testcontainers to start a disposable
 PostgreSQL 18 database on an available port. Docker must be running. The harness,
-owned by `@bookkeeping/database/testing`, applies the current schema with the
-database package's `db:push`, provides its connection URL to test workers, and
-stops the container after the suite. Every test runs inside a
+owned by `@bookkeeping/database/testing`, applies the committed migrations,
+provides its connection URL to test workers, and stops the container after the
+suite. Every test runs inside a
 transaction that is rolled back, except concurrency checks that use committed
 writes isolated by owner. No local development database is used.
 
@@ -434,7 +432,7 @@ pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium
 ```
 
 The Playwright config's web servers create a disposable PostgreSQL database,
-push the schema, and start the Hono API from source with a fresh auth secret
+migrate it, and start the Hono API from source with a fresh auth secret
 (`apps/web/tests/e2e/serve-api.ts`), then the client: the Vite dev server
 locally, or a preview of a production build under `ci:e2e`. The runner
 (`apps/web/tests/e2e/run.ts`) picks available ports and, under `ci:e2e`,
@@ -487,8 +485,9 @@ also accepts `--purge-images`.
 
 The scanner analyzes
 `apps/web/src/`, `apps/server/src/`, `packages/domain/src/`,
-`packages/database/src/`, `packages/application/src/`, and `packages/auth/src/`
-and classifies colocated Vitest tests and `apps/web/tests/` as test code; it
+`packages/database/src/`, `packages/application/src/`, `packages/auth/src/`,
+and `infra/aws/`, and classifies colocated Vitest tests and `apps/web/tests/`
+as test code; it
 skips the generated route tree. It does
 not run tests or generate coverage; coverage reporting is not configured.
 
@@ -550,6 +549,7 @@ renders it with no build step, at the cost of layout control.
 pnpm lint
 pnpm format:check
 pnpm lint:md
+pnpm lint:sh
 pnpm types:check
 pnpm test
 pnpm build
@@ -564,8 +564,8 @@ The explicit `pnpm run ci:e2e` gate builds the client and runs the full
 browser matrix against `vite preview`; run it on its own, never beside another
 heavy task.
 `pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
-caches and parallelizes per-workspace tasks across `apps/web`, `apps/server`,
-and `packages/*` (see [ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
+caches and parallelizes per-workspace tasks (see
+[ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
 `pnpm check` applies Biome fixes;
 `pnpm format` formats Markdown, YAML, and HTML files; `pnpm fix` runs both and
 the Markdown lint fixes.
@@ -598,8 +598,9 @@ applies by hand are in
 Dependabot proposes npm, GitHub Actions, and Docker base-image updates weekly,
 after a three-day cooldown, with minor and patch npm updates grouped
 (`.github/dependabot.yml`). The Node and toolchain majors are ignored, so they
-move when the owner decides. Both Dockerfiles pin their base images by digest
-beside the tag, and Dependabot updates the pair.
+move when the owner decides. The three Dockerfiles pin base images by digest
+beside the tag, and Dependabot updates the pair, ignoring `postgres` majors
+for `apps/backup`.
 
 `pnpm-workspace.yaml` holds the install-time gates. A release younger than three
 days is not installed (`minimumReleaseAge`), a drop in a package's publish
