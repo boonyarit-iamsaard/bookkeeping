@@ -19,14 +19,13 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_dir
-# shellcheck source=common.sh
-source "$script_dir/common.sh"
+# shellcheck source=restore-common.sh
+source "$script_dir/restore-common.sh"
 
 identity=""
 backup=""
 local_dir=""
 check_only=""
-profile="bookkeeping-backups"
 while (($# > 0)); do
   case "$1" in
     --identity)
@@ -46,7 +45,7 @@ while (($# > 0)); do
       ;;
     --profile)
       (($# >= 2)) || fail "--profile needs a name"
-      profile="$2"
+      aws_profile="$2"
       shift 2
       ;;
     --check)
@@ -62,10 +61,11 @@ done
 [[ -z "$backup" || -z "$local_dir" ]] ||
   fail "--backup and --local-dir cannot be used together"
 
+[[ -n "$local_dir" ]] || require_tools aws
+
 # There is no default backup: restoring the wrong one silently is worse than
 # asking.
 if [[ -z "$backup" && -z "$local_dir" ]]; then
-  command -v aws >/dev/null || fail "aws is not installed"
   bucket="$(backup_bucket)"
   newest="$(newest_daily_prefix "$bucket")"
   printf '%s\n' "$newest"
@@ -73,14 +73,8 @@ if [[ -z "$backup" && -z "$local_dir" ]]; then
   exit 1
 fi
 
-[[ -n "$identity" ]] || fail "--identity is required"
-[[ -r "$identity" ]] || fail "cannot read the identity file $identity"
-for tool in docker age; do
-  command -v "$tool" >/dev/null || fail "$tool is not installed"
-done
-if [[ -n "$backup" ]]; then
-  command -v aws >/dev/null || fail "aws is not installed"
-fi
+require_identity "$identity"
+require_tools docker age
 
 target_url="${TARGET_DATABASE_URL:-}"
 if [[ -z "$target_url" ]]; then
@@ -108,9 +102,7 @@ cleanup() {
   rm -rf "$work_dir"
 }
 trap cleanup EXIT
-# A docker child can swallow Ctrl-C, so stop the restore explicitly.
-trap 'exit 130' INT
-trap 'exit 143' TERM
+exit_on_signals
 
 # Runs a PostgreSQL client from the pinned image against a database URL. The
 # URL reaches the container through its environment, not docker's command
@@ -132,14 +124,7 @@ psql_at() {
     --set ON_ERROR_STOP=1 "$@"
 }
 
-if [[ -n "$local_dir" ]]; then
-  copy_local_backup "$local_dir" "$work_dir"
-  backup_source="$local_dir"
-else
-  bucket="$(backup_bucket)"
-  fetch_backup "$bucket" "$backup" "$work_dir"
-  backup_source="$backup/"
-fi
+load_backup "$work_dir" "$local_dir" "$backup"
 
 expected="$(decrypt_manifest "$identity" "$work_dir")"
 log "decrypted the manifest"

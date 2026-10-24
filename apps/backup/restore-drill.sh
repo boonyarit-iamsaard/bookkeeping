@@ -13,8 +13,8 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly script_dir
-# shellcheck source=common.sh
-source "$script_dir/common.sh"
+# shellcheck source=restore-common.sh
+source "$script_dir/restore-common.sh"
 readonly database="bookkeeping"
 readonly container="bookkeeping-restore-drill-$$"
 # How every client inside the throwaway container reaches its server.
@@ -22,7 +22,6 @@ readonly container_connection=(--host=127.0.0.1 --username=postgres)
 
 identity=""
 local_dir=""
-profile="bookkeeping-backups"
 while (($# > 0)); do
   case "$1" in
     --identity)
@@ -37,7 +36,7 @@ while (($# > 0)); do
       ;;
     --profile)
       (($# >= 2)) || fail "--profile needs a name"
-      profile="$2"
+      aws_profile="$2"
       shift 2
       ;;
     *)
@@ -46,14 +45,9 @@ while (($# > 0)); do
   esac
 done
 
-[[ -n "$identity" ]] || fail "--identity is required"
-[[ -r "$identity" ]] || fail "cannot read the identity file $identity"
-for tool in docker age; do
-  command -v "$tool" >/dev/null || fail "$tool is not installed"
-done
-if [[ -z "$local_dir" ]]; then
-  command -v aws >/dev/null || fail "aws is not installed"
-fi
+require_identity "$identity"
+require_tools docker age
+[[ -n "$local_dir" ]] || require_tools aws
 
 image="$(pinned_image)"
 readonly image
@@ -67,19 +61,14 @@ cleanup() {
   rm -rf "$work_dir"
 }
 trap cleanup EXIT
-# A docker child can swallow Ctrl-C, so stop the drill explicitly.
-trap 'exit 130' INT
-trap 'exit 143' TERM
+exit_on_signals
 
-if [[ -n "$local_dir" ]]; then
-  copy_local_backup "$local_dir" "$work_dir"
-  backup_source="$local_dir"
-else
+prefix=""
+if [[ -z "$local_dir" ]]; then
   bucket="$(backup_bucket)"
   prefix="$(newest_daily_prefix "$bucket")"
-  fetch_backup "$bucket" "$prefix" "$work_dir"
-  backup_source="$prefix/"
 fi
+load_backup "$work_dir" "$local_dir" "$prefix"
 
 expected="$(decrypt_manifest "$identity" "$work_dir")"
 log "decrypted the manifest"

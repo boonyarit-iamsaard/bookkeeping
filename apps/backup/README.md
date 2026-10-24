@@ -12,9 +12,12 @@ cron schedule; the storage it uploads to is `infra/aws/backups.yaml`.
   `AGE_RECIPIENT`, and uploads them under `daily/`, or writes them to a
   directory with `--local-dir`. A run started outside 20:00–20:59 UTC was
   triggered by hand and uploads under `manual/<UTC time>/` instead.
-- `common.sh`: the backup's file names and the logging, sourced by the job,
-  and the fetch, version and date checks, decryption and manifest comparison
-  that the drill and the restore share.
+- `common.sh`: the backup's file names and the logging, sourced by the job
+  and the restores.
+- `restore-common.sh`: the tool checks, fetch, version and date checks,
+  decryption and manifest comparison that the drill and the restore share.
+  The manifest reaches `psql` on its standard input, never a command line.
+  It is not in the job's image.
 - `manifest.sql`: every `public` table's row count and checksum, shared by the
   job, the drill and the restore.
 - `restore-drill.sh`: restores a backup into a throwaway container and
