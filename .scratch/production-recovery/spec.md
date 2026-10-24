@@ -74,16 +74,20 @@ temporary Railway project.
   for `db:push`. ADR 0013 records this as an amendment.
 - Decryption and `pg_restore` run on the owner's machine with
   `sslmode=require`. The private key never leaves it.
-- Rejected: `railway ssh`, which would need the plaintext dump piped through
-  an interactive session, unproven for binary data; and a one-off restore
+- `railway ssh` running `psql` in the `database` container serves the text
+  queries that follow the proxy's removal (salvage and the final drop); the
+  rehearsal proved it.
+- Rejected: `railway ssh` for the dump, which would need the plaintext dump
+  piped through an interactive session, unproven for binary data; and a one-off restore
   service inside the project, which would need the private key, or a second
   key pair, on Railway.
 
 ### `restore.sh`
 
 - Lives in `apps/backup/` beside the drill. The drill's fetch, version check,
-  decrypt and manifest comparison move into `common.sh`, and both scripts
-  use them.
+  decrypt and manifest comparison move into `restore-common.sh`, which
+  sources `common.sh` and stays out of the job image, and both scripts use
+  them.
 - Takes `--identity <age identity file>`, `--backup <prefix>` naming one
   `daily/`, `monthly/` or `manual/` backup (or `--local-dir <path>`), and the
   target database URL, read at a hidden prompt or from the environment, never
@@ -167,7 +171,7 @@ the hands-on steps took, and the runbook states that as the expectation.
   or a future date. `--check` must pass on a matching database and fail on a
   changed one.
 - The drill's existing checks still pass after the shared code moves into
-  `common.sh`.
+  `restore-common.sh`.
 - The runbook is proven by the rehearsal, not by tests.
 
 ## Out of Scope

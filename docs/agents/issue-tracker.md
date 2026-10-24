@@ -13,8 +13,9 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
   - `done`: built and verified; a closing note names the commit.
   - `moved`: the work now lives elsewhere; the file is a stub whose body links to the new path. Keep the stub so older notes that cite the number still resolve.
   - `resolved`: wayfinding tickets only (see below).
+  - `wontfix`: declined; a closing note says why.
 
-  Triage ignores all three; the five triage labels apply to open tickets only.
+  Triage ignores all four; the five triage labels apply to open tickets only.
 
 ## When a skill says "publish to the issue tracker"
 
