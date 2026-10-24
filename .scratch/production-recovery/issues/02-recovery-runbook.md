@@ -7,7 +7,7 @@ backup, on the same Railway Postgres or on a new Railway project.
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Notes:** The agent writes it with `/runbook`, checking Railway's current
 documentation for the TCP proxy, removing a deployment and redeploying. The
@@ -43,3 +43,5 @@ owner executes it; the agent only checks read-only.
   (owner's choice): `recover-production.md` (steps 1–7),
   `recover-production-after-swap.md` (steps 8–13, final checks, run log) and
   `recover-production-new-project.md`.
+
+Written in `79d6e51`.
