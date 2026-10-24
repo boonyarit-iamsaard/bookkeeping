@@ -15,7 +15,7 @@ and never run `ALTER USER`. The database restarts, and api is down until it
 redeploys, so start right after a nightly backup, never near 20:00 UTC.
 
 - [x] Postgres → Database → Config → **Regenerate** done.
-- [x] api and backup both read `DATABASE_URL` from `${{Postgres.DATABASE_URL}}`, and both are redeployed.
+- [x] api and backup both read `DATABASE_URL` from `${{database.DATABASE_URL}}`, and both are redeployed.
 - [x] api deploy logs show no `password authentication failed`; recording a transaction from the phone works.
 - [x] A manually triggered backup run succeeds, and its objects appear in S3.
 - [x] `pg_stat_activity` shows only the expected sessions, and `pg_roles` has no role nobody created; findings recorded under Comments.

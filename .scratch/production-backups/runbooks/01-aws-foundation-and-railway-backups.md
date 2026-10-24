@@ -456,12 +456,12 @@ bookkeeping-backups` shows the `backups` account."
 ### 14. Turn on Railway's own backups for Postgres
 
 - [ ] **Skipped:** needs Railway Pro; see the Run log.
-- **Goal:** Daily, weekly and monthly backup schedules on the `Postgres`
+- **Goal:** Daily, weekly and monthly backup schedules on the `database`
   service, plus one manual backup.
 - **Why:** These are the fastest restore path for everyday mistakes. They don't
   satisfy ADR 0008: a backup kept in the same account is deleted when the
   volume is wiped.
-- **Where:** Railway dashboard → production project → `Postgres` service →
+- **Where:** Railway dashboard → production project → `database` service →
   **Backups** tab (per docs, verify on screen).
 - **Do:**
   1. Select all three schedules: **Daily**, **Weekly** and **Monthly**.
@@ -474,8 +474,8 @@ bookkeeping-backups` shows the `backups` account."
 - **Verify:** With the Railway CLI, I run, read-only:
 
   ```sh
-  railway postgres pitr schedule list --service Postgres --environment production
-  railway postgres pitr backup list --service Postgres --environment production
+  railway postgres pitr schedule list --service database --environment production
+  railway postgres pitr backup list --service database --environment production
   ```
 
   Without it, tell me what the Backups tab shows.

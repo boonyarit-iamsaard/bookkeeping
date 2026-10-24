@@ -105,8 +105,8 @@ database or write before the restore has passed.
   runbook below says.
 - **Do:**
   1. `api`, `web`, domains and DNS: the deployment runbook's stages 3 to 9.
-     Its stage 4 references `${{Postgres.DATABASE_URL}}`; with the service
-     named `database`, set `DATABASE_URL=${{database.DATABASE_URL}}`.
+     Its stage 4 sets `DATABASE_URL=${{database.DATABASE_URL}}`, which needs
+     the service named `database`, as N1 does.
   2. Skip its stage 10: the restore already holds the schema, and `db:push`
      must not run. Sign-up stays closed, as stage 11 left it.
   3. `backup`: `.scratch/production-backups/runbooks/03-deploy-storage-and-uploader-key.md`,
