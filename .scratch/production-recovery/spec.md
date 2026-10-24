@@ -1,6 +1,6 @@
 # Recover production from a backup
 
-Status: ready-for-agent
+Status: done
 
 Decided on 2026-10-23 by grilling, from
 `../backlog/issues/03-recover-production-from-a-backup.md`. Read
@@ -186,3 +186,14 @@ the hands-on steps took, and the runbook states that as the expectation.
 unblocks `production-migrations`.
 
 ## Comments
+
+### 2026-10-24: Recovery rehearsal
+
+| Date       | Backup              | Dumped at (UTC)             | Hands-on time | Result                  |
+| ---------- | ------------------- | --------------------------- | ------------- | ----------------------- |
+| 2026-10-24 | `daily/2026-10-21/` | 2026-10-20T20:04:20.449119Z | 22 minutes    | Passed: 10 tables match |
+
+The runbook now expects about 30 minutes on the same database. Ticket 03
+closes this spec, and with it the recovery blocker on
+`production-migrations`. Repeat the rehearsal only when the runbook or
+`restore.sh` changes materially.

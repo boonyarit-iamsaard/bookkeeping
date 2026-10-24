@@ -65,10 +65,13 @@ the cause from step 1. Do 8a or 8b, not both.
 - **Do:**
   1. On the deployment removed in step 2, open **⋮** and choose
      **Redeploy**.
-  2. If the menu doesn't offer it: `railway redeploy --service api`. If that
-     also refuses, `railway redeploy --service api --from-source` builds the
-     newest `main`; first check with `git log -1 origin/main` that it is the
-     commit step 2 removed.
+  2. If the menu doesn't offer it:
+     `railway redeploy --service api --commit <DEPLOYED_SHA>`. Plain
+     `railway redeploy` says `No deployment found for service` once step 2
+     has removed the deployment.
+  3. If that refuses, `railway redeploy --service api --from-source` builds
+     the newest `main`; first check with `git log -1 origin/main` that it is
+     `<DEPLOYED_SHA>`.
 - **Expect:** A new deployment passes the `/health` healthcheck.
 - **Verify:** I run `railway service list`: `api` is `Online` with a new
   deployment ID.
@@ -107,11 +110,12 @@ the cause from step 1. Do 8a or 8b, not both.
   deployment runbook's stage 10 deleted it there.
 - **Do:**
   1. Delete the TCP proxy.
-  2. In the terminal: `unset image`.
+  2. In the terminal: `unset image recipient`.
 - **Expect:** No proxy domain under Networking.
 - **Verify:** I run
   `railway variable list --service database --json | jq 'keys | map(select(test("PUBLIC|PROXY")))'`,
-  which prints `[]`.
+  which prints `[]`. The proxy adds `DATABASE_PUBLIC_URL`,
+  `RAILWAY_TCP_PROXY_DOMAIN` and `RAILWAY_TCP_PROXY_PORT`.
 - **Undo:** Step 3a.
 - **Ticks:** Ticket 03: "proxy removed".
 - **Source:** <https://docs.railway.com/networking/tcp-proxy>
@@ -248,5 +252,20 @@ the cause from step 1. Do 8a or 8b, not both.
   - The deployment-actions page doesn't say whether a removed deployment can
     be redeployed, so step 8b gives two CLI fallbacks.
   - Railway documents a cron run outside the schedule only through the CLI.
-  - `railway ssh` running `psql` in the `database` container (steps 11 and 13) is unproven. Ticket 03's rehearsal proves it, or falls back to
-    reopening the proxy for those steps.
+  - `railway ssh` running `psql` in the `database` container (steps 11 and 13) was unproven until the rehearsal below.
+
+### 2026-10-24: Rehearsal
+
+- Completed: steps 1 to 13 against a temporary project, restoring
+  `daily/2026-10-21` over a `railway` loaded from `daily/2026-10-24`, by step
+  8b. 22 minutes, 09:32 to 09:54 UTC. Step 9's sign-in and step 12 skipped:
+  the `api` was a placeholder image and there was no `backup` service.
+- Deviations from docs:
+  - Step 4: `age-keygen -y` failed with `unknown identity type` on the
+    passphrase-protected identity file; it now decrypts the file first.
+  - Step 8b: `railway redeploy` found no deployment after step 2's removal;
+    `--from-source` brought the image back. The step now leads with
+    `--commit`, untested because the placeholder had no repository.
+  - Steps 11 and 13: `railway ssh` then `psql -U postgres` worked; all four
+    salvage queries ran on the real schema.
+  - Deleting the project scheduled it for removal two days later.

@@ -7,10 +7,11 @@
   installed CLI's `--help` as well as the pages cited.
 - **Run log:** in
   [recover-production-after-swap.md](recover-production-after-swap.md#run-log).
-- **Expected duration:** not measured yet. Ticket 03's rehearsal records the
-  hands-on time here. Until then, plan for half a day on the same database;
-  the spec's target is the same day, and within a few days after losing the
-  account.
+- **Expected duration:** about 30 minutes hands-on on the same database. The
+  rehearsal on 2026-10-24 took 22 minutes for steps 1 to 13 by step 8b,
+  without re-entering salvage or step 12. Add the CI run for step 8a and the
+  time to re-enter what step 11 finds. After losing the account, allow a few
+  days.
 - **Estimated cost:** nothing measurable. The TCP proxy bills network egress,
   and the dump is tens of KB.
 
@@ -30,12 +31,16 @@ and S3 listings. Database checks are output you paste back, never a URL.
   [recover-production-new-project.md](recover-production-new-project.md),
   then the final checks.
 
-During ticket 03's rehearsal, link the temporary project instead
-(`railway link`), and read `api` as its placeholder service. The rehearsal
+To rehearse, link the temporary project first
+(`railway link --project <TEMP_PROJECT> --environment production`) and
+check `railway status` names it: the repository stays linked to production
+otherwise. Its `api` is a placeholder image such as `traefik/whoami` with a
+generated domain, and its `railway` holds a backup newer than the one you
+restore, so step 11 finds real rows; don't re-enter them. The rehearsal
 takes step 8b, never 8a: merging a revert would change the real `main` and
 redeploy production. It has no `backup` service, so it skips step 12 and
-that final check. Step 4 takes the public key from your identity file, so it
-doesn't need one.
+that final check. Deleting the project afterwards only schedules it; Railway
+removes it two days later. Link production again when done.
 
 ## Prerequisites
 
@@ -121,8 +126,10 @@ doesn't need one.
 - **Where:** Railway dashboard → production → `api` → **Deployments** (per
   docs, verify on screen).
 - **Do:**
-  1. On the active deployment, open the **⋮** menu and choose **Remove**.
-  2. Or from the terminal: `railway down --service api`, and confirm.
+  1. Note the active deployment's commit as `<DEPLOYED_SHA>`, for step 8b.
+  2. On the active deployment, open the **⋮** menu and choose **Remove**.
+  3. Or from the terminal: `railway down --service api`. Its prompt names the
+     project; confirm only if it is the one you mean.
 - **Expect:** The deployment shows as removed. `web` stays up and shows
   errors when it calls the API.
 - **Verify:** I run `railway service list`, where `api` is no longer
@@ -202,9 +209,16 @@ doesn't need one.
   survives a mistake in step 6 or 13.
 - **Where:** The same terminal.
 - **Do:**
-  1. Derive the public key from your identity file; it is safe to print:
-     `age-keygen -y <AGE_IDENTITY_FILE>`. Note it as `<AGE_PUBLIC_KEY>`. It
-     matches the `backup` service's `AGE_RECIPIENT`.
+  1. Derive the public key from your identity file, which asks for its
+     passphrase. `age-keygen -y` alone can't read a passphrase-protected
+     file. The key is safe to print, and matches the `backup` service's
+     `AGE_RECIPIENT`:
+
+     ```bash
+     recipient="$(age --decrypt <AGE_IDENTITY_FILE> | age-keygen -y)"
+     printf '%s\n' "$recipient"
+     ```
+
   2. Pick a path outside the repository, such as
      `~/recovery/railway_damaged-<YYYYMMDD>.dump.age`, as
      `<DAMAGED_DUMP_FILE>`, and create its folder.
@@ -216,7 +230,7 @@ doesn't need one.
        DATABASE_URL="${u%/railway}/railway?sslmode=require" docker run --rm \
          --network host --env DATABASE_URL "$image" \
          sh -c 'exec pg_dump --format=custom --dbname="$DATABASE_URL"' |
-         age --recipient <AGE_PUBLIC_KEY> --output <DAMAGED_DUMP_FILE> &&
+         age --recipient "$recipient" --output <DAMAGED_DUMP_FILE> &&
          echo dumped )
      ```
 
