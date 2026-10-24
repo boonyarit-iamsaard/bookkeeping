@@ -21,6 +21,27 @@ Railway's platform outage and security disclosure of 2026-10-21, assessed on
 - The owner received the general disclosure email, which does not say whether
   this account was affected.
 
+## Railway's preliminary report
+
+Published 23:31 UTC on 2026-10-22, updated 2026-10-23. The investigation is
+still open, and the status page shows `QH8L8B3E` as Monitoring.
+
+- **Timing:** the attack ran from 13:58 UTC on 2026-10-20 to 03:32 UTC on
+  2026-10-22. Decryption of stored variables happened between 07:25 and
+  09:18 UTC on 2026-10-21. The backup upload at 20:04 UTC on 2026-10-21 falls
+  inside the attack window.
+- **Scope:** at most 1.85% of workspaces, about 100,000, had some variables
+  decrypted. Railway can't tell which variables, because they were envelope
+  encrypted. The attacker sought AI and platform API keys, and Railway rates
+  workspaces with many variables or many AI keys as highest risk. User
+  accounts were not logged into. Access to source code is not yet ruled out.
+- **Sealed variables:** the report doesn't mention them.
+- **This account:** Railway finished emailing higher-risk workspaces at
+  18:57 UTC on 2026-10-23. The owner received only the general changelog
+  email linking the report, not a higher-risk notice. So the account was not
+  flagged as higher risk, but Railway says that doesn't mean it is confirmed
+  safe. Every secret in the table below was replaced anyway.
+
 ## Impact
 
 - **Availability:** none observed. On 2026-10-22 api `/health` and web `/`
@@ -84,5 +105,6 @@ S3 uploads are data events, which CloudTrail's event history doesn't record.
 
 - <https://status.railway.com/incident/QH8L8B3E>
 - <https://blog.railway.com/p/security-disclosure-wednesday-october-21st>
+- <https://blog.railway.com/p/preliminary-report-october-security-incident>
 - <https://blog.railway.com/p/security-disclosure-recommendation-rotate-postgresql-database-credentials>
 - <https://blog.railway.com/p/security-disclosure-recommendation-check-for-anomalous-aws-access>
