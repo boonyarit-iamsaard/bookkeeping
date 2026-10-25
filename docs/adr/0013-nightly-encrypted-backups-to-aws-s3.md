@@ -58,3 +58,12 @@ by hand writes there, never to `daily/`, because a second version of a
 `daily/` key looks like a planted backup and the restore drill refuses it.
 `manual/` gets the same Object Lock retention and expires after 35 days. See
 `.scratch/production-backups/issues/07-manual-backup-prefix.md`.
+
+## Amendment, 2026-10-23 (recovery)
+
+Recovering production from a backup opens a TCP proxy on the Postgres service
+for the length of the recovery and removes it at the end, so that decryption
+and `pg_restore` run on the owner's machine and the private key never goes to
+Railway. Nothing is exposed outside a recovery. A one-off restore service
+inside Railway was rejected because it would need the private key, or a
+second key pair, there. See `.scratch/production-recovery/spec.md`.

@@ -30,7 +30,7 @@ Reference values used throughout:
 | Region           | Southeast Asia (Singapore)     |
 | api config file  | `/apps/server/railway.json`    |
 | web config file  | `/apps/web/railway.json`       |
-| Postgres service | `Postgres`, major version 18   |
+| Postgres service | `database`, major version 18   |
 
 ## Stage 1: Railway account on the Hobby plan
 
@@ -49,18 +49,18 @@ The budget is $10 a month. The trial should cost $6–8.
 2. Rename the project `bookkeeping`. Keep the default environment,
    `production`.
 3. On the canvas, choose **Create → Database → PostgreSQL**.
-4. Rename the new service to exactly `Postgres`. Stage 4 refers to it by this
+4. Rename the new service to exactly `database`. Stage 4 refers to it by this
    name.
-5. Open **Postgres → Settings → Source** and check the image tag is `18`, for
+5. Open **database → Settings → Source** and check the image tag is `18`, for
    example `…/postgres-ssl:18`. If the template installed another major
    version, change the tag to `18` now, before any data exists.
-6. Open **Postgres → Settings → Deploy → Regions** and choose **Southeast Asia
+6. Open **database → Settings → Deploy → Regions** and choose **Southeast Asia
    (Singapore)**.
-7. Open **Postgres → Settings → Networking**. If there is a **TCP Proxy**,
+7. Open **database → Settings → Networking**. If there is a **TCP Proxy**,
    delete it. The database should be reachable only over the private network.
 
 - [x] Postgres 18 is running in Singapore.
-- [x] Postgres has no TCP proxy.
+- [x] `database` has no TCP proxy.
 
 ## Stage 3: api service settings
 
@@ -106,7 +106,7 @@ Otherwise Railway builds it straight away, before its variables exist.
    `<paste-secret>` with the secret from your clipboard:
 
    ```sh
-   DATABASE_URL=${{Postgres.DATABASE_URL}}
+   DATABASE_URL=${{database.DATABASE_URL}}
    BETTER_AUTH_URL=https://api.bookkeeping.boonyarit.me
    CLIENT_ORIGINS=https://bookkeeping.boonyarit.me
    BETTER_AUTH_SECRET=<paste-secret>
@@ -117,7 +117,7 @@ Otherwise Railway builds it straight away, before its variables exist.
 3. Click **Update Variables**.
 4. Check that `DATABASE_URL` resolves to a private host ending in
    `.railway.internal`. If it shows an empty or unresolved value, the database
-   service isn't named `Postgres`: fix the reference to match its name.
+   service isn't named `database`: fix the reference to match its name.
 5. Clear the secret from your clipboard: `Set-Clipboard -Value ' '` in
    PowerShell, or copy something else.
 6. Deploy the staged variables before stage 6. A deploy triggered by
@@ -234,8 +234,8 @@ shows when it has issued the certificate.
 
 ## Stage 10: Apply the schema through a temporary TCP proxy
 
-1. **Postgres → Settings → Networking → TCP Proxy**: enable it on port `5432`.
-2. **Postgres → Variables**: copy `DATABASE_PUBLIC_URL`.
+1. **database → Settings → Networking → TCP Proxy**: enable it on port `5432`.
+2. **database → Variables**: copy `DATABASE_PUBLIC_URL`.
 3. From the repo root, run `db:push` with that URL. Don't save it to
    `packages/database/.env`. Reading it at a prompt also keeps it out of your
    shell history. In PowerShell 7:
@@ -256,7 +256,7 @@ shows when it has issued the certificate.
    `--force`. If drizzle-kit asks about anything destructive, stop and check
    first.
 
-4. **Postgres → Settings → Networking**: delete the TCP proxy again.
+4. **database → Settings → Networking**: delete the TCP proxy again.
 
 - [x] The schema is applied with `pnpm db:push`.
 - [x] The TCP proxy is gone.

@@ -8,7 +8,7 @@ of on Home.
 
 **Blocked by:** phone-first-redesign 07, done (Avatar menu, the Categories entry, and the milestone check)
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Out of scope:** sign-up, which starts a new Account and lands on Home.
 
@@ -24,3 +24,10 @@ Moved out of `phone-first-redesign` (where it was 10) because the
 maintainer doesn't expect to want this behaviour soon. It is a deferral, not a
 rejection, so nothing was written to `.out-of-scope/`. It stays
 `needs-triage`; run `/triage` on `.scratch/backlog/` to pick it back up.
+
+### 2026-10-23: declined after production use
+
+After about a month of production use, the owner confirmed that returning to
+the requested page after sign-in is not needed. Redirecting to Home (the
+dashboard) is acceptable because the app has only a few pages. This is no
+longer deferred work; no implementation is planned.

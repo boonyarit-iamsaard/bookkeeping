@@ -21,6 +21,37 @@ Railway's platform outage and security disclosure of 2026-10-21, assessed on
 - The owner received the general disclosure email, which does not say whether
   this account was affected.
 
+## Railway's preliminary report
+
+Published 23:31 UTC on 2026-10-22, updated 2026-10-23. The investigation is
+still open. The status page marked `QH8L8B3E` resolved at 22:06 UTC on
+2026-10-23.
+
+- **Timing:** the attack ran from 13:58 UTC on 2026-10-20 to 03:32 UTC on
+  2026-10-22. Decryption of stored variables happened between 07:25 and
+  09:18 UTC on 2026-10-21. The backup upload at 20:04 UTC on 2026-10-21 falls
+  inside the attack window.
+- **Scope:** at most 1.85% of workspaces, about 100,000, had some variables
+  decrypted. Railway can't tell which variables, because they were envelope
+  encrypted. The attacker sought AI and platform API keys, and Railway rates
+  workspaces with many variables or many AI keys as highest risk. User
+  accounts were not logged into. Access to source code is not yet ruled out.
+- **Sealed variables:** the report doesn't mention them.
+- **This account:** Railway sends two notices: one to workspaces with
+  definite impact, and one to workspaces it rates as higher risk. It finished
+  the higher-risk emails at 18:57 UTC on 2026-10-23. The owner received only
+  the general changelog email linking the report, so neither notice: Railway
+  has not confirmed the account as affected, and it did not flag it as higher
+  risk. Railway says that doesn't mean it is confirmed safe. Every secret in
+  the table below was replaced anyway.
+- **Follow-up email, received by 2026-10-25:** sent to all users, not a
+  notice that this account was affected. Railway has seen no further
+  compromise since 03:32 UTC on 2026-10-22. AI providers asked for a second
+  batch of keys on 2026-10-23. At about 04:43 UTC on 2026-10-24 Railway gave
+  OpenAI and Anthropic key hashes, and some of them belonged to replacement
+  keys, so providers may revoke keys created after the incident. Nothing in
+  the table below is an AI provider key, so this doesn't affect us.
+
 ## Impact
 
 - **Availability:** none observed. On 2026-10-22 api `/health` and web `/`
@@ -44,6 +75,11 @@ newer version of a `daily/` key. `AGE_RECIPIENT` is public, so anyone holding
 the key could encrypt a fake dump with a matching manifest. The restore drill
 would restore and pass it, and the missing-backup alert would stay quiet.
 S3 uploads are data events, which CloudTrail's event history doesn't record.
+The restore refuses a key with more than one version or a date after today,
+but a backup planted under an unused prefix has one version and passes. The
+main opening is today's `daily/` prefix between midnight and 03:00 in Bangkok,
+before the nightly run writes it. Signing backups wouldn't close it, because
+the signing key would sit in the same sealed variables as the uploader key.
 
 ## Checks done on 2026-10-22
 
@@ -84,5 +120,6 @@ S3 uploads are data events, which CloudTrail's event history doesn't record.
 
 - <https://status.railway.com/incident/QH8L8B3E>
 - <https://blog.railway.com/p/security-disclosure-wednesday-october-21st>
+- <https://blog.railway.com/p/preliminary-report-october-security-incident>
 - <https://blog.railway.com/p/security-disclosure-recommendation-rotate-postgresql-database-credentials>
 - <https://blog.railway.com/p/security-disclosure-recommendation-check-for-anomalous-aws-access>

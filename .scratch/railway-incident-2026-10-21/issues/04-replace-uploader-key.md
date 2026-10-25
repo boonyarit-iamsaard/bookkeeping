@@ -22,9 +22,9 @@ instead; see production-backups ticket 07.
 
 - [x] A second key is created for the uploader user and sealed into the backup service's AWS variables; backup is redeployed.
 - [x] A backup run succeeds, and the key's last-used date shows the new key made the upload.
-- [ ] The old key is deactivated, and the following scheduled run succeeds.
+- [x] The old key is deactivated, and the following scheduled run succeeds.
 - [ ] A week after deactivation, with no failed run, the old key is deleted.
-- [ ] The next rotation, October 2027, is recorded under Comments.
+- [x] The next rotation, October 2027, is recorded under Comments.
 
 ## Comments
 
@@ -52,3 +52,14 @@ old key can be deactivated.
 Next: confirm the scheduled run at 20:00 UTC on 2026-10-23 succeeds and
 writes `daily/2026-10-24/` with one version per key. Then delete the old key
 after a week with no failed run, on or after 2026-10-30.
+
+**2026-10-24 (agent):** The scheduled run at 20:00 UTC on 2026-10-23
+succeeded with only the new key active. S3 holds
+`daily/2026-10-24/bookkeeping.dump.age` (20:03:01 UTC) and
+`manifest.json.age` (20:03:03 UTC), one version each and no delete markers.
+IAM shows the new key (`…CTHTTX3P`) last used by S3 at 20:03 UTC. The old key
+(`…MFTDTPPQ`) is still `Inactive` and was last used at 02:01 UTC on
+2026-10-23. Next rotation: by 2027-10-23, a year after this key's creation, following
+production-backups ticket 03's replacement steps. Remaining: delete the old
+key no earlier than 03:00 UTC on 2026-10-30, a full week after it was
+deactivated, if no run fails before then.

@@ -1,6 +1,6 @@
 # shellcheck shell=bash
-# Sourced by backup.sh and restore-drill.sh: the backup's file names, which the
-# job writes and the drill reads, and their shared logging.
+# Sourced by backup.sh and restore-common.sh: the backup's file names, which
+# the job writes and the restores read, and their shared logging.
 
 # The scripts that source this file use both names.
 # shellcheck disable=SC2034
