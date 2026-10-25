@@ -61,4 +61,5 @@ IAM shows the new key (`…CTHTTX3P`) last used by S3 at 20:03 UTC. The old key
 (`…MFTDTPPQ`) is still `Inactive` and was last used at 02:01 UTC on
 2026-10-23. Next rotation: by 2027-10-23, a year after this key's creation, following
 production-backups ticket 03's replacement steps. Remaining: delete the old
-key on or after 2026-10-30 if no run fails before then.
+key no earlier than 03:00 UTC on 2026-10-30, a full week after it was
+deactivated, if no run fails before then.

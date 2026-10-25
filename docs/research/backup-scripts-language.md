@@ -201,8 +201,9 @@ What stays a subprocess, in every stage:
 
 What moves into code: argument parsing, the prefix and Bangkok-date checks,
 the version and delete-marker check over parsed JSON, the URL parsing, the
-manifest comparison (two `JSON.parse` results diffed in TypeScript instead of
-`psql_set` quoting and a SQL `FULL JOIN`), and cleanup through `try`/`finally`
+manifest comparison (the `tables` objects of two `JSON.parse` results diffed
+in TypeScript instead of `psql_set` quoting and a SQL `FULL JOIN`, ignoring
+`dumpedAt` and still naming every missing, extra or changed table), and cleanup through `try`/`finally`
 and signal handlers. `manifest.sql` stays SQL and stays shared.
 
 Staged plan, each stage proven before the next:
@@ -228,7 +229,8 @@ Staged plan, each stage proven before the next:
    joined with `pipeline`, and `PutObject` uploads with
    `ChecksumAlgorithm: "CRC64NVME"`. Install `nodejs` and drop `aws-cli` and
    `bash` from the image. Proof: run old and new with `--local-dir` against
-   the same database. The decrypted manifests must match apart from
+   one database with no writes between the runs, such as a drill restore.
+   The decrypted manifests must match apart from
    `dumpedAt`, and `pg_restore --list` output must match apart from its
    header. Then run the new image once by hand, which uploads under
    `manual/`, and drill that prefix with `restore.sh --backup`. Switch the
