@@ -184,6 +184,22 @@ upgrading would not remove braces. The web app still imports only
 `shadcn/tailwind.css`. The built assets were not re-inspected, because the
 import surface did not change. The exception stands. Next review: 2026-10-25.
 
+## Retired exception, 2026-10-25
+
+`GHSA-vfj7-8cjw-p6xm` (braces) is retired, and `audit.ignore` is gone from
+`pnpm-workspace.yaml`. On 2026-10-23 GitHub withdrew the advisory, so no
+exception remains to review. Braces itself is unchanged (3.0.3, still the latest
+release, still installed through `shadcn@4.22.0`); the withdrawal removes the
+finding, not the package. The weekly review that fell due today ended here.
+
+The audit gate was already failing on `main` for unrelated, patchable advisories,
+so the same change fixed them with a lockfile update: `body-parser` 2.4.0
+(`GHSA-27r3-jxmh-p828`), `undici` 6.29.1, 7.30.1 and 8.12.3
+(`GHSA-xjj6-f33q-929c`, `GHSA-4qv8-2p9j-2685`, `GHSA-f72v-6w45-q472`) and
+`fast-uri` 3.1.9 (`GHSA-w74x-v6f9-j3xg`, `GHSA-wjr9-j795-jxcr`). After the change
+`pnpm audit --audit-level moderate` passes with one remaining low finding
+(`serialize-javascript`, `GHSA-m5mm-p8h7-m29v`), below the gate's threshold.
+
 ## What passing CI establishes
 
 The pinned pnpm version is 11.28.2. Its supported `audit.ignore` setting filters
