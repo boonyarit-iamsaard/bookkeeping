@@ -44,6 +44,13 @@ still open. The status page marked `QH8L8B3E` resolved at 22:06 UTC on
   has not confirmed the account as affected, and it did not flag it as higher
   risk. Railway says that doesn't mean it is confirmed safe. Every secret in
   the table below was replaced anyway.
+- **Follow-up email, received by 2026-10-25:** sent to all users, not a
+  notice that this account was affected. Railway has seen no further
+  compromise since 03:32 UTC on 2026-10-22. AI providers asked for a second
+  batch of keys on 2026-10-23. At about 04:43 UTC on 2026-10-24 Railway gave
+  OpenAI and Anthropic key hashes, and some of them belonged to replacement
+  keys, so providers may revoke keys created after the incident. Nothing in
+  the table below is an AI provider key, so this doesn't affect us.
 
 ## Impact
 

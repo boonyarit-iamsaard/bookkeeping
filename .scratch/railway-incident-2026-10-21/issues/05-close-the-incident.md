@@ -29,3 +29,8 @@ the general changelog email, so this account was not flagged.
 still says the forensic investigation is ongoing, so the final disclosure is
 not out yet. The spec now records both of Railway's notices separately: no
 direct-impact notice and no higher-risk notice reached this account.
+
+**2026-10-25 (agent):** The owner received Railway's follow-up email about AI
+provider key revocations. It was sent to all users, so it isn't a notice that
+this account was affected, and it isn't the final disclosure. The spec now
+summarises it.
