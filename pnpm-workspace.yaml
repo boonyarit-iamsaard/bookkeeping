@@ -37,3 +37,9 @@ overrides:
   "markdownlint-cli>smol-toml": 1.9.0
   # GHSA-238p-pmpm-9mq7. Remove once micromark-extension-math accepts katex 0.18.
   "micromark-extension-math>katex": 0.18.10
+  # GHSA-6pq8-jhm2-2vcw. Remove once express accepts qs 6.16.1 in the shadcn tree.
+  "qs": 6.16.1
+  # GHSA-7rv5-mrxv-xcr9 and four more. Remove once @tanstack/router-core accepts seroval 1.6.11.
+  "seroval": 1.6.12
+  # GHSA-3f7j-7jwc-fxfj and two more. Remove once @dotenvx/dotenvx accepts systeminformation 5.33.16.
+  "systeminformation": 5.33.16
