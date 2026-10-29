@@ -1,0 +1,19 @@
+# 05: Integrate the migration and retire the Biome bump PR
+
+**What to build:** Tickets 01 to 04 land together as one green pull request,
+and the Dependabot dev-dependencies PR (#53) merges cleanly afterwards with
+Biome already at 2.6. Green is promised only here, because tickets 02 to 04
+each leave the other findings in place until all are done.
+
+**Blocked by:** 01, 02, 03, 04.
+
+**Status:** ready-for-agent
+
+- [ ] `pnpm run ci` passes locally, and the PR's CI, Dependency Review and
+      SPA browser suite pass.
+- [ ] The branch is squash-merged to `main`.
+- [ ] `@dependabot rebase` is requested on #53 and it merges once green,
+      or Dependabot closes it as superseded.
+- [ ] Every ticket in this feature is marked `done` with the commit named.
+
+## Comments
