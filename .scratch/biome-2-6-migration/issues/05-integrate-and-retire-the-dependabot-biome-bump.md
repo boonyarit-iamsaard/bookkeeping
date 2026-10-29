@@ -17,3 +17,8 @@ each leave the other findings in place until all are done.
 - [ ] Every ticket in this feature is marked `done` with the commit named.
 
 ## Comments
+
+Ticket 01 pinned Biome 2.6.3, the newest 2.6.x outside the repo's
+`minimumReleaseAge` window (2.6.4 was published 2026-10-28). Before merging,
+re-pin to 2.6.4 if it has cleared the window, matching #53, and re-count the
+findings: ticket 01 saw 29 errors on 2.6.3 against 25 on 2.6.4.
