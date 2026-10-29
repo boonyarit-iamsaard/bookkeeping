@@ -114,14 +114,18 @@ export function createBalanceTrend(
   const walletTracked = trackedDays(days, (day) => day.wallet);
 
   const inView = [...tracked, ...walletTracked];
-  const lowest = inView.reduce(
-    (low, day) => (day.amount < low ? day.amount : low),
-    lastTracked.amount,
-  );
-  const highest = inView.reduce(
-    (high, day) => (day.amount > high ? day.amount : high),
-    lowest < 0n ? 0n : lastTracked.amount,
-  );
+  let lowest = lastTracked.amount;
+  for (const day of inView) {
+    if (day.amount < lowest) {
+      lowest = day.amount;
+    }
+  }
+  let highest = lowest < 0n ? 0n : lastTracked.amount;
+  for (const day of inView) {
+    if (day.amount > highest) {
+      highest = day.amount;
+    }
+  }
   const span = Number(highest - lowest);
   function yOf(amount: bigint): number {
     return span === 0 ? 0.5 : Number(amount - lowest) / span;

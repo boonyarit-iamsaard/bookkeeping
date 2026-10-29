@@ -130,13 +130,13 @@ export function pickFieldErrors<Field extends string>(
 }
 
 interface RejectionMapping {
-  describe: DescribeFieldError;
+  describeError: DescribeFieldError;
   fieldOf: FieldOf;
 }
 
 function toApiRejection(
   problem: Readonly<ApiProblem>,
-  { describe, fieldOf }: Readonly<RejectionMapping>,
+  { describeError, fieldOf }: Readonly<RejectionMapping>,
 ): ApiRejection {
   const errors = (problem.errors ?? []).map((fieldError) => ({
     ...fieldError,
@@ -147,9 +147,9 @@ function toApiRejection(
   for (const fieldError of errors) {
     const field = fieldOf(fieldError.pointer);
     if (field === undefined) {
-      unplaced.add(describe(fieldError));
+      unplaced.add(describeError(fieldError));
     } else if (!(field in fieldErrors)) {
-      fieldErrors[field] = describe(fieldError);
+      fieldErrors[field] = describeError(fieldError);
     }
   }
 
@@ -195,10 +195,11 @@ export function createWriteSubmission<Input, Output>({
     if (outcome.ok) {
       return outcome;
     }
-    const describe = options.describeFieldError ?? defaultDescribeFieldError;
+    const describeError =
+      options.describeFieldError ?? defaultDescribeFieldError;
     return err(
       toApiRejection(outcome.error, {
-        describe,
+        describeError,
         fieldOf: options.fieldOf ?? noFields,
       }),
     );

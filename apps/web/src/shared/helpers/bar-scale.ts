@@ -20,11 +20,16 @@ function fractionOf(part: bigint, whole: bigint): number {
  * negative ones left, and the track is only as wide as the values need.
  */
 export function scaleBars(values: readonly bigint[]): BarScale {
-  const lowest = values.reduce((low, value) => (value < low ? value : low), 0n);
-  const highest = values.reduce(
-    (high, value) => (value > high ? value : high),
-    0n,
-  );
+  let lowest = 0n;
+  let highest = 0n;
+  for (const value of values) {
+    if (value < lowest) {
+      lowest = value;
+    }
+    if (value > highest) {
+      highest = value;
+    }
+  }
   const span = highest - lowest;
   if (span === 0n) {
     return {
