@@ -12,6 +12,7 @@ overrides:
   qs: 6.16.1
   seroval: 1.6.12
   systeminformation: 5.33.16
+  re2js: 2.8.8
 
 pnpmfileChecksum: sha256-lG84Ctk2h9CxfYPJzpbV8NuejENiURt9CMVjBEBqhgY=
 
