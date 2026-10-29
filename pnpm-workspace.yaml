@@ -43,3 +43,5 @@ overrides:
   "seroval": 1.6.12
   # GHSA-3f7j-7jwc-fxfj and two more. Remove once @dotenvx/dotenvx accepts systeminformation 5.33.16.
   "systeminformation": 5.33.16
+  # GHSA-gg6h-894w-4m9c. Remove once markdownlint accepts re2js 2.8.7.
+  "re2js": 2.8.8
