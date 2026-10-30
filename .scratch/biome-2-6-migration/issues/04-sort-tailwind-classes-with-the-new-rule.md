@@ -10,12 +10,20 @@ passes.
 
 **Blocked by:** 01.
 
-**Status:** ready-for-agent
+**Status:** done (fdf26a2)
 
-- [ ] `biome ci` reports no class-sorting warnings.
-- [ ] Only class string contents change in the diff.
-- [ ] Web unit tests pass, and one focused SPA spec passes on one project.
-- [ ] Any rule decision that differs from the old ordering (for example
+- [x] `biome ci` reports no class-sorting warnings.
+- [x] Only class string contents change in the diff.
+- [x] Web unit tests pass, and one focused SPA spec passes on one project.
+- [x] Any rule decision that differs from the old ordering (for example
       arbitrary values) is noted in the closing note.
 
 ## Comments
+
+Done 2026-10-30 in c3b2c1c, 487e34e and fdf26a2, one commit each for `shared`,
+`core` with `routes`, and `features`. The safe fix
+(`biome lint --only=nursery/useTailwindSortedClasses --write`) reordered 62
+files. Every file keeps its line count, so only class string contents changed.
+`biome ci` reports no class-sorting warnings, the web unit tests pass (229),
+and `shell.spec.ts` passes on `phone-chromium`. No rule decision differed from
+the old ordering. The fix needed no manual edits and added no ignores.
