@@ -19,7 +19,7 @@ function AuthLayout() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center px-4 py-8 sm:py-10">
       <div className="flex w-full max-w-md flex-col gap-6 sm:gap-8">
-        <div className="flex items-center justify-center gap-3 font-bold text-[1.0625rem] tracking-tight">
+        <div className="flex items-center justify-center gap-3 text-[1.0625rem] font-bold tracking-tight">
           <AppMark className="size-10" />
           <span>Bookkeeping</span>
         </div>

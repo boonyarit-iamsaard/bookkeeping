@@ -82,7 +82,7 @@ function WalletPage() {
           Transactions
         </h2>
         {page.items.length === 0 ? (
-          <p className="rounded-2xl bg-card p-5 text-muted-foreground text-sm shadow-card sm:p-7">
+          <p className="bg-card text-muted-foreground shadow-card rounded-2xl p-5 text-sm sm:p-7">
             No transactions yet
           </p>
         ) : (
