@@ -28,7 +28,7 @@
   "apps/web/tests/e2e/shell.spec.ts": 23129,
   "apps/web/tests/e2e/transaction-entry.spec.ts": 21863,
   "DESIGN.md": 51767,
-  "docs/research/supply-chain-hardening.md": 55284,
+  "docs/research/supply-chain-hardening.md": 55280,
   "packages/application/src/categories/category.integration.test.ts": 42405,
   "packages/application/src/categories/category.ts": 24260,
   "packages/application/src/transactions/transaction-create.integration.test.ts": 56825,

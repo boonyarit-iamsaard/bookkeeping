@@ -10,7 +10,7 @@ Code (`.railway/railway.ts`, applied with the Railway CLI) or the dashboard.
 
 **Blocked by:** none
 
-**Status:** ready-for-human
+**Status:** done
 
 **Notes:** Found on 2026-10-18 while writing production-backups 04, whose
 `backup` service uses dashboard settings because new services cannot opt
@@ -35,9 +35,9 @@ What the files apply today:
   `ON_FAILURE`.
 
 - [x] Research recorded under Comments, from Railway's current docs: what IaC supports for these settings, how `railway config plan` and apply authenticate and whether they would ever run in CI (ADR 0010 keeps cloud credentials out of CI), and what happens to a service's settings at the cutoff if nothing is done.
-- [ ] Decision recorded: IaC, dashboard, or a mix, per setting.
-- [ ] Owner: the change applied to both services before 2026-12-01; the next deploy of each still waits for CI, finds its Dockerfile, skips on unrelated paths and passes its health check.
-- [ ] The `railway.json` files removed, or kept only if something still reads them, and the docs that cite them updated (`../railway-runbook.md`, `docs/research/supply-chain-hardening.md`).
+- [x] Decision recorded: IaC, dashboard, or a mix, per setting.
+- [x] Owner: the change applied to both services before 2026-12-01; the next deploy of each still waits for CI, finds its Dockerfile, skips on unrelated paths and passes its health check.
+- [x] The `railway.json` files removed, or kept only if something still reads them, and the docs that cite them updated (`../railway-runbook.md`, `docs/research/supply-chain-hardening.md`).
 
 ## Comments
 
@@ -129,3 +129,20 @@ watch patterns, health checks, restart policy and draining time being added to
 blocked for services still on `railway.json`. A variable added later in the
 dashboard must also be added to `railway.ts`, or `plan` fails. `apply` and
 `cutover` have not been run.
+
+### Closed, 2026-10-30
+
+Built in `95ab3ce` (`.railway/railway.ts`); the `railway.json` files and the
+docs that cited them are removed in the follow-up.
+
+- **Decision:** a mix. `railway.ts` holds the Dockerfile builder and path,
+  watch patterns, health checks, source with Wait for CI, container limits and
+  `api`'s draining time, with `preserve()` for the seven variables. The
+  restart policy ("On Failure") is set only in each service's dashboard,
+  because `railway config apply` does not persist `restartPolicyType`: `plan`
+  kept reporting it as pending after two applies.
+- **Applied by the owner:** `railway config migrate status` already showed no
+  service reading Config as Code, so `cutover` was not needed (it refused for
+  both). `railway config apply` ran twice. `plan` is now clean.
+- **Verified:** the owner confirmed the dashboard shows "On Failure" on both
+  services. `backup` and `database` were never in scope.

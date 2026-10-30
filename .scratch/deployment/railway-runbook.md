@@ -12,6 +12,12 @@ Steps marked **UI may differ** describe a screen I could not confirm. If what
 you see differs, follow the intent of the step and note the real path under the
 ticket's Comments.
 
+> **Since 2026-10-30** the api and web build and deploy settings live in
+> `.railway/railway.ts`, applied with `railway config apply`, because Railway
+> ends config as code on 2026-12-01. The Config File steps below
+> record the first deploy. The restart policy ("On Failure") is the one
+> setting held only in each service's **Settings → Deploy** page.
+
 ## Before you start
 
 - A GitHub account with access to `boonyarit-iamsaard/bookkeeping`.
@@ -173,8 +179,8 @@ Then check the results:
   started before the variables were applied. Deploy any staged changes, then
   redeploy.
 - If a build fails because it can't find the Dockerfile, fix `dockerfilePath`
-  in that service's `railway.json` and note the fix under the ticket's
-  Comments.
+  in `.railway/railway.ts`, run `railway config apply`, and note the fix under
+  the ticket's Comments.
 
 - [x] Both services deployed from `main`.
 - [x] Auto-deploy waits for CI on both services.
