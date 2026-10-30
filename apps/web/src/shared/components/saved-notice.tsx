@@ -24,7 +24,7 @@ export function SavedNotice({
       ref={ref}
       tabIndex={tabIndex}
       className={cn(
-        "flex items-start gap-3 rounded-2xl bg-secondary px-4 py-3 text-secondary-foreground text-sm leading-normal outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45",
+        "bg-secondary text-secondary-foreground focus-visible:ring-ring/45 flex items-start gap-3 rounded-2xl px-4 py-3 text-sm leading-normal outline-none focus-visible:ring-[3px]",
         className,
       )}
     >

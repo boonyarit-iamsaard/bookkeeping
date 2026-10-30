@@ -4,7 +4,7 @@ import { cva } from "class-variance-authority";
 import { cn } from "cn";
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-lg border border-transparent bg-clip-padding font-semibold text-sm outline-none transition-[color,background-color,border-color,box-shadow,opacity] duration-150 ease-out focus-visible:ring-[3px] focus-visible:ring-ring/45 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20 motion-reduce:transition-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "group/button focus-visible:ring-ring/45 aria-invalid:border-destructive aria-invalid:ring-destructive/20 inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,opacity] duration-150 ease-out outline-none select-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-[3px] motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -16,7 +16,7 @@ const buttonVariants = cva(
           "border-border bg-card text-foreground hover:bg-accent aria-expanded:bg-accent",
         // Tonal Iris, for a quieter positive action beside the primary.
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)] aria-expanded:bg-secondary",
+          "bg-secondary text-secondary-foreground aria-expanded:bg-secondary hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)]",
         ghost: "text-foreground hover:bg-accent aria-expanded:bg-accent",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/16 focus-visible:ring-destructive/25 dark:bg-destructive/16 dark:hover:bg-destructive/24",

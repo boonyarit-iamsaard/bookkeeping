@@ -186,7 +186,7 @@ export function MonthPicker({
           </Button>
           <span
             aria-live="polite"
-            className="select-none font-semibold text-sm tabular-nums"
+            className="text-sm font-semibold tabular-nums select-none"
           >
             {viewYear}
           </span>
@@ -223,7 +223,7 @@ export function MonthPicker({
                   month === thisMonth &&
                     "bg-secondary text-secondary-foreground",
                   selected &&
-                    "bg-primary font-semibold text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                    "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground font-semibold",
                 )}
               >
                 {label}

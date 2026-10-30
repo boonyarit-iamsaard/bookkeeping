@@ -46,7 +46,7 @@ export function SegmentedControl<Value extends string>({
       aria-labelledby={ariaLabelledBy}
       // 52px on phone keeps a 4px inset around 44px segments; 44px from 640px.
       className={cn(
-        "relative grid h-13 rounded-lg bg-muted p-1 sm:h-11",
+        "bg-muted relative grid h-13 rounded-lg p-1 sm:h-11",
         className,
       )}
       style={{
@@ -55,7 +55,7 @@ export function SegmentedControl<Value extends string>({
     >
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-1 left-1 rounded-[0.625rem] bg-card shadow-card transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none dark:bg-popover"
+        className="bg-card shadow-card dark:bg-popover pointer-events-none absolute inset-y-1 left-1 rounded-[0.625rem] transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
         style={{
           width: `calc((100% - 0.5rem) / ${options.length})`,
           transform: `translateX(${selectedIndex * 100}%)`,
@@ -66,7 +66,7 @@ export function SegmentedControl<Value extends string>({
           key={option.value}
           value={option.value}
           className={cn(
-            "relative z-10 flex items-center justify-center whitespace-nowrap rounded-[0.625rem] px-2 font-semibold text-muted-foreground text-sm outline-none transition-colors duration-200 focus-visible:ring-[3px] focus-visible:ring-ring/45 data-checked:text-foreground motion-reduce:transition-none",
+            "text-muted-foreground focus-visible:ring-ring/45 data-checked:text-foreground relative z-10 flex items-center justify-center rounded-[0.625rem] px-2 text-sm font-semibold whitespace-nowrap transition-colors duration-200 outline-none focus-visible:ring-[3px] motion-reduce:transition-none",
             optionClassName,
           )}
         >

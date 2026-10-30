@@ -40,12 +40,12 @@ function Calendar({
         ),
         button_previous: cn(
           buttonVariants({ variant: "ghost" }),
-          "size-(--cell-size) select-none p-0 text-muted-foreground hover:text-foreground aria-disabled:opacity-50",
+          "text-muted-foreground hover:text-foreground size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
           defaultClassNames.button_previous,
         ),
         button_next: cn(
           buttonVariants({ variant: "ghost" }),
-          "size-(--cell-size) select-none p-0 text-muted-foreground hover:text-foreground aria-disabled:opacity-50",
+          "text-muted-foreground hover:text-foreground size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
           defaultClassNames.button_next,
         ),
         month_caption: cn(
@@ -53,22 +53,22 @@ function Calendar({
           defaultClassNames.month_caption,
         ),
         caption_label: cn(
-          "select-none font-semibold text-sm",
+          "text-sm font-semibold select-none",
           defaultClassNames.caption_label,
         ),
         month_grid: cn("w-full border-collapse", defaultClassNames.month_grid),
         weekdays: cn("flex", defaultClassNames.weekdays),
         weekday: cn(
-          "flex-1 select-none font-medium text-muted-foreground text-xs",
+          "text-muted-foreground flex-1 text-xs font-medium select-none",
           defaultClassNames.weekday,
         ),
         week: cn("mt-1 flex w-full", defaultClassNames.week),
         day: cn(
-          "group/day relative aspect-square h-full w-full select-none rounded-full p-0 text-center",
+          "group/day relative aspect-square h-full w-full rounded-full p-0 text-center select-none",
           defaultClassNames.day,
         ),
         today: cn(
-          "rounded-full bg-secondary font-semibold text-secondary-foreground",
+          "bg-secondary text-secondary-foreground rounded-full font-semibold",
           defaultClassNames.today,
         ),
         outside: cn(
@@ -145,7 +145,7 @@ function CalendarDayButton({
       data-day={day.date.toLocaleDateString()}
       data-selected={modifiers.selected}
       className={cn(
-        "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) rounded-full border-0 font-normal text-sm tabular-nums leading-none data-[selected=true]:bg-primary data-[selected=true]:font-semibold data-[selected=true]:text-primary-foreground data-[selected=true]:hover:bg-primary data-[selected=true]:hover:text-primary-foreground group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50",
+        "data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground data-[selected=true]:hover:bg-primary data-[selected=true]:hover:text-primary-foreground group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) rounded-full border-0 text-sm leading-none font-normal tabular-nums group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[selected=true]:font-semibold",
         defaultClassNames.day,
         className,
       )}

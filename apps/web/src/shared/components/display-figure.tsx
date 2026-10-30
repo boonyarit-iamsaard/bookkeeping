@@ -51,16 +51,16 @@ export function DisplayFigure({
   return (
     <section
       aria-labelledby={headingId}
-      className="relative isolate flex min-h-44 flex-col overflow-hidden rounded-3xl bg-hero px-5 pt-6 pb-6 text-hero-foreground shadow-hero sm:min-h-48 sm:px-7 sm:pt-7 sm:pb-7"
+      className="bg-hero text-hero-foreground shadow-hero relative isolate flex min-h-44 flex-col overflow-hidden rounded-3xl px-5 pt-6 pb-6 sm:min-h-48 sm:px-7 sm:pt-7 sm:pb-7"
     >
       <HeroCoin />
-      <h2 id={headingId} className="font-medium text-hero-muted text-sm">
+      <h2 id={headingId} className="text-hero-muted text-sm font-medium">
         {heading}
       </h2>
-      <p className="mt-auto pt-4 font-bold text-4xl leading-none tracking-[-0.025em] sm:text-5xl">
+      <p className="mt-auto pt-4 text-4xl leading-none font-bold tracking-[-0.025em] sm:text-5xl">
         <Money amount={amount} sign={sign} display className="font-bold" />
       </p>
-      <p className="mt-3 text-hero-muted text-sm">{caption}</p>
+      <p className="text-hero-muted mt-3 text-sm">{caption}</p>
     </section>
   );
 }

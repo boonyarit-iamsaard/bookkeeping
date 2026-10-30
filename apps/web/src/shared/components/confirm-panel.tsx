@@ -17,12 +17,12 @@ export function ConfirmPanel({
   actions,
 }: Readonly<ConfirmPanelProps>) {
   return (
-    <div className="flex flex-col gap-4 rounded-xl bg-muted p-4">
-      <p className="flex items-start gap-3 text-foreground text-sm leading-normal">
+    <div className="bg-muted flex flex-col gap-4 rounded-xl p-4">
+      <p className="text-foreground flex items-start gap-3 text-sm leading-normal">
         <TriangleAlert
           aria-hidden="true"
           strokeWidth={1.75}
-          className="mt-0.5 size-4 shrink-0 text-destructive"
+          className="text-destructive mt-0.5 size-4 shrink-0"
         />
         {children}
       </p>
