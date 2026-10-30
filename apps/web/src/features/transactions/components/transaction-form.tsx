@@ -203,7 +203,7 @@ function SaveLabel({
             {figure}
           </span>
         </span>
-        <span className="wrap-break-word w-full whitespace-normal font-normal text-sm">
+        <span className="w-full text-sm font-normal wrap-break-word whitespace-normal">
           {walletName} → {destinationWalletName}
         </span>
       </span>
@@ -238,7 +238,7 @@ function FixedLabel({ children }: Readonly<FixedLabelProps>) {
   return (
     <span
       data-slot="field-label"
-      className="flex select-none items-center gap-2 font-medium text-sm leading-none"
+      className="flex items-center gap-2 text-sm leading-none font-medium select-none"
     >
       {children}
     </span>
@@ -257,7 +257,7 @@ function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
       to="/transactions/$transactionId"
       params={{ transactionId: expense.id }}
       aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${expense.refundAllowanceLabel} left to refund. Open the expense.`}
-      className="flex min-h-16 min-w-0 items-center gap-3.5 rounded-xl bg-muted px-3 py-2.5 outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/45 motion-reduce:transition-none"
+      className="bg-muted hover:bg-accent focus-visible:ring-ring/45 flex min-h-16 min-w-0 items-center gap-3.5 rounded-xl px-3 py-2.5 transition-colors duration-150 outline-none focus-visible:ring-[3px] motion-reduce:transition-none"
     >
       <CategoryTile
         color={expense.categoryId ? colorOf(expense.categoryId) : "neutral"}
@@ -265,17 +265,17 @@ function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
         <CategoryIcon iconId={expense.categoryIconId} />
       </CategoryTile>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="wrap-break-word block font-semibold text-base leading-snug">
-          <span className="font-normal text-muted-foreground">Refund of</span>{" "}
+        <span className="block text-base leading-snug font-semibold wrap-break-word">
+          <span className="text-muted-foreground font-normal">Refund of</span>{" "}
           {expense.categoryLabel}
         </span>
-        <span className="wrap-break-word block text-muted-foreground text-sm">
+        <span className="text-muted-foreground block text-sm wrap-break-word">
           <span className="money" translate="no">
             −{expense.amountLabel}
           </span>{" "}
           · {formatCalendarDate(expense.transactionDate)}
         </span>
-        <span className="block font-semibold text-secondary-foreground text-sm">
+        <span className="text-secondary-foreground block text-sm font-semibold">
           <span className="money" translate="no">
             {expense.refundAllowanceLabel}
           </span>{" "}
@@ -285,7 +285,7 @@ function LinkedExpenseChip({ expense }: Readonly<LinkedExpenseChipProps>) {
       <ChevronRight
         aria-hidden="true"
         strokeWidth={1.75}
-        className="size-4 shrink-0 text-muted-foreground"
+        className="text-muted-foreground size-4 shrink-0"
       />
     </Link>
   );
@@ -425,7 +425,7 @@ export function TransactionForm({
       {serverError && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl bg-destructive/10 px-4 py-3 text-destructive text-sm leading-normal"
+          className="bg-destructive/10 text-destructive flex items-start gap-3 rounded-2xl px-4 py-3 text-sm leading-normal"
         >
           <CircleAlert
             aria-hidden="true"
@@ -805,7 +805,7 @@ export function TransactionForm({
                     <Field data-invalid={invalid}>
                       <FieldLabel htmlFor={field.name}>
                         Note{" "}
-                        <span className="font-normal text-muted-foreground">
+                        <span className="text-muted-foreground font-normal">
                           (optional)
                         </span>
                       </FieldLabel>
@@ -827,7 +827,7 @@ export function TransactionForm({
                             ? "note-description note-error"
                             : "note-description"
                         }
-                        className="h-11 text-foreground"
+                        className="text-foreground h-11"
                       />
                       <FieldDescription
                         id="note-description"
@@ -876,7 +876,7 @@ export function TransactionForm({
             />
           );
           return (
-            <div className="fixed inset-x-0 bottom-0 z-20 border-border border-t bg-chrome/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur supports-backdrop-filter:bg-chrome/85 sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+            <div className="border-border bg-chrome/95 supports-backdrop-filter:bg-chrome/85 fixed inset-x-0 bottom-0 z-20 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
               <div className="mx-auto flex w-full max-w-md flex-col gap-3 sm:max-w-none">
                 <Button
                   type="submit"
@@ -951,7 +951,7 @@ function DateChip({ selected, onClick, children }: Readonly<DateChipProps>) {
       className={cn(
         "h-11 px-4",
         selected &&
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary",
+          "bg-secondary text-secondary-foreground hover:bg-secondary border-transparent",
       )}
     >
       {selected && <Check aria-hidden="true" strokeWidth={2.25} />}
@@ -997,7 +997,7 @@ function WalletSelect({
             const wallet = selected ? byId.get(selected) : undefined;
             if (!wallet) {
               return (
-                <span className="truncate text-muted-foreground">
+                <span className="text-muted-foreground truncate">
                   {placeholder}
                 </span>
               );
@@ -1007,7 +1007,7 @@ function WalletSelect({
                 <WalletTypeIcon type={wallet.type} className="size-4" />
                 <span className="truncate">{wallet.name}</span>
                 {wallet.archived && (
-                  <span className="shrink-0 text-muted-foreground">
+                  <span className="text-muted-foreground shrink-0">
                     · Archived
                   </span>
                 )}
@@ -1025,20 +1025,20 @@ function WalletSelect({
             className="min-h-14"
           >
             <span className="flex items-center gap-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
+              <span className="bg-muted text-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
                 <WalletTypeIcon type={wallet.type} className="size-4" />
               </span>
               <span className="flex min-w-0 flex-col">
                 <span className="truncate font-medium">
                   {wallet.name}
                   {wallet.archived && (
-                    <span className="font-normal text-muted-foreground">
+                    <span className="text-muted-foreground font-normal">
                       {" "}
                       · Archived
                     </span>
                   )}
                 </span>
-                <span className="truncate text-muted-foreground text-xs">
+                <span className="text-muted-foreground truncate text-xs">
                   {WALLET_TYPE_LABELS[wallet.type]} ·{" "}
                   <span className="money" translate="no">
                     {wallet.balanceLabel}

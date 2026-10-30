@@ -19,7 +19,7 @@ export function BarTrack({ bar, zero, series }: Readonly<BarTrackProps>) {
   return (
     <div
       aria-hidden="true"
-      className="relative h-3 w-full rounded-sm bg-chart-grid/50"
+      className="bg-chart-grid/50 relative h-3 w-full rounded-sm"
     >
       {bar.length > 0 && (
         <div
@@ -31,7 +31,7 @@ export function BarTrack({ bar, zero, series }: Readonly<BarTrackProps>) {
         />
       )}
       <div
-        className="absolute -inset-y-1 w-px bg-chart-baseline"
+        className="bg-chart-baseline absolute -inset-y-1 w-px"
         style={{ left: toPercent(zero) }}
       />
     </div>

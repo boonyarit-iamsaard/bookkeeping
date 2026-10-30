@@ -32,7 +32,7 @@ export function WalletShareChart({ shares }: Readonly<WalletShareChartProps>) {
       {shares.map(({ wallet, balance }, index) => (
         <li key={wallet.id} className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="wrap-break-word min-w-0 text-sm">
+            <span className="min-w-0 text-sm wrap-break-word">
               {wallet.name}
               {wallet.archivedAt && (
                 <span className="text-muted-foreground"> · Archived</span>

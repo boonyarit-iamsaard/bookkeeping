@@ -112,7 +112,7 @@ function WalletPicker({
 }: Readonly<WalletComparison>) {
   const byId = new Map(wallets.map((wallet) => [wallet.id, wallet]));
   return (
-    <div className="flex min-w-0 flex-col gap-2 font-medium text-sm sm:max-w-xs">
+    <div className="flex min-w-0 flex-col gap-2 text-sm font-medium sm:max-w-xs">
       <label htmlFor="compare-wallet">Compare a wallet</label>
       <Select
         value={comparedWalletId ?? null}
@@ -132,7 +132,7 @@ function WalletPicker({
                   <span className="truncate">{wallet.name}</span>
                   <ArchivedMark
                     wallet={wallet}
-                    className="shrink-0 text-muted-foreground"
+                    className="text-muted-foreground shrink-0"
                   />
                 </>
               );
@@ -151,7 +151,7 @@ function WalletPicker({
                 {wallet.name}
                 <ArchivedMark
                   wallet={wallet}
-                  className="font-normal text-muted-foreground"
+                  className="text-muted-foreground font-normal"
                 />
               </span>
             </SelectItem>
@@ -301,7 +301,7 @@ function BalanceLine({
             selectAt(event);
           }
         }}
-        className="relative h-44 cursor-pointer touch-pan-y rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45"
+        className="focus-visible:ring-ring/45 relative h-44 cursor-pointer touch-pan-y rounded-lg outline-none focus-visible:ring-[3px]"
       >
         <svg
           aria-hidden="true"
@@ -315,7 +315,7 @@ function BalanceLine({
               <polyline
                 points={run.map(plotPoint).join(" ")}
                 vectorEffect="non-scaling-stroke"
-                className="fill-none stroke-2 stroke-chart-1 [stroke-linecap:round] [stroke-linejoin:round]"
+                className="stroke-chart-1 fill-none stroke-2 [stroke-linecap:round] [stroke-linejoin:round]"
               />
             </g>
           ))}
@@ -326,14 +326,14 @@ function BalanceLine({
                 data-wallet-line
                 points={run.map(plotPoint).join(" ")}
                 vectorEffect="non-scaling-stroke"
-                className="fill-none stroke-2 stroke-chart-2 [stroke-dasharray:6_4] [stroke-linejoin:round]"
+                className="stroke-chart-2 fill-none stroke-2 [stroke-dasharray:6_4] [stroke-linejoin:round]"
               />
             ))}
         </svg>
         {trend.zero !== null && (
           <div
             data-zero-line
-            className="pointer-events-none absolute inset-x-0 h-px bg-chart-baseline"
+            className="bg-chart-baseline pointer-events-none absolute inset-x-0 h-px"
             style={{ bottom: toPercent(trend.zero) }}
           />
         )}
@@ -341,7 +341,7 @@ function BalanceLine({
           <div
             aria-hidden="true"
             data-selected-day={selectedPoint.date}
-            className="pointer-events-none absolute size-1 -translate-x-1/2 translate-y-1/2 rounded-full bg-chart-1"
+            className="bg-chart-1 pointer-events-none absolute size-1 -translate-x-1/2 translate-y-1/2 rounded-full"
             style={{
               left: toPercent(selectedPoint.x),
               bottom: toPercent(selectedPoint.y),
@@ -351,7 +351,7 @@ function BalanceLine({
         {comparedWallet && selectedWalletPoint && (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute size-1 -translate-x-1/2 translate-y-1/2 rounded-full bg-chart-2"
+            className="bg-chart-2 pointer-events-none absolute size-1 -translate-x-1/2 translate-y-1/2 rounded-full"
             style={{
               left: toPercent(selectedWalletPoint.x),
               bottom: toPercent(selectedWalletPoint.y),
@@ -364,11 +364,11 @@ function BalanceLine({
         className="flex flex-col gap-2.5 border-t pt-4"
         data-balance-readout
       >
-        <p className="font-semibold text-sm">
+        <p className="text-sm font-semibold">
           {selectedDay ? formatCalendarDate(selectedDay.date) : null}
         </p>
         <dl className="flex items-baseline justify-between gap-3">
-          <dt className="flex items-center gap-2 text-muted-foreground text-sm">
+          <dt className="text-muted-foreground flex items-center gap-2 text-sm">
             <ChartSwatch series="balance" />
             Total balance
           </dt>
@@ -382,7 +382,7 @@ function BalanceLine({
         </dl>
         {comparedWallet && (
           <dl className="flex items-baseline justify-between gap-3">
-            <dt className="flex min-w-0 items-center gap-2 text-muted-foreground text-sm">
+            <dt className="text-muted-foreground flex min-w-0 items-center gap-2 text-sm">
               <ChartSwatch series="compared" />
               <span className="truncate">{comparedWallet.name}</span>
             </dt>

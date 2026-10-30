@@ -28,13 +28,13 @@ export function LoadError({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col px-4 py-6 sm:py-8">
-      <div className="flex flex-col items-start gap-4 rounded-2xl bg-card p-5 shadow-card sm:p-7">
-        <span className="flex size-12 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+      <div className="bg-card shadow-card flex flex-col items-start gap-4 rounded-2xl p-5 sm:p-7">
+        <span className="bg-destructive/10 text-destructive flex size-12 items-center justify-center rounded-lg">
           <CloudOff aria-hidden="true" strokeWidth={2} className="size-6" />
         </span>
         <div className="flex flex-col gap-1.5">
-          <h1 className="font-bold text-2xl tracking-tight">{title}</h1>
-          <p role="alert" className="max-w-prose text-muted-foreground text-sm">
+          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+          <p role="alert" className="text-muted-foreground max-w-prose text-sm">
             {message}
           </p>
         </div>

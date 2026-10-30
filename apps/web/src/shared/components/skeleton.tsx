@@ -10,7 +10,7 @@ interface SkeletonProps {
  * motion moment.
  */
 export function Skeleton({ className }: Readonly<SkeletonProps>) {
-  return <div className={cn("rounded-md bg-muted", className)} />;
+  return <div className={cn("bg-muted rounded-md", className)} />;
 }
 
 /** A transaction or wallet row in waiting: tile, two lines, a figure. */
@@ -41,10 +41,10 @@ export function HeroSkeleton({
   captionClassName = "w-28",
 }: Readonly<HeroSkeletonProps>) {
   return (
-    <div className="flex min-h-44 flex-col gap-3 rounded-3xl bg-hero p-5 pt-6 shadow-hero sm:min-h-48 sm:p-7">
-      <Skeleton className="h-4 w-24 bg-hero-foreground/12" />
-      <Skeleton className="mt-auto h-9 w-52 bg-hero-foreground/12 sm:h-12 sm:w-72" />
-      <Skeleton className={cn("h-4 bg-hero-foreground/12", captionClassName)} />
+    <div className="bg-hero shadow-hero flex min-h-44 flex-col gap-3 rounded-3xl p-5 pt-6 sm:min-h-48 sm:p-7">
+      <Skeleton className="bg-hero-foreground/12 h-4 w-24" />
+      <Skeleton className="bg-hero-foreground/12 mt-auto h-9 w-52 sm:h-12 sm:w-72" />
+      <Skeleton className={cn("bg-hero-foreground/12 h-4", captionClassName)} />
     </div>
   );
 }

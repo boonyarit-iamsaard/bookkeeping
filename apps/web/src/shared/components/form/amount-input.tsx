@@ -15,7 +15,7 @@ export function AmountInput({
     <div className="relative">
       <span
         aria-hidden="true"
-        className="money pointer-events-none absolute inset-y-0 left-5 flex items-center text-muted-foreground text-xl"
+        className="money text-muted-foreground pointer-events-none absolute inset-y-0 left-5 flex items-center text-xl"
       >
         ฿
       </span>
@@ -25,14 +25,14 @@ export function AmountInput({
         autoComplete="off"
         placeholder="0.00"
         className={cn(
-          "money h-16 pr-16 pl-11 text-3xl text-foreground sm:h-16 md:text-3xl",
+          "money text-foreground h-16 pr-16 pl-11 text-3xl sm:h-16 md:text-3xl",
           className,
         )}
         {...props}
       />
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-5 flex items-center font-medium text-muted-foreground text-sm"
+        className="text-muted-foreground pointer-events-none absolute inset-y-0 right-5 flex items-center text-sm font-medium"
       >
         THB
       </span>

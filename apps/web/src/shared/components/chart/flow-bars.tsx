@@ -41,7 +41,7 @@ export function FlowBars({
       {rows.map((row, index) => (
         <div key={row.series} className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="flex items-center gap-2 text-muted-foreground">
+            <span className="text-muted-foreground flex items-center gap-2">
               <ChartSwatch series={row.series} />
               {row.label}
             </span>

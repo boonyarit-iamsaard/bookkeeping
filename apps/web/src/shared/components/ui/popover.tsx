@@ -46,7 +46,7 @@ function PopoverContent({
             // The same floating surface as the Select list and the dropdown
             // menu: a 16px-corner card lifted by the float shadow, appearing
             // without animating.
-            "z-50 flex flex-col rounded-xl bg-popover text-popover-foreground shadow-float outline-none",
+            "bg-popover text-popover-foreground shadow-float z-50 flex flex-col rounded-xl outline-none",
             className,
           )}
           {...props}
@@ -76,7 +76,7 @@ function PopoverTitle({
   return (
     <PopoverPrimitive.Title
       data-slot="popover-title"
-      className={cn("font-semibold text-base", className)}
+      className={cn("text-base font-semibold", className)}
       {...props}
     />
   );

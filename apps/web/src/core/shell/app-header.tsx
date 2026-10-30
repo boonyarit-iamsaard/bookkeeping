@@ -29,11 +29,11 @@ export function AppHeader({
   captureSearch,
 }: Readonly<AppHeaderProps>) {
   return (
-    <header className="sticky top-0 z-20 border-b bg-chrome/90 backdrop-blur-md max-sm:hidden">
+    <header className="bg-chrome/90 sticky top-0 z-20 border-b backdrop-blur-md max-sm:hidden">
       <div className="mx-auto flex h-16 w-full max-w-2xl items-center gap-3 px-4 md:gap-5 lg:max-w-5xl lg:px-6">
         <WordmarkLink
           to="/"
-          className="flex shrink-0 items-center gap-2.5 rounded-md font-bold text-[1.0625rem] tracking-tight outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45"
+          className="focus-visible:ring-ring/45 flex shrink-0 items-center gap-2.5 rounded-md text-[1.0625rem] font-bold tracking-tight outline-none focus-visible:ring-[3px]"
         >
           <AppMark className="size-8" />
           <span className="max-md:sr-only">Bookkeeping</span>

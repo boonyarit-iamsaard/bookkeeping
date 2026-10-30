@@ -65,7 +65,7 @@ export function FilterSelect({
               <>
                 <span className="truncate">{option.label}</span>
                 {option.hint && (
-                  <span className="shrink-0 text-muted-foreground">
+                  <span className="text-muted-foreground shrink-0">
                     · {option.hint}
                   </span>
                 )}
@@ -103,7 +103,7 @@ export function FilterSelect({
                   )}
                   {option.label}
                   {option.hint && (
-                    <span className="font-normal text-muted-foreground">
+                    <span className="text-muted-foreground font-normal">
                       {" "}
                       · {option.hint}
                     </span>

@@ -45,11 +45,11 @@ export function Money({
       <span aria-hidden="true">
         {sign}
         {parts.sign}
-        <span className="mr-[0.08em] font-semibold text-[0.6em] opacity-70">
+        <span className="mr-[0.08em] text-[0.6em] font-semibold opacity-70">
           {parts.symbol}
         </span>
         {parts.whole}
-        <span className="font-semibold text-[0.6em] opacity-70">
+        <span className="text-[0.6em] font-semibold opacity-70">
           .{parts.fraction}
         </span>
       </span>

@@ -107,7 +107,7 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
           </div>
         ))}
         <div
-          className="pointer-events-none absolute inset-x-0 h-px bg-chart-baseline"
+          className="bg-chart-baseline pointer-events-none absolute inset-x-0 h-px"
           style={{ bottom: toPercent(zero) }}
         />
       </div>
@@ -121,8 +121,8 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
             aria-label={`Show ${formatReportMonth(point.month)}`}
             onClick={() => setChosen(index)}
             className={cn(
-              "flex min-h-11 flex-1 flex-col items-center justify-center rounded-lg text-muted-foreground text-xs outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/45",
-              index === chosen && "font-bold text-foreground",
+              "text-muted-foreground hover:bg-accent focus-visible:ring-ring/45 flex min-h-11 flex-1 flex-col items-center justify-center rounded-lg text-xs outline-none focus-visible:ring-[3px]",
+              index === chosen && "text-foreground font-bold",
             )}
           >
             {formatReportMonthShort(point.month)}
@@ -133,7 +133,7 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
         ))}
       </fieldset>
       <div aria-live="polite" className="flex flex-col gap-2.5 border-t pt-4">
-        <p className="font-semibold text-sm">
+        <p className="text-sm font-semibold">
           {formatReportMonth(selected.month)}
         </p>
         {selected.empty ? (
@@ -147,7 +147,7 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
                 key={series.key}
                 className="flex items-baseline justify-between gap-3"
               >
-                <dt className="flex items-center gap-2 text-muted-foreground text-sm">
+                <dt className="text-muted-foreground flex items-center gap-2 text-sm">
                   <ChartSwatch series={series.series} />
                   {series.label}
                 </dt>

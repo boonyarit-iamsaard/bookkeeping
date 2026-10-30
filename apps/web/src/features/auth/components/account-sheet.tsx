@@ -40,13 +40,13 @@ export function AccountSheet({ email }: Readonly<AccountSheetProps>) {
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
         aria-label={accountLabel(email)}
-        className="-mr-1.5 flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="focus-visible:ring-ring/50 -mr-1.5 flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-[3px]"
       >
         <AccountDisc email={email} className="size-8" />
       </Dialog.Trigger>
       <SheetPortal>
         <SheetHeader subtitle={email}>Account</SheetHeader>
-        <ul className="mx-4 mb-4 divide-y divide-border/70 overflow-hidden rounded-2xl bg-background sm:mx-6 sm:mb-6">
+        <ul className="divide-border/70 bg-background mx-4 mb-4 divide-y overflow-hidden rounded-2xl sm:mx-6 sm:mb-6">
           <li>
             <Link
               to="/categories"

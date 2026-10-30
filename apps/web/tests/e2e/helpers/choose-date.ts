@@ -18,7 +18,7 @@ const MONTHS = [
 ];
 
 function monthIndexOf(caption: string): number {
-  const [name, year] = caption.trim().split(" ");
+  const [name, year] = caption.trim().split(/\s+/);
   return Number(year) * 12 + MONTHS.indexOf(name);
 }
 
@@ -37,7 +37,8 @@ export async function openCalendarAt(
   const [year, month] = date.split("-").map(Number);
   const target = year * 12 + (month - 1);
   for (let step = 0; step < 240; step += 1) {
-    const caption = await calendar.locator(".rdp-caption_label").innerText();
+    const caption =
+      (await calendar.locator(".rdp-caption_label").textContent()) ?? "";
     const shown = monthIndexOf(caption);
     if (shown === target) {
       break;

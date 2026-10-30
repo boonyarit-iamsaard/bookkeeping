@@ -27,9 +27,9 @@ export function SheetPortal({
       <Dialog.Viewport className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
         <Dialog.Popup
           className={cn(
-            "flex max-h-[85dvh] w-full flex-col overflow-hidden bg-card pb-[env(safe-area-inset-bottom)] text-card-foreground shadow-float outline-none",
+            "bg-card text-card-foreground shadow-float flex max-h-[85dvh] w-full flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] outline-none",
             "rounded-t-3xl transition-transform duration-[260ms] ease-[cubic-bezier(0.16,1,0.3,1)] data-ending-style:translate-y-full data-starting-style:translate-y-full motion-reduce:transition-none",
-            "sm:max-w-md sm:rounded-3xl sm:pb-0 sm:transition-opacity sm:data-ending-style:translate-y-0 sm:data-starting-style:translate-y-0 sm:data-ending-style:opacity-0 sm:data-starting-style:opacity-0",
+            "sm:max-w-md sm:rounded-3xl sm:pb-0 sm:transition-opacity sm:data-ending-style:translate-y-0 sm:data-ending-style:opacity-0 sm:data-starting-style:translate-y-0 sm:data-starting-style:opacity-0",
             className,
           )}
         >
@@ -61,11 +61,11 @@ export function SheetHeader({
     <header className="flex min-h-16 shrink-0 items-center gap-2 pt-3 pr-3 pb-2 pl-5 sm:pl-6">
       {leadingAction}
       <div className="min-w-0 flex-1">
-        <Dialog.Title className="font-bold text-lg leading-tight tracking-tight">
+        <Dialog.Title className="text-lg leading-tight font-bold tracking-tight">
           {children}
         </Dialog.Title>
         {subtitle && (
-          <Dialog.Description className="truncate text-muted-foreground text-sm">
+          <Dialog.Description className="text-muted-foreground truncate text-sm">
             {subtitle}
           </Dialog.Description>
         )}

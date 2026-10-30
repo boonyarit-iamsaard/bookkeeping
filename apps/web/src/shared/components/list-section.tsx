@@ -34,7 +34,7 @@ export function ListSection({
       <div className="flex min-h-11 items-center justify-between gap-3 pl-1">
         <Heading
           id={headingId}
-          className="font-bold text-[1.0625rem] tracking-tight sm:text-lg"
+          className="text-[1.0625rem] font-bold tracking-tight sm:text-lg"
         >
           {heading}
         </Heading>

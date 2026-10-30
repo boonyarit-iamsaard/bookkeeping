@@ -93,7 +93,7 @@ export function FinancialReport({
             />
           </fieldset>
         )}
-        <dl className="divide-y divide-border/70">
+        <dl className="divide-border/70 divide-y">
           {SUMMARY_FIGURES.map((key) => (
             <div
               key={key}
@@ -158,7 +158,7 @@ export function FinancialReport({
               Total
               <Money amount={datedTotal} className="text-lg" />
             </p>
-            <dl className="divide-y divide-border/70 border-t">
+            <dl className="divide-border/70 divide-y border-t">
               <BalanceRow
                 name="Overall balance"
                 current={currentTotal}
@@ -239,7 +239,7 @@ function BalanceRow({
           <Link
             to="/wallets/$walletId"
             params={{ walletId }}
-            className="inline-flex min-h-11 min-w-11 items-center rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+            className="focus-visible:outline-ring inline-flex min-h-11 min-w-11 items-center rounded-sm underline-offset-4 hover:underline focus-visible:outline-2"
           >
             {name}
           </Link>

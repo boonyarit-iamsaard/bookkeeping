@@ -12,7 +12,7 @@ export function ErrorNotice({ children }: Readonly<ErrorNoticeProps>) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-3 rounded-2xl bg-destructive/10 px-4 py-3 text-destructive text-sm leading-normal"
+      className="bg-destructive/10 text-destructive flex items-start gap-3 rounded-2xl px-4 py-3 text-sm leading-normal"
     >
       <CircleAlert
         aria-hidden="true"

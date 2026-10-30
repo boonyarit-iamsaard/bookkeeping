@@ -37,7 +37,7 @@ export function RecentTransactions({
       }
     >
       {transactions.length === 0 ? (
-        <p className="rounded-2xl bg-card px-5 py-6 text-muted-foreground text-sm shadow-card">
+        <p className="bg-card text-muted-foreground shadow-card rounded-2xl px-5 py-6 text-sm">
           No transactions yet
         </p>
       ) : (

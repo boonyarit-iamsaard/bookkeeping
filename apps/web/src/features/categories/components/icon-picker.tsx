@@ -117,7 +117,7 @@ export function IconPicker({
               aria-label={group.label}
               className="flex flex-col gap-2"
             >
-              <h4 className="font-semibold text-muted-foreground text-sm">
+              <h4 className="text-muted-foreground text-sm font-semibold">
                 {group.label}
               </h4>
               <div className="flex flex-wrap gap-2 pt-1.5 pr-1.5">
@@ -181,9 +181,9 @@ function IconChoice({
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none flex size-11 items-center justify-center rounded-lg transition-[background-color,color] duration-150 ease-out peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/45 peer-disabled:opacity-50 motion-reduce:transition-none",
+          "peer-focus-visible:ring-ring/45 pointer-events-none flex size-11 items-center justify-center rounded-lg transition-[background-color,color] duration-150 ease-out peer-focus-visible:ring-[3px] peer-disabled:opacity-50 motion-reduce:transition-none",
           checked
-            ? "hue-tile outline-2 outline-primary outline-offset-2"
+            ? "hue-tile outline-primary outline-2 outline-offset-2"
             : "bg-muted text-foreground peer-hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]",
         )}
       >
@@ -192,7 +192,7 @@ function IconChoice({
       {checked && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute -top-1.5 -right-1.5 flex size-4.5 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-card"
+          className="bg-primary text-primary-foreground ring-card pointer-events-none absolute -top-1.5 -right-1.5 flex size-4.5 items-center justify-center rounded-full ring-2"
         >
           <Check strokeWidth={3} className="size-3" />
         </span>

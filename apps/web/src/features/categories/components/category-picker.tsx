@@ -123,13 +123,13 @@ export function CategoryPicker({
         >
           <CategoryIcon iconId={selected?.iconId ?? "generic"} />
         </CategoryTile>
-        <span id={valueId} className="wrap-break-word min-w-0 flex-1">
+        <span id={valueId} className="min-w-0 flex-1 wrap-break-word">
           {selectedLabel}
         </span>
         <ChevronDown
           aria-hidden="true"
           strokeWidth={1.75}
-          className="size-4 shrink-0 text-muted-foreground"
+          className="text-muted-foreground size-4 shrink-0"
         />
       </Dialog.Trigger>
 
@@ -270,10 +270,10 @@ function SearchView({
     >
       <CreateTile />
       <span className="min-w-0 flex-1">
-        <span className="wrap-break-word block font-semibold">
+        <span className="block font-semibold wrap-break-word">
           Create “{trimmed}”
         </span>
-        <span className="block text-muted-foreground text-sm">
+        <span className="text-muted-foreground block text-sm">
           New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
         </span>
       </span>
@@ -288,7 +288,7 @@ function SearchView({
           <Search
             aria-hidden="true"
             strokeWidth={1.75}
-            className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground"
+            className="text-muted-foreground pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2"
           />
           <Input
             id={searchId}
@@ -313,16 +313,16 @@ function SearchView({
       </div>
       <div
         ref={listRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain border-border/70 border-t pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        className="border-border/70 min-h-0 flex-1 overflow-y-auto overscroll-contain border-t pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         {nothingMatched && createRow}
         {nothingMatched && !offerCreate && (
-          <p className="px-5 py-6 text-muted-foreground text-sm sm:px-6">
+          <p className="text-muted-foreground px-5 py-6 text-sm sm:px-6">
             No categories yet.
           </p>
         )}
         {groups.length > 0 && (
-          <ul aria-label="Categories" className="divide-y divide-border/70">
+          <ul aria-label="Categories" className="divide-border/70 divide-y">
             {groups.map((group) => (
               <CategoryGroupRows
                 key={group.parent.id}
@@ -430,7 +430,7 @@ function CategoryRow({
       </CategoryTile>
       <span
         className={cn(
-          "wrap-break-word min-w-0 flex-1 leading-snug",
+          "min-w-0 flex-1 leading-snug wrap-break-word",
           isChild ? "font-medium" : "font-semibold",
         )}
       >
@@ -440,7 +440,7 @@ function CategoryRow({
         <Check
           aria-hidden="true"
           strokeWidth={2}
-          className="size-5 shrink-0 text-link"
+          className="text-link size-5 shrink-0"
         />
       )}
     </OptionRow>
@@ -454,7 +454,7 @@ function OptionRow({ className, ...props }: React.ComponentProps<"button">) {
       type="button"
       data-option
       className={cn(
-        "flex w-full items-center gap-3.5 px-5 text-left outline-none transition-colors duration-150 hover:bg-accent/70 focus-visible:ring-[3px] focus-visible:ring-ring/45 focus-visible:ring-inset motion-reduce:transition-none sm:px-6",
+        "hover:bg-accent/70 focus-visible:ring-ring/45 flex w-full items-center gap-3.5 px-5 text-left transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none sm:px-6",
         className,
       )}
       {...props}
@@ -465,7 +465,7 @@ function OptionRow({ className, ...props }: React.ComponentProps<"button">) {
 /** The Iris Tonal tile that leads a create row, sized like a Category Tile. */
 function CreateTile() {
   return (
-    <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+    <span className="bg-secondary text-secondary-foreground flex size-11 shrink-0 items-center justify-center rounded-lg">
       <Plus aria-hidden="true" strokeWidth={2} className="size-5" />
     </span>
   );

@@ -182,17 +182,17 @@ export function DeleteTransactionButton({
 
       <SheetPortal>
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-6 pb-2 sm:px-6">
-          <span className="flex size-12 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+          <span className="bg-destructive/10 text-destructive flex size-12 items-center justify-center rounded-lg">
             <Trash2 aria-hidden="true" strokeWidth={2} className="size-6" />
           </span>
           <div className="flex flex-col gap-1.5">
-            <AlertDialog.Title className="font-bold text-lg leading-tight tracking-tight">
+            <AlertDialog.Title className="text-lg leading-tight font-bold tracking-tight">
               Delete this {noun}?
             </AlertDialog.Title>
             <AlertDialog.Description className="text-muted-foreground text-sm leading-normal">
               {figure && (
                 <>
-                  <span className="money font-medium text-foreground">
+                  <span className="money text-foreground font-medium">
                     {figure}
                   </span>
                   {walletName && ` · ${walletName}`}
