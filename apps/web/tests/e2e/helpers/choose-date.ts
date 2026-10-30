@@ -18,7 +18,7 @@ const MONTHS = [
 ];
 
 function monthIndexOf(caption: string): number {
-  const [name, year] = caption.trim().split(" ");
+  const [name, year] = caption.trim().split(/\s+/);
   return Number(year) * 12 + MONTHS.indexOf(name);
 }
 
