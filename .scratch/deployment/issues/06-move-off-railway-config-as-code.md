@@ -119,3 +119,13 @@ with `railway link` to the production environment:
 3. `railway config apply`.
 4. Watch each next deploy: waits for CI, finds its Dockerfile, skips on
    unrelated paths, passes its health check.
+
+`railway config plan` against production (2026-10-30) first failed on
+undeclared variables, then showed Wait for CI, the GitHub link and the
+container limits being cleared. `railway.ts` now declares them, with
+`preserve()` for the seven existing variables, and the plan shows only the
+watch patterns, health checks, restart policy and draining time being added to
+`api` and `web`. Nothing is proposed for `database` or `backup`. `plan` is not
+blocked for services still on `railway.json`. A variable added later in the
+dashboard must also be added to `railway.ts`, or `plan` fails. `apply` and
+`cutover` have not been run.
