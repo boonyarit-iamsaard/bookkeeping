@@ -7,12 +7,12 @@ disclosed, whether this account was affected, and every secret replaced.
 
 **Blocked by:** 02, 03, 04
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] Railway's status page shows incident `QH8L8B3E` resolved.
-- [ ] Railway's final disclosure is read; anything new about sealed variables, scope or timing is added to the spec.
+- [x] Railway's final disclosure is read; anything new about sealed variables, scope or timing is added to the spec.
 - [x] Whether Railway emailed this account as affected is recorded in the spec.
-- [ ] The spec's status is set to `done`.
+- [x] The spec's status is set to `done`.
 
 ## Comments
 
@@ -34,3 +34,9 @@ direct-impact notice and no higher-risk notice reached this account.
 provider key revocations. It was sent to all users, so it isn't a notice that
 this account was affected, and it isn't the final disclosure. The spec now
 summarises it.
+
+**2026-10-30 (agent):** Railway has published no final report. Its report page
+gained an update on 2026-10-26, now in the spec. It says nothing about sealed
+variables and does not rule out source code access. The owner chose to close
+without the final report: the account was never flagged and every secret in the
+spec's table was replaced. Reopen if the final report changes that.

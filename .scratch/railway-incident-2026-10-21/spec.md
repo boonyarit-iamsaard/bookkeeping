@@ -1,6 +1,6 @@
 # Railway incident of 2026-10-21
 
-Status: ready-for-human
+Status: done
 
 Railway's platform outage and security disclosure of 2026-10-21, assessed on
 2026-10-22. Read ADR 0008 and ADR 0013 first.
@@ -51,6 +51,14 @@ still open. The status page marked `QH8L8B3E` resolved at 22:06 UTC on
   OpenAI and Anthropic key hashes, and some of them belonged to replacement
   keys, so providers may revoke keys created after the incident. Nothing in
   the table below is an AI provider key, so this doesn't affect us.
+
+- **Update of 2026-10-26:** Railway says the incident is resolved for
+  existing users and services are fully restored. New signups are paused until
+  later that week. It can't refund spend made with compromised keys, so
+  users contact their AI providers. It is building new builder, encryption and
+  logging systems. The forensic investigation is still open, and Railway still
+  does not rule out access to source code. No final report had been published
+  by 2026-10-30, when the incident was closed without it.
 
 ## Impact
 
