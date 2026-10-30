@@ -58,7 +58,7 @@ export function TransactionDetailView({
             <Link
               to="/transactions/$transactionId"
               params={{ transactionId: transaction.refundOf.id }}
-              className="font-semibold text-link underline underline-offset-4"
+              className="text-link font-semibold underline underline-offset-4"
             >
               <Money amount={transaction.refundOf.amount} sign="−" /> on{" "}
               {formatCalendarDate(transaction.refundOf.transactionDate)}
@@ -122,7 +122,7 @@ function Row({ term, children }: Readonly<RowProps>) {
       <dt className="text-muted-foreground text-sm sm:w-28 sm:shrink-0">
         {term}
       </dt>
-      <dd className="wrap-break-word min-w-0 font-semibold">{children}</dd>
+      <dd className="min-w-0 font-semibold wrap-break-word">{children}</dd>
     </div>
   );
 }

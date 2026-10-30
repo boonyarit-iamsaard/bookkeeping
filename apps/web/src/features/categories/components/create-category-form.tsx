@@ -213,7 +213,7 @@ export function CreateCategoryForm({
                       <SelectItem value={null} label="None">
                         <span>
                           {"None"}{" "}
-                          <span className="font-normal text-muted-foreground">
+                          <span className="text-muted-foreground font-normal">
                             · a new {CATEGORY_KIND_LABELS[kind].toLowerCase()}{" "}
                             parent category
                           </span>
@@ -233,7 +233,7 @@ export function CreateCategoryForm({
                             >
                               <CategoryIcon iconId={parent.iconId} />
                             </CategoryTile>
-                            <span className="wrap-break-word min-w-0">
+                            <span className="min-w-0 wrap-break-word">
                               {parent.name}
                             </span>
                           </span>
@@ -242,7 +242,7 @@ export function CreateCategoryForm({
                       <SelectSeparator />
                       <SelectItem value={NEW_PARENT} label="New parent…">
                         <span className="flex items-center gap-3">
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+                          <span className="bg-secondary text-secondary-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
                             <Plus
                               aria-hidden="true"
                               strokeWidth={2}
@@ -271,8 +271,8 @@ export function CreateCategoryForm({
           <form.Subscribe selector={(state) => state.values.parent}>
             {(parent) =>
               parent === NEW_PARENT && (
-                <fieldset className="rounded-xl bg-muted p-4">
-                  <legend className="float-left mb-4 w-full font-bold text-base tracking-tight">
+                <fieldset className="bg-muted rounded-xl p-4">
+                  <legend className="float-left mb-4 w-full text-base font-bold tracking-tight">
                     New parent
                   </legend>
                   <div className="clear-both flex flex-col gap-6">
@@ -416,7 +416,7 @@ export function CreateCategoryForm({
             submitLabel = "Saved";
           }
           return (
-            <div className="flex shrink-0 flex-col-reverse gap-2 border-border/70 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
+            <div className="border-border/70 flex shrink-0 flex-col-reverse gap-2 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
               <Button
                 type="button"
                 variant="ghost"

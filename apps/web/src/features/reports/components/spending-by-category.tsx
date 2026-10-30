@@ -54,7 +54,7 @@ function LegendRow({ row, share }: Readonly<LegendRowProps>) {
             segmentClass(row),
           )}
         />
-        <span className="wrap-break-word min-w-0">{row.name}</span>
+        <span className="min-w-0 wrap-break-word">{row.name}</span>
       </span>
       <span className="flex shrink-0 items-center gap-2.5">
         {share}
@@ -63,7 +63,7 @@ function LegendRow({ row, share }: Readonly<LegendRowProps>) {
           <ChevronDown
             aria-hidden="true"
             className={cn(
-              "size-4 text-muted-foreground",
+              "text-muted-foreground size-4",
               expanded && "rotate-180",
             )}
           />
@@ -82,7 +82,7 @@ function LegendRow({ row, share }: Readonly<LegendRowProps>) {
           onClick={() => setExpanded((open) => !open)}
           className={cn(
             LEGEND_ROW_CLASS,
-            "min-h-11 cursor-pointer rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45 sm:min-h-0",
+            "focus-visible:ring-ring/45 min-h-11 cursor-pointer rounded-sm outline-none focus-visible:ring-[3px] sm:min-h-0",
           )}
         >
           {content}
@@ -102,7 +102,7 @@ function LegendRow({ row, share }: Readonly<LegendRowProps>) {
               key={line.kind === "direct" ? "direct" : line.id}
               className="flex items-baseline justify-between gap-3"
             >
-              <span className="wrap-break-word min-w-0 text-muted-foreground">
+              <span className="text-muted-foreground min-w-0 wrap-break-word">
                 {lineName(line, row.name)}
               </span>
               <Money amount={line.spending} className="shrink-0" />
@@ -182,7 +182,7 @@ export function SpendingByCategory({
           aria-labelledby={refundedHeadingId}
           className="flex flex-col gap-1"
         >
-          <h3 id={refundedHeadingId} className="font-semibold text-sm">
+          <h3 id={refundedHeadingId} className="text-sm font-semibold">
             More refunded than spent
           </h3>
           <ul className={cn(LEGEND_LIST_CLASS, "-mb-3")}>

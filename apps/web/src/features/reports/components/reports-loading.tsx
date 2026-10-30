@@ -25,7 +25,7 @@ export function ReportsLoading() {
       <TitleBar
         title="Reports"
         actions={
-          <div aria-hidden="true" className="h-11 w-44 rounded-lg bg-muted" />
+          <div aria-hidden="true" className="bg-muted h-11 w-44 rounded-lg" />
         }
       />
       <output className="text-muted-foreground text-sm">
@@ -43,7 +43,7 @@ export function ReportsLoading() {
             <Skeleton className="h-8" />
             <Skeleton className="h-8" />
           </div>
-          <div className="divide-y divide-border/70">
+          <div className="divide-border/70 divide-y">
             <FigureRowSkeleton />
             <FigureRowSkeleton />
             <FigureRowSkeleton />
@@ -52,7 +52,7 @@ export function ReportsLoading() {
         <div className={CARD_CLASS}>
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-3" />
-          <div className="divide-y divide-border/70">
+          <div className="divide-border/70 divide-y">
             <FigureRowSkeleton />
             <FigureRowSkeleton />
           </div>
@@ -64,7 +64,7 @@ export function ReportsLoading() {
         </div>
         <div className={CARD_CLASS}>
           <Skeleton className="h-6 w-40" />
-          <div className="-mx-5 divide-y divide-border/70 sm:-mx-6">
+          <div className="divide-border/70 -mx-5 divide-y sm:-mx-6">
             <RowSkeleton />
             <RowSkeleton />
           </div>

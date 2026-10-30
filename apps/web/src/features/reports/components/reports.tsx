@@ -41,7 +41,7 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
   // It sits with the balances it dates; an invalid value keeps it on screen
   // above the notice, so the value to correct stays visible.
   const balanceDate = (
-    <div className="flex min-w-0 flex-col gap-2 font-medium text-sm">
+    <div className="flex min-w-0 flex-col gap-2 text-sm font-medium">
       <label htmlFor="balance-date">Balance date</label>
       <DatePicker
         key={report.values.asOf}
@@ -92,7 +92,7 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
         />
       ) : (
         <>
-          <div className="rounded-2xl bg-card p-5 shadow-card sm:p-6">
+          <div className="bg-card shadow-card rounded-2xl p-5 sm:p-6">
             {balanceDate}
           </div>
           <p role="alert" className="text-destructive text-sm">

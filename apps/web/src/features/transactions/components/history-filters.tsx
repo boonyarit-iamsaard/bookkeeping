@@ -114,7 +114,7 @@ export function HistoryFilters({
               </ErrorNotice>
             )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="flex min-w-0 flex-col gap-2 font-semibold text-sm">
+              <div className="flex min-w-0 flex-col gap-2 text-sm font-semibold">
                 <label htmlFor="history-from">From date</label>
                 <DatePicker
                   id="history-from"
@@ -127,7 +127,7 @@ export function HistoryFilters({
                   keepMalformed
                 />
               </div>
-              <div className="flex min-w-0 flex-col gap-2 font-semibold text-sm">
+              <div className="flex min-w-0 flex-col gap-2 text-sm font-semibold">
                 <label htmlFor="history-to">To date</label>
                 <DatePicker
                   id="history-to"
@@ -140,7 +140,7 @@ export function HistoryFilters({
                   keepMalformed
                 />
               </div>
-              <div className="flex min-w-0 flex-col gap-2 font-semibold text-sm">
+              <div className="flex min-w-0 flex-col gap-2 text-sm font-semibold">
                 <label htmlFor="history-walletId">Wallet</label>
                 <FilterSelect
                   id="history-walletId"
@@ -158,7 +158,7 @@ export function HistoryFilters({
                   ]}
                 />
               </div>
-              <div className="flex min-w-0 flex-col gap-2 font-semibold text-sm">
+              <div className="flex min-w-0 flex-col gap-2 text-sm font-semibold">
                 <label htmlFor="history-categoryId">Category</label>
                 <FilterSelect
                   id="history-categoryId"
@@ -168,7 +168,7 @@ export function HistoryFilters({
                   groups={categoryGroups(categories)}
                 />
               </div>
-              <div className="flex min-w-0 flex-col gap-2 font-semibold text-sm">
+              <div className="flex min-w-0 flex-col gap-2 text-sm font-semibold">
                 <label htmlFor="history-type">Type</label>
                 <FilterSelect
                   id="history-type"
@@ -235,16 +235,16 @@ export function HistoryFilterChips({
               chip.invalid ? "Not a value the history accepts" : undefined
             }
             className={cn(
-              "flex min-h-11 max-w-full items-center gap-1.5 rounded-full bg-secondary pr-3 pl-4 font-semibold text-secondary-foreground text-sm outline-none transition-colors duration-150 hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)] focus-visible:ring-[3px] focus-visible:ring-ring/45 motion-reduce:transition-none",
+              "bg-secondary text-secondary-foreground focus-visible:ring-ring/45 flex min-h-11 max-w-full items-center gap-1.5 rounded-full pr-3 pl-4 text-sm font-semibold transition-colors duration-150 outline-none hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)] focus-visible:ring-[3px] motion-reduce:transition-none",
               // Invalid reads by its dashed outline and pictogram, not red alone.
-              chip.invalid && "border border-destructive border-dashed pl-3",
+              chip.invalid && "border-destructive border border-dashed pl-3",
             )}
           >
             {chip.invalid && (
               <TriangleAlert
                 aria-hidden="true"
                 strokeWidth={1.75}
-                className="size-4 shrink-0 text-destructive"
+                className="text-destructive size-4 shrink-0"
               />
             )}
             <span className="truncate">{chip.label}</span>

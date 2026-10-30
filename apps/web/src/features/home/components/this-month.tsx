@@ -37,7 +37,7 @@ function FlowFigure({
 }: Readonly<FlowFigureProps>) {
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <dt className="flex items-center gap-2 text-muted-foreground text-sm">
+      <dt className="text-muted-foreground flex items-center gap-2 text-sm">
         <span
           className={cn(
             "hue-tile flex size-7 shrink-0 items-center justify-center rounded-md",
@@ -48,7 +48,7 @@ function FlowFigure({
         </span>
         {label}
       </dt>
-      <dd className="wrap-break-word text-lg leading-tight">
+      <dd className="text-lg leading-tight wrap-break-word">
         <Money amount={amount} />
       </dd>
     </div>
@@ -64,19 +64,19 @@ export function ThisMonth({ report }: Readonly<ThisMonthProps>) {
   return (
     <section
       aria-labelledby="this-month-heading"
-      className="relative flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-card transition-colors duration-150 has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-reduce:transition-none sm:p-6"
+      className="bg-card shadow-card relative flex flex-col gap-5 rounded-2xl p-5 transition-colors duration-150 has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-reduce:transition-none sm:p-6"
     >
-      <h2 id="this-month-heading" className="font-bold text-lg tracking-tight">
+      <h2 id="this-month-heading" className="text-lg font-bold tracking-tight">
         <Link
           to="/reports"
           search={{ month: report.month }}
-          className="-my-2 flex min-h-11 items-center justify-between gap-2 outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-[3px] focus-visible:after:ring-ring/45"
+          className="focus-visible:after:ring-ring/45 -my-2 flex min-h-11 items-center justify-between gap-2 outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-[3px]"
         >
           This month
           <ChevronRight
             aria-hidden="true"
             strokeWidth={2}
-            className="size-5 text-muted-foreground"
+            className="text-muted-foreground size-5"
           />
         </Link>
       </h2>

@@ -95,13 +95,13 @@ export function TransactionList({
             data-hue={color}
             className={cn(
               transaction.id === savedId &&
-                "motion-safe:fade-in motion-safe:slide-in-from-bottom-2 bg-[color-mix(in_oklch,var(--hue)_7%,var(--card))] motion-safe:animate-in motion-safe:duration-400 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:animate-in bg-[color-mix(in_oklch,var(--hue)_7%,var(--card))] motion-safe:duration-400 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
             )}
           >
             <Link
               to="/transactions/$transactionId"
               params={{ transactionId: transaction.id }}
-              className="flex min-h-16 items-center gap-3.5 px-4 py-3 outline-none transition-colors duration-150 hover:bg-accent/70 focus-visible:ring-[3px] focus-visible:ring-ring/45 focus-visible:ring-inset motion-reduce:transition-none"
+              className="hover:bg-accent/70 focus-visible:ring-ring/45 flex min-h-16 items-center gap-3.5 px-4 py-3 transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none"
             >
               <CategoryTile color={color}>
                 {transaction.category ? (
@@ -116,7 +116,7 @@ export function TransactionList({
               than clamps, and the details run the full width beneath.
             */}
               <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-3">
-                <p className="wrap-break-word font-semibold leading-snug">
+                <p className="leading-snug font-semibold wrap-break-word">
                   {TRANSACTION_TYPE_LABELS[transaction.type]}
                   {transaction.category ? " · " : ""}
                   {transaction.category
@@ -125,7 +125,7 @@ export function TransactionList({
                 </p>
                 <div className="col-span-2 row-start-2 mt-0.5 min-w-0">
                   {transaction.destinationWallet && (
-                    <p className="wrap-break-word text-muted-foreground text-sm">
+                    <p className="text-muted-foreground text-sm wrap-break-word">
                       {transferWallets({
                         source: transaction.wallet,
                         destination: transaction.destinationWallet,
@@ -134,7 +134,7 @@ export function TransactionList({
                     </p>
                   )}
                   {/* The date keeps its width; only the wallet gives way. */}
-                  <p className="flex text-muted-foreground text-sm">
+                  <p className="text-muted-foreground flex text-sm">
                     <span className="shrink-0">
                       {formatCalendarDate(transaction.transactionDate)}
                     </span>
@@ -146,7 +146,7 @@ export function TransactionList({
                       )}
                   </p>
                   {transaction.note && (
-                    <p className="wrap-break-word line-clamp-2 text-muted-foreground text-sm">
+                    <p className="text-muted-foreground line-clamp-2 text-sm wrap-break-word">
                       {transaction.note}
                     </p>
                   )}
@@ -162,7 +162,7 @@ export function TransactionList({
               <Link
                 to="/transactions/$transactionId"
                 params={{ transactionId: transaction.refundOf.id }}
-                className="mb-3 ml-[4.625rem] inline-flex min-h-11 items-center rounded-sm font-semibold text-link text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+                className="text-link focus-visible:outline-ring mb-3 ml-[4.625rem] inline-flex min-h-11 items-center rounded-sm text-sm font-semibold underline underline-offset-4 focus-visible:outline-2"
               >
                 View original expense
               </Link>

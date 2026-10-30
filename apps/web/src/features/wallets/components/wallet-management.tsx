@@ -220,7 +220,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           </p>
           <Money
             amount={wallet.balance}
-            className="font-bold text-xl leading-snug"
+            className="text-xl leading-snug font-bold"
           />
         </div>
       </section>
@@ -239,7 +239,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
         className={cn(manageCardClass, "gap-5")}
       >
         <div className="flex flex-col gap-1.5">
-          <h2 className="font-bold text-lg tracking-tight">
+          <h2 className="text-lg font-bold tracking-tight">
             Correct opening balance
           </h2>
           <p className="text-muted-foreground text-sm leading-normal">
@@ -252,7 +252,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           <div className="relative">
             <span
               aria-hidden="true"
-              className="money pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg text-muted-foreground"
+              className="money text-muted-foreground pointer-events-none absolute inset-y-0 left-4 flex items-center text-lg"
             >
               ฿
             </span>
@@ -262,7 +262,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               disabled={pending}
-              className="money h-12 pl-9 text-foreground text-lg sm:h-12 md:text-lg"
+              className="money text-foreground h-12 pl-9 text-lg sm:h-12 md:text-lg"
               required
             />
           </div>
@@ -289,7 +289,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       </form>
       <section aria-labelledby="archive-heading" className={manageCardClass}>
         <div className="flex flex-col gap-1.5">
-          <h2 id="archive-heading" className="font-bold text-lg tracking-tight">
+          <h2 id="archive-heading" className="text-lg font-bold tracking-tight">
             {archived ? "Unarchive wallet" : "Archive wallet"}
           </h2>
           <p className="text-muted-foreground text-sm leading-normal">
@@ -319,7 +319,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
         className={cn(manageCardClass, "mt-4 sm:mt-6")}
       >
         <div className="flex flex-col gap-1.5">
-          <h2 id="delete-heading" className="font-bold text-lg tracking-tight">
+          <h2 id="delete-heading" className="text-lg font-bold tracking-tight">
             Permanent deletion
           </h2>
           <p className="text-muted-foreground text-sm leading-normal">

@@ -83,7 +83,7 @@ export function EditCategoryForm({
             size="lg"
             disabled={removing}
             onClick={remove}
-            className="wrap-break-word h-auto min-h-11 whitespace-normal py-2 sm:min-h-10"
+            className="h-auto min-h-11 py-2 wrap-break-word whitespace-normal sm:min-h-10"
           >
             <Trash2 data-icon="inline-start" strokeWidth={1.75} />
             {removing ? "Removing…" : `Remove ${category.name}`}
@@ -233,11 +233,11 @@ export function EditCategoryForm({
         {/* Removal stands apart by space and a hairline, not color alone. */}
         <section
           aria-labelledby={removeHeadingId}
-          className="mt-2 flex flex-col gap-3 border-border/70 border-t pt-6"
+          className="border-border/70 mt-2 flex flex-col gap-3 border-t pt-6"
         >
           <h3
             id={removeHeadingId}
-            className="font-bold text-base tracking-tight"
+            className="text-base font-bold tracking-tight"
           >
             {category.isProtected ? "A protected category" : "Remove"}
           </h3>
@@ -251,7 +251,7 @@ export function EditCategoryForm({
         </section>
       </div>
 
-      <div className="flex shrink-0 border-border/70 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:justify-end sm:px-6 sm:pb-4">
+      <div className="border-border/70 flex shrink-0 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:justify-end sm:px-6 sm:pb-4">
         <Button
           type="button"
           variant="ghost"
@@ -274,11 +274,11 @@ interface RemovalPanelProps {
 /** Why this category stays, on a Mist panel led by the reason's pictogram. */
 function RemovalPanel({ icon: Icon, children }: Readonly<RemovalPanelProps>) {
   return (
-    <p className="flex items-start gap-3 rounded-xl bg-muted p-4 text-foreground text-sm leading-normal">
+    <p className="bg-muted text-foreground flex items-start gap-3 rounded-xl p-4 text-sm leading-normal">
       <Icon
         aria-hidden="true"
         strokeWidth={1.75}
-        className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+        className="text-muted-foreground mt-0.5 size-4 shrink-0"
       />
       {children}
     </p>

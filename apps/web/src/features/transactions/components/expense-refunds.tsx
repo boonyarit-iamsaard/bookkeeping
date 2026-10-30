@@ -40,11 +40,11 @@ export function ExpenseRefundsView({
             Record refund
           </Link>
         ) : (
-          <p className="font-semibold text-sm">Fully refunded</p>
+          <p className="text-sm font-semibold">Fully refunded</p>
         )
       }
     >
-      <p className="-mt-1 pl-1 text-muted-foreground text-sm leading-normal">
+      <p className="text-muted-foreground -mt-1 pl-1 text-sm leading-normal">
         {refunds.refunds.length === 0 ? (
           "None recorded. A refund returns part or all of this expense."
         ) : (
@@ -61,16 +61,16 @@ export function ExpenseRefundsView({
               <Link
                 to="/transactions/$transactionId"
                 params={{ transactionId: refund.id }}
-                className="flex min-h-16 items-center gap-3.5 px-4 py-3 outline-none transition-colors duration-150 hover:bg-accent/70 focus-visible:ring-[3px] focus-visible:ring-ring/45 focus-visible:ring-inset motion-reduce:transition-none"
+                className="hover:bg-accent/70 focus-visible:ring-ring/45 flex min-h-16 items-center gap-3.5 px-4 py-3 transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none"
               >
                 <CategoryTile color={color}>
                   <Undo2 aria-hidden="true" strokeWidth={1.75} />
                 </CategoryTile>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-semibold leading-snug">
+                  <span className="block leading-snug font-semibold">
                     {formatCalendarDate(refund.transactionDate)}
                   </span>
-                  <span className="block truncate text-muted-foreground text-sm">
+                  <span className="text-muted-foreground block truncate text-sm">
                     {refund.wallet.name}
                     {refund.wallet.archived && " (Archived)"}
                   </span>

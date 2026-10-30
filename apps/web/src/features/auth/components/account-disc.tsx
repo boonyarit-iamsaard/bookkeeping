@@ -13,7 +13,7 @@ export function AccountDisc({ email, className }: Readonly<AccountDiscProps>) {
     <span
       aria-hidden="true"
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-secondary font-bold text-secondary-foreground text-sm",
+        "bg-secondary text-secondary-foreground flex shrink-0 items-center justify-center rounded-full text-sm font-bold",
         className,
       )}
     >

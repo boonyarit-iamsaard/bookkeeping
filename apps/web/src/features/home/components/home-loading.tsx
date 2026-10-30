@@ -17,7 +17,7 @@ export function HomeLoading() {
       <div aria-hidden="true" className={HOME_COLUMNS_CLASS}>
         <div className="flex flex-col gap-6 sm:gap-8">
           <HeroSkeleton />
-          <div className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-card sm:p-6">
+          <div className="bg-card shadow-card flex flex-col gap-5 rounded-2xl p-5 sm:p-6">
             <Skeleton className="h-5 w-24" />
             <div className="grid grid-cols-2 gap-4">
               <Skeleton className="h-12" />

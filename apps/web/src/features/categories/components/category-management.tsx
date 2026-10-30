@@ -156,7 +156,7 @@ export function CategoryManagement({
               {group.children.length > 0 && (
                 <ul
                   aria-label={`${group.parent.name} children`}
-                  className="divide-y divide-border/70"
+                  className="divide-border/70 divide-y"
                 >
                   {group.children.map((child) => (
                     <li key={child.id}>
@@ -218,7 +218,7 @@ function CategoryRow({
       <Dialog.Trigger
         data-category-row={category.id}
         className={cn(
-          "flex w-full items-center gap-3.5 px-4 text-left outline-none transition-colors duration-150 hover:bg-accent/70 focus-visible:ring-[3px] focus-visible:ring-ring/45 focus-visible:ring-inset motion-reduce:transition-none",
+          "hover:bg-accent/70 focus-visible:ring-ring/45 flex w-full items-center gap-3.5 px-4 text-left transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none",
           isChild ? "min-h-14 py-2.5" : "min-h-16 py-3",
         )}
       >
@@ -229,14 +229,14 @@ function CategoryRow({
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span
             className={cn(
-              "wrap-break-word leading-snug",
+              "leading-snug wrap-break-word",
               isChild ? "font-medium" : "font-semibold",
             )}
           >
             {category.name}
           </span>
           {(category.isProtected || entries > 0) && (
-            <span className="flex flex-wrap items-center gap-x-1.5 text-muted-foreground text-sm">
+            <span className="text-muted-foreground flex flex-wrap items-center gap-x-1.5 text-sm">
               {category.isProtected && (
                 <span className="inline-flex items-center gap-1">
                   <LockKeyhole

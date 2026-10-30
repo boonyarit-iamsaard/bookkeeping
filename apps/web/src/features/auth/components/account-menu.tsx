@@ -51,10 +51,10 @@ export function AccountMenu({ email }: Readonly<AccountMenuProps>) {
       <DropdownMenuContent align="end" sideOffset={8}>
         <DropdownMenuGroup>
           <DropdownMenuLabel>
-            <span className="block text-muted-foreground text-xs">
+            <span className="text-muted-foreground block text-xs">
               Signed in as
             </span>
-            <span className="block break-all font-semibold text-foreground">
+            <span className="text-foreground block font-semibold break-all">
               {email}
             </span>
           </DropdownMenuLabel>

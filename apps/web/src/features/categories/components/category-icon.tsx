@@ -59,7 +59,7 @@ export function ChildMarker() {
   return (
     <span
       aria-hidden="true"
-      className="w-11 shrink-0 text-center text-lg text-muted-foreground leading-none"
+      className="text-muted-foreground w-11 shrink-0 text-center text-lg leading-none"
     >
       ›
     </span>
