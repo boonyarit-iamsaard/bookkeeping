@@ -6,7 +6,12 @@ import {
 } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import { APP_TIME_ZONE, addDays, todayIn } from "@bookkeeping/domain/dates";
+import {
+  APP_TIME_ZONE,
+  addDays,
+  earlierOf,
+  todayIn,
+} from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import type {
@@ -1100,7 +1105,7 @@ export async function getClosingBalances(
 ): Promise<ClosingBalances | null> {
   const { start, end } = monthBounds(month);
   const today = todayIn({ timeZone: APP_TIME_ZONE });
-  const [last] = [end, today].sort((a, b) => a.localeCompare(b));
+  const last = earlierOf(end, today);
   const [openings, dailyMovements] = await Promise.all([
     db
       .select({
