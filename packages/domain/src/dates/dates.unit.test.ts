@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   addDays,
+  earlierOf,
   formatCalendarDate,
   formatInstant,
   parseCalendarDate,
@@ -46,6 +47,22 @@ describe("addDays", () => {
   test("crosses month and year boundaries in date-only arithmetic", () => {
     expect(addDays("2026-09-01", -1)).toBe("2026-08-31");
     expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+  });
+});
+
+describe("earlierOf", () => {
+  test("names the earlier date whichever argument holds it", () => {
+    expect(earlierOf("2026-09-01", "2026-09-30")).toBe("2026-09-01");
+    expect(earlierOf("2026-09-30", "2026-09-01")).toBe("2026-09-01");
+  });
+
+  test("returns the date itself when both are equal", () => {
+    expect(earlierOf("2026-09-13", "2026-09-13")).toBe("2026-09-13");
+  });
+
+  test("orders across month and year boundaries", () => {
+    expect(earlierOf("2026-10-01", "2026-09-30")).toBe("2026-09-30");
+    expect(earlierOf("2027-01-01", "2026-12-31")).toBe("2026-12-31");
   });
 });
 

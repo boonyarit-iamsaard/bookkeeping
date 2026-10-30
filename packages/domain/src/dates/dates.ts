@@ -82,6 +82,11 @@ export function addDays(date: CalendarDate, days: number): CalendarDate {
   return shifted.toISOString().slice(0, 10);
 }
 
+/** The earlier of two calendar dates; ISO dates order the same as strings. */
+export function earlierOf(a: CalendarDate, b: CalendarDate): CalendarDate {
+  return a <= b ? a : b;
+}
+
 interface InstantInput {
   instant: Date;
   timeZone: TimeZone;
