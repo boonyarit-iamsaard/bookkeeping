@@ -8,7 +8,7 @@ old key no longer works.
 
 **Blocked by:** 02
 
-**Status:** ready-for-human
+**Status:** done
 
 **Notes:** Create the new key before deactivating the old one, and deactivate
 before deleting, so a broken step can be undone. Paste values with the
@@ -23,7 +23,7 @@ instead; see production-backups ticket 07.
 - [x] A second key is created for the uploader user and sealed into the backup service's AWS variables; backup is redeployed.
 - [x] A backup run succeeds, and the key's last-used date shows the new key made the upload.
 - [x] The old key is deactivated, and the following scheduled run succeeds.
-- [ ] A week after deactivation, with no failed run, the old key is deleted.
+- [x] A week after deactivation, with no failed run, the old key is deleted.
 - [x] The next rotation, October 2027, is recorded under Comments.
 
 ## Comments
@@ -63,3 +63,15 @@ IAM shows the new key (`…CTHTTX3P`) last used by S3 at 20:03 UTC. The old key
 production-backups ticket 03's replacement steps. Remaining: delete the old
 key no earlier than 03:00 UTC on 2026-10-30, a full week after it was
 deactivated, if no run fails before then.
+
+**2026-10-30 (agent):** The week after deactivation has passed without a
+failed run. IAM shows the new key (`…CTHTTX3P`) `Active`, last used by S3 at
+20:04 UTC on 2026-10-29, and the old key (`…MFTDTPPQ`) `Inactive`, last used
+at 02:01 UTC on 2026-10-23. `daily/2026-10-24/` through `daily/2026-10-30/`
+each hold one version of `bookkeeping.dump.age` and `manifest.json.age`, with
+no delete markers. The old key is safe to delete. The agent's delete was
+denied, so the owner runs it:
+`aws iam delete-access-key --profile bookkeeping-backups --user-name bookkeeping-backup-uploader --access-key-id <OLD_ACCESS_KEY_ID>`, where the old key ends in `MFTDTPPQ`.
+
+**2026-10-30 (agent):** The owner deleted the old key. `list-access-keys`
+shows only `…CTHTTX3P`, `Active`. Closed in the commit that carries this note.
