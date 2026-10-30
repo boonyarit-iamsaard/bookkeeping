@@ -171,7 +171,8 @@
         "packages/domain/vitest.config.mts",
         "packages/database/drizzle.config.ts",
         "packages/database/vitest.config.mts",
-        "packages/database/src/testing/global-setup.ts"
+        "packages/database/src/testing/global-setup.ts",
+        ".railway/railway.ts"
       ],
       "linter": {
         "rules": {
