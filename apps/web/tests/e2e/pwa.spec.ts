@@ -37,15 +37,20 @@ function apiPath(pathname: string): boolean {
   return pathname.startsWith("/v1") || pathname.startsWith("/api/auth");
 }
 
+/** Resolves once the worker the page registered has activated. */
+async function waitForActiveServiceWorker(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    navigator.serviceWorker.ready.then(() => undefined),
+  );
+}
+
 /**
  * Resolves once the registered worker is active and controls the page. The
  * predicate stays synchronous: `waitForFunction` treats a pending promise
  * as a truthy result.
  */
 async function waitForServiceWorker(page: Page): Promise<void> {
-  await page.evaluate(() =>
-    navigator.serviceWorker.ready.then(() => undefined),
-  );
+  await waitForActiveServiceWorker(page);
   await page.waitForFunction(
     () =>
       navigator.serviceWorker.controller !== null &&
@@ -62,6 +67,9 @@ async function launchSignedInThenGoOffline(
   context: BrowserContext,
 ): Promise<void> {
   await signUpFreshUser(page);
+  // A document created while the worker is still installing is never claimed,
+  // so the launch below starts only once the worker is active.
+  await waitForActiveServiceWorker(page);
   await page.goto("/");
   await expect(
     page.getByRole("heading", { name: "Home", level: 1 }),
