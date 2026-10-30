@@ -99,3 +99,23 @@ services, a redeploy at cutover). Full research, with citations, in
 **Agent can prepare:** `.railway/railway.ts` from `railway config migrate`
 with restart policy and draining added by hand, the `railway.json` removal,
 and the doc updates in the last checkbox.
+
+### Prepared by the agent, 2026-10-30
+
+`.railway/railway.ts` now declares the `api` and `web` services with every
+setting from the two `railway.json` files, including restart policy and
+draining time that `railway config migrate` would drop. It exports
+`partial = "apps"`, so `plan` and `apply` cannot touch the `database` or
+`backup` services. The `railway` package is a root dev dependency. The
+`railway.json` files stay until the cutover works.
+
+Owner steps, from the repo root, logged in with `railway login` and linked
+with `railway link` to the production environment:
+
+1. `pnpm install`, then `railway config plan`. Read the output: it should
+   change only `api` and `web`. Stop if it mentions `database` or `backup`.
+2. `railway config migrate cutover` (clears the Config File path and
+   redeploys; `railway config migrate undo` reverses it).
+3. `railway config apply`.
+4. Watch each next deploy: waits for CI, finds its Dockerfile, skips on
+   unrelated paths, passes its health check.

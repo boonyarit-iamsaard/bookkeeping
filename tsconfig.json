@@ -3,6 +3,11 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["scripts/**/*.ts", "commitlint.config.ts", "vitest.config.mts"],
+  "include": [
+    "scripts/**/*.ts",
+    "commitlint.config.ts",
+    "vitest.config.mts",
+    ".railway/railway.ts"
+  ],
   "exclude": ["node_modules"]
 }
