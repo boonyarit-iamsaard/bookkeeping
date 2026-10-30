@@ -10,10 +10,18 @@ in the closing note.
 
 **Blocked by:** 01.
 
-**Status:** ready-for-agent
+**Status:** done (181cba1)
 
-- [ ] `biome ci` reports no format findings.
-- [ ] `pnpm format:check` and `pnpm lint:md` still pass.
-- [ ] No ticket or spec content changes beyond whitespace.
+- [x] `biome ci` reports no format findings.
+- [x] `pnpm format:check` and `pnpm lint:md` still pass.
+- [x] No ticket or spec content changes beyond whitespace.
 
 ## Comments
+
+Closing note: Prettier keeps Markdown. Biome 2.6 formats `*.md` itself, so
+`biome.json` now excludes `**/*.md` (one formatter per file type, as with
+HTML) rather than reformatting the `.scratch` docs a second way. Biome 2.6 also
+started formatting YAML and flagged `pnpm-lock.yaml`, which `.prettierignore`
+already skips as a never-reformat lockfile; it is excluded from Biome too. No
+ticket or spec content changed. `biome ci` reports no format findings;
+`pnpm format:check` and `pnpm lint:md` pass.

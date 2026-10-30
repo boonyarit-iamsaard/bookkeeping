@@ -22,7 +22,9 @@
       "!**/openapi.gen.ts",
       "!packages/database/drizzle/meta",
       "!apps/web/src/core/api/openapi.json",
-      "!**/*.html"
+      "!**/*.html",
+      "!**/*.md",
+      "!pnpm-lock.yaml"
     ]
   },
   "formatter": {
