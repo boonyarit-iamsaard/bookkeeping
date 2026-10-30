@@ -1100,7 +1100,7 @@ export async function getClosingBalances(
 ): Promise<ClosingBalances | null> {
   const { start, end } = monthBounds(month);
   const today = todayIn({ timeZone: APP_TIME_ZONE });
-  const [last] = [end, today].sort();
+  const [last] = [end, today].sort((a, b) => a.localeCompare(b));
   const [openings, dailyMovements] = await Promise.all([
     db
       .select({

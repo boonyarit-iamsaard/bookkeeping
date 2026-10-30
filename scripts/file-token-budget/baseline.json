@@ -34,7 +34,7 @@
   "packages/application/src/transactions/transaction-create.integration.test.ts": 56825,
   "packages/application/src/transactions/transaction-reads.integration.test.ts": 35166,
   "packages/application/src/transactions/transaction-update.integration.test.ts": 41688,
-  "packages/application/src/transactions/transaction.ts": 35591,
+  "packages/application/src/transactions/transaction.ts": 35619,
   "packages/application/src/wallets/wallet.integration.test.ts": 31667,
   "README.md": 31743
 }
