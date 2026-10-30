@@ -8,6 +8,10 @@ export const partial = "apps";
 // names each variable so `apply` leaves its value alone, and `plan` fails when
 // a dashboard variable is missing from the list.
 
+// Restart policy is "On Failure" in the dashboard and is not declared here:
+// `apply` does not persist `restartPolicyType`, so `plan` would report it as
+// pending for ever.
+
 const REPOSITORY = "boonyarit-iamsaard/bookkeeping";
 
 // What the services run with today. Declared so `apply` leaves the limits alone.
@@ -42,7 +46,6 @@ export default defineRailway(() => {
     },
     deploy: {
       healthcheckPath: "/health",
-      restartPolicyType: "ON_FAILURE",
       drainingSeconds: 10,
       limitOverride: { containers: CONTAINER_LIMITS },
     },
@@ -64,7 +67,6 @@ export default defineRailway(() => {
     },
     deploy: {
       healthcheckPath: "/",
-      restartPolicyType: "ON_FAILURE",
       limitOverride: { containers: CONTAINER_LIMITS },
     },
   });

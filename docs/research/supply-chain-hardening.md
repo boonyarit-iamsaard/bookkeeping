@@ -41,7 +41,7 @@ Read on 2026-09-29 from both working trees.
 | CI install          | `pnpm install --frozen-lockfile`                                                                                                    | `pnpm install --frozen-lockfile --trust-lockfile`, then `pnpm run audit` (`pnpm audit --audit-level moderate && pnpm audit signatures`), and a `docker build --pull` of the server image |
 | Dockerfiles         | server: two `FROM node:24-slim`; web: `FROM node:24-slim` and `FROM caddy:2-alpine`; none digest-pinned                             | server: two `FROM node:24-slim`, not digest-pinned                                                                                                                                       |
 | Docker pnpm setup   | `corepack enable`, then `pnpm fetch --frozen-lockfile`, offline filtered install, `deploy --prod --legacy`                          | `corepack enable`, `corepack install` (honours the pin and hash), single `pnpm install --frozen-lockfile`                                                                                |
-| Railway             | two services (`api`, `web`) from `main`, "Wait for CI" ticked in the runbook, `railway.json` with `watchPatterns`                   | not examined                                                                                                                                                                             |
+| Railway             | two services (`api`, `web`) from `main`, "Wait for CI" ticked in the runbook, `railway.ts` with `watchPatterns`                     | not examined                                                                                                                                                                             |
 
 Repository facts from the public API on 2026-09-29:
 
@@ -179,7 +179,7 @@ Documented status of each piece:
   `.pnpmfile.mjs`, which takes priority when both exist; only `hooks.fetchers`
   was removed. The lockfile's `pnpmfileChecksum` still gates frozen installs.
   If the file were renamed to `.mjs`, both Dockerfiles' `COPY` lines and both
-  `railway.json` `watchPatterns` name `.pnpmfile.cjs` explicitly.
+  `railway.ts` `watchPatterns` name `.pnpmfile.cjs` explicitly.
   <https://github.com/pnpm/pnpm.io/blob/main/docs/pnpmfile.md>
 - `--filter x...` (a package plus its dependencies) is documented in
   <https://github.com/pnpm/pnpm.io/blob/main/docs/filtering.md>; v11 also adds
@@ -587,7 +587,7 @@ Reference: <https://docs.github.com/en/code-security/reference/supply-chain-secu
   creates a new commit there), which triggers both the `push` CI run and the
   Railway autodeploy for that commit. Direct pushes are what branch protection
   would block; Railway's deploy trigger is the resulting push from a merge.
-- The `railway.json` `watchPatterns` decide whether a commit triggers a deploy
+- The `railway.ts` `watchPatterns` decide whether a commit triggers a deploy
   for a service; they are path-based.
   <https://docs.railway.com/deployments/monorepo>
 - Railway's Dockerfile page documents build-time `ARG` handling, cache mounts
