@@ -1,10 +1,9 @@
-import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
-import { Pool } from "pg";
 import { describe, expect, test } from "vitest";
 import { users } from "./auth/auth.schema";
 import { createDatabase } from "./connection";
 import { freshDatabase, migrateDatabase } from "./migrate";
+import { withEmptyDatabase } from "./testing/empty-database";
 import { createTestUser } from "./testing/test-database";
 import { testDatabaseUrl } from "./testing/url";
 
@@ -21,55 +20,6 @@ async function readAppliedMigrationHashes(url: string): Promise<string[]> {
     return result.rows.map((row) => row.hash);
   } finally {
     await connection.close();
-  }
-}
-
-// `Pool.end()` resolves once its clients are asked to close, before their
-// backends exit. A forced drop that terminates a backend still shutting down
-// makes its client raise an error nothing listens for, so wait them out first.
-async function waitForNoBackends(admin: Pool, name: string): Promise<void> {
-  const deadline = Date.now() + 10_000;
-  for (;;) {
-    const result = await admin.query<{ count: number }>(
-      "SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname = $1",
-      [name],
-    );
-    if (result.rows[0]?.count === 0 || Date.now() > deadline) {
-      return;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-}
-
-// Runs `use` against a migrated database of its own in the test container, so
-// a reset that fails halfway cannot leave later test files without a schema.
-async function withOwnDatabase(
-  use: (url: string) => Promise<void>,
-): Promise<void> {
-  const sharedUrl = testDatabaseUrl();
-  const name = `fresh_${randomUUID().replaceAll("-", "")}`;
-  const url = new URL(sharedUrl);
-  url.pathname = `/${name}`;
-  const admin = new Pool({ connectionString: sharedUrl });
-  try {
-    await admin.query(`CREATE DATABASE "${name}"`);
-    let succeeded = false;
-    try {
-      await migrateDatabase(url.href);
-      await use(url.href);
-      succeeded = true;
-    } finally {
-      // A failed drop must not replace the error that failed the test.
-      await waitForNoBackends(admin, name)
-        .then(() => admin.query(`DROP DATABASE "${name}" WITH (FORCE)`))
-        .catch((error: unknown) => {
-          if (succeeded) {
-            throw error;
-          }
-        });
-    }
-  } finally {
-    await admin.end();
   }
 }
 
@@ -107,7 +57,8 @@ describe("freshDatabase", () => {
     "resets the schema and reapplies migrations",
     migrationTestOptions,
     async () => {
-      await withOwnDatabase(async (url) => {
+      await withEmptyDatabase(async (url) => {
+        await migrateDatabase(url);
         const connection = createDatabase(url);
         let userId: string;
         try {

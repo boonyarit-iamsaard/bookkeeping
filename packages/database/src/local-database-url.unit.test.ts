@@ -5,6 +5,7 @@ describe("assertLocalDatabaseUrl", () => {
   test.each([
     "postgresql://postgres:password@localhost:5432/bookkeeping",
     "postgresql://postgres:password@127.0.0.1:5432/bookkeeping",
+    "postgresql://postgres:password@[::1]:5432/bookkeeping",
   ])("accepts %s", (url) => {
     expect(() => assertLocalDatabaseUrl(url)).not.toThrow();
   });
