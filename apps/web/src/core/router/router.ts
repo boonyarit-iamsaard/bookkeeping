@@ -1,6 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
+import {
+  pageTransitionTypes,
+  supportsPageTransitions,
+} from "@/core/router/page-transition";
 import { NotFound } from "@/core/shell/not-found";
+import { isScreenLoading } from "@/core/shell/page";
 import { RootErrorBoundary } from "@/core/shell/root-error-boundary";
 import { routeTree } from "@/routeTree.gen";
 
@@ -20,6 +25,18 @@ export function createAppRouter(context: Readonly<RouterContext>) {
     // its link finds the place it was left.
     scrollRestoration: true,
     getScrollRestorationKey: (location) => location.href,
+    // Without view transition types the browser would crossfade every
+    // change, search changes and reduced motion included, so it gets none.
+    defaultViewTransition: supportsPageTransitions() && {
+      types: ({ fromLocation, toLocation }) =>
+        pageTransitionTypes({
+          fromPathname: fromLocation?.pathname,
+          toPathname: toLocation.pathname,
+          reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
+            .matches,
+          loading: isScreenLoading(),
+        }),
+    },
   });
 }
 

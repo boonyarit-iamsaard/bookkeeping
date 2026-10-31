@@ -168,7 +168,7 @@ export function MonthPicker({
         <ChevronDown
           aria-hidden="true"
           strokeWidth={1.75}
-          className="text-muted-foreground group-data-popup-open/month-trigger:rotate-180"
+          className="text-muted-foreground ease-out-expo transition-transform duration-200 group-data-popup-open/month-trigger:rotate-180 motion-reduce:transition-none"
         />
       </PopoverTrigger>
       <PopoverContent aria-label="Choose a month" className="w-72 p-3">

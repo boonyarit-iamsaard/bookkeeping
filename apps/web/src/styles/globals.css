@@ -1,9 +1,53 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./page-transitions.css";
 
 /* Dark follows the shown scheme: the Appearance choice, or the system under System. */
 @custom-variant dark (&:where([data-scheme="dark"], [data-scheme="dark"] *));
+
+/* Motion: arrivals settle on the exponential ease-out; the wallet morph and
+   the sheet on a spring that passes its mark by 3% and settles back. A press
+   lands quicker than its release. */
+@theme static {
+  --press-duration: 90ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: linear(
+    0,
+    0.036,
+    0.125,
+    0.242,
+    0.369,
+    0.494,
+    0.609,
+    0.711,
+    0.796,
+    0.866,
+    0.92,
+    0.96,
+    0.989,
+    1.009,
+    1.021,
+    1.028,
+    1.03,
+    1.029,
+    1.027,
+    1.024,
+    1.02,
+    1.016,
+    1.013,
+    1.009,
+    1.007,
+    1.005,
+    1.003,
+    1.001,
+    1.001,
+    1,
+    0.999,
+    0.999,
+    1
+  );
+}
 
 @theme inline {
   --color-background: var(--background);

@@ -8,10 +8,13 @@ import {
   walletCaption,
   walletCountLabel,
 } from "@/features/wallets/wallet-labels";
+import { walletMorphName } from "@/features/wallets/wallet-morph";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { ARRIVAL_CLASS } from "@/shared/helpers/arrival";
 import { cn } from "@/shared/helpers/cn";
+import { morphProps } from "@/shared/helpers/morph";
 
 type WalletSummary = components["schemas"]["Wallet"];
 
@@ -56,10 +59,14 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
           <li
             key={wallet.id}
             data-wallet-row
+            // Opening the wallet grows this card into its page's hero card.
+            {...morphProps(walletMorphName(wallet.id))}
             className={cn(
-              "bg-card shadow-card relative flex min-h-28 gap-3.5 rounded-2xl p-4 transition-colors duration-150 has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-reduce:transition-none sm:p-5",
-              wallet.id === createdId &&
-                "motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:animate-in bg-[color-mix(in_oklch,var(--primary)_7%,var(--card))] motion-safe:duration-400 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
+              "bg-card shadow-card ease-out-expo relative flex min-h-28 gap-3.5 rounded-2xl p-4 transition-[background-color,scale] duration-150 has-[a:active]:duration-(--press-duration) has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-safe:has-[a:active]:scale-[0.98] motion-reduce:transition-none sm:p-5",
+              wallet.id === createdId && [
+                ARRIVAL_CLASS,
+                "bg-[color-mix(in_oklch,var(--primary)_7%,var(--card))]",
+              ],
             )}
           >
             <WalletTile

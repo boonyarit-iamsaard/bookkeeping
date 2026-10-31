@@ -16,6 +16,7 @@ import { EmptyState } from "@/shared/components/empty-state";
 import { listCardClass } from "@/shared/components/list-section";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { ARRIVAL_CLASS } from "@/shared/helpers/arrival";
 import { cn } from "@/shared/helpers/cn";
 
 type ApiTransaction = components["schemas"]["Transaction"];
@@ -94,14 +95,16 @@ export function TransactionList({
             data-saved={transaction.id === savedId || undefined}
             data-hue={color}
             className={cn(
-              transaction.id === savedId &&
-                "motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:animate-in bg-[color-mix(in_oklch,var(--hue)_7%,var(--card))] motion-safe:duration-400 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
+              transaction.id === savedId && [
+                ARRIVAL_CLASS,
+                "bg-[color-mix(in_oklch,var(--hue)_7%,var(--card))]",
+              ],
             )}
           >
             <Link
               to="/transactions/$transactionId"
               params={{ transactionId: transaction.id }}
-              className="hover:bg-accent/70 focus-visible:ring-ring/45 flex min-h-16 items-center gap-3.5 px-4 py-3 transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none"
+              className="group/row hover:bg-accent/70 focus-visible:ring-ring/45 active:bg-accent flex min-h-16 items-center gap-3.5 px-4 py-3 transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none"
             >
               <CategoryTile color={color}>
                 {transaction.category ? (

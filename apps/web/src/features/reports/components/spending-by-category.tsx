@@ -156,7 +156,10 @@ export function SpendingByCategory({
             <div
               key={segment.id}
               data-hue={segment.color}
-              className={cn("min-w-1", segmentClass(segment))}
+              className={cn(
+                "ease-out-expo min-w-1 transition-[flex-grow] duration-300 motion-reduce:transition-none",
+                segmentClass(segment),
+              )}
               style={{ flex: `${segment.share} 1 0` }}
             />
           ))}

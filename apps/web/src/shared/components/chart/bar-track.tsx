@@ -24,14 +24,14 @@ export function BarTrack({ bar, zero, series }: Readonly<BarTrackProps>) {
       {bar.length > 0 && (
         <div
           className={cn(
-            "absolute inset-y-0 min-w-1 rounded-sm",
+            "ease-out-expo absolute inset-y-0 min-w-1 rounded-sm transition-[left,width] duration-300 motion-reduce:transition-none",
             chartMarkClass(series),
           )}
           style={{ left: toPercent(bar.start), width: toPercent(bar.length) }}
         />
       )}
       <div
-        className="bg-chart-baseline absolute -inset-y-1 w-px"
+        className="bg-chart-baseline ease-out-expo absolute -inset-y-1 w-px transition-[left] duration-300 motion-reduce:transition-none"
         style={{ left: toPercent(zero) }}
       />
     </div>

@@ -27,7 +27,7 @@ interface CategoryTileProps {
 /**
  * A row's leading pictogram on a rounded tile tinted with its category's
  * color; neutral for Uncategorized and transfers. Decorative: the row names
- * the category in text.
+ * the category in text. It shrinks a little while a `group/row` is pressed.
  */
 export function CategoryTile({
   color,
@@ -39,7 +39,7 @@ export function CategoryTile({
     <span
       data-hue={color}
       className={cn(
-        "hue-tile flex shrink-0 items-center justify-center",
+        "hue-tile ease-out-expo flex shrink-0 items-center justify-center transition-[scale] duration-150 group-active/row:duration-(--press-duration) motion-safe:group-active/row:scale-[0.92] motion-reduce:transition-none",
         size === "row"
           ? "size-11 rounded-lg [&_svg]:size-5"
           : "size-9 rounded-md [&_svg]:size-4",

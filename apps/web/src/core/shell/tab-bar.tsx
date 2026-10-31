@@ -24,7 +24,7 @@ function TabItem({ destination }: Readonly<TabItemProps>) {
   return (
     <Link
       to={destination.to}
-      className="group/tab text-muted-foreground focus-visible:ring-ring/45 data-[status=active]:text-link flex min-w-14 flex-col items-center justify-end gap-0.5 rounded-md px-1 pb-1.5 text-xs leading-snug font-semibold outline-none focus-visible:ring-[3px]"
+      className="group/tab text-muted-foreground focus-visible:ring-ring/45 data-[status=active]:text-link ease-out-expo flex min-w-14 flex-col items-center justify-end gap-0.5 rounded-md px-1 pb-1.5 text-xs leading-snug font-semibold transition-[scale] duration-150 outline-none focus-visible:ring-[3px] active:duration-(--press-duration) motion-safe:active:scale-[0.94] motion-reduce:transition-none"
     >
       <Icon
         aria-hidden="true"
@@ -58,6 +58,7 @@ export function TabBar({ captureSearch }: Readonly<TabBarProps>) {
   return (
     <nav
       aria-label="Primary"
+      data-shell="tab-bar"
       className="bg-chrome/95 supports-backdrop-filter:bg-chrome/85 fixed inset-x-0 bottom-0 z-20 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden"
     >
       <div className="mx-auto flex h-14 w-full max-w-2xl items-stretch px-1">
@@ -70,7 +71,7 @@ export function TabBar({ captureSearch }: Readonly<TabBarProps>) {
           aria-label="New transaction"
           className="group text-muted-foreground flex shrink-0 flex-col items-center justify-end gap-0.5 px-1 pb-1.5 text-xs leading-snug font-semibold outline-none"
         >
-          <span className="bg-primary text-primary-foreground ring-chrome group-focus-visible:ring-ring/45 flex size-12 shrink-0 items-center justify-center rounded-full shadow-[0_8px_18px_-8px_var(--primary)] ring-4 group-hover:bg-[color-mix(in_oklch,var(--primary),black_12%)]">
+          <span className="bg-primary text-primary-foreground ring-chrome group-focus-visible:ring-ring/45 ease-out-expo flex size-12 shrink-0 items-center justify-center rounded-full shadow-[0_8px_18px_-8px_var(--primary)] ring-4 transition-[scale,background-color] duration-150 group-hover:bg-[color-mix(in_oklch,var(--primary),black_12%)] group-active:duration-(--press-duration) motion-safe:group-active:scale-[0.92] motion-reduce:transition-none">
             <Plus aria-hidden="true" strokeWidth={2.25} className="size-6" />
           </span>
           <span>New</span>

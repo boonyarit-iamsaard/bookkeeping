@@ -1,5 +1,6 @@
 import type { ApiMoney } from "@/core/api/money";
 import { Money } from "@/shared/components/money";
+import { morphProps } from "@/shared/helpers/morph";
 
 interface DisplayFigureProps {
   amount: ApiMoney;
@@ -10,6 +11,8 @@ interface DisplayFigureProps {
   headingId: string;
   /** The Caption beneath, saying what the figure covers. */
   caption: React.ReactNode;
+  /** Shared with the card that opens this screen, which grows into the hero. */
+  morphName?: string;
 }
 
 /**
@@ -47,9 +50,11 @@ export function DisplayFigure({
   heading,
   headingId,
   caption,
+  morphName,
 }: Readonly<DisplayFigureProps>) {
   return (
     <section
+      {...(morphName && morphProps(morphName))}
       aria-labelledby={headingId}
       className="bg-hero text-hero-foreground shadow-hero relative isolate flex min-h-44 flex-col overflow-hidden rounded-3xl px-5 pt-6 pb-6 sm:min-h-48 sm:px-7 sm:pt-7 sm:pb-7"
     >

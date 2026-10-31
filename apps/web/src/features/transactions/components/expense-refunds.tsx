@@ -61,7 +61,7 @@ export function ExpenseRefundsView({
               <Link
                 to="/transactions/$transactionId"
                 params={{ transactionId: refund.id }}
-                className="hover:bg-accent/70 focus-visible:ring-ring/45 flex min-h-16 items-center gap-3.5 px-4 py-3 transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none"
+                className="group/row hover:bg-accent/70 focus-visible:ring-ring/45 active:bg-accent flex min-h-16 items-center gap-3.5 px-4 py-3 transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none"
               >
                 <CategoryTile color={color}>
                   <Undo2 aria-hidden="true" strokeWidth={1.75} />

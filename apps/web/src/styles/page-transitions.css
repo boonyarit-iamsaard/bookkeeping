@@ -1,0 +1,147 @@
+/*
+ * Screen changes, typed by core/router/page-transition.ts. Every motion is a
+ * short fade with a small slide on the axis that explains it; exits are
+ * quicker than entrances. Reduced motion never starts one.
+ */
+
+@keyframes page-out-left {
+  to {
+    opacity: 0;
+    translate: -2rem 0;
+  }
+}
+@keyframes page-in-right {
+  from {
+    opacity: 0;
+    translate: 2rem 0;
+  }
+}
+@keyframes page-out-right {
+  to {
+    opacity: 0;
+    translate: 2rem 0;
+  }
+}
+@keyframes page-in-left {
+  from {
+    opacity: 0;
+    translate: -2rem 0;
+  }
+}
+@keyframes page-in-up {
+  from {
+    opacity: 0;
+    translate: 0 2.5rem;
+  }
+}
+@keyframes page-out-down {
+  to {
+    opacity: 0;
+    translate: 0 2.5rem;
+  }
+}
+@keyframes page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The shell holds still while the screen inside it changes. */
+@layer base {
+  [data-shell="header"] {
+    view-transition-name: app-header;
+  }
+  [data-shell="tab-bar"] {
+    view-transition-name: tab-bar;
+  }
+}
+::view-transition-group(app-header),
+::view-transition-group(tab-bar) {
+  animation-duration: 150ms;
+}
+
+/* Tabs and other peers: a quick crossfade, no direction. */
+:root:active-view-transition-type(page-swap) {
+  &::view-transition-old(root) {
+    animation: page-fade-out 90ms ease-out both;
+  }
+  &::view-transition-new(root) {
+    animation: page-fade-in 150ms ease-out both;
+  }
+}
+
+/* A skeleton crossfades away rather than sliding. */
+:root:active-view-transition-type(page-load) {
+  &::view-transition-old(root) {
+    animation: page-fade-out 150ms ease-out both;
+  }
+  &::view-transition-new(root) {
+    animation: page-fade-in 200ms ease-out both;
+  }
+}
+
+/* Deeper comes in from the right; back returns it there. Cards that take no
+   part in a morph travel with the screen. */
+:root:active-view-transition-type(page-push) {
+  &::view-transition-old(root),
+  &::view-transition-old(*.morph):only-child {
+    animation: page-out-left 150ms cubic-bezier(0.4, 0, 1, 1) both;
+  }
+  &::view-transition-new(root),
+  &::view-transition-new(*.morph):only-child {
+    animation: page-in-right 280ms var(--ease-out-expo) 50ms both;
+  }
+}
+:root:active-view-transition-type(page-pop) {
+  &::view-transition-old(root),
+  &::view-transition-old(*.morph):only-child {
+    animation: page-out-right 150ms cubic-bezier(0.4, 0, 1, 1) both;
+  }
+  &::view-transition-new(root),
+  &::view-transition-new(*.morph):only-child {
+    animation: page-in-left 280ms var(--ease-out-expo) 50ms both;
+  }
+}
+
+/* Capture rises like the sheet and drops back once it is done. */
+:root:active-view-transition-type(page-rise) {
+  &::view-transition-old(root) {
+    animation: page-fade-out 150ms ease-out both;
+  }
+  &::view-transition-new(root) {
+    animation: page-in-up 300ms var(--ease-out-expo) both;
+  }
+}
+:root:active-view-transition-type(page-fall) {
+  &::view-transition-old(root) {
+    animation: page-out-down 180ms cubic-bezier(0.4, 0, 1, 1) both;
+  }
+  &::view-transition-new(root) {
+    animation: page-fade-in 200ms ease-out 60ms both;
+  }
+}
+
+/* A wallet card grows into its page's hero card on the spring, and back. */
+:root:active-view-transition-type(morph) [data-morph] {
+  view-transition-name: var(--morph-name);
+  view-transition-class: morph;
+}
+::view-transition-group(*.morph) {
+  animation-duration: 480ms;
+  animation-timing-function: var(--ease-spring);
+  border-radius: 1.5rem;
+  overflow: clip;
+}
+/* The hero is in before the card is out, so the shape never thins to the
+   ground between them. */
+::view-transition-old(*.morph) {
+  animation: page-fade-out 200ms ease-in both;
+}
+::view-transition-new(*.morph) {
+  animation: page-fade-in 120ms ease-out both;
+}

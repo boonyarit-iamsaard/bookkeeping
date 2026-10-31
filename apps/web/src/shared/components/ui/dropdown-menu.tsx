@@ -49,8 +49,8 @@ function DropdownMenuContent({
           data-slot="dropdown-menu-content"
           className={cn(
             // The floating surface shared with Select and Popover: a 16px-corner
-            // card lifted by the float shadow, appearing without animating.
-            "bg-popover text-popover-foreground shadow-float z-50 max-h-(--available-height) min-w-56 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl p-1.5 outline-none data-closed:overflow-hidden",
+            // card lifted by the float shadow, growing in from its trigger.
+            "bg-popover text-popover-foreground shadow-float ease-out-expo z-50 max-h-(--available-height) min-w-56 origin-(--transform-origin) [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl p-1.5 transition-[opacity,scale] duration-150 outline-none data-closed:overflow-hidden data-ending-style:scale-[0.96] data-ending-style:opacity-0 data-ending-style:duration-100 data-starting-style:scale-[0.96] data-starting-style:opacity-0 motion-reduce:transition-none",
             className,
           )}
           {...props}
