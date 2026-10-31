@@ -11,13 +11,22 @@ export const migrationsFolder = fileURLToPath(
 export interface MigrateDatabaseOptions {
   /** Overrides the committed migrations, for tests and baseline checks. */
   migrationsFolder?: string;
+  /**
+   * How long a statement waits for a lock before failing. Pending migrations
+   * run in one transaction, so a timeout applies none of them.
+   */
+  lockTimeoutMs?: number;
 }
 
 export async function migrateDatabase(
   url: string,
   options: Readonly<MigrateDatabaseOptions> = {},
 ): Promise<void> {
-  const pool = new Pool({ connectionString: url });
+  const pool = new Pool({
+    connectionString: url,
+    // Sent when each connection starts, so it precedes every migration.
+    lock_timeout: options.lockTimeoutMs,
+  });
   try {
     await migrate(drizzle({ client: pool }), {
       migrationsFolder: options.migrationsFolder ?? migrationsFolder,

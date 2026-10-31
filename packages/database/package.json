@@ -14,6 +14,9 @@
     "./testing": "./src/testing/test-database.ts",
     "./testing/global-setup": "./src/testing/global-setup.ts",
     "./testing/start-database": "./src/testing/start-database.ts",
+    "./testing/empty-database": "./src/testing/empty-database.ts",
+    "./testing/next-migration": "./src/testing/next-migration.ts",
+    "./testing/wallets-table": "./src/testing/wallets-table.ts",
     "./migrate": "./src/migrate.ts"
   },
   "scripts": {

@@ -7,59 +7,104 @@
 Every identifier below is a placeholder. Substitute the real value on screen;
 never write it into this file. The repository is public.
 
-Steps 8 to 13 follow steps 1 to 7 in
+Steps 7b to 13 follow steps 1 to 7a in
 [recover-production.md](recover-production.md), which this page's step
 numbers refer back to.
 
 ## Steps
+
+### 7b. Compare the migrations table with the journal
+
+- [ ] **Done** (tick once Verify passes)
+- **Goal:** You know which migrations the next deploy runs on `railway`.
+- **Why:** The `api` pre-deploy step runs every journal entry newer than the
+  table's newest `created_at` (ADR 0014). A backup taken before a migration
+  lacks its row, so the next deploy runs that migration again. The manifest
+  covers `public` only, so step 7a can't see this.
+- **Where:** The same terminal.
+- **Do:**
+  1. List the restored rows:
+
+     ```bash
+     ( printf 'DATABASE_PUBLIC_URL: '; read -rs u; printf '\n'
+       DATABASE_URL="${u%/railway}/railway?sslmode=require" docker run --rm \
+         --network host --env DATABASE_URL "$image" sh -c 'exec psql "$DATABASE_URL" -Atc \
+         "SELECT created_at, hash FROM drizzle.__drizzle_migrations ORDER BY created_at"' )
+     ```
+
+  2. List the journal the next deploy builds: `<DEPLOYED_SHA>` for step 8b,
+     or `origin/main` after `git fetch` for step 8a, as `<REF>`:
+
+     ```bash
+     git show <REF>:packages/database/drizzle/meta/_journal.json |
+       jq -r '.entries[] | "\(.when) \(.tag)"'
+     ```
+
+- **Expect:** Each row's `created_at` equals a journal `when`. Journal
+  entries newer than the newest row are pending; the next deploy runs them in
+  order, in one transaction.
+  - **Corrupted data:** nothing pending, or migrations the backup predates.
+    Those already ran once on this data's shape, and step 8b runs them again.
+  - **Bad migration:** it is pending, because the backup predates it, and
+    step 8a's deploy runs it again before the fix. If it destroys data, the
+    rerun would destroy what the restore brought back: run step 6's undo,
+    take step 8a on the damaged database, and copy the lost values from
+    `railway_restored` with me. That copy is outside this runbook, and step
+    11 doesn't apply.
+  - **`relation "drizzle.__drizzle_migrations" does not exist`:** the backup
+    predates the baseline adoption on 2026-10-31, and the deploy would fail
+    creating tables that exist. Stop and tell me: restore a newer backup, or
+    adopt this one with
+    `.scratch/production-migrations/runbooks/adopt-production-baseline.md`.
+  - **A row with no journal entry:** the database is ahead of `<REF>`. Stop
+    and tell me.
+- **Verify:** Paste both lists. I compare them.
+- **Undo:** Not needed.
+- **Ticks:** Nothing directly.
+- **Source:** `docs/adr/0014-production-migrations-in-railway-pre-deploy.md`,
+  `drizzle-orm/pg-core/dialect.js` (`migrate`, 0.45)
 
 ### 8. Bring the API back
 
 Restored data under a newer API is a second outage, so the deploy depends on
 the cause from step 1. Do 8a or 8b, not both.
 
-#### 8a. After a bad migration: merge the revert
+#### 8a. After a bad migration: fix forward
 
 - [ ] **Done** (tick once Verify passes)
-- **Goal:** `main` no longer holds the migration's code, and Railway deploys
-  that.
-- **Why:** The restored schema predates the migration. Railway deploys every
-  push to `main` once CI passes (ADR 0010).
+- **Goal:** `main` holds a newer migration that repairs the schema, and
+  Railway deploys it.
+- **Why:** Committed migrations are immutable (ADR 0014), so a revert can't
+  remove the bad one. The deploy's pre-deploy step runs what step 7b listed
+  as pending, then the fix. Railway deploys every push to `main` once CI
+  passes (ADR 0010).
 - **Where:** The repository root.
 - **Do:**
-  1. Find the squash commit that shipped the migration, `<MIGRATION_SHA>`,
-     with `git log --oneline -- packages/database`.
-  2. Revert it on a branch. The subject is `revert`, with the scope of the
-     one feature the revert touches (such as `revert(wallets):`) or no scope
-     if it touches several. The whole subject stays within 72 characters; the
-     commit-msg hook names any scope it expects:
-
-     ```bash
-     git switch main && git pull --ff-only
-     git switch -c revert/<MIGRATION_SLUG>
-     git revert --no-commit <MIGRATION_SHA>
-     git commit -m "revert(<SCOPE>): <SHORT_SUBJECT>" -m "This reverts commit <MIGRATION_SHA_FULL>."
-     ```
-
-  3. `git push -u origin HEAD`, then `gh pr create --fill`.
+  1. On a branch from an up-to-date `main`, change the schema and generate
+     the fix as a new migration, following
+     `docs/code-conventions.md#database-migrations`. It starts from the
+     schema the pending migrations from step 7b leave.
+  2. `git push -u origin HEAD`, then `gh pr create --fill`.
+  3. Take the backup the PR template asks for, as in step 12.
   4. Wait for the checks with `gh pr checks --watch --required`, then
      `gh pr merge --squash`.
-- **Expect:** A new `api` deployment builds from the revert and passes the
-  `/health` healthcheck.
+- **Expect:** A new `api` deployment whose pre-deploy step succeeds, then
+  passes the `/health` healthcheck.
 - **Verify:** I run `railway service list`: `api` is `Online` with a new
   deployment ID.
-- **Undo:** A failed deploy leaves `api` down; fix forward with another PR.
+- **Undo:** A failed pre-deploy applies nothing and leaves `api` down; fix
+  forward with another PR.
 - **Ticks:** Ticket 03: "deploy".
-- **Source:** <https://git-scm.com/docs/git-revert> (`--no-commit`),
+- **Source:** `docs/adr/0014-production-migrations-in-railway-pre-deploy.md`,
   <https://cli.github.com/manual/gh_pr_checks> (`--watch`, `--required`),
-  `docs/adr/0010-protected-main-and-gated-deploys.md`,
-  `commitlint.config.ts`
+  `docs/adr/0010-protected-main-and-gated-deploys.md`
 
 #### 8b. After corrupted data: redeploy the current deployment
 
 - [ ] **Done** (tick once Verify passes)
 - **Goal:** The same build that was running comes back.
-- **Why:** The code did not change, so it matches the restored schema.
+- **Why:** The code did not change, so it matches the restored schema. Its
+  pre-deploy step reruns any migration step 7b listed as pending.
 - **Where:** Railway dashboard → `api` → **Deployments** (per docs, verify
   on screen).
 - **Do:**
@@ -226,7 +271,7 @@ the cause from step 1. Do 8a or 8b, not both.
 
 ## Final checks
 
-- [ ] The manifest matches: step 7 (or N4) printed `passed`.
+- [ ] The manifest matches: step 7a (or N4) printed `passed`.
 - [ ] `/health` returns `200`:
       `curl -s -o /dev/null -w '%{http_code}' https://<API_HOSTNAME>/health`.
 - [ ] The proxy is gone: step 10's variable check prints `[]`.

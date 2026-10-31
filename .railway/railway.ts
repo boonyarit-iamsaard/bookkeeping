@@ -45,6 +45,9 @@ export default defineRailway(() => {
       watchPatterns: ["/apps/server/**", ...SHARED_WATCH_PATTERNS],
     },
     deploy: {
+      // Applies pending migrations before the new image takes traffic; a
+      // failure stops the deploy and the old version keeps serving.
+      preDeployCommand: ["node dist/migrate.js"],
       healthcheckPath: "/health",
       drainingSeconds: 10,
       limitOverride: { containers: CONTAINER_LIMITS },

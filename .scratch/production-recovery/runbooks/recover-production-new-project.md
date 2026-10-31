@@ -75,7 +75,7 @@ database or write before the restore has passed.
 
 - [ ] **Done** (tick once Verify passes)
 - **Goal:** `railway` is the backup, matching its manifest.
-- **Why:** The restore checks the manifest itself, so step 7 doesn't apply.
+- **Why:** The restore checks the manifest itself, so step 7a doesn't apply.
 - **Where:** This machine's terminal.
 - **Do:**
   1. Choose the backup with step 1's sub-steps 2 to 4.
@@ -87,9 +87,12 @@ database or write before the restore has passed.
          apps/backup/restore.sh --identity <AGE_IDENTITY_FILE> --backup <BACKUP_PREFIX> )
      ```
 
+  3. Run [step 7b](recover-production-after-swap.md#7b-compare-the-migrations-table-with-the-journal)'s
+     check with `origin/main` as `<REF>`: N5 deploys it.
+
 - **Expect:** `created the database railway`, then
   `passed: <N> tables match, dumped at <DUMPED_AT>, from <BACKUP_PREFIX>/`.
-- **Verify:** Paste the last line.
+- **Verify:** Paste the last line, and step 7b's lists.
 - **Undo:** Run N3 again, then retry.
 - **Ticks:** Nothing directly.
 - **Source:** `apps/backup/README.md` (Restore)

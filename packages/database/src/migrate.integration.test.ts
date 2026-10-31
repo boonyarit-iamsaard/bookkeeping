@@ -4,8 +4,13 @@ import { users } from "./auth/auth.schema";
 import { createDatabase } from "./connection";
 import { freshDatabase, migrateDatabase } from "./migrate";
 import { withEmptyDatabase } from "./testing/empty-database";
+import {
+  nextMigrationColumn,
+  withNextMigrationFolder,
+} from "./testing/next-migration";
 import { createTestUser } from "./testing/test-database";
 import { testDatabaseUrl } from "./testing/url";
+import { hasWalletColumn, withLockedWallets } from "./testing/wallets-table";
 
 // Migrations can exceed Vitest's 5 s default on a loaded machine; matches the
 // integration project's hookTimeout.
@@ -48,6 +53,38 @@ describe("migrateDatabase", () => {
       } finally {
         await connection.close();
       }
+    },
+  );
+});
+
+// PostgreSQL's error code for a statement that gave up waiting on a lock.
+const LOCK_NOT_AVAILABLE = "55P03";
+
+describe("migrateDatabase with a lock timeout", () => {
+  test(
+    "gives up on a held lock within the timeout and applies nothing",
+    migrationTestOptions,
+    async () => {
+      await withEmptyDatabase(async (url) => {
+        await migrateDatabase(url);
+        const appliedBefore = await readAppliedMigrationHashes(url);
+
+        await withLockedWallets(url, () =>
+          withNextMigrationFolder(async (folder) => {
+            const startedAt = Date.now();
+            await expect(
+              migrateDatabase(url, {
+                migrationsFolder: folder,
+                lockTimeoutMs: 1_000,
+              }),
+            ).rejects.toMatchObject({ cause: { code: LOCK_NOT_AVAILABLE } });
+            expect(Date.now() - startedAt).toBeLessThan(5_000);
+          }),
+        );
+
+        expect(await readAppliedMigrationHashes(url)).toEqual(appliedBefore);
+        expect(await hasWalletColumn(url, nextMigrationColumn)).toBe(false);
+      });
     },
   );
 });

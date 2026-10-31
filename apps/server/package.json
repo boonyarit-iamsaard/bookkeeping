@@ -10,6 +10,7 @@
     "password:reset": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/reset-password-cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:image": "vitest run --config vitest.image.config.mts",
     "types:check": "tsc --noEmit"
   },
   "dependencies": {
@@ -19,6 +20,7 @@
     "hono": "^4.13.14",
     "hono-openapi": "^1.5.0",
     "pg": "^8.23.1",
+    "pg-connection-string": "^2.14.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
