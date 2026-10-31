@@ -4,12 +4,24 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { assertLocalDatabaseUrl } from "./local-database-url";
 
-const migrationsFolder = fileURLToPath(new URL("../drizzle", import.meta.url));
+export const migrationsFolder = fileURLToPath(
+  new URL("../drizzle", import.meta.url),
+);
 
-export async function migrateDatabase(url: string): Promise<void> {
+export interface MigrateDatabaseOptions {
+  /** Overrides the committed migrations, for tests and baseline checks. */
+  migrationsFolder?: string;
+}
+
+export async function migrateDatabase(
+  url: string,
+  options: Readonly<MigrateDatabaseOptions> = {},
+): Promise<void> {
   const pool = new Pool({ connectionString: url });
   try {
-    await migrate(drizzle({ client: pool }), { migrationsFolder });
+    await migrate(drizzle({ client: pool }), {
+      migrationsFolder: options.migrationsFolder ?? migrationsFolder,
+    });
   } finally {
     await pool.end();
   }
