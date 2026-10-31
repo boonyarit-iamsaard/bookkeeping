@@ -45,45 +45,38 @@ JetBrains Mono, declared in `apps/web/src/styles/fonts.css`.
 ## Git workflow
 
 Work on a task branch before editing tracked files, including documentation.
-At the start of a task, inspect `git status --short` and
-`git branch --show-current`. When on `main`, create and switch to the task
-branch automatically. Reuse an existing branch when continuing the same task.
-Keep one branch and pull request per coherent task.
+Start by inspecting `git status --short` and `git branch --show-current`; when
+on `main`, create and switch to the task branch. Reuse the branch when
+continuing the same task. Keep one branch and pull request per coherent task.
 
-Name branches `<type>/<short-kebab-case-description>`, using a conventional
-commit type: `feat`, `fix`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
-`docs`, `chore`, or `revert`. Use lowercase words separated by hyphens for the
-description, for example:
+Name branches `<type>/<short-kebab-case-description>` with a conventional
+commit type (`feat`, `fix`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
+`docs`, `chore` or `revert`), such as `feat/wallet-opening-corrections`. Rename
+the branch when the task's type changes, as when a `docs/` discussion settles
+into implementation (`feat/`): `git branch -m` before pushing, or GitHub's
+rename once a pull request is open.
 
-- `feat/wallet-opening-corrections`
-- `fix/sign-in-return-navigation`
-- `docs/reconcile-project-tickets`
-
-For a new task with a clean working tree, fetch and update `main` before
-creating the branch:
+With a clean tree, branch a new task from an updated `main`:
 
 ```sh
-git fetch origin
-git switch main
-git pull --ff-only
+git switch main && git pull --ff-only
 git switch -c docs/reconcile-project-tickets
 ```
 
-Preserve uncommitted changes. If the current task already has edits on `main`,
-create its branch from the current checkout so those edits stay with the task.
-When another task's work would interfere, use a separate branch or worktree
-without discarding or stashing unrelated changes. Agents execute Git writes
-through the [host-command policy](AGENTS.md#host-commands) when sandbox access
-requires it.
+Preserve uncommitted changes. If the task already has edits on `main`, branch
+from the current checkout so they stay with it. When another task's work would
+interfere, use a separate branch or worktree without discarding or stashing
+unrelated changes. Agents run Git writes through the
+[host-command policy](AGENTS.md#host-commands) when the sandbox requires it.
 
 Merge changes through pull requests with the required `CI`, `SPA browser suite`
-and `Dependency Review` checks passing; `main` is protected against direct
-pushes. See [ADR 0010](docs/adr/0010-protected-main-and-gated-deploys.md).
+and `Dependency Review` checks passing; `main` rejects direct pushes. See
+[ADR 0010](docs/adr/0010-protected-main-and-gated-deploys.md). Delete the remote branch on merge:
+`gh pr merge --delete-branch`, or `git push origin --delete <branch>`.
 
-Use the [commit-message rules](AGENTS.md#commit-messages) for each staged diff;
+Use the [commit-message rules](AGENTS.md#commit-messages);
 `commitlint.config.ts` is authoritative and the commit-msg hook enforces it.
-The branch type describes the task; each commit's type describes its own
-changes.
+The branch type names the task; each commit's type names its own changes.
 
 ## Project structure
 

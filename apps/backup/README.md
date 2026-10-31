@@ -25,6 +25,10 @@ cron schedule; the storage it uploads to is `infra/aws/backups.yaml`.
 - `restore.sh`: restores a named backup into a new database at a URL the
   owner gives it, and compares it with its manifest.
 
+Before changing the restore scripts, read
+`.scratch/backlog/issues/05-port-restore-scripts-to-typescript.md`: a real
+change to them reopens the deferred port to TypeScript.
+
 ## Restore drill
 
 Run it on the owner's machine with Docker, `age` and the AWS CLI. After
