@@ -30,12 +30,14 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
 
   // Each control applies on pick and changes only its own value; the other
   // keeps the address's, so a malformed one stays visible until corrected.
+  // The latest address, not the report on show: a pick made while the other
+  // control's report loads would otherwise undo that control's pick.
   function showMonth(month: string) {
-    void navigate({ search: { month, asOf: search.asOf } });
+    void navigate({ search: (latest) => ({ month, asOf: latest.asOf }) });
   }
 
   function showBalanceDate(asOf: CalendarDate) {
-    void navigate({ search: { month: search.month, asOf } });
+    void navigate({ search: (latest) => ({ month: latest.month, asOf }) });
   }
 
   // It sits with the balances it dates; an invalid value keeps it on screen
