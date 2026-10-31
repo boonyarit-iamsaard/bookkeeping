@@ -17,14 +17,26 @@ September 2026 and then the 3 Sep 2026 balance date. The URL came back with
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done (72718e0)
 
-- [ ] Picking a month and then a balance date before the month's report has
+- [x] Picking a month and then a balance date before the month's report has
       loaded leaves the address with both new values.
-- [ ] Picking a balance date and then a month before the balance date's
+- [x] Picking a balance date and then a month before the balance date's
       report has loaded leaves the address with both new values.
-- [ ] A browser test holds back the report read for the new value, makes the
+- [x] A browser test holds back the report read for the new value, makes the
       second pick during the load, and asserts the address keeps both values.
-- [ ] A malformed month or balance date in the address still stays visible
+- [x] A malformed month or balance date in the address still stays visible
       and editable when the other control changes.
-- [ ] The existing reports spec passes without a retry.
+- [x] The existing reports spec passes without a retry.
+
+## Comments
+
+Cause: each control rebuilt the address from `Route.useSearch()`, which
+returns the rendered match's search while the new match's loader is pending.
+Both controls now pass a functional `search`, which the router resolves
+against the pending (latest) location. `reports-controls.spec.ts` holds back
+the new value's read and makes the second pick during the load, in both
+orders; both tests failed every run without the fix. The existing reports
+spec passed 13 of 14 runs with retries off and then 12 in a row; the one
+failure was an early `toBeVisible` on a cold run, not the URL symptom, and its
+trace was lost.
