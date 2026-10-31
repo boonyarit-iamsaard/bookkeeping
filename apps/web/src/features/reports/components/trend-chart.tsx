@@ -92,7 +92,7 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
                   <div
                     key={series.key}
                     className={cn(
-                      "absolute min-h-1 w-[30%] rounded-sm",
+                      "ease-out-expo absolute min-h-1 w-[30%] rounded-sm transition-[height,bottom] duration-300 motion-reduce:transition-none",
                       seriesIndex === 0 ? "left-[17%]" : "right-[17%]",
                       chartMarkClass(series.series),
                     )}
@@ -107,7 +107,7 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
           </div>
         ))}
         <div
-          className="bg-chart-baseline pointer-events-none absolute inset-x-0 h-px"
+          className="bg-chart-baseline ease-out-expo pointer-events-none absolute inset-x-0 h-px transition-[bottom] duration-300 motion-reduce:transition-none"
           style={{ bottom: toPercent(zero) }}
         />
       </div>

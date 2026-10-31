@@ -27,9 +27,11 @@ export function SheetPortal({
       <Dialog.Viewport className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
         <Dialog.Popup
           className={cn(
-            "bg-card text-card-foreground shadow-float flex max-h-[85dvh] w-full flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] outline-none",
-            "rounded-t-3xl transition-transform duration-[260ms] ease-[cubic-bezier(0.16,1,0.3,1)] data-ending-style:translate-y-full data-starting-style:translate-y-full motion-reduce:transition-none",
-            "sm:max-w-md sm:rounded-3xl sm:pb-0 sm:transition-opacity sm:data-ending-style:translate-y-0 sm:data-ending-style:opacity-0 sm:data-starting-style:translate-y-0 sm:data-starting-style:opacity-0",
+            // On phone a solid Card-coloured shadow 2rem beneath it fills
+            // the gap the spring's settle would otherwise lift.
+            "bg-card text-card-foreground shadow-float flex max-h-[85dvh] w-full flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] outline-none max-sm:shadow-[var(--shadow-float),0_2rem_0_var(--card)]",
+            "ease-spring rounded-t-3xl transition-transform duration-400 data-ending-style:translate-y-full data-ending-style:duration-200 data-ending-style:ease-[cubic-bezier(0.4,0,1,1)] data-starting-style:translate-y-full motion-reduce:transition-none",
+            "sm:ease-out-expo sm:max-w-md sm:rounded-3xl sm:pb-0 sm:transition-opacity sm:duration-[260ms] sm:data-ending-style:translate-y-0 sm:data-ending-style:opacity-0 sm:data-starting-style:translate-y-0 sm:data-starting-style:opacity-0",
             className,
           )}
         >

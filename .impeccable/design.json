@@ -942,8 +942,8 @@
       },
       {
         "name": "sheet-rise",
-        "value": "transform 260ms cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "Raises a phone sheet from the bottom edge; from 640px the dialog fades over 260ms instead."
+        "value": "transform 400ms var(--ease-spring); drops in 200ms",
+        "purpose": "Raises a phone sheet on the spring; from 640px the dialog fades over 260ms."
       },
       {
         "name": "scrim-fade",
@@ -953,7 +953,27 @@
       {
         "name": "row-arrival",
         "value": "opacity and translateY(8px) 400ms cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "The just-saved row rises and fades in, then keeps a 7% wash of its category hue."
+        "purpose": "The just-saved row rises in 150ms after its screen settles, keeping a 7% hue wash."
+      },
+      {
+        "name": "page-transition",
+        "value": "view transition: swap 150ms, push/pop 2rem 280ms, rise 2.5rem 300ms",
+        "purpose": "Screen changes, typed in core/router/page-transition.ts."
+      },
+      {
+        "name": "wallet-morph",
+        "value": "view transition group 480ms var(--ease-spring)",
+        "purpose": "A wallet card grows into its page's hero card, and back."
+      },
+      {
+        "name": "press",
+        "value": "scale 0.98 card, 0.97 button, 0.92 row tile; 90ms in, 150ms out",
+        "purpose": "Feedback under the thumb."
+      },
+      {
+        "name": "popup-grow",
+        "value": "opacity and scale(0.96) 150ms from --transform-origin",
+        "purpose": "Selects, calendars and menus grow from their trigger."
       }
     ],
     "breakpoints": [
@@ -1047,7 +1067,7 @@
   ],
   "narrative": {
     "northStar": "The Midnight Card",
-    "overview": "Bookkeeping is a bright banking-app front page for one person's money. A single deep Midnight hero card holds the figure a screen is about; everything else sits on white cards over a soft iris-tinted ground, and one Iris action waits under the thumb. It plays clean modern fintech straight, at the craft level of MAKE by KBank and K PLUS, and sits beside them rather than imitating them: no bank green, no borrowed marks. Trust comes from exact money, a calm tonal palette, predictable controls, and a few short motions that confirm what just happened.\n\nDensity is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.\n\nScope: the whole product is on this system. Ticket 01 built it with the shell and Home; 02 restyled capture, 03 history, filters, and the transaction detail, 04 the wallets, 05 Reports with the chart component, 06 Categories and the pickers, and 07 sign-in and sign-up; 08 swept the seams between them, the offline page, and the not-found screen.",
+    "overview": "Bookkeeping is a bright banking-app front page for one person's money. A single deep Midnight hero card holds the figure a screen is about; everything else sits on white cards over a soft iris-tinted ground, and one Iris action waits under the thumb. It plays clean modern fintech straight, at the craft level of MAKE by KBank and K PLUS, and sits beside them rather than imitating them: no bank green, no borrowed marks. Trust comes from exact money, a calm tonal palette, predictable controls, and a few short motions that confirm what just happened.\n\nDensity is comfortable and grouped. Rows live together on one card divided by inset hairlines; summaries are cards with their own padding; section headings sit on the ground above the card they name. Category color gives each row a quick identity through a tinted tile, never a meaning. Light and dark follow the system setting with no in-app switch, and every neutral in both carries a faint iris cast.\n\nScope: the whole product is on this system.",
     "keyCharacteristics": [
       "An iris-tinted ground with white cards in light, a near-black indigo ground with lifted indigo cards in dark, chosen by prefers-color-scheme.",
       "One Midnight hero card per screen, carrying the app icon's bowl-and-coin as its only ornament.",
@@ -1055,7 +1075,7 @@
       "Inter throughout, with money in bold Inter at tabular digits; no monospace anywhere.",
       "Category pictograms on rounded-square tiles tinted from an eight-hue palette, children inheriting their parent.",
       "Soft, iris-tinted shadows on cards and floating surfaces; a phone shell of white chrome, title bar, and tab bar.",
-      "Motion only for the arriving row or wallet card, the sheet, the segmented indicator, and 150ms hover fades, all removed under reduced motion."
+      "Motion that explains a change, and stops under reduced motion."
     ],
     "rules": [
       {
@@ -1113,7 +1133,7 @@
       "Do color category tiles by the parent's stable hash, inherit it in children, and keep Uncategorized and transfers neutral.",
       "Do give every phone control a tappable area of at least 44 by 44 CSS pixels below 640px; use 48px for the ＋.",
       "Do use the three shadow tokens as defined, and the 1px light edge in dark.",
-      "Do keep motion to the arriving row or wallet card, the sheet, the segmented indicator, and 150ms hover fades, and remove all of it under reduced motion.",
+      "Do keep motion to the moments under Motion, and remove all of it under reduced motion.",
       "Do tell every chart series apart by label, position, and pattern as well as hue, and state each charted figure as text.",
       "Do pair pictograms with words; an icon-only control needs an accessible name and a universal glyph such as ‹ or ✕."
     ],
@@ -1125,7 +1145,7 @@
       "Don't add a pie or ring for wallets, a dual-axis chart, an abbreviated axis number, or a client-side sum standing in for a level 3 read.",
       "Don't put shadows on buttons, fields, rows, chrome, or tiles, or invent shadow values outside the three tokens and the capture glow.",
       "Don't show figures, ฿, or sample money in loading states, or animate skeletons.",
-      "Don't animate popovers, menus, or page changes, or add motion beyond the recorded moments.",
+      "Don't animate figures, or add bounce, parallax, hover lift, or motion beyond the recorded moments.",
       "Don't add a grab handle to sheets or an in-app theme switch; the system setting chooses light or dark."
     ]
   }

@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
+import { pageTransitionTypes } from "@/core/router/page-transition";
 import { NotFound } from "@/core/shell/not-found";
 import { RootErrorBoundary } from "@/core/shell/root-error-boundary";
 import { routeTree } from "@/routeTree.gen";
@@ -20,6 +21,16 @@ export function createAppRouter(context: Readonly<RouterContext>) {
     // its link finds the place it was left.
     scrollRestoration: true,
     getScrollRestorationKey: (location) => location.href,
+    defaultViewTransition: {
+      types: ({ fromLocation, toLocation }) =>
+        pageTransitionTypes({
+          fromPathname: fromLocation?.pathname,
+          toPathname: toLocation.pathname,
+          reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
+            .matches,
+          loading: document.querySelector("main[aria-busy='true']") !== null,
+        }),
+    },
   });
 }
 

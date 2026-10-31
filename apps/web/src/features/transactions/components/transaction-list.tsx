@@ -94,14 +94,15 @@ export function TransactionList({
             data-saved={transaction.id === savedId || undefined}
             data-hue={color}
             className={cn(
+              // It arrives once the screen it lands on has settled.
               transaction.id === savedId &&
-                "motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:animate-in bg-[color-mix(in_oklch,var(--hue)_7%,var(--card))] motion-safe:duration-400 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:animate-in motion-safe:fill-mode-backwards bg-[color-mix(in_oklch,var(--hue)_7%,var(--card))] motion-safe:delay-150 motion-safe:duration-400 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
             )}
           >
             <Link
               to="/transactions/$transactionId"
               params={{ transactionId: transaction.id }}
-              className="hover:bg-accent/70 focus-visible:ring-ring/45 flex min-h-16 items-center gap-3.5 px-4 py-3 transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none"
+              className="group/row hover:bg-accent/70 focus-visible:ring-ring/45 active:bg-accent flex min-h-16 items-center gap-3.5 px-4 py-3 transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none"
             >
               <CategoryTile color={color}>
                 {transaction.category ? (

@@ -68,7 +68,7 @@ function SelectTrigger({
           <ChevronDown
             aria-hidden="true"
             strokeWidth={1.75}
-            className="text-muted-foreground group-data-popup-open/select-trigger:rotate-180"
+            className="text-muted-foreground ease-out-expo transition-transform duration-200 group-data-popup-open/select-trigger:rotate-180 motion-reduce:transition-none"
           />
         }
       >
@@ -114,11 +114,11 @@ function SelectContent({
           data-align-trigger={alignItemWithTrigger}
           className={cn(
             // The same floating surface as the dropdown menu: a 16px-corner
-            // card lifted by the float shadow, appearing without animating.
+            // card lifted by the float shadow, growing in from its trigger.
             // The popup clips; the List beneath is the scroll container, so
             // Base UI can hide its scrollbar behind the edge arrows and the
             // rounded corners stay closed.
-            "bg-popover text-popover-foreground shadow-float relative isolate z-50 flex max-h-[min(var(--available-height),26rem)] w-(--anchor-width) min-w-48 flex-col overflow-hidden rounded-xl outline-none",
+            "bg-popover text-popover-foreground shadow-float ease-out-expo relative isolate z-50 flex max-h-[min(var(--available-height),26rem)] w-(--anchor-width) min-w-48 origin-(--transform-origin) flex-col overflow-hidden rounded-xl transition-[opacity,scale] duration-150 outline-none data-ending-style:scale-[0.96] data-ending-style:opacity-0 data-ending-style:duration-100 data-starting-style:scale-[0.96] data-starting-style:opacity-0 motion-reduce:transition-none",
             className,
           )}
           {...props}

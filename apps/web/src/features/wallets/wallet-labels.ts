@@ -14,6 +14,11 @@ export function walletCountLabel(count: number): string {
 
 type Wallet = components["schemas"]["Wallet"];
 
+/** The morph name a wallet's card shares with its page's hero card. */
+export function walletMorphName(walletId: string): string {
+  return `wallet-${walletId}`;
+}
+
 /** "Cash", "Cash · Archived": a wallet's caption on the list and its page. */
 export function walletCaption({
   type,

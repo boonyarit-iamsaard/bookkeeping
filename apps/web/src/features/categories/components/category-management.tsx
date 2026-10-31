@@ -218,7 +218,7 @@ function CategoryRow({
       <Dialog.Trigger
         data-category-row={category.id}
         className={cn(
-          "hover:bg-accent/70 focus-visible:ring-ring/45 flex w-full items-center gap-3.5 px-4 text-left transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none",
+          "group/row hover:bg-accent/70 focus-visible:ring-ring/45 active:bg-accent flex w-full items-center gap-3.5 px-4 text-left transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none",
           isChild ? "min-h-14 py-2.5" : "min-h-16 py-3",
         )}
       >

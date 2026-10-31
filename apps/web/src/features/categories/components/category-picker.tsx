@@ -454,7 +454,7 @@ function OptionRow({ className, ...props }: React.ComponentProps<"button">) {
       type="button"
       data-option
       className={cn(
-        "hover:bg-accent/70 focus-visible:ring-ring/45 flex w-full items-center gap-3.5 px-5 text-left transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none sm:px-6",
+        "group/row hover:bg-accent/70 focus-visible:ring-ring/45 active:bg-accent flex w-full items-center gap-3.5 px-5 text-left transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none sm:px-6",
         className,
       )}
       {...props}

@@ -41,6 +41,9 @@ export default defineConfig({
     // specs that mock the API would hit the real server. `pwa.spec.ts` opts
     // back in for the worker itself.
     serviceWorkers: "block",
+    // Screen changes and arrivals would otherwise race the assertions; under
+    // reduced motion the app starts none of them.
+    reducedMotion: "reduce",
   },
   projects: [
     {

@@ -29,7 +29,10 @@ export function AppHeader({
   captureSearch,
 }: Readonly<AppHeaderProps>) {
   return (
-    <header className="bg-chrome/90 sticky top-0 z-20 border-b backdrop-blur-md max-sm:hidden">
+    <header
+      data-shell="header"
+      className="bg-chrome/90 sticky top-0 z-20 border-b backdrop-blur-md max-sm:hidden"
+    >
       <div className="mx-auto flex h-16 w-full max-w-2xl items-center gap-3 px-4 md:gap-5 lg:max-w-5xl lg:px-6">
         <WordmarkLink
           to="/"

@@ -44,9 +44,9 @@ function PopoverContent({
           data-slot="popover-content"
           className={cn(
             // The same floating surface as the Select list and the dropdown
-            // menu: a 16px-corner card lifted by the float shadow, appearing
-            // without animating.
-            "bg-popover text-popover-foreground shadow-float z-50 flex flex-col rounded-xl outline-none",
+            // menu: a 16px-corner card lifted by the float shadow, growing in
+            // from its trigger.
+            "bg-popover text-popover-foreground shadow-float ease-out-expo z-50 flex origin-(--transform-origin) flex-col rounded-xl transition-[opacity,scale] duration-150 outline-none data-ending-style:scale-[0.96] data-ending-style:opacity-0 data-ending-style:duration-100 data-starting-style:scale-[0.96] data-starting-style:opacity-0 motion-reduce:transition-none",
             className,
           )}
           {...props}
