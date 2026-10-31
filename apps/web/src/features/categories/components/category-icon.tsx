@@ -39,7 +39,7 @@ export function CategoryTile({
     <span
       data-hue={color}
       className={cn(
-        "hue-tile ease-out-expo flex shrink-0 items-center justify-center transition-[scale] duration-150 group-active/row:scale-[0.92] group-active/row:duration-[90ms] motion-reduce:transition-none",
+        "hue-tile ease-out-expo flex shrink-0 items-center justify-center transition-[scale] duration-150 group-active/row:scale-[0.92] group-active/row:duration-(--press-duration) motion-reduce:transition-none",
         size === "row"
           ? "size-11 rounded-lg [&_svg]:size-5"
           : "size-9 rounded-md [&_svg]:size-4",

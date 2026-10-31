@@ -16,6 +16,7 @@ import { EmptyState } from "@/shared/components/empty-state";
 import { listCardClass } from "@/shared/components/list-section";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { ARRIVAL_CLASS } from "@/shared/helpers/arrival";
 import { cn } from "@/shared/helpers/cn";
 
 type ApiTransaction = components["schemas"]["Transaction"];
@@ -94,9 +95,10 @@ export function TransactionList({
             data-saved={transaction.id === savedId || undefined}
             data-hue={color}
             className={cn(
-              // It arrives once the screen it lands on has settled.
-              transaction.id === savedId &&
-                "motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:animate-in motion-safe:fill-mode-backwards bg-[color-mix(in_oklch,var(--hue)_7%,var(--card))] motion-safe:delay-150 motion-safe:duration-400 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
+              transaction.id === savedId && [
+                ARRIVAL_CLASS,
+                "bg-[color-mix(in_oklch,var(--hue)_7%,var(--card))]",
+              ],
             )}
           >
             <Link

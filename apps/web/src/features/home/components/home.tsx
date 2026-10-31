@@ -16,8 +16,8 @@ import { walletCountLabel } from "@/features/wallets/wallet-labels";
 export const HOME_COLUMNS_CLASS =
   "flex flex-col gap-6 sm:gap-8 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start";
 
-// Home's first showing in a session lets its cards arrive one by one; every
-// later visit shows them at once.
+// Home's first showing after the app opens lets its cards arrive one by one;
+// every later visit shows them at once, until the app is opened again.
 let homeHasArrived = false;
 
 function useFirstShowing() {
@@ -31,12 +31,12 @@ function useFirstShowing() {
 interface ArrivalProps {
   /** Its place in the sequence; each card follows the last by 40ms. */
   order: number;
-  play: boolean;
+  animate: boolean;
   children: React.ReactNode;
 }
 
-function Arrival({ order, play, children }: Readonly<ArrivalProps>) {
-  if (!play) {
+function Arrival({ order, animate, children }: Readonly<ArrivalProps>) {
+  if (!animate) {
     return children;
   }
   return (
@@ -84,23 +84,23 @@ export function Home({
       ) : (
         <div className={HOME_COLUMNS_CLASS}>
           <div className="flex flex-col gap-6 sm:gap-8">
-            <Arrival order={0} play={arrive}>
+            <Arrival order={0} animate={arrive}>
               <WalletsTotal
                 wallets={wallets}
                 caption={`Across ${walletCountLabel(wallets.length)}`}
               />
             </Arrival>
-            <Arrival order={1} play={arrive}>
+            <Arrival order={1} animate={arrive}>
               <ThisMonth report={report} />
             </Arrival>
             {/* With one wallet the card would only repeat the total. */}
             {wallets.length > 1 && (
-              <Arrival order={2} play={arrive}>
+              <Arrival order={2} animate={arrive}>
                 <WalletBalances wallets={wallets} />
               </Arrival>
             )}
           </div>
-          <Arrival order={3} play={arrive}>
+          <Arrival order={3} animate={arrive}>
             <RecentTransactions transactions={recent.items} savedId={savedId} />
           </Arrival>
         </div>

@@ -239,7 +239,7 @@ export function HistoryFilterChips({
               chip.invalid ? "Not a value the history accepts" : undefined
             }
             className={cn(
-              "bg-secondary text-secondary-foreground focus-visible:ring-ring/45 flex min-h-11 max-w-full items-center gap-1.5 rounded-full pr-3 pl-4 text-sm font-semibold transition-[color,background-color,scale] duration-150 outline-none hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)] focus-visible:ring-[3px] active:scale-[0.97] active:duration-[90ms] motion-reduce:transition-none",
+              "bg-secondary text-secondary-foreground focus-visible:ring-ring/45 flex min-h-11 max-w-full items-center gap-1.5 rounded-full pr-3 pl-4 text-sm font-semibold transition-[color,background-color,scale] duration-150 outline-none hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)] focus-visible:ring-[3px] active:scale-[0.97] active:duration-(--press-duration) motion-reduce:transition-none",
               // Invalid reads by its dashed outline and pictogram, not red alone.
               chip.invalid && "border-destructive border border-dashed pl-3",
             )}

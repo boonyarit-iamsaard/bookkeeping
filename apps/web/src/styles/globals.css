@@ -7,8 +7,10 @@
 @custom-variant dark (&:where([data-scheme="dark"], [data-scheme="dark"] *));
 
 /* Motion: arrivals settle on the exponential ease-out; the wallet morph and
-   the sheet on a spring that passes its mark by 3% and settles back. */
+   the sheet on a spring that passes its mark by 3% and settles back. A press
+   lands quicker than its release. */
 @theme static {
+  --press-duration: 90ms;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: linear(
     0,

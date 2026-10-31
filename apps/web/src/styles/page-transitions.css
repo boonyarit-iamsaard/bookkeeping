@@ -75,7 +75,7 @@
   }
 }
 
-/* The skeleton gives way to its content in place. */
+/* A skeleton crossfades away rather than sliding. */
 :root:active-view-transition-type(page-load) {
   &::view-transition-old(root) {
     animation: page-fade-out 150ms ease-out both;

@@ -434,11 +434,11 @@ A violet-blue family on tinted neutrals: Iris acts, Midnight holds the figure, a
 
 ## Layout
 
-Content is one centred column with 16px phone gutters. Home, lists, details, and reports use the 672px column; single-record management and forms use the 448px column, and entry forms leave 224px below the fields on phone, room for the fixed Save bar and for the last field to scroll clear of the sticky title bar. Blocks are 24px apart on phone and 32px from 640px. Cards pad 20px on phone and 24 to 28px from 640px. Rows are at least 64px tall, padded 12px by 16px, with 14px between the tile, the text, and the figure.
+Content is one centred column with 16px phone gutters. Home, lists, details, and reports use the 672px column; single-record management and forms use the 448px column, and entry forms leave 224px below the fields on phone, room for the fixed Save bar and for the last field to clear the sticky title bar. Blocks are 24px apart on phone and 32px from 640px. Cards pad 20px on phone and 24 to 28px from 640px. Rows are at least 64px tall, padded 12px by 16px, with 14px between the tile, the text, and the figure.
 
 Below 640px each screen begins with a sticky Chrome title bar, 56px plus the status-area inset, which gains a bottom Hairline only once the page scrolls under it. The tab bar is fixed above the home indicator: 56px plus the bottom safe area, a top Hairline, Chrome at 85 to 95% with backdrop blur. Home and Transactions share one equal half, Wallets and Reports the other, with the 48px ＋ exactly centred between them and rising above the bar. From 640px the tab bar and title bar give way to the 64px desktop header (Chrome at 90%, blurred, bottom Hairline), and content starts 32px below it.
 
-Home's dashboard layout is the 672px column until 1024px, then widens to the header's 1024px width and splits 5:7: the hero, This month and the Wallets card (each wallet's current balance as Wallet share bars, its heading linking to Wallets) on the left, and Recent transactions on the right.
+Home's dashboard layout is the 672px column until 1024px, then widens to the header's 1024px width and splits 5:7: the hero, This month and the Wallets card (its heading links to Wallets) on the left, and Recent transactions on the right.
 
 A transaction row's title wraps beside its figure; the date, wallet, and note run the full width beneath it, with the date never shrinking and the wallet truncating first.
 
@@ -498,7 +498,7 @@ A Mist track with 14px corners, 52px on phone and 44px from 640px, holds one Car
 
 ### Form Cards
 
-An entry form groups its fields on Cards over the ground rather than on the bare page: the amount and type share one card, and the details (wallet, category or destination, date, note) the next, 20px corners, padded 20px (28px from 640px), 24px apart on phone and 32px from 640px. Fields keep their one surface on the card. The Amount field is the form's figure (`AmountInput`, shared by the capture form and the new-wallet form): a 64px field with the `money` treatment at 30px, a Slate ฿ and THB flanking it; it never takes the Midnight hero, which stays with display figures. A selected date chip (Today, Yesterday) fills Iris Tonal and gains a check, so selection is never color alone. A form-level rejection is the shared **Error Notice**: a 10% Signal Red card with a circle-alert pictogram and its message in Signal Red, also used for an invalid history filter, a failed delete, a rejected wallet change, and a rejected category change. The fixed Save bar is Chrome at 95% over a top Hairline, clearing the home indicator, with the Iris Save as the screen's one action; from 640px it sits in the page. The capture form's transfer hint ("Record any transfer fee as a separate expense.") is 13px so switching to Transfer moves the Date down by less than 48px.
+An entry form groups its fields on Cards over the ground rather than on the bare page: the amount and type share one card, and the details (wallet, category or destination, date, note) the next, 20px corners, padded 20px (28px from 640px), 24px apart on phone and 32px from 640px. Fields keep their one surface on the card. The Amount field is the form's figure (`AmountInput`, shared with the new-wallet form): a 64px field with the `money` treatment at 30px, a Slate ฿ and THB flanking it; it never takes the Midnight hero, which stays with display figures. A selected date chip (Today, Yesterday) fills Iris Tonal and gains a check, so selection is never color alone. A form-level rejection is the shared **Error Notice**: a 10% Signal Red card with a circle-alert pictogram and its message in Signal Red, also used for an invalid history filter, a failed delete, and a rejected wallet or category change. The fixed Save bar is Chrome at 95% over a top Hairline, clearing the home indicator, with the Iris Save as the screen's one action; from 640px it sits in the page. The capture form's transfer hint ("Record any transfer fee as a separate expense.") is 13px so switching to Transfer moves the Date down by less than 48px.
 
 ### Linked Expense
 
@@ -556,7 +556,7 @@ The offline page is static, because the service worker serves it when a launch c
 ### Navigation
 
 - **Phone tab bar:** Home, Transactions, New, Wallets, and Reports. Each destination is a 24px Lucide icon over its Tab Label; current is Iris Text with a 2.25 stroke, the rest Slate, and the word always names it. New is a 48px Iris circle with a white ＋, the capture glow, and a 4px Chrome ring, rising above the bar with its word aligned to the others.
-- **Phone title bar:** the Headline, an optional 44px ‹ to the logical parent (accessibly named, never browser history), and actions on the right at the `lg` size. Home places the 32px account disc there.
+- **Phone title bar:** the Headline (two lines at most), an optional 44px ‹ to the logical parent (accessibly named, never browser history), and actions on the right at the `lg` size. Home places the 32px account disc there.
 - **Desktop header:** the 32px app mark with the Bookkeeping wordmark (the word appears from 768px), then Home, Transactions, Wallets, and Reports as 40px nav links (Slate, Wash on hover, the current one an Iris Tonal pill), New transaction as the Iris primary at `lg`, and the account trigger.
 - **Account controls:** the initial sits on an Iris Tonal disc. On desktop a 40px ghost circle opens a Float menu naming "Signed in as" and the email, then Categories, an Appearance group, and Sign out. On phone Home a 44px trigger around the 32px disc opens the Account sheet with the email as its caption and Categories and Sign out as rows on a Ground-filled inset list with 36px Mist tiles, with the Appearance Segmented Control between them. Categories is not a tab.
 - **Appearance:** System, Light, or Dark, remembered per device, System by default. System follows the OS setting live. On desktop the choice is three menu radio items under an "Appearance" group label, the current one checked like a chosen Select option, and choosing keeps the menu open; on phone it is a labelled Segmented Control. The choice applies before first paint on every screen, signed-out and offline included, and switches instantly with color transitions suppressed for that frame. Signed-out screens show no control.
@@ -569,7 +569,7 @@ The phone sheet rises in 400ms on the spring and drops in 200ms; the scrim fades
 
 ### Motion
 
-Screen changes are view transitions typed in `core/router/page-transition.ts`: tabs crossfade, a deeper screen pushes in from the right and back pops it, capture rises and falls, a skeleton crossfades into content, and a search change moves nothing. A wallet card grows into its page's hero on `--ease-spring`. Home's cards arrive 40ms apart on its first showing per session. Pressed cards shrink to 98%, buttons to 97%, a row's tile to 92%. Popups grow from their trigger, chart bars ease to new values, new chips grow in, chevrons turn. Exits beat entrances; money never moves.
+Screen changes are typed view transitions (`core/router/page-transition.ts`), run only where types are supported: tabs crossfade, a deeper screen pushes in from the right and back pops it, capture rises and falls, a search change moves nothing, and a skeleton crossfades into its content. A wallet card grows into its page's hero on `--ease-spring`, its hero fading in first. Home's cards rise in 300ms, 40ms apart, on its first showing per launch. Pressed cards shrink to 98%, buttons and chips to 97%, tab items to 94%, a row's tile and the ＋ to 92%. Popups grow from their trigger, chart bars ease to new values, new chips grow in, chevrons turn. Elsewhere exits beat entrances; money never moves.
 
 ### Hero Card (Display Figure)
 
@@ -605,7 +605,7 @@ Loading uses still Mist blocks shaped like the content: the hero as its own Midn
 - **Do** color category tiles by the parent's stable hash, inherit it in children, and keep Uncategorized and transfers neutral.
 - **Do** give every phone control a tappable area of at least 44 by 44 CSS pixels below 640px; use 48px for the ＋.
 - **Do** use the three shadow tokens as defined, and the 1px light edge in dark.
-- **Do** keep motion to the moments under Motion, and remove all of it under reduced motion.
+- **Do** keep motion to the moments under Motion, all removed under reduced motion.
 - **Do** tell every chart series apart by label and position as well as hue (a negative balance also takes the hatch), and state each charted figure as text.
 - **Do** pair pictograms with words; an icon-only control needs an accessible name and a universal glyph such as ‹ or ✕.
 
@@ -618,5 +618,5 @@ Loading uses still Mist blocks shaped like the content: the hero as its own Midn
 - **Don't** add a pie or ring for wallets, a dual-axis chart, an abbreviated axis number, or a client-side sum standing in for a level 3 read.
 - **Don't** put shadows on buttons, fields, rows, chrome, or tiles, or invent shadow values outside the three tokens and the capture glow.
 - **Don't** show figures, ฿, or sample money in loading states, or animate skeletons.
-- **Don't** animate figures, or add bounce, parallax, hover lift, or motion beyond the recorded moments.
+- **Don't** animate figures, or add bounce, parallax, or hover lift.
 - **Don't** add a grab handle to sheets, or a second theme switch beside Appearance in the account controls.

@@ -1,3 +1,5 @@
+import type { FileRoutesByFullPath } from "@/routeTree.gen";
+
 /**
  * How one screen gives way to the next. Each type names a motion in
  * `styles/page-transitions.css`; `false` changes the screen without one.
@@ -16,13 +18,12 @@ export interface PageTransitionOptions {
   fromPathname: string | undefined;
   toPathname: string;
   reducedMotion: boolean;
-  /** A loading skeleton is on show, so the content crossfades in over it. */
+  /** A skeleton is on show, so it crossfades away rather than sliding. */
   loading: boolean;
 }
 
-const CAPTURE_PATHNAME = "/transactions/new";
-const AUTH_PATHNAMES = new Set(["/sign-in", "/sign-up"]);
-const WALLET_PAGE = /^\/wallets\/(?!new$)[^/]+$/;
+/** A route's path, so renaming a route fails the build here, not the motion. */
+type RoutePath = keyof FileRoutesByFullPath;
 
 /** "/transactions/" and "/transactions" are one screen. */
 function trimSlash(pathname: string) {
@@ -32,16 +33,44 @@ function trimSlash(pathname: string) {
   return pathname;
 }
 
+const CAPTURE_PATHNAME = "/transactions/new" satisfies RoutePath;
+const AUTH_PATHNAMES = new Set<string>([
+  "/sign-in",
+  "/sign-up",
+] satisfies RoutePath[]);
+const WALLETS_PATHNAME = trimSlash("/wallets/" satisfies RoutePath);
+const NEW_WALLET_PATHNAME = "/wallets/new" satisfies RoutePath;
+const WALLET_PAGE_PATHNAME = "/wallets/$walletId" satisfies RoutePath;
+
 /** Tabs are depth 1, a record 2, and that record's edit or manage screen 3. */
 function depth(pathname: string) {
   return Math.max(pathname.split("/").filter(Boolean).length, 1);
 }
 
+/** A wallet's own page: one segment under the list, other than new. */
+function isWalletPage(pathname: string) {
+  return (
+    depth(pathname) === depth(WALLET_PAGE_PATHNAME) &&
+    pathname.startsWith(`${WALLETS_PATHNAME}/`) &&
+    pathname !== NEW_WALLET_PATHNAME
+  );
+}
+
 /** Whether the wallet card and its page's hero card are the two ends. */
 function isWalletMorph(from: string, to: string) {
   return (
-    (from === "/wallets" && WALLET_PAGE.test(to)) ||
-    (to === "/wallets" && WALLET_PAGE.test(from))
+    (from === WALLETS_PATHNAME && isWalletPage(to)) ||
+    (to === WALLETS_PATHNAME && isWalletPage(from))
+  );
+}
+
+/** Whether the browser can tell one screen change's motion from another's. */
+export function supportsPageTransitions(): boolean {
+  return (
+    typeof document !== "undefined" &&
+    typeof document.startViewTransition === "function" &&
+    globalThis.CSS?.supports?.("selector(:active-view-transition-type(a))") ===
+      true
   );
 }
 

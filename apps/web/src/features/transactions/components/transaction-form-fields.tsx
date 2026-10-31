@@ -82,10 +82,12 @@ export function SaveLabel({
   );
 }
 
+interface FormCardProps {
+  children: React.ReactNode;
+}
+
 /** One group of fields on a card over the ground. */
-export function FormCard({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export function FormCard({ children }: Readonly<FormCardProps>) {
   return (
     <Card className="px-5 sm:px-7 sm:py-7">
       <FieldGroup>{children}</FieldGroup>

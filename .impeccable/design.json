@@ -937,7 +937,7 @@
       },
       {
         "name": "indicator-slide",
-        "value": "transform 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "value": "transform 200ms var(--ease-out-expo)",
         "purpose": "Moves the segmented control's indicator; labels recolor over 200ms."
       },
       {
@@ -952,8 +952,8 @@
       },
       {
         "name": "row-arrival",
-        "value": "opacity and translateY(8px) 400ms cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "The just-saved row rises in 150ms after its screen settles, keeping a 7% hue wash."
+        "value": "opacity and translateY(8px) 400ms var(--ease-out-expo), 150ms delay",
+        "purpose": "The just-saved row rises once its screen settles, keeping a 7% hue wash."
       },
       {
         "name": "page-transition",
@@ -967,7 +967,7 @@
       },
       {
         "name": "press",
-        "value": "scale 0.98 card, 0.97 button, 0.92 row tile; 90ms in, 150ms out",
+        "value": "scale 0.98 card, 0.97 button/chip, 0.94 tab, 0.92 tile/＋; 90ms in, 150ms out",
         "purpose": "Feedback under the thumb."
       },
       {

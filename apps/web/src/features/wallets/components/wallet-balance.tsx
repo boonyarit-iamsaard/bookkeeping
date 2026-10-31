@@ -1,8 +1,6 @@
 import type { components } from "@/core/api/openapi.gen";
-import {
-  walletCaption,
-  walletMorphName,
-} from "@/features/wallets/wallet-labels";
+import { walletCaption } from "@/features/wallets/wallet-labels";
+import { walletMorphName } from "@/features/wallets/wallet-morph";
 import { DisplayFigure } from "@/shared/components/display-figure";
 
 type Wallet = components["schemas"]["Wallet"];

@@ -55,7 +55,7 @@ export function SegmentedControl<Value extends string>({
     >
       <span
         aria-hidden="true"
-        className="bg-card shadow-card dark:bg-popover pointer-events-none absolute inset-y-1 left-1 rounded-[0.625rem] transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+        className="bg-card shadow-card dark:bg-popover ease-out-expo pointer-events-none absolute inset-y-1 left-1 rounded-[0.625rem] transition-transform duration-200 motion-reduce:transition-none"
         style={{
           width: `calc((100% - 0.5rem) / ${options.length})`,
           transform: `translateX(${selectedIndex * 100}%)`,
