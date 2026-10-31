@@ -3,10 +3,12 @@ import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { parse } from "pg-connection-string";
 import { diffLines } from "./line-diff";
+import { localDatabaseHosts } from "./local-database-url";
 import { migrateDatabase } from "./migrate";
 
 // The backup job pins the PostgreSQL image, so its pg_dump is the one that
-// has to read production; reading the pin keeps one source for it.
+// has to read production. Per the spec, `apps/backup/Dockerfile` is the single
+// source of that pin, so it is read here rather than copied.
 const backupDockerfile = new URL(
   "../../../apps/backup/Dockerfile",
   import.meta.url,
@@ -31,7 +33,6 @@ const IGNORED_LINE_PREFIXES = [
 ];
 
 const DOCKER_HOST_ALIAS = "host.docker.internal";
-const localHosts = new Set(["localhost", "127.0.0.1", "::1"]);
 
 function readPinnedPostgresImage(): string {
   const dockerfile = readFileSync(backupDockerfile, "utf8");
@@ -71,15 +72,14 @@ function libpqEnvironment(url: string): Record<string, string> {
   const connection = parse(url);
   const host = connection.host ?? "localhost";
   const environment: Record<string, string> = {
-    PGHOST: localHosts.has(host) ? DOCKER_HOST_ALIAS : host,
+    PGHOST: localDatabaseHosts.has(host) ? DOCKER_HOST_ALIAS : host,
     PGPORT: connection.port ?? "5432",
     PGUSER: connection.user ?? "postgres",
     PGPASSWORD: connection.password ?? "",
     PGDATABASE: connection.database ?? "postgres",
   };
-  const sslMode = new URL(url).searchParams.get("sslmode");
-  if (sslMode) {
-    environment.PGSSLMODE = sslMode;
+  if (typeof connection.sslmode === "string" && connection.sslmode !== "") {
+    environment.PGSSLMODE = connection.sslmode;
   }
   return environment;
 }

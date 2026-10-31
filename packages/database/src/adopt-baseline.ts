@@ -75,8 +75,12 @@ export async function adoptBaseline(
     }
 
     const client = await pool.connect();
+    let discardClient = false;
     try {
       await client.query("BEGIN");
+      // Mirrors the schema, table and row that drizzle-orm 0.45's PostgreSQL
+      // migrator writes, so a later `migrate` reads this row as its own. The
+      // row-format test in adopt-baseline.integration.test.ts guards it.
       await client.query("CREATE SCHEMA IF NOT EXISTS drizzle");
       await client.query(
         "CREATE TABLE drizzle.__drizzle_migrations (id SERIAL PRIMARY KEY, hash text NOT NULL, created_at bigint)",
@@ -87,10 +91,14 @@ export async function adoptBaseline(
       );
       await client.query("COMMIT");
     } catch (error) {
-      await client.query("ROLLBACK");
+      // A failed ROLLBACK must not replace the error that caused it; the
+      // client is then discarded instead of returned to the pool.
+      await client.query("ROLLBACK").catch(() => {
+        discardClient = true;
+      });
       throw error;
     } finally {
-      client.release();
+      client.release(discardClient);
     }
   } finally {
     await pool.end();

@@ -353,8 +353,7 @@ origin), its `CLIENT_ORIGINS` (the client origin), and the client's
 
 These commands need only Docker and `packages/database/.env`; neither app has
 to be running. The database commands run from `packages/database`, which owns
-the schema. `db:fresh` is destructive and refuses any host other than
-`localhost` or `127.0.0.1`.
+the schema. `db:fresh` is destructive and refuses any non-loopback host.
 
 ## Production containers
 

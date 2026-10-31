@@ -1,10 +1,13 @@
 import { execFile } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { eq } from "drizzle-orm";
+import { readMigrationFiles } from "drizzle-orm/migrator";
 import { Pool } from "pg";
 import { describe, expect, test } from "vitest";
+import * as z from "zod";
 import { adoptBaseline } from "./adopt-baseline";
 import { users } from "./auth/auth.schema";
 import { createDatabase } from "./connection";
@@ -18,6 +21,8 @@ const adoptionTestOptions = { timeout: 180_000 };
 const packageDirectory = fileURLToPath(new URL("..", import.meta.url));
 // drizzle-kit exports no path to its CLI, so run it from the package install.
 const drizzleKit = join(packageDirectory, "node_modules/drizzle-kit/bin.cjs");
+
+const committedMigrationsFolder = join(packageDirectory, "drizzle");
 
 const secondMigrationFolder = fileURLToPath(
   new URL("testing/fixtures/second-migration", import.meta.url),
@@ -41,7 +46,75 @@ async function runStatement(url: string, statement: string): Promise<void> {
   }
 }
 
+interface MigrationRow {
+  hash: string;
+  createdAt: string;
+}
+
+async function readMigrationRows(url: string): Promise<MigrationRow[]> {
+  const pool = new Pool({ connectionString: url });
+  try {
+    const result = await pool.query<MigrationRow>(
+      'SELECT hash, created_at::text AS "createdAt" FROM drizzle.__drizzle_migrations ORDER BY id',
+    );
+    return result.rows;
+  } finally {
+    await pool.end();
+  }
+}
+
+async function hasDrizzleSchema(url: string): Promise<boolean> {
+  const pool = new Pool({ connectionString: url });
+  try {
+    const result = await pool.query<{ schema: string | null }>(
+      "SELECT to_regnamespace('drizzle')::text AS schema",
+    );
+    return result.rows[0]?.schema != null;
+  } finally {
+    await pool.end();
+  }
+}
+
+const journalSchema = z.object({
+  entries: z.tuple([z.object({ when: z.number() })]),
+});
+
+function readBaselineWhen(): number {
+  const journal = journalSchema.parse(
+    JSON.parse(
+      readFileSync(
+        join(committedMigrationsFolder, "meta/_journal.json"),
+        "utf8",
+      ),
+    ),
+  );
+  return journal.entries[0].when;
+}
+
 describe("adoptBaseline", () => {
+  test(
+    "writes the row Drizzle's migrator would, which migrating keeps alone",
+    adoptionTestOptions,
+    async () => {
+      await withEmptyDatabase(async (url) => {
+        await pushSchema(url);
+
+        expect(await adoptBaseline({ url })).toEqual({ status: "adopted" });
+
+        const [baseline] = readMigrationFiles({
+          migrationsFolder: committedMigrationsFolder,
+        });
+        const adopted = {
+          hash: baseline?.hash,
+          createdAt: String(readBaselineWhen()),
+        };
+        expect(await readMigrationRows(url)).toEqual([adopted]);
+        await migrateDatabase(url);
+        expect(await readMigrationRows(url)).toEqual([adopted]);
+      });
+    },
+  );
+
   test(
     "adopts a pushed database, after which migrating applies nothing",
     adoptionTestOptions,
@@ -126,6 +199,7 @@ describe("adoptBaseline", () => {
           status: "drifted",
           diff: expect.stringContaining(object),
         });
+        expect(await hasDrizzleSchema(url)).toBe(false);
 
         await runStatement(url, undo);
         expect(await adoptBaseline({ url })).toEqual({ status: "adopted" });
@@ -143,6 +217,7 @@ describe("adoptBaseline", () => {
         expect(await adoptBaseline({ url, check: true })).toEqual({
           status: "matches",
         });
+        expect(await hasDrizzleSchema(url)).toBe(false);
         expect(await adoptBaseline({ url })).toEqual({ status: "adopted" });
       });
     },

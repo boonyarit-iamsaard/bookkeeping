@@ -27,7 +27,9 @@ function commonLengths(
   return lengths;
 }
 
-function walk(
+// Pairs the two lists line by line along their longest common subsequence,
+// marking each line as shared, only in `expected`, or only in `actual`.
+function alignLines(
   expected: readonly string[],
   actual: readonly string[],
 ): DiffLine[] {
@@ -70,7 +72,7 @@ export function diffLines(
   expected: readonly string[],
   actual: readonly string[],
 ): string | undefined {
-  const lines = walk(expected, actual);
+  const lines = alignLines(expected, actual);
   const changed = lines.map((line) => line.mark !== " ");
   if (!changed.includes(true)) {
     return undefined;

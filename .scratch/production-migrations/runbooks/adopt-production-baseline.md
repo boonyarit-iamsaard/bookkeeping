@@ -99,7 +99,10 @@ echoes when you paste.
 - **Expect:** `The schema matches 0000_baseline. Nothing was written.`
 - **Verify:** Tell me the last line. On `Refused:`, stop here, go to step 6,
   and paste me the output: a diff holds schema lines only, never data or the
-  URL.
+  URL. If the command throws instead (a stack trace from Docker, the network
+  or `pg_dump`, with no `Refused:` or `The schema matches` line), it also wrote
+  nothing: stop, still go to step 6, and paste me the error after checking it
+  holds no URL or password.
 - **Undo:** Not needed. `--check` writes nothing.
 - **Ticks:** Ticket 02: "`db:adopt-baseline --check`".
 - **Source:** `packages/database/src/adopt-baseline.ts`
@@ -122,7 +125,11 @@ echoes when you paste.
 - **Expect:** `Adopted: drizzle.__drizzle_migrations records 0000_baseline as applied.`
   The command repeats step 3's check before writing.
 - **Verify:** Tell me the last line. A `Refused:` line means nothing was
-  written; paste it to me and go to step 6.
+  written; paste it to me and go to step 6. If the command throws instead (a
+  stack trace with no `Adopted:` or `Refused:` line), stop, don't rerun it,
+  still go to step 6, and paste me the error after checking it holds no URL
+  or password. A failure before the write leaves nothing behind, and one
+  during it rolls the transaction back; step 5 confirms which.
 - **Undo:** Not needed in practice. The write is one transaction holding the
   `drizzle` schema, its table and one row; dropping the `drizzle` schema
   reverses it.
@@ -185,15 +192,20 @@ echoes when you paste.
 
 - `Refused: the schema differs from 0000_baseline` is followed by a diff:
   `-` lines are in the baseline but missing from production, `+` lines are in
-  production only. Nothing was written. Don't adopt; the drift needs a
-  decision first.
+  production only. Nothing was written. Don't adopt; close the proxy (step 6)
+  while the drift waits for a decision.
 - `Refused: The journal must hold only 0000_baseline` means `main` already
   holds a later migration. Adopting would record it as applied without
-  running it. Stop and tell me.
+  running it. Stop, close the proxy (step 6) and tell me.
 - `Refused: drizzle.__drizzle_migrations already exists` on step 3 means
   something already wrote the table, such as an earlier adoption or a
   `db:migrate` that failed (Drizzle creates the table before migrating). Run
-  step 5 and paste me the rows before doing anything else.
+  step 5 and paste me the rows before doing anything else, then close the
+  proxy (step 6).
 - `pg_dump failed: … server version mismatch` means production's PostgreSQL
-  major is newer than the pinned image's. Stop: the backup job has the same
-  problem, and its pin needs raising first.
+  major is newer than the pinned image's. Stop and close the proxy (step 6):
+  the backup job has the same problem, and its pin needs raising first.
+- Any other thrown error (Docker not running, a connection timeout, a
+  `pg_dump` failure) wrote nothing before the transaction and nothing that
+  survives it. Stop, close the proxy (step 6), and paste me the error once you
+  have checked it holds no URL or password.

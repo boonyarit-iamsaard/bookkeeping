@@ -28,7 +28,7 @@ export async function withEmptyDatabase(
   use: (url: string) => Promise<void>,
 ): Promise<void> {
   const sharedUrl = testDatabaseUrl();
-  const name = `own_${randomUUID().replaceAll("-", "")}`;
+  const name = `empty_${randomUUID().replaceAll("-", "")}`;
   const url = new URL(sharedUrl);
   url.pathname = `/${name}`;
   const admin = new Pool({ connectionString: sharedUrl });
