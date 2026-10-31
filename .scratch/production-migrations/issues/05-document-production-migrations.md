@@ -17,3 +17,15 @@ authorizes them, and how to recover from a bad one.
 - [x] `.github/pull_request_template.md` with the one backup line.
 - [x] `CLAUDE.md` (and `AGENTS.md` if it repeats it): agents never merge a PR that adds a migration; the owner's merge authorizes it.
 - [x] `../../production-recovery/runbooks/recover-production.md`: step 8a fixes forward, and a check after restore compares `drizzle.__drizzle_migrations` with the deployed journal before redeploying.
+
+## Comments
+
+2026-10-31: Two deviations from the checklist above.
+
+- The post-restore check that compares `drizzle.__drizzle_migrations` with the
+  deployed journal is step 7b of
+  `../../production-recovery/runbooks/recover-production-after-swap.md`, not a
+  step in `recover-production.md`: adding it there pushed that runbook over its
+  5,000-token budget.
+- `AGENTS.md` drops the clause about the one-time production adoption, because
+  ticket 02 completed the adoption on 2026-10-31.

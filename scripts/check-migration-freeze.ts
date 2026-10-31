@@ -8,13 +8,13 @@ import {
   JOURNAL_PATH,
 } from "./migration-freeze/migration-freeze";
 
-const repositoryDirectory = fileURLToPath(new URL("../", import.meta.url));
-const migrationsDirectory = "packages/database/drizzle";
-const mainRef = "refs/remotes/origin/main";
+const REPOSITORY_DIRECTORY = fileURLToPath(new URL("../", import.meta.url));
+const MIGRATIONS_DIRECTORY = "packages/database/drizzle";
+const MAIN_REF = "refs/remotes/origin/main";
 
 function git(commandArguments: readonly string[]): string {
   return execFileSync("git", commandArguments, {
-    cwd: repositoryDirectory,
+    cwd: REPOSITORY_DIRECTORY,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "inherit"],
   });
@@ -32,16 +32,16 @@ function hasRef(ref: string): boolean {
 // CI's checkout is a depth-1 clone of the pull request's merge commit, which
 // lacks `main`; the repository is public, so the fetch needs no credentials.
 function resolveMain(): string {
-  if (!hasRef(mainRef)) {
+  if (!hasRef(MAIN_REF)) {
     git([
       "fetch",
       "--no-tags",
       "--depth=1",
       "origin",
-      `+refs/heads/main:${mainRef}`,
+      `+refs/heads/main:${MAIN_REF}`,
     ]);
   }
-  return mainRef;
+  return MAIN_REF;
 }
 
 function main(): void {
@@ -53,7 +53,7 @@ function main(): void {
     "--name-status",
     mainCommit,
     "--",
-    migrationsDirectory,
+    MIGRATIONS_DIRECTORY,
   ]);
   const journalModified = nameStatus.split("\n").includes(`M\t${JOURNAL_PATH}`);
   const violations = findMigrationFreezeViolations({
@@ -62,7 +62,7 @@ function main(): void {
       ? {
           main: git(["show", `${mainCommit}:${JOURNAL_PATH}`]),
           current: readFileSync(
-            join(repositoryDirectory, JOURNAL_PATH),
+            join(REPOSITORY_DIRECTORY, JOURNAL_PATH),
             "utf8",
           ),
         }

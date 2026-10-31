@@ -62,10 +62,11 @@ Name seams by the capability they provide, not their adapter implementation.
 For example, `AuthGateway` remains accurate if the authentication library
 changes, while an implementation-named gateway would become stale.
 
-Use test scope in filenames: `*.unit.test.ts`, `*.integration.test.ts`, and
-`tests/e2e/*.spec.ts`. Match each colocated test's stem to its source module.
-Integration tests may exercise real PostgreSQL and are distinct from
-browser-driven E2E tests. Database fixture names describe infrastructure.
+Use test scope in filenames: `*.unit.test.ts`, `*.integration.test.ts`,
+`tests/e2e/*.spec.ts`, and `*.image.test.ts`, which builds a production image,
+so it is opt-in through `test:image` and outside `pnpm run ci`. Match each
+colocated test's stem to its source module. Integration tests may exercise
+real PostgreSQL and are distinct from browser-driven E2E tests. Database fixture names describe infrastructure.
 
 Helpers shared by a workspace's Vitest tests live in its `src/testing/`
 directory, following the Bulletproof React reference; neither Hono nor Vitest

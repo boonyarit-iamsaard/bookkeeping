@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { findMigrationFreezeViolations } from "./migration-freeze";
+import {
+  findMigrationFreezeViolations,
+  JOURNAL_PATH,
+} from "./migration-freeze";
 
 const baseline = "packages/database/drizzle/0000_baseline.sql";
-const journalPath = "packages/database/drizzle/meta/_journal.json";
 
 describe("findMigrationFreezeViolations", () => {
   it("names a modified committed migration", () => {
@@ -23,8 +25,16 @@ describe("findMigrationFreezeViolations", () => {
     ]);
   });
 
+  it("rejects a rename, which --no-renames should have split", () => {
+    expect(() =>
+      findMigrationFreezeViolations({
+        nameStatus: `R100\t${baseline}\tpackages/database/drizzle/0000_renamed.sql`,
+      }),
+    ).toThrow();
+  });
+
   describe("journal", () => {
-    const nameStatus = `M\t${journalPath}`;
+    const nameStatus = `M\t${JOURNAL_PATH}`;
     const baselineEntry = {
       idx: 0,
       version: "7",
@@ -56,7 +66,7 @@ describe("findMigrationFreezeViolations", () => {
             current: journal([{ ...baselineEntry, when: 1 }, nextEntry]),
           },
         }),
-      ).toEqual([`${journalPath}: entry 0 (0000_baseline) changed`]);
+      ).toEqual([`${JOURNAL_PATH}: entry 0 (0000_baseline) changed`]);
     });
 
     it("names a removed entry", () => {
@@ -65,7 +75,7 @@ describe("findMigrationFreezeViolations", () => {
           nameStatus,
           journal: { main: mainJournal, current: journal([]) },
         }),
-      ).toEqual([`${journalPath}: entry 0 (0000_baseline) removed`]);
+      ).toEqual([`${JOURNAL_PATH}: entry 0 (0000_baseline) removed`]);
     });
 
     it("names a changed header field", () => {
@@ -77,7 +87,7 @@ describe("findMigrationFreezeViolations", () => {
             current: journal([baselineEntry], { version: "8" }),
           },
         }),
-      ).toEqual([`${journalPath}: version changed`]);
+      ).toEqual([`${JOURNAL_PATH}: version changed`]);
     });
 
     it("passes a reformatted journal with the same entries", () => {
@@ -96,7 +106,7 @@ describe("findMigrationFreezeViolations", () => {
 
 function journal(
   entries: readonly object[],
-  header: Record<string, string> = {},
+  header: Readonly<Record<string, string>> = {},
 ): string {
   return JSON.stringify(
     { version: "7", dialect: "postgresql", ...header, entries },

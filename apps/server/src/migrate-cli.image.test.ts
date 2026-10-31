@@ -1,16 +1,20 @@
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import type { Database } from "@bookkeeping/database/connection";
 import { createDatabase } from "@bookkeeping/database/connection";
 import { withEmptyDatabase } from "@bookkeeping/database/testing/empty-database";
 import {
-  fixtureColumn,
-  withSecondMigrationFolder,
-} from "@bookkeeping/database/testing/second-migration";
+  nextMigrationColumn,
+  withNextMigrationFolder,
+} from "@bookkeeping/database/testing/next-migration";
+import {
+  hasWalletColumn,
+  withLockedWallets,
+} from "@bookkeeping/database/testing/wallets-table";
 import { sql } from "drizzle-orm";
 import { beforeAll, describe, expect, test } from "vitest";
 import * as z from "zod";
+import { LOCK_TIMEOUT_MS } from "./migration-lock";
 
 // Builds the api image and runs its pre-deploy command, `node dist/migrate.js`,
 // against an empty database of its own. Opt-in through `pnpm test:image`: a
@@ -82,36 +86,16 @@ async function runMigrate(
   }
 }
 
-async function withDatabase<T>(
-  url: string,
-  use: (db: Database) => Promise<T>,
-): Promise<T> {
+async function countAppliedMigrations(url: string): Promise<number> {
   const connection = createDatabase(url);
   try {
-    return await use(connection.db);
-  } finally {
-    await connection.close();
-  }
-}
-
-function countAppliedMigrations(url: string): Promise<number> {
-  return withDatabase(url, async (db) => {
-    const result = await db.execute<{ count: number }>(
+    const result = await connection.db.execute<{ count: number }>(
       sql`SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`,
     );
     return result.rows[0]?.count ?? 0;
-  });
-}
-
-function hasWalletColumn(url: string, column: string): Promise<boolean> {
-  return withDatabase(url, async (db) => {
-    const result = await db.execute(
-      sql`SELECT 1 FROM information_schema.columns
-          WHERE table_schema = 'public' AND table_name = 'wallets'
-            AND column_name = ${column}`,
-    );
-    return result.rows.length > 0;
-  });
+  } finally {
+    await connection.close();
+  }
 }
 
 describe("the api image's migrate entrypoint", () => {
@@ -136,45 +120,39 @@ describe("the api image's migrate entrypoint", () => {
       await withEmptyDatabase(async (url) => {
         expect(await runMigrate(url)).toMatchObject({ exitCode: 0 });
 
-        await withSecondMigrationFolder(async (folder) => {
+        await withNextMigrationFolder(async (folder) => {
           const result = await runMigrate(url, folder);
 
           expect(result).toMatchObject({ exitCode: 0 });
         });
         expect(await countAppliedMigrations(url)).toBe(2);
-        expect(await hasWalletColumn(url, fixtureColumn)).toBe(true);
+        expect(await hasWalletColumn(url, nextMigrationColumn)).toBe(true);
       });
     },
   );
 
   test(
-    "gives up on a held lock after five seconds and applies nothing",
+    `gives up on a held lock after ${LOCK_TIMEOUT_MS} ms and applies nothing`,
     runTestOptions,
     async () => {
       await withEmptyDatabase(async (url) => {
         expect(await runMigrate(url)).toMatchObject({ exitCode: 0 });
 
-        await withDatabase(url, (db) =>
-          db.transaction(async (holder) => {
-            // A long query from the running app holding `wallets` until the
-            // migrator has given up; the transaction changes nothing.
-            await holder.execute(
-              sql`LOCK TABLE wallets IN ACCESS EXCLUSIVE MODE`,
-            );
-            await withSecondMigrationFolder(async (folder) => {
-              const startedAt = Date.now();
-              const result = await runMigrate(url, folder);
-              const elapsed = Date.now() - startedAt;
+        await withLockedWallets(url, () =>
+          withNextMigrationFolder(async (folder) => {
+            const startedAt = Date.now();
+            const result = await runMigrate(url, folder);
+            const elapsed = Date.now() - startedAt;
 
-              expect(result.exitCode).not.toBe(0);
-              expect(result.output).toContain("lock timeout");
-              expect(elapsed).toBeGreaterThanOrEqual(5_000);
-              expect(elapsed).toBeLessThan(20_000);
-            });
+            expect(result.exitCode).not.toBe(0);
+            expect(result.output).toContain("lock timeout");
+            expect(elapsed).toBeGreaterThanOrEqual(LOCK_TIMEOUT_MS);
+            // Leaves room for the container to start and stop.
+            expect(elapsed).toBeLessThan(LOCK_TIMEOUT_MS + 15_000);
           }),
         );
         expect(await countAppliedMigrations(url)).toBe(1);
-        expect(await hasWalletColumn(url, fixtureColumn)).toBe(false);
+        expect(await hasWalletColumn(url, nextMigrationColumn)).toBe(false);
       });
     },
   );

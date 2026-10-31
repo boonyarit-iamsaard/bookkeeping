@@ -3,15 +3,26 @@ import { z } from "zod";
 
 export const JOURNAL_PATH = "packages/database/drizzle/meta/_journal.json";
 
+/** The journal's text on `main` and in the working tree. */
+export interface JournalVersions {
+  main: string;
+  current: string;
+}
+
 export interface MigrationFreezeInput {
   /** `git diff --no-renames --name-status <main>` output for the folder. */
   nameStatus: string;
-  /** The journal's text on `main` and in the working tree. */
-  journal?: { main: string; current: string };
+  journal?: JournalVersions;
 }
 
+// The letters `--no-renames --name-status` prints: added, deleted, modified,
+// type-changed, unmerged, and unknown.
+const migrationChangeStatusSchema = z.enum(["A", "D", "M", "T", "U", "X"]);
+
+type MigrationChangeStatus = z.infer<typeof migrationChangeStatusSchema>;
+
 interface MigrationChange {
-  status: string;
+  status: MigrationChangeStatus;
   path: string;
 }
 
@@ -25,16 +36,13 @@ function parseNameStatus(nameStatus: string): MigrationChange[] {
     .filter(Boolean)
     .map((line) => {
       const [status = "", path = ""] = line.split("\t");
-      return { status, path };
+      return { status: migrationChangeStatusSchema.parse(status), path };
     });
 }
 
 // The journal may only gain entries: every header field and every entry on
 // `main` stays as it was, in the same position.
-function findJournalViolations(journal: {
-  main: string;
-  current: string;
-}): string[] {
+function findJournalViolations(journal: Readonly<JournalVersions>): string[] {
   const main = journalSchema.parse(JSON.parse(journal.main));
   const current = journalSchema.parse(JSON.parse(journal.current));
   const violations: string[] = [];
@@ -65,7 +73,7 @@ function findJournalViolations(journal: {
 export function findMigrationFreezeViolations({
   nameStatus,
   journal,
-}: MigrationFreezeInput): string[] {
+}: Readonly<MigrationFreezeInput>): string[] {
   return parseNameStatus(nameStatus).flatMap(({ status, path }) => {
     if (status === "A") {
       return [];
