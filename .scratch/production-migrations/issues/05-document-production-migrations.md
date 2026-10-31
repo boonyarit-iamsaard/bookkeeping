@@ -7,7 +7,7 @@ authorizes them, and how to recover from a bad one.
 
 **Blocked by:** 02 (done)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Notes:** Part of PR 2. Keep README growth neutral.
 
@@ -29,3 +29,6 @@ authorizes them, and how to recover from a bad one.
   5,000-token budget.
 - `AGENTS.md` drops the clause about the one-time production adoption, because
   ticket 02 completed the adoption on 2026-10-31.
+
+2026-10-31: Done in 9f0c0f2, with the `*.image.test.ts` scope added to
+`docs/code-conventions.md` in 7abe7b7. `pnpm run ci` passes.

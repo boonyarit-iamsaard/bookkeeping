@@ -8,7 +8,7 @@ failed migration stops the deploy and the old version keeps serving.
 
 **Blocked by:** 02 (done)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Notes:** Part of PR 2 with 04 and 05, replayed onto a fresh branch from
 `main` after PR 1 merges. Confirm how `railway/iac` declares a pre-deploy
@@ -34,3 +34,9 @@ command against its current docs before writing it.
   database suite covers the same option on every run.
 - `railway config plan` (2026-10-31): `1 to change`, only
   `api deploy.preDeployCommand (null → ["node dist/migrate.js"])`.
+
+2026-10-31: Done in 27edbb4, with review fixes in 7abe7b7 (the 5 s limit now
+lives in `apps/server/src/migration-lock.ts` as `LOCK_TIMEOUT_MS`; shared
+test helpers in `packages/database/src/testing/`). Database 21/21, server
+217/217, `test:image` 3/3, `pnpm run ci` passes. Production's pre-deploy is
+confirmed in 06.

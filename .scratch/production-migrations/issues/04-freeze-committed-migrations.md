@@ -8,7 +8,7 @@ and the journal may only gain entries.
 
 **Blocked by:** 02 (done)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Notes:** Waits for 02 because squashing is allowed until production adopts
 the baseline. Part of PR 2.
@@ -63,3 +63,7 @@ Demonstration, each change reverted afterwards:
 
 - A depth-1 clone of the integration branch without `origin/main` fetched it
   from GitHub anonymously and passed.
+
+2026-10-31: Done in 35bfeb7, with review fixes in 7abe7b7 (named
+`JournalVersions`, a literal status union that throws on unexpected git
+letters). `pnpm run ci` passes.
