@@ -5,7 +5,7 @@ Read `../spec.md` first (Authorization, Documentation, Backup before merge).
 **What to build:** The docs say how migrations reach production, who
 authorizes them, and how to recover from a bad one.
 
-**Blocked by:** 02
+**Blocked by:** 02 (done)
 
 **Status:** ready-for-agent
 

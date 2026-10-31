@@ -6,7 +6,7 @@ Read `../spec.md` first (Freeze).
 migration file that exists on `main`. New migrations and their snapshots pass,
 and the journal may only gain entries.
 
-**Blocked by:** 02
+**Blocked by:** 02 (done)
 
 **Status:** ready-for-agent
 

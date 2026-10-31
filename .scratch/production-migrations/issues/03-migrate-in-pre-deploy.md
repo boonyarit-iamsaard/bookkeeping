@@ -6,7 +6,7 @@ Read `../spec.md` first (Packaging, Lock timeout, Pre-deploy).
 entrypoint, and Railway runs it before each `api` deploy takes traffic. A
 failed migration stops the deploy and the old version keeps serving.
 
-**Blocked by:** 02
+**Blocked by:** 02 (done)
 
 **Status:** ready-for-agent
 
