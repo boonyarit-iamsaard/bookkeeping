@@ -236,10 +236,22 @@ the rename:
 pnpm --filter @bookkeeping/database exec drizzle-kit generate --name <snake_case_name>
 ```
 
-Until production begins applying migrations, the committed history may be
-squashed. After production applies a migration, that history is immutable and
-must not be squashed. `db:push` is only for experiments on a throwaway
-database; generate the migration before committing the resulting schema.
+Production applies migrations in Railway's pre-deploy step (ADR 0014), so the
+committed history is immutable: fix a wrong migration with a newer one. CI
+fails a PR that changes or deletes a migration file on `main`; the journal may
+only gain entries.
+
+Every migration works with the release it replaces, because the old version
+keeps serving when the new deploy fails. Expand first: add columns, tables and
+constraints the old code tolerates. Drop or rename only in a later release,
+once no deployed code reads the old shape. Review checks this; CI does not.
+
+Before merging a PR that adds a migration, the owner runs the `backup` service
+by hand outside 20:00–20:59 UTC and confirms `uploaded to manual/…`. The
+owner's merge authorizes applying the migration.
+
+`db:push` is only for experiments on a throwaway database; generate the
+migration before committing the resulting schema.
 `db:fresh` drops the `public` and `drizzle` schemas, recreates `public`, and
 reapplies every committed migration. It is destructive and only works when
 `DATABASE_URL` points to `localhost`, `127.0.0.1` or `::1`, judged by the host
