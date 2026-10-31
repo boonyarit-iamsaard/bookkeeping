@@ -25,6 +25,8 @@ WORKDIR /app
 COPY --from=build /out/package.json ./package.json
 COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /repo/apps/server/dist ./dist
+# The pre-deploy migrator, dist/migrate.js, resolves its migrations at ../drizzle.
+COPY --from=build /repo/packages/database/drizzle ./drizzle
 USER node
 EXPOSE 5000
 CMD ["node", "--enable-source-maps", "dist/server.js"]

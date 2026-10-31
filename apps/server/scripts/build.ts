@@ -1,14 +1,19 @@
 import { build } from "esbuild";
 
 // Workspace packages ship TypeScript source, so the server bundles them into
-// its Node.js entrypoints: the server and the owner-run password reset. Every
+// its Node.js entrypoints: the server, the owner-run password reset, and the
+// migrator Railway runs before each deploy. Every
 // other module stays external and resolves from node_modules at runtime, so
 // the server declares those runtime dependencies itself, including the ones
 // the bundled packages import.
 const WORKSPACE_SCOPE = "@bookkeeping/";
 
 await build({
-  entryPoints: ["src/server.ts", "src/reset-password-cli.ts"],
+  entryPoints: [
+    "src/server.ts",
+    "src/reset-password-cli.ts",
+    { in: "src/migrate-cli.ts", out: "migrate" },
+  ],
   outdir: "dist",
   bundle: true,
   platform: "node",

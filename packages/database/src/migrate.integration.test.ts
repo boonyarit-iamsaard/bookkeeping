@@ -1,9 +1,14 @@
 import { eq, sql } from "drizzle-orm";
+import { Client } from "pg";
 import { describe, expect, test } from "vitest";
 import { users } from "./auth/auth.schema";
 import { createDatabase } from "./connection";
 import { freshDatabase, migrateDatabase } from "./migrate";
 import { withEmptyDatabase } from "./testing/empty-database";
+import {
+  fixtureColumn,
+  withSecondMigrationFolder,
+} from "./testing/second-migration";
 import { createTestUser } from "./testing/test-database";
 import { testDatabaseUrl } from "./testing/url";
 
@@ -48,6 +53,68 @@ describe("migrateDatabase", () => {
       } finally {
         await connection.close();
       }
+    },
+  );
+});
+
+async function hasWalletColumn(url: string, column: string): Promise<boolean> {
+  const connection = createDatabase(url);
+  try {
+    const result = await connection.db.execute(
+      sql`SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'wallets'
+            AND column_name = ${column}`,
+    );
+    return result.rows.length > 0;
+  } finally {
+    await connection.close();
+  }
+}
+
+// PostgreSQL's error code for a statement that gave up waiting on a lock.
+const LOCK_NOT_AVAILABLE = "55P03";
+
+// Holds an exclusive lock on `wallets`, as a long query from the running app
+// would, until the returned release runs.
+async function lockWallets(url: string): Promise<() => Promise<void>> {
+  const client = new Client({ connectionString: url });
+  await client.connect();
+  await client.query("BEGIN");
+  await client.query("LOCK TABLE wallets IN ACCESS EXCLUSIVE MODE");
+  return async () => {
+    await client.query("ROLLBACK");
+    await client.end();
+  };
+}
+
+describe("migrateDatabase with a lock timeout", () => {
+  test(
+    "gives up on a held lock within the timeout and applies nothing",
+    migrationTestOptions,
+    async () => {
+      await withEmptyDatabase(async (url) => {
+        await migrateDatabase(url);
+        const appliedBefore = await readAppliedMigrationHashes(url);
+
+        const release = await lockWallets(url);
+        try {
+          await withSecondMigrationFolder(async (folder) => {
+            const startedAt = Date.now();
+            await expect(
+              migrateDatabase(url, {
+                migrationsFolder: folder,
+                lockTimeoutMs: 1_000,
+              }),
+            ).rejects.toMatchObject({ cause: { code: LOCK_NOT_AVAILABLE } });
+            expect(Date.now() - startedAt).toBeLessThan(5_000);
+          });
+        } finally {
+          await release();
+        }
+
+        expect(await readAppliedMigrationHashes(url)).toEqual(appliedBefore);
+        expect(await hasWalletColumn(url, fixtureColumn)).toBe(false);
+      });
     },
   );
 });

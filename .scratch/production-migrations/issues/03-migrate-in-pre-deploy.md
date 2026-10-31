@@ -14,9 +14,23 @@ failed migration stops the deploy and the old version keeps serving.
 `main` after PR 1 merges. Confirm how `railway/iac` declares a pre-deploy
 command against its current docs before writing it.
 
-- [ ] `apps/server/scripts/build.ts` builds `src/migrate-cli.ts` into `dist/migrate.js`.
-- [ ] The runtime image copies `packages/database/drizzle/` to `/app/drizzle`.
-- [ ] The migrate entrypoint sets `lock_timeout = '5s'` before migrating; a test shows a held lock fails the migration within the timeout and applies nothing.
-- [ ] Image smoke test: `node dist/migrate.js` in the built image migrates a local Postgres, and a test-only fixture folder with a second migration applies.
-- [ ] `.railway/railway.ts` declares `node dist/migrate.js` as the `api` pre-deploy command; `railway plan` shows only that change.
-- [ ] Server suite and `pnpm run ci` pass.
+- [x] `apps/server/scripts/build.ts` builds `src/migrate-cli.ts` into `dist/migrate.js`.
+- [x] The runtime image copies `packages/database/drizzle/` to `/app/drizzle`.
+- [x] The migrate entrypoint sets `lock_timeout = '5s'` before migrating; a test shows a held lock fails the migration within the timeout and applies nothing.
+- [x] Image smoke test: `node dist/migrate.js` in the built image migrates a local Postgres, and a test-only fixture folder with a second migration applies.
+- [x] `.railway/railway.ts` declares `node dist/migrate.js` as the `api` pre-deploy command; `railway plan` shows only that change.
+- [x] Server suite and `pnpm run ci` pass.
+
+## Comments
+
+- The deploy entrypoint is `apps/server/src/migrate-cli.ts`; it calls
+  `migrateDatabase` with `lockTimeoutMs: 5000`, sent as the `lock_timeout`
+  startup parameter on every connection. The server now declares
+  `pg-connection-string`, which the bundled migrator imports.
+- The image smoke test is `apps/server/src/migrate-cli.image.test.ts`, run with
+  `pnpm --filter @bookkeeping/server test:image`. It builds the api image, so
+  it stays out of `pnpm test` and `pnpm run ci`. It also runs the held-lock
+  case through the real entrypoint (fails after 5 s, applies nothing); the
+  database suite covers the same option on every run.
+- `railway config plan` (2026-10-31): `1 to change`, only
+  `api deploy.preDeployCommand (null → ["node dist/migrate.js"])`.

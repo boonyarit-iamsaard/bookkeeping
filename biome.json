@@ -166,6 +166,7 @@
         "apps/web/playwright.config.ts",
         "apps/web/pwa-assets.config.ts",
         "apps/server/vitest.config.mts",
+        "apps/server/vitest.image.config.mts",
         "packages/application/vitest.config.mts",
         "packages/auth/vitest.config.mts",
         "packages/domain/vitest.config.mts",
