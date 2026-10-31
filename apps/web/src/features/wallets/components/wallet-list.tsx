@@ -62,7 +62,7 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
             // Opening the wallet grows this card into its page's hero card.
             {...morphProps(walletMorphName(wallet.id))}
             className={cn(
-              "bg-card shadow-card ease-out-expo relative flex min-h-28 gap-3.5 rounded-2xl p-4 transition-[background-color,scale] duration-150 has-[a:active]:scale-[0.98] has-[a:active]:duration-(--press-duration) has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-reduce:transition-none sm:p-5",
+              "bg-card shadow-card ease-out-expo relative flex min-h-28 gap-3.5 rounded-2xl p-4 transition-[background-color,scale] duration-150 has-[a:active]:duration-(--press-duration) has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-safe:has-[a:active]:scale-[0.98] motion-reduce:transition-none sm:p-5",
               wallet.id === createdId && [
                 ARRIVAL_CLASS,
                 "bg-[color-mix(in_oklch,var(--primary)_7%,var(--card))]",

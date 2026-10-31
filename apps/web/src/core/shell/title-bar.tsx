@@ -52,9 +52,7 @@ interface TitleBarProps {
 /**
  * A screen's title and actions. On phone it is the bar at the top: clear of
  * the status bar, pinned while the page scrolls under it, and ruled only once
- * there is something beneath to separate from. A long title, such as a
- * wallet's name, stops at two lines so the pinned bar stays short; the h1
- * still carries all of it. From 640px the desktop header
+ * there is something beneath to separate from. From 640px the desktop header
  * leads, so this is the in-page h1 with the actions beside it.
  */
 export function TitleBar({ title, back, actions }: Readonly<TitleBarProps>) {
@@ -70,7 +68,7 @@ export function TitleBar({ title, back, actions }: Readonly<TitleBarProps>) {
       className="bg-chrome data-scrolled:border-border sticky top-0 z-10 -mx-4 flex min-h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-2 border-b border-transparent px-4 pt-[env(safe-area-inset-top)] sm:static sm:mx-0 sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0"
     >
       {back}
-      <h1 className="min-w-0 flex-1 text-[1.625rem] leading-tight font-bold tracking-[-0.02em] wrap-break-word max-sm:line-clamp-2 sm:text-3xl">
+      <h1 className="min-w-0 flex-1 text-[1.625rem] leading-tight font-bold tracking-[-0.02em] wrap-break-word sm:text-3xl">
         {title}
       </h1>
       {actions && (

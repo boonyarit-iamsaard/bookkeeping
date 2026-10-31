@@ -20,11 +20,15 @@ export const HOME_COLUMNS_CLASS =
 // every later visit shows them at once, until the app is opened again.
 let homeHasArrived = false;
 
-function useFirstShowing() {
+// A Home with no wallets has no cards yet, so it leaves the arrival for the
+// first showing that does.
+function useFirstShowing(hasCards: boolean) {
   const [first] = useState(() => !homeHasArrived);
   useEffect(() => {
-    homeHasArrived = true;
-  }, []);
+    if (hasCards) {
+      homeHasArrived = true;
+    }
+  }, [hasCards]);
   return first;
 }
 
@@ -71,7 +75,7 @@ export function Home({
     throw new Error("The home queries returned no data");
   }
   const wallets = walletCollection.items;
-  const arrive = useFirstShowing();
+  const arrive = useFirstShowing(wallets.length > 0);
 
   return (
     <Page layout="dashboard">

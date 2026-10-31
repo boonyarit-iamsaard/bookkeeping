@@ -64,7 +64,7 @@ export function ThisMonth({ report }: Readonly<ThisMonthProps>) {
   return (
     <section
       aria-labelledby="this-month-heading"
-      className="bg-card shadow-card ease-out-expo relative flex flex-col gap-5 rounded-2xl p-5 transition-[background-color,scale] duration-150 has-[a:active]:scale-[0.98] has-[a:active]:duration-(--press-duration) has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-reduce:transition-none sm:p-6"
+      className="bg-card shadow-card ease-out-expo relative flex flex-col gap-5 rounded-2xl p-5 transition-[background-color,scale] duration-150 has-[a:active]:duration-(--press-duration) has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-safe:has-[a:active]:scale-[0.98] motion-reduce:transition-none sm:p-6"
     >
       <h2 id="this-month-heading" className="text-lg font-bold tracking-tight">
         <Link

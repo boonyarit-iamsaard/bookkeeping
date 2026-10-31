@@ -4,7 +4,7 @@ import { cva } from "class-variance-authority";
 import { cn } from "cn";
 
 const buttonVariants = cva(
-  "group/button focus-visible:ring-ring/45 aria-invalid:border-destructive aria-invalid:ring-destructive/20 inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-150 ease-out outline-none select-none focus-visible:ring-[3px] active:scale-[0.97] active:duration-(--press-duration) disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-[3px] motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button focus-visible:ring-ring/45 aria-invalid:border-destructive aria-invalid:ring-destructive/20 inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-[color,background-color,border-color,box-shadow,opacity,scale] duration-150 ease-out outline-none select-none focus-visible:ring-[3px] active:duration-(--press-duration) disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-[3px] motion-safe:active:scale-[0.97] motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
