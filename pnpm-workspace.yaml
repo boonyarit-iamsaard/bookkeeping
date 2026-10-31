@@ -16,6 +16,12 @@ strictDepBuilds: true
 # 3 days. For an urgent advisory, exempt the one fixed package through
 # minimumReleaseAgeExclude instead of lowering this.
 minimumReleaseAge: 4320
+# GHSA-g3hv-75wg-m249 and GHSA-3g3m-2fjr-6pw4 fixes, released 2026-10-28.
+# Remove once they pass the 3-day window.
+minimumReleaseAgeExclude:
+  - minimatch@11.0.3
+  - glob@14.0.3
+  - "@isaacs/nonrecursive-glob-match@1.0.3"
 
 # Judge only the last 30 days: pre-2023 releases predate provenance and trip
 # this constantly.
@@ -45,3 +51,8 @@ overrides:
   "systeminformation": 5.33.16
   # GHSA-gg6h-894w-4m9c. Remove once markdownlint accepts re2js 2.8.7.
   "re2js": 2.8.8
+  # GHSA-3g3m-2fjr-6pw4. Remove once workbox-build and archiver-utils accept glob 14.
+  "glob": 14.0.3
+  # GHSA-g3hv-75wg-m249. Remove once markdownlint-cli, workbox-build, ts-morph,
+  # archiver and filelist accept minimatch 11.
+  "minimatch": 11.0.3
