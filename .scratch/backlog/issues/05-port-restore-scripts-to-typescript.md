@@ -9,7 +9,7 @@ change forces a port.
 
 **Blocked by:** None. Start after `production-migrations`.
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Notes:** The research recommends TypeScript over Python and Go, keeping
 `pg_dump`, `pg_restore`, `psql`, `age` and the `aws` CLI as subprocesses.
@@ -22,3 +22,12 @@ Grill it into a spec first: where the code lives, how it runs, and whether
 - [ ] The recovery rehearsal repeated, as `../../production-recovery/spec.md` (Rehearsal) requires after a material change to `restore.sh`.
 
 ## Comments
+
+### 2026-10-31: deferred until a real change needs it
+
+The bash restores work and were proven by the drill and the recovery
+rehearsal, so the owner deferred the port rather than re-prove a working
+recovery path. Reopen this ticket, at `needs-triage`, when `restore.sh`,
+`restore-drill.sh` or `restore-common.sh` needs a real change, or when reading
+them blocks work. Then start from the research's staged plan, stage 1 first.
+`apps/backup/README.md` points here so the trigger is seen at the scripts.
