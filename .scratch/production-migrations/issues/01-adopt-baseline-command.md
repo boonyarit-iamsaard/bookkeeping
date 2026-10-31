@@ -9,7 +9,7 @@ nothing. A runbook walks the owner through the one production run in 02.
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Notes:** Ships alone as PR 1 from `feat/production-migrations`. Nothing here
 touches production; the owner runs it in 02.
@@ -21,3 +21,10 @@ touches production; the owner runs it in 02.
 - [x] Integration tests from the spec's Testing Decisions: clean adopt then `migrateDatabase` applies nothing; extra index and missing constraint refused with the diff; existing table refused; second journal entry refused; `--check` writes nothing.
 - [x] `runbooks/adopt-production-baseline.md`: manual backup, proxy open with the URL read into a subshell variable and never saved, `--check`, adopt, confirm one row, proxy closed.
 - [x] Database package suite and `pnpm run ci` pass.
+
+## Comments
+
+2026-10-31: Done in 2a2f6d6 (command and tests), 8eb3d6d (runbook) and
+81a1fbf (code-review fixes: row-format test pinning hash and `created_at`,
+explicit "nothing written" checks, runbook error path, shared loopback hosts
+including `::1`). Database suite 20/20; `pnpm run ci` passes. Ready for 02.
