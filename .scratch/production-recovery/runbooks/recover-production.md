@@ -25,7 +25,7 @@ and S3 listings. Database checks are output you paste back, never a URL.
 ## Which section to follow
 
 - **The same Railway Postgres**, after a bad migration or corrupted data:
-  steps 1 to 7 here, then steps 8 to 13 and the final checks in
+  steps 1 to 7a here, then steps 7b to 13 and the final checks in
   [recover-production-after-swap.md](recover-production-after-swap.md).
 - **A new Railway project**, after losing the account:
   [recover-production-new-project.md](recover-production-new-project.md),
@@ -37,7 +37,7 @@ check `railway status` names it: the repository stays linked to production
 otherwise. Its `api` is a placeholder image such as `traefik/whoami` with a
 generated domain, and its `railway` holds a backup newer than the one you
 restore, so step 11 finds real rows; don't re-enter them. The rehearsal
-takes step 8b, never 8a: merging a revert would change the real `main` and
+takes step 8b, never 8a: merging a fix would change the real `main` and
 redeploy production. It has no `backup` service, so it skips step 12 and
 that final check. Deleting the project afterwards only schedules it; Railway
 removes it two days later. Link production again when done.
@@ -68,16 +68,16 @@ removes it two days later. Link production again when done.
 
 ## Decisions
 
-| Fork                                          | Choice                                                                         | Why                                                                                                                                                                                                                                                |
-| --------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| How to stop writes                            | Remove the API's active deployment (step 2)                                    | The spec's choice. Nothing else writes to the database, and a later deploy brings it back.                                                                                                                                                         |
-| Where to dump, restore and check              | Through a temporary TCP proxy, on this machine                                 | ADR 0013's recovery amendment: the private key stays here.                                                                                                                                                                                         |
-| Salvage and dropping `railway_damaged`        | Inside the `database` container through `railway ssh`, after the proxy is gone | Steps 11 and 13 follow step 10 in the spec, so the proxy is closed by then. These are text queries; the spec rejected `railway ssh` only for piping a binary dump.                                                                                 |
-| The empty `railway` database on a new project | Check it is empty, drop it, restore into `railway`                             | `restore.sh` refuses a database that exists, and the services' `DATABASE_URL` reference keeps its default name. Chosen by the owner on 2026-10-24.                                                                                                 |
-| The manual backup (step 12)                   | `railway cron run --service backup`                                            | Railway documents a run outside the schedule only through the CLI.                                                                                                                                                                                 |
-| How the URL reaches each command              | Read at a hidden prompt inside a `( … )` subshell, once per command            | The password never outlives the command that uses it, and never reaches shell history or the screen. Pasting it four times is the cost.                                                                                                            |
-| Undoing a bad migration in code               | Revert its commit (step 8a), as the spec says                                  | `docs/code-conventions.md` makes committed migrations forward-only. Until production applies migrations (the `production-migrations` spec), production never ran one, so reverting it changes no database. Revisit this step when that spec lands. |
-| Order on a new project                        | Restore (N4) before rebuilding the services (N5)                               | The ticket lists the rebuild first. Restoring first means no `api` starts against an empty database or writes before the restore has passed.                                                                                                       |
+| Fork                                          | Choice                                                                         | Why                                                                                                                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| How to stop writes                            | Remove the API's active deployment (step 2)                                    | The spec's choice. Nothing else writes to the database, and a later deploy brings it back.                                                                                        |
+| Where to dump, restore and check              | Through a temporary TCP proxy, on this machine                                 | ADR 0013's recovery amendment: the private key stays here.                                                                                                                        |
+| Salvage and dropping `railway_damaged`        | Inside the `database` container through `railway ssh`, after the proxy is gone | Steps 11 and 13 follow step 10 in the spec, so the proxy is closed by then. These are text queries; the spec rejected `railway ssh` only for piping a binary dump.                |
+| The empty `railway` database on a new project | Check it is empty, drop it, restore into `railway`                             | `restore.sh` refuses a database that exists, and the services' `DATABASE_URL` reference keeps its default name. Chosen by the owner on 2026-10-24.                                |
+| The manual backup (step 12)                   | `railway cron run --service backup`                                            | Railway documents a run outside the schedule only through the CLI.                                                                                                                |
+| How the URL reaches each command              | Read at a hidden prompt inside a `( … )` subshell, once per command            | The password never outlives the command that uses it, and never reaches shell history or the screen. Pasting it four times is the cost.                                           |
+| Undoing a bad migration in code               | Fix forward with a newer migration (step 8a)                                   | ADR 0014 makes committed migrations immutable, and CI rejects a PR that deletes one, so a revert can't remove it. Step 7b says whether the deploy reruns it on the restored data. |
+| Order on a new project                        | Restore (N4) before rebuilding the services (N5)                               | The ticket lists the rebuild first. Restoring first means no `api` starts against an empty database or writes before the restore has passed.                                      |
 
 ## Steps
 
@@ -340,7 +340,7 @@ removes it two days later. Link production again when done.
 - **Source:** <https://www.postgresql.org/docs/18/sql-alterdatabase.html>,
   <https://www.postgresql.org/docs/18/functions-admin.html>
 
-### 7. Check `railway` against the manifest
+### 7a. Check `railway` against the manifest
 
 - [ ] **Done** (tick once Verify passes)
 - **Goal:** Proof that the database the services will use is the restored
@@ -365,5 +365,5 @@ removes it two days later. Link production again when done.
 - **Ticks:** Ticket 03: "`--check`".
 - **Source:** `apps/backup/README.md` (Restore)
 
-Next: step 8 in
+Next: step 7b in
 [recover-production-after-swap.md](recover-production-after-swap.md).

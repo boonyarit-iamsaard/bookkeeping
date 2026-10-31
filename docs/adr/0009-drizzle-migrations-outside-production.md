@@ -47,3 +47,10 @@ running it, because production has only ever received `db:push` and has no
 Drizzle migrations table. That step waits for the first passing restore drill
 (`docs/adr/0013-nightly-encrypted-backups-to-aws-s3.md`) and gets its own
 spec. Committed migrations may still be squashed until then.
+
+## Amendment, 2026-10-31
+
+Production adopted `0000_baseline` on 2026-10-31 and now applies every later
+migration in the `api` service's Railway pre-deploy step. Committed migrations
+are immutable from that date and may no longer be squashed. See
+`docs/adr/0014-production-migrations-in-railway-pre-deploy.md`.

@@ -56,10 +56,10 @@ enforcement.
 
 ### Database schema changes
 
-Schema changes ship as committed migrations in every environment except
-production. Applying migrations to production waits for the owner's explicit
-authorization. Follow the naming and workflow rules in
-`docs/code-conventions.md#database-migrations`.
+Schema changes ship as committed migrations, and production applies them on
+deploy. Merging a PR that adds a migration authorizes it, so only the owner
+merges one; leave it open for the owner. Follow the naming and workflow rules
+in `docs/code-conventions.md#database-migrations`.
 
 ### Issue tracker
 
