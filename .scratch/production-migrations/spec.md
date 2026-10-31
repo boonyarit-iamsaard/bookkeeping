@@ -1,6 +1,6 @@
 # Production applies migrations
 
-Status: ready-for-agent
+Status: done
 
 Decided on 2026-10-31 by grilling. Read
 `docs/adr/0009-drizzle-migrations-outside-production.md` (with its
