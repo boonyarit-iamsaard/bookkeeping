@@ -22,7 +22,7 @@ remain unchanged. `pnpm run ci` is the routine gate and excludes browser tests;
 
 ### Git workflow
 
-Before editing tracked files, read `README.md#git-workflow` and inspect the
+Before editing tracked files, read `docs/development/workflow.md#git-workflow` and inspect the
 current branch and working tree. When on `main`, automatically create and
 switch to a task branch before editing. Reuse an existing branch only for the
 same task; isolate unrelated work in another branch or worktree while
