@@ -117,7 +117,7 @@ test("an unknown wallet's page offers the way back to Wallets", async ({
   await expect(page).toHaveURL(/\/wallets$/);
 });
 
-test("a long wallet name stays on one line in the title bar", async ({
+test("a long wallet name stays on one line in the title bar and shows in full on Manage", async ({
   page,
 }) => {
   const name = "Joint household savings account at the credit union";
@@ -134,4 +134,10 @@ test("a long wallet name stays on one line in the title bar", async ({
   // One 26px line at tight leading is about 33px; a wrapped name is taller.
   const box = await title.boundingBox();
   expect(box?.height).toBeLessThan(40);
+
+  // The truncated title cannot tell similar wallets apart, so Manage names it.
+  await page.getByRole("link", { name: "Manage" }).click();
+  await expect(
+    page.getByRole("region", { name: "Wallet balance" }).getByText(name),
+  ).toBeVisible();
 });

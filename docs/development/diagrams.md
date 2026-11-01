@@ -19,7 +19,9 @@ script, because browsers refuse module scripts from `file://` pages. Give the
 `.diagram` figure an `aria-label` that says what the diagram shows. Text that
 must keep its spacing goes in a `<pre>`, which Prettier leaves alone.
 
-Render every diagram, or only the ones named:
+Rendering launches Playwright's Chromium; install it once with
+`pnpm --filter @bookkeeping/web exec playwright install --with-deps chromium`
+(also in [testing](testing.md)). Render every diagram, or only the ones named:
 
 ```bash
 pnpm diagrams

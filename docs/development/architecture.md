@@ -4,8 +4,8 @@ The repo is a pnpm workspace with Turborepo (see
 [ADR 0002](../adr/0002-turborepo-monorepo.md)). `apps/web` is the
 single-page client ([ADR 0006](../adr/0006-vite-tanstack-router-spa-client.md))
 and `apps/server` is the Hono API, the sole application backend
-([ADR 0003](../adr/0003-hono-application-backend.md)). Backend code lives in
-private `packages/*` (see
+([ADR 0003](../adr/0003-hono-application-backend.md)). Shared backend code
+lives in private `packages/*` (see
 [ADR 0004](../adr/0004-shared-backend-package-graph.md)).
 
 ```text

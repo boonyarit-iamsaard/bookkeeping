@@ -100,7 +100,7 @@ days is not installed (`minimumReleaseAge`), a drop in a package's publish
 trust fails the install (`trustPolicy`), and a dependency build script fails
 the install unless `allowBuilds` lists it. `.npmrc` pins the registry. For an
 urgent advisory, exempt the one fixed package with `minimumReleaseAgeExclude`
-instead of lowering the age, and remove the exemption afterwards. Do not use
+instead of lowering the age, and remove the exemption afterward. Do not use
 `--trust-lockfile`; CI relies on the full lockfile verification.
 
 To run the workflow locally, install `act`, start Docker, and run:

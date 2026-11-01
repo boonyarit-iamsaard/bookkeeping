@@ -61,8 +61,8 @@ project and an analysis token, runs the scanner, and waits for the server to
 process the analysis. It then writes the issues and detailed security hotspots
 to `.sonar-reports/issues.json` and `.sonar-reports/issues.md`, and removes
 every container, volume, and network it created, also when the scan fails or
-you interrupt it. No credentials are saved; nothing but the reports outlives
-the run. Run one scan at a time: a new scan first removes any other scan's
+you interrupt it. No credentials are saved; without `--keep`, nothing but the
+reports outlives the run (`pnpm sonar:clean` removes a kept stack). Run one scan at a time: a new scan first removes any other scan's
 stack, including one still running. The run needs no environment file.
 
 Reports are Git-ignored and overwritten by the next scan. Because every scan

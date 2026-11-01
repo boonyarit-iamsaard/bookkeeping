@@ -2,7 +2,8 @@
 
 ## Local setup
 
-Install Node.js 24, pnpm 11, and Docker with Docker Compose support. The exact
+Install Node.js 24.22.1 or newer, pnpm 11, and Docker with Docker Compose
+support. The exact
 pnpm version and integrity hash are pinned in `packageManager`, and Corepack
 (`corepack enable`) selects them. Start Docker before starting the database.
 
@@ -67,8 +68,9 @@ environment:
 `pnpm start:server` runs the compiled production output with the environment
 the caller injects, which `apps/server/turbo.json` passes through Turborepo.
 The database commands load `DATABASE_URL` from `packages/database/.env` (copy
-`packages/database/.env.example`), and `drizzle.config.ts` validates it. Each
-workspace's scripts load only its own `.env`, through dotenvx; see
+`packages/database/.env.example`), and `drizzle.config.ts` validates it. The
+server and database scripts load their own `.env` through dotenvx; the web
+`dev` script runs Vite, which reads `apps/web/.env` itself. See
 [Scripts and environment](../code-conventions.md#scripts-and-environment).
 
 When `AUTH_SIGN_UP_ENABLED=false`, the API refuses new sign-ups, the web hides
@@ -108,14 +110,14 @@ origin), its `CLIENT_ORIGINS` (the client origin), and the client's
 
 ## Database commands
 
-| Command           | Purpose                                                                  |
-| ----------------- | ------------------------------------------------------------------------ |
-| `pnpm db:start`   | Start local PostgreSQL and wait for its health check                     |
-| `pnpm db:stop`    | Stop PostgreSQL and the production containers, retaining the data volume |
-| `pnpm db:push`    | Apply schema changes directly on a throwaway database                    |
-| `pnpm db:migrate` | Apply pending committed migrations                                       |
-| `pnpm db:fresh`   | Reset a local database and rebuild it from committed migrations          |
-| `pnpm db:studio`  | Open Drizzle Studio                                                      |
+| Command           | Purpose                                                                             |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| `pnpm db:start`   | Start local PostgreSQL and wait for its health check                                |
+| `pnpm db:stop`    | Stop PostgreSQL and the production containers, retaining the data volume            |
+| `pnpm db:push`    | Push the schema straight to `DATABASE_URL`; for experiments on a throwaway database |
+| `pnpm db:migrate` | Apply pending committed migrations                                                  |
+| `pnpm db:fresh`   | Reset a local database and rebuild it from committed migrations                     |
+| `pnpm db:studio`  | Open Drizzle Studio                                                                 |
 
 These commands need only Docker and `packages/database/.env`; neither app has
 to be running. The database commands run from `packages/database`, which owns
