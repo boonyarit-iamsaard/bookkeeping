@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
+import { createWalletThroughForm } from "./helpers/create-wallet";
 import { parkPointer } from "./helpers/park-pointer";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
@@ -114,4 +115,29 @@ test("an unknown wallet's page offers the way back to Wallets", async ({
   await expect(page.getByRole("alert")).not.toContainText("filters");
   await page.getByRole("link", { name: "Back to Wallets" }).click();
   await expect(page).toHaveURL(/\/wallets$/);
+});
+
+test("a long wallet name stays on one line in the title bar and shows in full on Manage", async ({
+  page,
+}) => {
+  const name = "Joint household savings account at the credit union";
+  await signUpFreshUser(page);
+  await createWalletThroughForm(page, {
+    name,
+    openingAmount: "100",
+    openingDate: "2026-09-01",
+  });
+
+  await page.getByRole("link", { name, exact: true }).click();
+  const title = page.getByRole("heading", { name, level: 1 });
+  await expect(title).toBeVisible();
+  // One 26px line at tight leading is about 33px; a wrapped name is taller.
+  const box = await title.boundingBox();
+  expect(box?.height).toBeLessThan(40);
+
+  // The truncated title cannot tell similar wallets apart, so Manage names it.
+  await page.getByRole("link", { name: "Manage" }).click();
+  await expect(
+    page.getByRole("region", { name: "Wallet balance" }).getByText(name),
+  ).toBeVisible();
 });

@@ -1,7 +1,7 @@
 /*
  * Diagram kit: the shared look for `*.diagram.html` files.
  * Layout is plain CSS; `kit.js` draws the edges after layout.
- * See README.md#diagrams.
+ * See docs/development/diagrams.md.
  */
 
 :root {

@@ -27,7 +27,7 @@
   "apps/web/src/features/transactions/components/transaction-form.tsx": 31201,
   "apps/web/tests/e2e/shell.spec.ts": 23129,
   "apps/web/tests/e2e/transaction-entry.spec.ts": 21863,
-  "DESIGN.md": 51732,
+  "DESIGN.md": 52042,
   "docs/research/supply-chain-hardening.md": 55280,
   "packages/application/src/categories/category.integration.test.ts": 42405,
   "packages/application/src/categories/category.ts": 24260,
@@ -35,6 +35,5 @@
   "packages/application/src/transactions/transaction-reads.integration.test.ts": 35166,
   "packages/application/src/transactions/transaction-update.integration.test.ts": 41688,
   "packages/application/src/transactions/transaction.ts": 35611,
-  "packages/application/src/wallets/wallet.integration.test.ts": 31667,
-  "README.md": 31718
+  "packages/application/src/wallets/wallet.integration.test.ts": 31667
 }

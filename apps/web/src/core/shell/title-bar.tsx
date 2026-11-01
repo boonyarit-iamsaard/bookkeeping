@@ -68,7 +68,7 @@ export function TitleBar({ title, back, actions }: Readonly<TitleBarProps>) {
       className="bg-chrome data-scrolled:border-border sticky top-0 z-10 -mx-4 flex min-h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-2 border-b border-transparent px-4 pt-[env(safe-area-inset-top)] sm:static sm:mx-0 sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0"
     >
       {back}
-      <h1 className="min-w-0 flex-1 text-[1.625rem] leading-tight font-bold tracking-[-0.02em] wrap-break-word sm:text-3xl">
+      <h1 className="min-w-0 flex-1 truncate text-[1.625rem] leading-tight font-bold tracking-[-0.02em] sm:overflow-visible sm:text-3xl sm:wrap-break-word sm:text-clip sm:whitespace-normal">
         {title}
       </h1>
       {actions && (

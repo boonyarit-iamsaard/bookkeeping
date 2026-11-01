@@ -1,6 +1,6 @@
 # 04: Vitest cache race fails `pnpm run ci` at startup
 
-Read `README.md#checks` first.
+Read `docs/development/workflow.md#checks` first.
 
 **What to build:** `pnpm run ci` never fails because two Vitest runs touch
 the same cache directory at once.

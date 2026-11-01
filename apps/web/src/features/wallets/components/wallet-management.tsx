@@ -215,6 +215,10 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       >
         <WalletTile type={wallet.type} archived={archived} />
         <div className="flex min-w-0 flex-col">
+          {/* The phone title bar truncates; say which wallet this is in full. */}
+          <p className="text-sm font-medium wrap-break-word sm:hidden">
+            {wallet.name}
+          </p>
           <p className="text-muted-foreground text-sm">
             Current balance{archived ? " · Archived" : ""}
           </p>

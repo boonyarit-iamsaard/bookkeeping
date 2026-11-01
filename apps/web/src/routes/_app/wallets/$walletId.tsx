@@ -65,10 +65,16 @@ function WalletPage() {
           <Link
             to="/wallets/$walletId/manage"
             params={{ walletId: wallet.id }}
-            className={buttonVariants({ variant: "outline", size: "lg" })}
+            className={buttonVariants({
+              variant: "outline",
+              size: "lg",
+              // Icon-only on phone so a long wallet name keeps the room.
+              className:
+                "max-sm:w-11 max-sm:px-0 max-sm:has-data-[icon=inline-start]:px-0",
+            })}
           >
             <SlidersHorizontal data-icon="inline-start" strokeWidth={1.75} />
-            Manage
+            <span className="sr-only sm:not-sr-only">Manage</span>
           </Link>
         }
       />

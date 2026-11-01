@@ -1,6 +1,6 @@
-# Personal Finance
+# Bookkeeping
 
-Personal finance covers tracking money, planning budgets, and forecasting future finances.
+Bookkeeping covers recording where money sits and how it moves between wallets, categories and debts.
 
 ## Language
 
