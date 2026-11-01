@@ -1,7 +1,8 @@
 # Bookkeeping
 
 A phone-first personal ledger for recording household money the moment it
-moves: what came in, what went out, and where it sits now.
+moves: what came in, what went out, and where it sits now. Every entry is made
+by hand; there's no bank sync.
 
 <p align="center">
   <img src="docs/assets/screenshots/home.light.webp" width="300"
@@ -22,8 +23,9 @@ kept my real ledger in it since September 2026.
   two-level categories. A missing category can be created without leaving the
   entry screen, and a new entry starts on the last-used wallet.
 - **Transfers** between your own wallets, recorded once and applied to both.
-- **Refunds** against a specific expense. A refund can't return more than the
-  expense has left, and it reduces that category's spending in its own month.
+- **Refunds** against a specific expense. A refund can't exceed the expense's
+  unrefunded amount, and it reduces category spending in the month the refund
+  is dated.
 - **Debt payments and card cash advances** recorded as ordinary cash movements:
   a card bill is an expense from the wallet that paid it, and a cash advance is
   income into the wallet that received it.
@@ -33,6 +35,8 @@ kept my real ledger in it since September 2026.
   change history keeps what it looked like before.
 - **An installable app** with light and dark appearance, built for one-handed
   entry right after paying, and still comfortable for review on a desktop.
+  It's supported in Chrome and Edge on Android and desktop
+  ([ADR 0007](docs/adr/0007-chromium-only-browser-support.md)).
 
 Each Account's data is isolated from every other Account's; there's no
 sharing.
@@ -62,7 +66,7 @@ The screenshots show a fictional demo Account.
   [ADR 0003](docs/adr/0003-hono-application-backend.md)). TypeScript
   throughout, in a pnpm and Turborepo monorepo
   ([ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
-- **One contract, no handwritten client.** API routes describe their requests
+- **One contract, generated API types.** API routes describe their requests
   and responses with Zod schemas, the server generates an OpenAPI document from
   them, and the client's types are generated from that document.
 - **Rules live with the use cases.** Domain, application, database, and auth
@@ -73,8 +77,8 @@ The screenshots show a fictional demo Account.
 - **Balances are derived, never stored.** A wallet's balance is its opening
   balance plus its transactions up to a date
   ([ADR 0001](docs/adr/0001-transaction-derived-balances.md)).
-- **Exact money.** Amounts are integer satang inside the app and exact decimal
-  strings over HTTP; no amount ever passes through a floating-point number.
+- **Exact money.** Amounts are stored and calculated in integer satang and sent
+  as exact decimal strings over HTTP.
 - **Gated deploys.** `main` accepts changes only through pull requests that pass
   CI and the browser suite; Railway then deploys and applies committed database
   migrations before the new API starts
