@@ -3,9 +3,9 @@
 ## Local setup
 
 Install Node.js 24.22.1 or newer, pnpm 11, and Docker with Docker Compose
-support. The exact
-pnpm version and integrity hash are pinned in `packageManager`, and Corepack
-(`corepack enable`) selects them. Start Docker before starting the database.
+support. The exact pnpm version and integrity hash are pinned in
+`packageManager`, and Corepack (`corepack enable`) selects them. Start Docker
+before starting the database.
 
 ```bash
 pnpm install
