@@ -1,7 +1,8 @@
 # Operations
 
 Production runs on Railway ([ADR 0008](../adr/0008-railway-single-hosting-provider.md)),
-deploys from `main` only after CI passes
+deploys every merge to `main`, which accepts only pull requests that pass the
+[required checks](workflow.md#git-workflow)
 ([ADR 0010](../adr/0010-protected-main-and-gated-deploys.md)), and applies
 committed migrations in the API's pre-deploy step
 ([ADR 0014](../adr/0014-production-migrations-in-railway-pre-deploy.md)).

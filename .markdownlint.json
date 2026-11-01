@@ -7,8 +7,5 @@
   "MD024": {
     "siblings_only": true
   },
-  "MD036": false,
-  "MD033": {
-    "allowed_elements": ["br", "img", "p", "table", "td", "tr"]
-  }
+  "MD036": false
 }

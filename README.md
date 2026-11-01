@@ -1,3 +1,5 @@
+<!-- markdownlint-configure-file { "MD033": { "allowed_elements": ["br", "img", "p", "table", "td", "tr"] } } -->
+
 # Bookkeeping
 
 A phone-first personal ledger for recording household money the moment it
@@ -24,7 +26,7 @@ kept my real ledger in it since September 2026.
   entry screen, and a new entry starts on the last-used wallet.
 - **Transfers** between your own wallets, recorded once and applied to both.
 - **Refunds** against a specific expense. A refund can't exceed the expense's
-  unrefunded amount, and it reduces category spending in the month the refund
+  refund allowance, the part not yet refunded, and it reduces category spending in the month the refund
   is dated.
 - **Debt payments and card cash advances** recorded as ordinary cash movements:
   a card bill is an expense from the wallet that paid it, and a cash advance is
@@ -66,6 +68,11 @@ The screenshots show a fictional demo Account.
   [ADR 0003](docs/adr/0003-hono-application-backend.md)). TypeScript
   throughout, in a pnpm and Turborepo monorepo
   ([ADR 0002](docs/adr/0002-turborepo-monorepo.md)).
+- **PostgreSQL, Drizzle, and Better Auth.** Data lives in PostgreSQL behind
+  Drizzle ORM, and email and password sign-in uses Better Auth, mounted in the
+  API.
+- **Tailwind CSS and shadcn.** The interface is built from shadcn components on
+  Base UI, styled with Tailwind CSS.
 - **One contract, generated API types.** API routes describe their requests
   and responses with Zod schemas, the server generates an OpenAPI document from
   them, and the client's types are generated from that document.
@@ -80,7 +87,7 @@ The screenshots show a fictional demo Account.
 - **Exact money.** Amounts are stored and calculated in integer satang and sent
   as exact decimal strings over HTTP.
 - **Gated deploys.** `main` accepts changes only through pull requests that pass
-  CI and the browser suite; Railway then deploys and applies committed database
+  its required checks; Railway then deploys and applies committed database
   migrations before the new API starts
   ([ADR 0010](docs/adr/0010-protected-main-and-gated-deploys.md),
   [ADR 0014](docs/adr/0014-production-migrations-in-railway-pre-deploy.md)).
