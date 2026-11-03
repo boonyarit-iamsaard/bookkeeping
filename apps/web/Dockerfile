@@ -16,6 +16,6 @@ ARG VITE_API_ORIGIN
 RUN test -n "$VITE_API_ORIGIN" || (echo "VITE_API_ORIGIN build argument is required" >&2 && exit 1)
 RUN pnpm --filter @bookkeeping/web build
 
-FROM caddy:2-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
+FROM caddy:2-alpine@sha256:e70b164da81ef698b3ad19af799ea6086ce6d9e48ed4079eb9fe26f6fbf14ee5
 COPY apps/web/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /repo/apps/web/dist /srv
