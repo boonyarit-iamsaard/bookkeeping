@@ -42,7 +42,37 @@ function spending(
 }
 
 describe("createCategoryBreakdown", () => {
-  test("orders parents by sort order with Uncategorized last", () => {
+  test("orders parents largest first, Uncategorized included, in the legend and the bar", () => {
+    const breakdown = createCategoryBreakdown(
+      spending("100.00", [
+        parent(FOOD_ID, {
+          sortOrder: 1,
+          spending: { value: "10.00", currency: "THB" },
+        }),
+        parent(TRANSPORT_ID, {
+          sortOrder: 2,
+          spending: { value: "30.00", currency: "THB" },
+        }),
+        parent(DEBT_ID, {
+          sortOrder: 3,
+          spending: { value: "5.00", currency: "THB" },
+        }),
+        parent(UNCATEGORIZED_ID, {
+          sortOrder: 0,
+          isUncategorized: true,
+          spending: { value: "55.00", currency: "THB" },
+        }),
+      ]),
+    );
+
+    const expectedOrder = [UNCATEGORIZED_ID, TRANSPORT_ID, FOOD_ID, DEBT_ID];
+    expect(breakdown.segments.map((segment) => segment.id)).toEqual(
+      expectedOrder,
+    );
+    expect(breakdown.bar?.map((segment) => segment.id)).toEqual(expectedOrder);
+  });
+
+  test("breaks a tie in amount by category order with Uncategorized last", () => {
     const breakdown = createCategoryBreakdown(
       spending("40.00", [
         parent(UNCATEGORIZED_ID, {
@@ -105,6 +135,12 @@ describe("createCategoryBreakdown", () => {
       ),
     ).toEqual([
       {
+        name: "Debt payments",
+        amount: { value: "1000.00", currency: "THB" },
+        share: 0.625,
+        shareLabel: "63%",
+      },
+      {
         name: "Food & Drink",
         amount: { value: "450.00", currency: "THB" },
         share: 0.28125,
@@ -115,12 +151,6 @@ describe("createCategoryBreakdown", () => {
         amount: { value: "150.00", currency: "THB" },
         share: 0.09375,
         shareLabel: "9%",
-      },
-      {
-        name: "Debt payments",
-        amount: { value: "1000.00", currency: "THB" },
-        share: 0.625,
-        shareLabel: "63%",
       },
     ]);
     expect(breakdown.empty).toBe(false);
@@ -253,7 +283,7 @@ describe("createCategoryBreakdown", () => {
     expect(breakdown.moreRefundedThanSpent).toEqual([]);
   });
 
-  test("expands a parent into the amount filed directly on it and its children in category order", () => {
+  test("expands a parent into the amount filed directly on it, then its children largest first", () => {
     const breakdown = createCategoryBreakdown(
       spending("300.00", [
         parent(FOOD_ID, {
@@ -263,13 +293,13 @@ describe("createCategoryBreakdown", () => {
             {
               id: RESTAURANTS_ID,
               name: "Restaurants",
-              sortOrder: 2,
+              sortOrder: 1,
               spending: { value: "-50.00", currency: "THB" },
             },
             {
               id: GROCERIES_ID,
               name: "Groceries",
-              sortOrder: 1,
+              sortOrder: 2,
               spending: { value: "250.00", currency: "THB" },
             },
           ],

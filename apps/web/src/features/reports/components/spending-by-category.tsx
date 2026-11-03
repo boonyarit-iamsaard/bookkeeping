@@ -20,9 +20,18 @@ function segmentClass(segment: Readonly<CategoryRow>): string {
   return cn("bg-(--hue)", segment.isUncategorized && "chart-hatch");
 }
 
-const LEGEND_LIST_CLASS = "flex flex-col divide-y divide-border/70";
-const LEGEND_ROW_CLASS =
-  "flex w-full items-center justify-between gap-3 py-3 text-left";
+/**
+ * The legend is one grid of name, share, amount and disclosure columns, and
+ * every row and expanded line takes it up as a subgrid, so shares and amounts
+ * stack in columns whether or not a row has a chevron.
+ */
+const LEGEND_LIST_CLASS =
+  "grid grid-cols-[minmax(0,1fr)_auto_auto_auto] divide-y divide-border/70";
+const LEGEND_SUBGRID_CLASS = "col-span-full grid grid-cols-subgrid";
+const LEGEND_ROW_CLASS = cn(
+  LEGEND_SUBGRID_CLASS,
+  "items-center gap-x-2 py-3 text-left",
+);
 
 interface LegendRowProps {
   row: Readonly<CategoryRow>;
@@ -56,12 +65,11 @@ function LegendRow({ row, share }: Readonly<LegendRowProps>) {
         />
         <span className="min-w-0 wrap-break-word">{row.name}</span>
       </span>
-      <span className="flex shrink-0 items-center gap-2.5">
-        {share}
-        <Money amount={row.spending} />
+      <span className="justify-self-end">{share}</span>
+      <Money amount={row.spending} className="justify-self-end" />
+      <span aria-hidden="true" className="size-4">
         {expandable && (
           <ChevronDown
-            aria-hidden="true"
             className={cn(
               "text-muted-foreground size-4",
               expanded && "rotate-180",
@@ -73,7 +81,7 @@ function LegendRow({ row, share }: Readonly<LegendRowProps>) {
   );
 
   return (
-    <li data-category-spending={row.name}>
+    <li data-category-spending={row.name} className={LEGEND_SUBGRID_CLASS}>
       {expandable ? (
         <button
           type="button"
@@ -95,17 +103,17 @@ function LegendRow({ row, share }: Readonly<LegendRowProps>) {
           id={linesId}
           hidden={!expanded}
           aria-label={`${row.name} by category`}
-          className="flex flex-col gap-2 pb-3 pl-5.5 text-sm"
+          className={cn(LEGEND_SUBGRID_CLASS, "gap-y-2 pb-3 text-sm")}
         >
           {row.lines.map((line) => (
             <li
               key={line.kind === "direct" ? "direct" : line.id}
-              className="flex items-baseline justify-between gap-3"
+              className={cn(LEGEND_SUBGRID_CLASS, "items-baseline gap-x-2")}
             >
-              <span className="text-muted-foreground min-w-0 wrap-break-word">
+              <span className="text-muted-foreground col-span-2 min-w-0 pl-5.5 wrap-break-word">
                 {lineName(line, row.name)}
               </span>
-              <Money amount={line.spending} className="shrink-0" />
+              <Money amount={line.spending} className="justify-self-end" />
             </li>
           ))}
         </ul>
