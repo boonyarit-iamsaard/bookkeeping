@@ -42,7 +42,10 @@ export interface CategorySegment extends CategoryRow {
 }
 
 export interface CategoryBreakdown {
-  /** Legend rows for parents not below zero, in category order, Uncategorized last. */
+  /**
+   * Legend rows for parents not below zero, largest first; equal amounts keep
+   * category order, Uncategorized last.
+   */
   segments: CategorySegment[];
   /** The segments the bar draws, or null when Net expenses is zero or less. */
   bar: CategorySegment[] | null;
@@ -73,6 +76,22 @@ function childInCategoryOrder(
   return first.sortOrder - second.sortOrder;
 }
 
+/** A category paired with its spending as satang, ready to rank. */
+interface RankedSpending {
+  amount: bigint;
+}
+
+/** Largest first; the sort is stable, so equal amounts keep their order. */
+function largestFirst(
+  first: Readonly<RankedSpending>,
+  second: Readonly<RankedSpending>,
+): number {
+  if (first.amount === second.amount) {
+    return 0;
+  }
+  return first.amount > second.amount ? -1 : 1;
+}
+
 function shareLabelOf(share: number): string {
   const percent = Math.round(share * 100);
   return percent === 0 && share > 0 ? "<1%" : `${percent}%`;
@@ -82,14 +101,18 @@ function linesOf(parent: Readonly<ParentCategorySpending>): CategoryLine[] {
   if (parent.children.length === 0) {
     return [];
   }
-  const children = parent.children.toSorted(childInCategoryOrder).map(
-    (child): CategoryLine => ({
-      kind: "child",
-      id: child.id,
-      name: child.name,
-      spending: child.spending,
-    }),
-  );
+  const children = parent.children
+    .toSorted(childInCategoryOrder)
+    .map((child) => ({ child, amount: parseApiMoney(child.spending) }))
+    .toSorted(largestFirst)
+    .map(
+      ({ child }): CategoryLine => ({
+        kind: "child",
+        id: child.id,
+        name: child.name,
+        spending: child.spending,
+      }),
+    );
   return parseApiMoney(parent.directSpending) === 0n
     ? children
     : [{ kind: "direct", spending: parent.directSpending }, ...children];
@@ -124,6 +147,7 @@ export function createCategoryBreakdown(
 
   const segments = parents
     .filter(({ amount }) => amount >= 0n)
+    .toSorted(largestFirst)
     .map(({ parent, amount }) => {
       const share =
         positiveSpending > 0n

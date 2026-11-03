@@ -38,10 +38,10 @@ Reports gains two sections for the chosen month, both calculated by the server:
 5. As the owner, I want a refund to reduce its expense's category, so that returned money comes off the category it was spent in.
 6. As the owner, I want each parent's exact amount stated beside its legend swatch, so that I never have to read a figure off a bar.
 7. As the owner, I want each parent's share of spending stated as text, so that I can compare categories at a glance without estimating segment widths.
-8. As the owner, I want parents ordered in my category order, so that the breakdown matches how I arranged my categories.
+8. As the owner, I want parents ordered largest first, with equal amounts in my category order, so that the biggest spending leads the breakdown.
 9. As the owner, I want to expand a parent's legend row to see its children's amounts, so that I can see which child drove a large parent.
 10. As the owner, I want an expanded parent to show the amount filed directly on the parent, so that the children plus that line add up to the parent.
-11. As the owner, I want Uncategorized shown as its own hatched neutral segment, placed last, so that unfiled spending is visible but not mistaken for a real category.
+11. As the owner, I want Uncategorized shown as its own hatched neutral segment, placed by its amount and last among equals, so that unfiled spending is visible but not mistaken for a real category.
 12. As the owner, I want Uncategorized hidden when it has no spending in the month, so that an empty fallback does not clutter the breakdown.
 13. As the owner, I want parents with no activity in the month left out, so that the legend only lists categories I used.
 14. As the owner, I want a category where more was refunded than spent shown with its true minus below the bar, so that negative figures are honest without breaking the bar.
@@ -109,8 +109,10 @@ Reports gains two sections for the chosen month, both calculated by the server:
   only derives presentation from these responses.
 - **Client presentation derivations**, as pure functions beside the existing
   trend series derivation:
-  - From category spending: the ordered positive segments for the bar (by sort
-    order, Uncategorized last), each with its share of positive spending; the
+  - From category spending: the ordered positive segments for the bar
+    (largest first; equal amounts by sort order, Uncategorized last), each
+    with its share of positive spending, and each parent's children largest
+    first; the
     negative parents listed beneath the bar under "More refunded than spent";
     whether a bar is drawn at all (not when Net expenses is zero or less); and
     the empty state when there are no rows.
@@ -156,7 +158,8 @@ Reports gains two sections for the chosen month, both calculated by the server:
 - The existing OpenAPI and API contract tests must pass with the new
   schemas registered, and the generated web client is regenerated.
 - **Web unit tests** for both derivation modules, in the style of the existing
-  trend series tests: ordering, Uncategorized last, shares of positive
+  trend series tests: largest-first ordering, ties in sort order with
+  Uncategorized last, shares of positive
   spending, negative rows, no bar at zero or below, empty state, series gaps,
   zero-line detection, and the default selected day.
 - **One focused browser case** in the existing Reports spec on one project,
