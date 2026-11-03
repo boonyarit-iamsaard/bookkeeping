@@ -8,7 +8,7 @@ Railway service in 04.
 
 **Blocked by:** 01, 02
 
-**Status:** ready-for-human
+**Status:** done
 
 **Notes:** The owner deploys and creates the key. The secret access key goes
 straight into Railway's variables in 04 and is never written to a file or
@@ -19,7 +19,7 @@ pasted into a conversation.
 - [x] Access key created for `bookkeeping-backup-uploader`; its creation date and the next replacement date (one year later) recorded under Comments.
 - [x] As the uploader: uploading `daily/test/probe.txt` succeeds; listing the bucket, reading that object, and deleting it are refused.
 - [x] As the owner: deleting that object's version is refused because of Object Lock.
-- [ ] October 2026's AWS cost noted under Comments once that bill is issued, about 2026-11-03. The stack went live on 2026-10-18, so October is a partial month of 14 days.
+- [x] October 2026's AWS cost noted under Comments once that bill is issued, about 2026-11-03. The stack went live on 2026-10-18, so October is a partial month of 14 days.
 
 ## Comments
 
@@ -85,3 +85,11 @@ rounds to zero, and the wait would only add a December reminder. On
 2026-10-23 the owner read October's month-to-date cost in the Billing
 console: $0.00. The October bill is final once its status changes from
 **Pending** to **Issued**, about 2026-11-03.
+
+### 2026-11-03: October's cost, ticket closed
+
+Cost Explorer reports October 2026 as final (`Estimated: false`): $0.0009
+in total, $0.00088 of it S3 and $0.000015 Secrets Manager, with every other
+service at $0. That rounds to $0.00, well inside the $1 budget. No October
+invoice was listed by the invoicing API, likely because the total is under
+one cent. Every checkbox is ticked, so the ticket is done.
