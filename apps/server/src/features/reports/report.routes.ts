@@ -11,6 +11,7 @@ import type {
   ClosingBalances,
   DailySummary,
   MonthlySummary,
+  RangeSummary,
 } from "@bookkeeping/domain/transactions";
 import { Hono } from "hono";
 import { describeResponse, describeRoute } from "hono-openapi";
@@ -36,16 +37,6 @@ const reportFiguresShape = {
   net: moneySchema,
   transactionCount: z.number().int().nonnegative(),
 };
-
-type ReportFigures = Pick<
-  MonthlySummary,
-  | "income"
-  | "grossExpenses"
-  | "refunds"
-  | "netExpenses"
-  | "net"
-  | "transactionCount"
->;
 
 export const monthlyReportResponseSchema = z
   .object({
@@ -98,7 +89,7 @@ function presentThb(amountInMinorUnits: bigint) {
   return presentMoney({ amountInMinorUnits, currency: "THB" });
 }
 
-function presentReportFigures(summary: Readonly<ReportFigures>) {
+function presentReportFigures(summary: Readonly<RangeSummary>) {
   // The schema constrains every transaction to THB, so the totals carry it.
   return {
     income: presentThb(summary.income),

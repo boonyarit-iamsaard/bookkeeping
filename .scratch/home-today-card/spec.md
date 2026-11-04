@@ -1,6 +1,6 @@
 # Home Today card
 
-Status: ready-for-agent
+Status: done
 
 Decisions confirmed on 2026-11-04 by grilling; this spec is the full decision
 record. Inputs: `CONTEXT.md`, `DESIGN.md` (Summary card, Flow bars, loading),

@@ -32,5 +32,19 @@ view, schema changes.
 
 Closed 2026-11-04. Built in `c8094a6` (feat: add a today card to the home
 summary strip) and `9ca1ba3` (fix(reports): prove the today card and share
-report figures); `DESIGN.md` lands in the following docs commit. Verified:
-`pnpm run ci` green, then `home.spec.ts` alone on `phone-chromium`, 3 passed.
+report figures); `DESIGN.md` lands in `3ed00ca` (docs: describe the home
+today card and summary strip). Verified: `pnpm run ci` green, then
+`home.spec.ts` alone on `phone-chromium`, 3 passed.
+
+Review against `main`: the daily route suite now asserts only a happy-path
+round trip with ownership, zeros, one bad request and authentication. The
+Testing Decisions' refund, transfer and neighbour cases stay with
+`getDailySummary` in `transaction-reports.integration.test.ts`, per
+`docs/code-conventions.md#test-ownership`. The daily route tests live in
+`report.daily.routes.integration.test.ts` because
+`report.routes.integration.test.ts` is on the token-budget baseline and may
+not grow.
+
+Re-verified after the review edits, in the review commit (refactor: trim the
+daily route suite and inline home summary cards): `pnpm run ci` green, then
+`home.spec.ts` alone on `phone-chromium`, 3 passed.

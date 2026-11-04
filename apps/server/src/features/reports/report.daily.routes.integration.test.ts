@@ -31,7 +31,7 @@ function getDailyReport(
 }
 
 describe("GET /v1/reports/daily", () => {
-  test("totals one date, netting a refund of an earlier expense and excluding transfers, neighbours and other owners", async () => {
+  test("serializes the caller's day as canonical money, leaving other owners out", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -40,14 +40,6 @@ describe("GET /v1/reports/daily", () => {
       const foreign = await createOwner({ db });
       const categories = await defaultCategories(db, owner.ownerId);
       const foreignCategories = await defaultCategories(db, foreign.ownerId);
-      const earlierExpenseId = await insertTransaction(db, {
-        ownerId: owner.ownerId,
-        type: "expense",
-        walletId: owner.cashId,
-        categoryId: categories.expense,
-        amount: 30_000n,
-        transactionDate: "2026-09-01",
-      });
       await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "income",
@@ -64,32 +56,6 @@ describe("GET /v1/reports/daily", () => {
         amount: 50_000n,
         transactionDate: "2026-09-10",
       });
-      await insertTransaction(db, {
-        ownerId: owner.ownerId,
-        type: "refund",
-        walletId: owner.bankId,
-        refundOfTransactionId: earlierExpenseId,
-        amount: 10_000n,
-        transactionDate: "2026-09-10",
-      });
-      await insertTransaction(db, {
-        ownerId: owner.ownerId,
-        type: "transfer",
-        walletId: owner.cashId,
-        destinationWalletId: owner.bankId,
-        amount: 200_000n,
-        transactionDate: "2026-09-10",
-      });
-      for (const transactionDate of ["2026-09-09", "2026-09-11"]) {
-        await insertTransaction(db, {
-          ownerId: owner.ownerId,
-          type: "income",
-          walletId: owner.cashId,
-          categoryId: categories.income,
-          amount: 999_000n,
-          transactionDate,
-        });
-      }
       await insertTransaction(db, {
         ownerId: foreign.ownerId,
         type: "income",
@@ -110,10 +76,10 @@ describe("GET /v1/reports/daily", () => {
         date: "2026-09-10",
         income: { value: "1000.00", currency: "THB" },
         grossExpenses: { value: "500.00", currency: "THB" },
-        refunds: { value: "100.00", currency: "THB" },
-        netExpenses: { value: "400.00", currency: "THB" },
-        net: { value: "600.00", currency: "THB" },
-        transactionCount: 3,
+        refunds: { value: "0.00", currency: "THB" },
+        netExpenses: { value: "500.00", currency: "THB" },
+        net: { value: "500.00", currency: "THB" },
+        transactionCount: 2,
       });
     });
   });
@@ -145,24 +111,20 @@ describe("GET /v1/reports/daily", () => {
     });
   });
 
-  test("rejects a missing, impossible or extra query and an anonymous caller", async () => {
+  test("an impossible date is a bad request and the read requires authentication", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
       });
       const owner = await createOwner({ db });
 
-      for (const query of [
-        undefined,
-        "date=2026-02-30",
-        "date=2026-09",
-        "date=2026-09-10&month=2026-09",
-      ]) {
-        await expectProblem(
-          await getDailyReport(app, { cookie: owner.cookie, query }),
-          { status: 400, code: "bad-request" },
-        );
-      }
+      await expectProblem(
+        await getDailyReport(app, {
+          cookie: owner.cookie,
+          query: "date=2026-02-30",
+        }),
+        { status: 400, code: "bad-request" },
+      );
       await expectProblem(
         await getDailyReport(app, { query: "date=2026-09-10" }),
         { status: 401, code: "unauthenticated" },
