@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  dailyReportQuerySchema,
   monthlyReportQuerySchema,
   monthlyReportResponseSchema,
 } from "./report.routes.js";
@@ -29,6 +30,32 @@ describe("monthlyReportQuerySchema", () => {
     expect(monthlyReportQuerySchema.parse({ month: "2026-09" })).toEqual({
       month: "2026-09",
     });
+  });
+});
+
+describe("dailyReportQuerySchema", () => {
+  test("accepts a real calendar date and passes it through", () => {
+    expect(dailyReportQuerySchema.parse({ date: "2026-09-30" })).toEqual({
+      date: "2026-09-30",
+    });
+    expect(
+      dailyReportQuerySchema.safeParse({ date: "2028-02-29" }).success,
+    ).toBe(true);
+  });
+
+  test("rejects a missing, malformed or impossible date and unknown fields", () => {
+    const rejects = (query: unknown) =>
+      expect(dailyReportQuerySchema.safeParse(query).success).toBe(false);
+    rejects({});
+    rejects({ date: "" });
+    rejects({ date: "2026-09" });
+    rejects({ date: "2026-9-1" });
+    rejects({ date: "26-09-01" });
+    rejects({ date: "2026-02-30" });
+    rejects({ date: "2026-13-01" });
+    rejects({ date: "2026-00-10" });
+    rejects({ date: "0000-01-01" });
+    rejects({ date: "2026-09-01", month: "2026-09" });
   });
 });
 

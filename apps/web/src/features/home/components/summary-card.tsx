@@ -1,6 +1,6 @@
-import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { ArrowDownLeft, ArrowUpRight, ChevronRight } from "lucide-react";
+import { useId } from "react";
 import type { components } from "@/core/api/openapi.gen";
 import { REPORT_FIGURE_LABELS } from "@/features/reports/report-labels";
 import { FlowBars } from "@/shared/components/chart/flow-bars";
@@ -8,6 +8,10 @@ import { Money } from "@/shared/components/money";
 import { cn } from "@/shared/helpers/cn";
 
 type MonthlyReport = components["schemas"]["MonthlyReport"];
+type DailyReport = components["schemas"]["DailyReport"];
+
+/** The figures a month and a day report alike. */
+type SummaryReport = Omit<MonthlyReport, "month"> & Omit<DailyReport, "date">;
 
 type Flow = "income" | "expense";
 
@@ -19,13 +23,22 @@ const FLOW_HUE_CLASSES: Record<Flow, string> = {
 
 interface FlowFigureProps {
   label: string;
-  amount: MonthlyReport["income"];
+  amount: SummaryReport["income"];
   icon: LucideIcon;
   flow: Flow;
 }
 
-interface ThisMonthProps {
-  report: Readonly<MonthlyReport>;
+interface LinkSlotProps {
+  className: string;
+  children: React.ReactNode;
+}
+
+interface SummaryCardProps {
+  /** The card's heading, which also names its link. */
+  heading: string;
+  report: Readonly<SummaryReport>;
+  /** The link to the period's records, drawn with the classes that stretch it over the card. */
+  renderLink: (props: Readonly<LinkSlotProps>) => React.ReactNode;
 }
 
 /** Income or Net expenses: its arrow tile in the chart color, then the figure. */
@@ -56,29 +69,36 @@ function FlowFigure({
 }
 
 /**
- * How the month is going, as the report counts it: money in and out side by
- * side, Net beneath. The whole card is the way into that month's report;
+ * How a period is going, as the report counts it: money in and out side by
+ * side, Net beneath. The whole card is the way into that period's records;
  * the link's name stays the heading.
  */
-export function ThisMonth({ report }: Readonly<ThisMonthProps>) {
+export function SummaryCard({
+  heading,
+  report,
+  renderLink,
+}: Readonly<SummaryCardProps>) {
+  const headingId = useId();
   return (
     <section
-      aria-labelledby="this-month-heading"
+      aria-labelledby={headingId}
       className="bg-card shadow-card ease-out-expo relative flex flex-col gap-5 rounded-2xl p-5 transition-[background-color,scale] duration-150 has-[a:active]:duration-(--press-duration) has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-safe:has-[a:active]:scale-[0.98] motion-reduce:transition-none sm:p-6"
     >
-      <h2 id="this-month-heading" className="text-lg font-bold tracking-tight">
-        <Link
-          to="/reports"
-          search={{ month: report.month }}
-          className="focus-visible:after:ring-ring/45 -my-2 flex min-h-11 items-center justify-between gap-2 outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-[3px]"
-        >
-          This month
-          <ChevronRight
-            aria-hidden="true"
-            strokeWidth={2}
-            className="text-muted-foreground size-5"
-          />
-        </Link>
+      <h2 id={headingId} className="text-lg font-bold tracking-tight">
+        {renderLink({
+          className:
+            "focus-visible:after:ring-ring/45 -my-2 flex min-h-11 items-center justify-between gap-2 outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-[3px]",
+          children: (
+            <>
+              {heading}
+              <ChevronRight
+                aria-hidden="true"
+                strokeWidth={2}
+                className="text-muted-foreground size-5"
+              />
+            </>
+          ),
+        })}
       </h2>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-5">
         <FlowFigure

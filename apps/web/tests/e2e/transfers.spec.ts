@@ -149,6 +149,9 @@ test(
     await expect(row).toContainText("Transfer");
     await expect(row).toContainText("Savings → Cash");
     await row.getByRole("link").click();
+    await expect(
+      page.getByRole("heading", { name: "Transfer", level: 1 }),
+    ).toBeVisible();
     await expect(page.locator("dl")).toContainText("FromSavings");
     await expect(page.locator("dl")).toContainText("ToCash");
     await expect(page.getByText("Category", { exact: true })).toHaveCount(0);
