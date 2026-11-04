@@ -23,6 +23,11 @@ import {
 } from "../../testing/create-test-auth-gateway.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { expectProblem } from "../../testing/expect-problem.js";
+import type { ReportRequest } from "../../testing/report-fixture.js";
+import {
+  createOwner,
+  defaultCategories,
+} from "../../testing/report-fixture.js";
 import { walletCollectionResponseSchema } from "../wallets/wallet.routes.js";
 import {
   categorySpendingResponseSchema,
@@ -36,71 +41,6 @@ const REPORTS_URL = `${TEST_API_ORIGIN}/v1/reports/monthly`;
 const CATEGORY_SPENDING_URL = `${TEST_API_ORIGIN}/v1/reports/category-spending`;
 const CLOSING_BALANCES_URL = `${TEST_API_ORIGIN}/v1/reports/closing-balances`;
 const WALLETS_URL = `${TEST_API_ORIGIN}/v1/wallets`;
-
-interface OwnerFixture {
-  cookie: string;
-  ownerId: string;
-  cashId: string;
-  bankId: string;
-}
-
-interface OwnerRequest {
-  db: Database;
-}
-
-/** A fresh owner with two wallets and the default category trees. */
-async function createOwner({
-  db,
-}: Readonly<OwnerRequest>): Promise<OwnerFixture> {
-  const { cookie, ownerId } = await createOwnerSession(db);
-  await initializeDefaultCategories(db, ownerId);
-  const [cash, bank] = await db
-    .insert(wallets)
-    .values([
-      {
-        userId: ownerId,
-        name: "Cash",
-        type: "cash",
-        currency: "THB",
-        openingAmount: 1_000_000n,
-        openingDate: "2026-09-01",
-      },
-      {
-        userId: ownerId,
-        name: "Bank",
-        type: "bank_account",
-        currency: "THB",
-        openingAmount: 0n,
-        openingDate: "2026-09-01",
-      },
-    ])
-    .returning({ id: wallets.id });
-  if (!cash || !bank) {
-    throw new Error("Wallet inserts returned no rows");
-  }
-  return { cookie, ownerId, cashId: cash.id, bankId: bank.id };
-}
-
-/** The owner's protected income category and a default expense category. */
-async function defaultCategories(db: Database, ownerId: string) {
-  const tree = await listCategories(db, ownerId);
-  const income = tree.find(
-    (category) => category.kind === "income" && category.isProtected,
-  );
-  const expense = tree.find(
-    (category) =>
-      category.kind === "expense" && category.name === "Food & Drink",
-  );
-  if (!income || !expense) {
-    throw new Error("Missing default categories");
-  }
-  return { income: income.id, expense: expense.id };
-}
-
-interface ReportRequest {
-  cookie?: string;
-  query?: string;
-}
 
 function getMonthlyReport(
   app: Hono<AppEnv>,

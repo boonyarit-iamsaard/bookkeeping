@@ -16,6 +16,7 @@ export function createHomeQueryPlan(today: CalendarDate) {
     // Recent rows take their category color from this read.
     categories: categoryQueries.list(),
     wallets: walletQueries.list(),
+    daily: reportQueries.daily(today),
     monthly: reportQueries.monthly(reportMonthOf(today)),
     recent: transactionQueries.list({ limit: RECENT_TRANSACTION_LIMIT }),
   };

@@ -155,6 +155,14 @@ export const reportQueries = {
         apiClient.GET("/v1/reports/monthly", { params, signal }),
     });
   },
+  daily(date: string) {
+    return createReadQuery({
+      path: "/v1/reports/daily",
+      params: { query: { date } },
+      read: (params, signal) =>
+        apiClient.GET("/v1/reports/daily", { params, signal }),
+    });
+  },
   categorySpending(month: string) {
     return createReadQuery({
       path: "/v1/reports/category-spending",
