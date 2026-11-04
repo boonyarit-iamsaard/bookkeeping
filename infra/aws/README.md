@@ -1,7 +1,7 @@
 # AWS backup storage
 
 `backups.yaml` is the CloudFormation stack behind the production backups
-(`.scratch/production-backups/spec.md`): the Object Lock bucket, the
+([#218](https://github.com/boonyarit-iamsaard/bookkeeping/issues/218)): the Object Lock bucket, the
 write-only uploader user, the $1 monthly budget and the missing-backup alert.
 The owner deploys it by
 hand to the `backups` account; CI never holds AWS credentials (ADR 0013).

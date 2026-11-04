@@ -7,8 +7,8 @@ and `apps/web/railway.json` apply today (Dockerfile builder and
 `ON_FAILURE`, server-only `drainingSeconds: 10`), how `railway config plan` and
 apply authenticate, and what the 2026-12-01 cutoff does to a service that did
 nothing. Inputs read from the repo: ticket
-`.scratch/deployment/issues/06-move-off-railway-config-as-code.md`, both
-`railway.json` files, ADR 0010 and `.scratch/deployment/railway-runbook.md`.
+[#184](https://github.com/boonyarit-iamsaard/bookkeeping/issues/184), both
+`railway.json` files, ADR 0010 and `docs/runbooks/railway.md`.
 Primary sources only: `docs.railway.com` pages as served from the
 `railwayapp/docs` repo, the Railway changelog, and the source of the Railway
 CLI and TypeScript SDK on GitHub (all fetched 2026-10-30). No Railway account

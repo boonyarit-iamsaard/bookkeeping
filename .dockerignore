@@ -5,7 +5,6 @@
 **/.env.*
 !**/.env.example
 .git
-.scratch
 coverage
 .scannerwork
 .sonar-reports

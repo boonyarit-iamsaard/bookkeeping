@@ -17,7 +17,7 @@ not every exported internal helper. Both backends call the same
 whether the HTTP surface reaches all of them, not whether the rules agree.
 
 Read [ADR 0003](adr/0003-hono-application-backend.md) for the migration
-decision and `.scratch/hono-backend/spec.md` for the contract decisions the
+decision and [#90](https://github.com/boonyarit-iamsaard/bookkeeping/issues/90) for the contract decisions the
 operations follow.
 
 ## Authentication and provisioning
@@ -100,7 +100,7 @@ code, including the four the transport maps but no current operation answers.
 These are decided, not overlooked.
 
 - **Category removal reports no reassignment summary.** `deleteCategory`
-  answers `204` with no body ([ticket 22](../.scratch/hono-backend/issues/22-remove-categories-over-http.md)).
+  answers `204` with no body ([ticket 22, #112](https://github.com/boonyarit-iamsaard/bookkeeping/issues/112)).
   The Next.js page built its "N entries moved to X" message from the
   application result it held; the SPA builds the same message from the usage
   it read before removing. A removal-outcome representation needs a real

@@ -10,7 +10,7 @@ related_targets: []
 Status: confirmed by the user on 2026-09-13. Visitor mode: Operate.
 Platform: web (phone and desktop). Build path: code-led.
 
-Product truth lives in `PRODUCT.md`, `.scratch/tracking/spec.md`, and
+Product truth lives in `PRODUCT.md`, [#80](https://github.com/boonyarit-iamsaard/bookkeeping/issues/80), and
 `CONTEXT.md`; this brief does not restate it.
 
 ## Job and audience

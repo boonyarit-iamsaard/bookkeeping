@@ -65,7 +65,7 @@ Repository facts from the public API on 2026-09-29:
   both services" as done. ADR 0009 concerns migrations only and says nothing on
   supply chain. (`docs/adr/0008-railway-single-hosting-provider.md`,
   `docs/adr/0009-drizzle-migrations-outside-production.md`,
-  `.scratch/deployment/railway-runbook.md`.)
+  `docs/runbooks/railway.md`.)
 
 ## 1. pnpm 10.27 to 11 (and 12)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Restores a named backup into a new database and proves it matches the
 # backup's manifest, for recovering production by hand
-# (.scratch/production-recovery/spec.md). It creates the target database and
+# (https://github.com/boonyarit-iamsaard/bookkeeping/issues/232). It creates the target database and
 # refuses one that exists; it never drops, renames or overwrites anything.
 # With --check, it compares an existing database with the manifest instead.
 # Runs on the owner's machine with Docker, age and, for S3, the AWS CLI.
