@@ -1,13 +1,15 @@
 import {
   getCategorySpending,
   getClosingBalances,
+  getDailySummary,
   getMonthlySummary,
-} from "@bookkeeping/application/transactions";
+} from "@bookkeeping/application/transactions/reports";
 import type { Database } from "@bookkeeping/database/connection";
 import { parseCalendarDate } from "@bookkeeping/domain/dates";
 import type {
   CategorySpending,
   ClosingBalances,
+  DailySummary,
   MonthlySummary,
 } from "@bookkeeping/domain/transactions";
 import { Hono } from "hono";
@@ -55,6 +57,17 @@ const monthlyReportQueryMiddleware = createQueryMiddleware(
   monthlyReportQuerySchema,
 );
 
+export const dailyReportQuerySchema = z.strictObject({
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((value) => value >= "0001-01-01" && parseCalendarDate(value).ok),
+});
+
+const dailyReportQueryMiddleware = createQueryMiddleware(
+  dailyReportQuerySchema,
+);
+
 export const closingBalancesQuerySchema = monthlyReportQuerySchema.extend({
   walletId: z.uuid().optional(),
 });
@@ -73,6 +86,34 @@ export function presentMonthlyReport(
   // The schema constrains every transaction to THB, so the totals carry it.
   return {
     month: summary.month,
+    income: presentThb(summary.income),
+    grossExpenses: presentThb(summary.grossExpenses),
+    refunds: presentThb(summary.refunds),
+    netExpenses: presentThb(summary.netExpenses),
+    net: presentThb(summary.net),
+    transactionCount: summary.transactionCount,
+  };
+}
+
+export const dailyReportResponseSchema = z
+  .object({
+    date: z.iso.date(),
+    income: moneySchema,
+    grossExpenses: moneySchema,
+    refunds: moneySchema,
+    netExpenses: moneySchema,
+    net: moneySchema,
+    transactionCount: z.number().int().nonnegative(),
+  })
+  .meta({ id: "DailyReport" });
+
+export type DailyReportResponse = z.infer<typeof dailyReportResponseSchema>;
+
+export function presentDailyReport(
+  summary: Readonly<DailySummary>,
+): DailyReportResponse {
+  return {
+    date: summary.date,
     income: presentThb(summary.income),
     grossExpenses: presentThb(summary.grossExpenses),
     refunds: presentThb(summary.refunds),
@@ -175,6 +216,7 @@ export function presentClosingBalances(
 }
 
 const MONTHLY_REPORT_PATH = "/reports/monthly";
+const DAILY_REPORT_PATH = "/reports/daily";
 const CATEGORY_SPENDING_PATH = "/reports/category-spending";
 const CLOSING_BALANCES_PATH = "/reports/closing-balances";
 
@@ -223,6 +265,55 @@ export function createReportRoutes(db: Database) {
             description: "The owner's monthly report",
             content: {
               "application/json": { vSchema: monthlyReportResponseSchema },
+            },
+          },
+          400: describeProblem(getProblemOptionsForStatus(400)),
+        },
+      ),
+    )
+    .get(
+      DAILY_REPORT_PATH,
+      describeRoute({
+        operationId: "getDailyReport",
+        summary: "Get a daily report",
+        description:
+          "The signed-in owner's server-calculated totals for one Bangkok " +
+          "calendar date in YYYY-MM-DD form, with the same figures and rules " +
+          "as the monthly report: income, gross expenses, refunds, net " +
+          "expenses, and net as exact Money objects beside the number of " +
+          "counted transactions. A refund counts on its own transaction " +
+          "date, while transfers and opening balances never count. A day " +
+          "with no counted transactions reports every amount as zero with a " +
+          "transaction count of zero. A missing, malformed or impossible " +
+          "date is a bad request.",
+        tags: ["Reports"],
+        responses: {
+          400: describeProblemResponse(400),
+          401: describeProblemResponse(401),
+        },
+      }),
+      dailyReportQueryMiddleware,
+      describeResponse<
+        AuthenticatedEnv,
+        typeof DAILY_REPORT_PATH,
+        QueryValidatedInput<typeof dailyReportQuerySchema>,
+        {
+          200: typeof dailyReportResponseSchema;
+          400: typeof problemDetailsSchema;
+        }
+      >(
+        async (c) => {
+          const summary = await getDailySummary(db, {
+            ownerId: c.get("session").user.id,
+            date: c.req.valid("query").date,
+          });
+          return c.json(presentDailyReport(summary), 200);
+        },
+        {
+          200: {
+            description: "The owner's daily report",
+            content: {
+              "application/json": { vSchema: dailyReportResponseSchema },
             },
           },
           400: describeProblem(getProblemOptionsForStatus(400)),

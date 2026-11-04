@@ -50,7 +50,21 @@ test("Home shows the total, this month and the latest entries", async ({
   await expect(total).toContainText("฿1,620.00");
   await expect(total).toContainText("Across 2 wallets");
 
-  const month = page.getByRole("region", { name: "This month" });
+  const summary = page.getByRole("region", { name: "Summary" });
+  const dayCard = summary.getByRole("region", { name: "Today" });
+  await expect(dayCard).toBeInViewport({ ratio: 0.9 });
+  await expect(dayCard).toContainText("Income฿500.00");
+  await expect(dayCard).toContainText("Net expenses฿80.00");
+  await expect(dayCard).toContainText("Net฿420.00");
+  const todayDot = page.getByRole("button", { name: "Today" });
+  const monthDot = page.getByRole("button", { name: "This month" });
+  await expect(todayDot).toHaveAttribute("aria-current", "true");
+
+  await monthDot.click();
+  const month = summary.getByRole("region", { name: "This month" });
+  await expect(month).toBeInViewport({ ratio: 0.9 });
+  await expect(monthDot).toHaveAttribute("aria-current", "true");
+  await expect(todayDot).not.toHaveAttribute("aria-current", "true");
   await expect(month).toContainText("Income฿500.00");
   await expect(month).toContainText("Net expenses฿80.00");
   await expect(month).toContainText("Net฿420.00");
@@ -68,6 +82,12 @@ test("Home shows the total, this month and the latest entries", async ({
   await expect(page).toHaveURL(/\/transactions$/);
 
   await page.goto("/");
+  await page.getByRole("link", { name: "Today" }).click();
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  await expect(page).toHaveURL(`/transactions?from=${today}&to=${today}`);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "This month" }).click();
   await page.getByRole("link", { name: "This month" }).click();
   const thisMonth = todayIn({ timeZone: APP_TIME_ZONE }).slice(0, 7);
   await expect(page).toHaveURL(`/reports?month=${thisMonth}`);
@@ -100,7 +120,7 @@ test("loads without sample money, then reads an empty ledger as empty", async ({
     openingAmount: "1000",
     openingDate: "2026-09-01",
   });
-  await page.route("**/v1/reports/monthly?*", async (route) => {
+  await page.route("**/v1/reports/daily?*", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 2_500));
     await route.continue();
   });
@@ -112,10 +132,10 @@ test("loads without sample money, then reads an empty ledger as empty", async ({
   await expect(page.getByText("Loading your records…")).toBeAttached();
   await expect(page.getByText(/฿/)).toHaveCount(0);
 
-  const month = page.getByRole("region", { name: "This month" });
-  await expect(month).toContainText("Income฿0.00");
-  await expect(month).toContainText("Net expenses฿0.00");
-  await expect(month).toContainText("Net฿0.00");
+  const day = page.getByRole("region", { name: "Today" });
+  await expect(day).toContainText("Income฿0.00");
+  await expect(day).toContainText("Net expenses฿0.00");
+  await expect(day).toContainText("Net฿0.00");
   const recent = page.getByRole("region", { name: "Recent transactions" });
   await expect(recent).toContainText("No transactions yet");
   await expect(recent.getByRole("listitem")).toHaveCount(0);

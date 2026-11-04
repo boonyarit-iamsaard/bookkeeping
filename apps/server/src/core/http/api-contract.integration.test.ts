@@ -11,11 +11,6 @@ import {
   provisioningOutcomeResponseSchema,
 } from "../../features/categories/category.routes.js";
 import { healthResponseSchema } from "../../features/health/health.routes.js";
-import {
-  categorySpendingResponseSchema,
-  closingBalancesResponseSchema,
-  monthlyReportResponseSchema,
-} from "../../features/reports/report.routes.js";
 import { signUpResponseSchema } from "../../features/sign-up/sign-up.routes.js";
 import {
   refundsExistProblemSchema,
@@ -41,6 +36,7 @@ import {
   fetchDocument,
   publishedOperationIds,
 } from "../../testing/openapi-document.js";
+import { recordReportExchanges } from "./api-contract-reports.js";
 import { IDEMPOTENCY_KEY_HEADER } from "./idempotency.js";
 import type { ProblemCode } from "./problem-details.js";
 import {
@@ -440,32 +436,11 @@ describe("published API contract", () => {
         schema: transactionEntryDefaultsResponseSchema,
         response: await call({ path: "/v1/transactions/entry-defaults" }),
       });
-      record({
-        operationId: "getMonthlyReport",
-        method: "get",
-        path: "/v1/reports/monthly",
-        schema: monthlyReportResponseSchema,
-        response: await call({
-          path: `/v1/reports/monthly?month=${REPORT_MONTH}`,
-        }),
-      });
-      record({
-        operationId: "getCategorySpending",
-        method: "get",
-        path: "/v1/reports/category-spending",
-        schema: categorySpendingResponseSchema,
-        response: await call({
-          path: `/v1/reports/category-spending?month=${REPORT_MONTH}`,
-        }),
-      });
-      record({
-        operationId: "getClosingBalances",
-        method: "get",
-        path: "/v1/reports/closing-balances",
-        schema: closingBalancesResponseSchema,
-        response: await call({
-          path: `/v1/reports/closing-balances?month=${REPORT_MONTH}&walletId=${cashId}`,
-        }),
+      await recordReportExchanges({
+        call,
+        record,
+        cashId,
+        month: REPORT_MONTH,
       });
       record({
         operationId: "deleteTransaction",

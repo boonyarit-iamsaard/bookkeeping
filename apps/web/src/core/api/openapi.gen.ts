@@ -188,6 +188,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reports/daily": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a daily report
+         * @description The signed-in owner's server-calculated totals for one Bangkok calendar date in YYYY-MM-DD form, with the same figures and rules as the monthly report: income, gross expenses, refunds, net expenses, and net as exact Money objects beside the number of counted transactions. A refund counts on its own transaction date, while transfers and opening balances never count. A day with no counted transactions reports every amount as zero with a transaction count of zero. A missing, malformed or impossible date is a bad request.
+         */
+        get: operations["getDailyReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/reports/monthly": {
         parameters: {
             query?: never;
@@ -493,6 +513,16 @@ export interface components {
         };
         /** @enum {string} */
         Currency: "THB";
+        DailyReport: {
+            /** Format: date */
+            date: string;
+            grossExpenses: components["schemas"]["Money"];
+            income: components["schemas"]["Money"];
+            net: components["schemas"]["Money"];
+            netExpenses: components["schemas"]["Money"];
+            refunds: components["schemas"]["Money"];
+            transactionCount: number;
+        };
         ExpenseDateFieldError: {
             /** @constant */
             code: "before-expense";
@@ -1301,6 +1331,55 @@ export interface operations {
             };
             /** @description Resource not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getDailyReport: {
+        parameters: {
+            query: {
+                date: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's daily report */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailyReport"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
