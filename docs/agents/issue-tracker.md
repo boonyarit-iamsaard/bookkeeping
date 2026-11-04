@@ -20,6 +20,15 @@ Issues filed before 2026-11-04 were imported from the former `.scratch/` Markdow
 
 File issues only into the user's own repo. Never file into `mattpocock/skills` (the repo these skills come from) unless the user owns it. In a fork, `gh` can default to the upstream parent, so before the first `gh issue create` of a session, check the target with `gh repo view --json nameWithOwner` and confirm it with the user if it is not their repo.
 
+## Project board
+
+Every issue is on the `bookkeeping` project (`gh project ... 2 --owner boonyarit-iamsaard`), which is linked to this repo. Its built-in workflows add new issues and their sub-issues and move closed ones to `Done`, so filing or closing an issue needs no project command. The **Board** view groups by `Status` (`Todo`, `In Progress`, `Done`); the **Hierarchy** view nests sub-issues under their parents.
+
+- **List items**: `gh project item-list 2 --owner boonyarit-iamsaard --limit 500 --format json`.
+- **Set Status**: look up the field and option ids with `gh project field-list 2 --owner boonyarit-iamsaard --format json`, the project id with `gh project view 2 --owner boonyarit-iamsaard --format json --jq .id`, then `gh project item-edit --id <item-id> --project-id <project-id> --field-id <status-field-id> --single-select-option-id <option-id>`.
+
+The project is owned by a user account, which fine-grained tokens cannot reach. `gh project` needs a classic token with the `project`, `read:org` and `read:discussion` scopes; without one, skip the board and rely on its workflows.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
