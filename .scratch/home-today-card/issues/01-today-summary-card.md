@@ -48,3 +48,7 @@ not grow.
 Re-verified after the review edits, in `bc36099` (refactor(reports): trim the
 daily route suite and inline summary cards): `pnpm run ci` green, then
 `home.spec.ts` alone on `phone-chromium`, 3 passed.
+
+Owner approved on 2026-11-04: `DESIGN.md` stays on the token-budget baseline
+at 52,630 bytes, and the daily route tests stay in
+`report.daily.routes.integration.test.ts`.
