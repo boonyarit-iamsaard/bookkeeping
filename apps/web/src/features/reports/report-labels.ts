@@ -7,7 +7,7 @@ export type ReportFigure = keyof Pick<
   "income" | "grossExpenses" | "refunds" | "netExpenses" | "net"
 >;
 
-/** The monthly figures' row labels, shared by Reports and Home's This month. */
+/** The report figures' row labels, shared by Reports and Home's summary cards. */
 export const REPORT_FIGURE_LABELS = {
   income: "Income",
   grossExpenses: "Gross expenses",

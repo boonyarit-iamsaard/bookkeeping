@@ -1,6 +1,7 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import type { ComponentProps } from "react";
 import { useEffect, useState } from "react";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
@@ -55,6 +56,13 @@ function Arrival({ order, animate, children }: Readonly<ArrivalProps>) {
   );
 }
 
+/** A summary card: its name is the heading and the dot's name, its link leads to the period's records. */
+interface PeriodCard {
+  name: string;
+  report: ComponentProps<typeof SummaryCard>["report"];
+  renderLink: ComponentProps<typeof SummaryCard>["renderLink"];
+}
+
 interface HomeProps {
   /** The phone account control the route supplies; the header has its own from 640px. */
   accountControl: React.ReactNode;
@@ -62,7 +70,7 @@ interface HomeProps {
   savedId?: string;
 }
 
-/** How much there is, how the month is going, and what was just recorded. */
+/** How much there is, how today and the month are going, and what was just recorded. */
 export function Home({
   accountControl,
   initialToday,
@@ -79,6 +87,34 @@ export function Home({
   }
   const wallets = walletCollection.items;
   const arrive = useFirstShowing(wallets.length > 0);
+  const periods: PeriodCard[] = [
+    {
+      name: "Today",
+      report: daily,
+      renderLink: ({ className, children }) => (
+        <Link
+          to="/transactions"
+          search={{ from: daily.date, to: daily.date }}
+          className={className}
+        >
+          {children}
+        </Link>
+      ),
+    },
+    {
+      name: "This month",
+      report,
+      renderLink: ({ className, children }) => (
+        <Link
+          to="/reports"
+          search={{ month: report.month }}
+          className={className}
+        >
+          {children}
+        </Link>
+      ),
+    },
+  ];
 
   return (
     <Page layout="dashboard">
@@ -99,44 +135,16 @@ export function Home({
             </Arrival>
             <Arrival order={1} animate={arrive}>
               <SummaryStrip
-                cards={[
-                  {
-                    name: "Today",
-                    content: (
-                      <SummaryCard
-                        heading="Today"
-                        report={daily}
-                        renderLink={({ className, children }) => (
-                          <Link
-                            to="/transactions"
-                            search={{ from: daily.date, to: daily.date }}
-                            className={className}
-                          >
-                            {children}
-                          </Link>
-                        )}
-                      />
-                    ),
-                  },
-                  {
-                    name: "This month",
-                    content: (
-                      <SummaryCard
-                        heading="This month"
-                        report={report}
-                        renderLink={({ className, children }) => (
-                          <Link
-                            to="/reports"
-                            search={{ month: report.month }}
-                            className={className}
-                          >
-                            {children}
-                          </Link>
-                        )}
-                      />
-                    ),
-                  },
-                ]}
+                cards={periods.map(({ name, report: figures, renderLink }) => ({
+                  name,
+                  content: (
+                    <SummaryCard
+                      heading={name}
+                      report={figures}
+                      renderLink={renderLink}
+                    />
+                  ),
+                }))}
               />
             </Arrival>
             {/* With one wallet the card would only repeat the total. */}

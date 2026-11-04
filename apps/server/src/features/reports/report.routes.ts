@@ -27,15 +27,30 @@ import type { QueryValidatedInput } from "../../core/http/request-validation.js"
 import { createQueryMiddleware } from "../../core/http/request-validation.js";
 import { answerRead } from "../../core/http/resource-answers.js";
 
+/** The figures a month and a day report alike. */
+const reportFiguresShape = {
+  income: moneySchema,
+  grossExpenses: moneySchema,
+  refunds: moneySchema,
+  netExpenses: moneySchema,
+  net: moneySchema,
+  transactionCount: z.number().int().nonnegative(),
+};
+
+type ReportFigures = Pick<
+  MonthlySummary,
+  | "income"
+  | "grossExpenses"
+  | "refunds"
+  | "netExpenses"
+  | "net"
+  | "transactionCount"
+>;
+
 export const monthlyReportResponseSchema = z
   .object({
     month: z.string().regex(/^\d{4}-\d{2}$/),
-    income: moneySchema,
-    grossExpenses: moneySchema,
-    refunds: moneySchema,
-    netExpenses: moneySchema,
-    net: moneySchema,
-    transactionCount: z.number().int().nonnegative(),
+    ...reportFiguresShape,
   })
   .meta({ id: "MonthlyReport" });
 
@@ -43,6 +58,9 @@ export type MonthlyReportResponse = z.infer<typeof monthlyReportResponseSchema>;
 
 /** The month grammar the product reports in: YYYY-MM over real calendar months. */
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** The date grammar of a daily report: YYYY-MM-DD, with real dates checked by `parseCalendarDate`. */
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export const monthlyReportQuerySchema = z.strictObject({
   month: z
@@ -60,7 +78,7 @@ const monthlyReportQueryMiddleware = createQueryMiddleware(
 export const dailyReportQuerySchema = z.strictObject({
   date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .regex(DATE_PATTERN)
     .refine((value) => value >= "0001-01-01" && parseCalendarDate(value).ok),
 });
 
@@ -80,12 +98,9 @@ function presentThb(amountInMinorUnits: bigint) {
   return presentMoney({ amountInMinorUnits, currency: "THB" });
 }
 
-export function presentMonthlyReport(
-  summary: Readonly<MonthlySummary>,
-): MonthlyReportResponse {
+function presentReportFigures(summary: Readonly<ReportFigures>) {
   // The schema constrains every transaction to THB, so the totals carry it.
   return {
-    month: summary.month,
     income: presentThb(summary.income),
     grossExpenses: presentThb(summary.grossExpenses),
     refunds: presentThb(summary.refunds),
@@ -95,16 +110,14 @@ export function presentMonthlyReport(
   };
 }
 
+export function presentMonthlyReport(
+  summary: Readonly<MonthlySummary>,
+): MonthlyReportResponse {
+  return { month: summary.month, ...presentReportFigures(summary) };
+}
+
 export const dailyReportResponseSchema = z
-  .object({
-    date: z.iso.date(),
-    income: moneySchema,
-    grossExpenses: moneySchema,
-    refunds: moneySchema,
-    netExpenses: moneySchema,
-    net: moneySchema,
-    transactionCount: z.number().int().nonnegative(),
-  })
+  .object({ date: z.iso.date(), ...reportFiguresShape })
   .meta({ id: "DailyReport" });
 
 export type DailyReportResponse = z.infer<typeof dailyReportResponseSchema>;
@@ -112,15 +125,7 @@ export type DailyReportResponse = z.infer<typeof dailyReportResponseSchema>;
 export function presentDailyReport(
   summary: Readonly<DailySummary>,
 ): DailyReportResponse {
-  return {
-    date: summary.date,
-    income: presentThb(summary.income),
-    grossExpenses: presentThb(summary.grossExpenses),
-    refunds: presentThb(summary.refunds),
-    netExpenses: presentThb(summary.netExpenses),
-    net: presentThb(summary.net),
-    transactionCount: summary.transactionCount,
-  };
+  return { date: summary.date, ...presentReportFigures(summary) };
 }
 
 export const categorySpendingResponseSchema = z

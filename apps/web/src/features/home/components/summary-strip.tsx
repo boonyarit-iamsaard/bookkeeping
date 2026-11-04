@@ -64,10 +64,9 @@ export function SummaryStrip({ cards }: Readonly<SummaryStripProps>) {
       <section
         ref={strip}
         aria-label="Summary"
-        className="-mx-2 flex snap-x snap-mandatory [scroll-padding-inline:0.5rem] [scrollbar-width:none] overflow-x-auto overflow-y-hidden overscroll-x-contain px-2 py-2 [&::-webkit-scrollbar]:hidden"
-        style={{ marginBlock: "-0.5rem" }}
+        className="-mx-2 -my-2 flex snap-x snap-mandatory [scroll-padding-inline:0.5rem] [scrollbar-width:none] overflow-x-auto overflow-y-hidden overscroll-x-contain px-2 py-2 [&::-webkit-scrollbar]:hidden"
       >
-        <div className="flex gap-4">
+        <div className="flex w-full shrink-0 gap-4">
           {cards.map((card, index) => (
             <div
               key={card.name}

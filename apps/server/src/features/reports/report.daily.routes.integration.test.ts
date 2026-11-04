@@ -9,6 +9,7 @@ import {
 } from "../../testing/create-integration-test-app.js";
 import { createTestAuthGateway } from "../../testing/create-test-auth-gateway.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
+import { expectProblem } from "../../testing/expect-problem.js";
 import type { ReportRequest } from "../../testing/report-fixture.js";
 import {
   createOwner,
@@ -157,14 +158,15 @@ describe("GET /v1/reports/daily", () => {
         "date=2026-09",
         "date=2026-09-10&month=2026-09",
       ]) {
-        const response = await getDailyReport(app, {
-          cookie: owner.cookie,
-          query,
-        });
-        expect(response.status).toBe(400);
+        await expectProblem(
+          await getDailyReport(app, { cookie: owner.cookie, query }),
+          { status: 400, code: "bad-request" },
+        );
       }
-      const anonymous = await getDailyReport(app, { query: "date=2026-09-10" });
-      expect(anonymous.status).toBe(401);
+      await expectProblem(
+        await getDailyReport(app, { query: "date=2026-09-10" }),
+        { status: 401, code: "unauthenticated" },
+      );
     });
   });
 });
