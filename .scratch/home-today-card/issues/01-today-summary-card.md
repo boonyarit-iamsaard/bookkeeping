@@ -45,6 +45,6 @@ Testing Decisions' refund, transfer and neighbour cases stay with
 `report.routes.integration.test.ts` is on the token-budget baseline and may
 not grow.
 
-Re-verified after the review edits, in the review commit (refactor: trim the
-daily route suite and inline home summary cards): `pnpm run ci` green, then
+Re-verified after the review edits, in `bc36099` (refactor(reports): trim the
+daily route suite and inline summary cards): `pnpm run ci` green, then
 `home.spec.ts` alone on `phone-chromium`, 3 passed.
