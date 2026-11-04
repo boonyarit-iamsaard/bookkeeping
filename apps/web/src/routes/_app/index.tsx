@@ -15,6 +15,7 @@ export const Route = createFileRoute("/_app/")({
     const plan = createHomeQueryPlan(initialToday);
     await Promise.all([
       context.queryClient.ensureQueryData(plan.wallets),
+      context.queryClient.ensureQueryData(plan.daily),
       context.queryClient.ensureQueryData(plan.monthly),
       context.queryClient.ensureQueryData(plan.recent),
       context.queryClient.ensureQueryData(plan.categories),

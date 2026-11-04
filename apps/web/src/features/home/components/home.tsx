@@ -1,10 +1,13 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { RecentTransactions } from "@/features/home/components/recent-transactions";
-import { ThisMonth } from "@/features/home/components/this-month";
+import { SummaryCard } from "@/features/home/components/summary-card";
+import type { SummaryStripCard } from "@/features/home/components/summary-strip";
+import { SummaryStrip } from "@/features/home/components/summary-strip";
 import { WalletBalances } from "@/features/home/components/wallet-balances";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
@@ -60,7 +63,7 @@ interface HomeProps {
   savedId?: string;
 }
 
-/** How much there is, how the month is going, and what was just recorded. */
+/** How much there is, how today and the month are going, and what was just recorded. */
 export function Home({
   accountControl,
   initialToday,
@@ -69,13 +72,52 @@ export function Home({
   const today = useBangkokToday(initialToday);
   const plan = createHomeQueryPlan(today);
   const { data: walletCollection } = useSuspenseQuery(plan.wallets);
+  const { data: daily } = useSuspenseQuery(plan.daily);
   const { data: report } = useSuspenseQuery(plan.monthly);
   const { data: recent } = useSuspenseQuery(plan.recent);
-  if (!walletCollection || !report || !recent) {
+  if (!walletCollection || !daily || !report || !recent) {
     throw new Error("The home queries returned no data");
   }
   const wallets = walletCollection.items;
   const arrive = useFirstShowing(wallets.length > 0);
+  const summaryCards: SummaryStripCard[] = [
+    {
+      name: "Today",
+      content: (
+        <SummaryCard
+          heading="Today"
+          report={daily}
+          renderLink={({ className, children }) => (
+            <Link
+              to="/transactions"
+              search={{ from: daily.date, to: daily.date }}
+              className={className}
+            >
+              {children}
+            </Link>
+          )}
+        />
+      ),
+    },
+    {
+      name: "This month",
+      content: (
+        <SummaryCard
+          heading="This month"
+          report={report}
+          renderLink={({ className, children }) => (
+            <Link
+              to="/reports"
+              search={{ month: report.month }}
+              className={className}
+            >
+              {children}
+            </Link>
+          )}
+        />
+      ),
+    },
+  ];
 
   return (
     <Page layout="dashboard">
@@ -95,7 +137,7 @@ export function Home({
               />
             </Arrival>
             <Arrival order={1} animate={arrive}>
-              <ThisMonth report={report} />
+              <SummaryStrip cards={summaryCards} />
             </Arrival>
             {/* With one wallet the card would only repeat the total. */}
             {wallets.length > 1 && (

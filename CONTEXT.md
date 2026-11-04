@@ -52,8 +52,16 @@ Money returned for an expense, reducing expenses and increasing the balance of t
 The amount of an expense not yet returned by its current refunds; a refund may not exceed it, and an expense may not be corrected below what its refunds already return.
 _Avoid_: Remaining, refundable balance
 
+**Net expenses**:
+A period's expenses less the refunds dated in that period, whichever expense each refund returns. It includes debt payments and may be negative.
+_Avoid_: Spending, total expenses
+
+**Net**:
+A period's income less its net expenses.
+_Avoid_: Profit, savings
+
 **Category spending**:
-A month's net expenses for one expense category: its expenses dated in the month less refunds dated in the month, with an expense and its refunds counted under the expense's current category. It includes debt payments and may be negative.
+A month's net expenses for one expense category, with an expense and its refunds counted under the expense's current category.
 _Avoid_: Category expenses, budget usage
 
 **Transfer**:

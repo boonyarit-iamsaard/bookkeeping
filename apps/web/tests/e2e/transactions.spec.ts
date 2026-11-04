@@ -249,6 +249,9 @@ test("editing loads the saved values, keeps the type fixed, and replaces the bal
 
   // The detail re-reads the correction without a reload.
   await row.getByRole("link").first().click();
+  await expect(
+    page.getByRole("heading", { name: "Expense", level: 1 }),
+  ).toBeVisible();
   await expect(page.locator("dl")).toContainText("Coffee and cake");
   await page.goto("/wallets");
   await expect(
