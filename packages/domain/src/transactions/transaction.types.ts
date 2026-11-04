@@ -110,14 +110,22 @@ export interface TransactionFilters {
   type?: TransactionType;
 }
 
-export interface MonthlySummary {
-  month: string;
+/** The figures of any inclusive date range: Net expenses and Net as CONTEXT.md defines them. */
+export interface RangeSummary {
   income: bigint;
   grossExpenses: bigint;
   refunds: bigint;
   netExpenses: bigint;
   net: bigint;
   transactionCount: number;
+}
+
+export interface MonthlySummary extends RangeSummary {
+  month: string;
+}
+
+export interface DailySummary extends RangeSummary {
+  date: string;
 }
 
 /** One child category's Category spending for a month; it may be negative. */

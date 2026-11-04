@@ -24,7 +24,7 @@ apps/web/
     features/
       auth/               # Sign-in/sign-up forms, provisioning retry, and sign-out
       categories/         # Category labels, forms, and management
-      home/               # Home: wallet balances, this month, and recent transactions
+      home/               # Home: wallet balances, Today and This month summaries, and recent transactions
       reports/            # Monthly totals, category breakdown, and balance trend
       transactions/       # Entry, history, detail, correction, transfer, and refund
       wallets/            # Wallet labels, forms, list, and detail
@@ -57,7 +57,7 @@ apps/server/
     features/
       categories/         # /v1/categories: list, get, create, update, usage, remove, and provisioning retry
       health/             # Health check resource
-      reports/            # /v1/reports/monthly: server-calculated monthly totals
+      reports/            # /v1/reports/monthly and /v1/reports/daily: server-calculated monthly and daily totals
       sign-up/            # /sign-up: whether sign-up is open or closed
       transactions/       # /v1/transactions: list with cursors, get, create, update, delete, refunds, entry defaults
       wallets/            # /v1/wallets: list with as-of balances, get, create, replace opening balances, archive, and delete
@@ -130,7 +130,8 @@ packages/application/
                           # @bookkeeping/application/categories/defaults: the default trees
     idempotency/          # @bookkeeping/application/idempotency: replay-safe creation
     testing/              # @bookkeeping/application/testing/*: fixtures shared by application and server tests
-    transactions/         # @bookkeeping/application/transactions: listTransactions, findTransaction, createTransaction, updateTransaction, deleteTransaction, findExpenseRefunds, getMonthlySummary, ...
+    transactions/         # @bookkeeping/application/transactions: listTransactions, findTransaction, createTransaction, updateTransaction, deleteTransaction, findExpenseRefunds, ...
+                          # @bookkeeping/application/transactions/reports: report reads (getMonthlySummary, getDailySummary, getCategorySpending, getClosingBalances)
     wallets/              # @bookkeeping/application/wallets: listWallets, findWallet, createWallet, deleteWallet, ...
 ```
 
