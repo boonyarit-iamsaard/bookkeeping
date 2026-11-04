@@ -19,7 +19,7 @@ approved tracking spec; no new visual-world decisions.
 Investigate dated money movements with combined filters, review monthly
 income and spending, and compare current holdings with selected-date
 end-of-day balances. Product truth lives in `PRODUCT.md`, `CONTEXT.md` and
-`.scratch/tracking/spec.md`.
+[#80](https://github.com/boonyarit-iamsaard/bookkeeping/issues/80).
 
 ## Interaction and layout
 

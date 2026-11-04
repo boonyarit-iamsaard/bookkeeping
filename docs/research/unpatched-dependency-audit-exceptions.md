@@ -166,7 +166,7 @@ longer contains node-forge, global-agent, roarr or sprintf-js. Both GHSAs are
 removed from `audit.ignore`. The repository owner accepted the dependency's
 removal as the fix, in place of a patched release, for both advisories on
 2026-10-13. Evidence and check results are in
-`.scratch/supply-chain-hardening/issues/07-review-and-retire-node-forge-audit-exception.md`.
+[#199](https://github.com/boonyarit-iamsaard/bookkeeping/issues/199).
 
 The braces exception (`GHSA-vfj7-8cjw-p6xm`) remains. A dependency update had
 already moved its installed path to `shadcn@4.21.1` and `@shadcn/registry@0.1.0`,

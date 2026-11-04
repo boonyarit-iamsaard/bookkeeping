@@ -10,7 +10,7 @@ all pending migrations in one transaction, and the migrator gives up on locks
 after 5 seconds, so a failure applies nothing, stops the deploy, and leaves the
 old version serving. Merging a PR that adds a migration is the owner's
 authorization to apply it; before merging, the owner triggers a manual backup.
-The design is in `.scratch/production-migrations/spec.md`.
+The design is in [#241](https://github.com/boonyarit-iamsaard/bookkeeping/issues/241).
 
 ## Considered options
 
@@ -43,7 +43,7 @@ The design is in `.scratch/production-migrations/spec.md`.
   shape. This is a review rule, not a CI check.
 - A wrong migration that applied is fixed by a newer one. Lost data comes back
   from the manual backup through
-  `.scratch/production-recovery/runbooks/recover-production.md`.
+  [`docs/runbooks/production-recovery/recover-production.md`](../runbooks/production-recovery/recover-production.md).
 - The backup manifest still covers `public` only; the recovery runbook checks
   the migrations table against the deployed journal instead.
 - Agents never merge a PR that adds a migration. The PR template carries the

@@ -17,8 +17,8 @@ for the inline category panel (ticket 03), and again on 2026-09-13 for
 edit and delete (ticket 04), and wallet transfers (ticket 05). Visitor mode: Operate.
 Platform: web (phone-first, desktop supported). Build path: code-led.
 
-Product truth lives in `PRODUCT.md`, `.scratch/tracking/spec.md`,
-`.scratch/tracking/design-brief-transaction-form.md`, and `CONTEXT.md`; this
+Product truth lives in `PRODUCT.md`, [#80](https://github.com/boonyarit-iamsaard/bookkeeping/issues/80)
+(the spec, with the transaction-form design brief as a comment), and `CONTEXT.md`; this
 brief does not restate it.
 
 ## Job and audience

@@ -1,8 +1,8 @@
 # Production backups
 
 The nightly backup job, the owner's restore drill and the restore used for
-recovery (`.scratch/production-backups/spec.md`,
-`.scratch/production-recovery/spec.md`, ADR 0013). This directory is not a
+recovery ([#218](https://github.com/boonyarit-iamsaard/bookkeeping/issues/218),
+[#232](https://github.com/boonyarit-iamsaard/bookkeeping/issues/232), ADR 0013). This directory is not a
 pnpm workspace package. Railway builds the `Dockerfile` and runs the job on a
 cron schedule; the storage it uploads to is `infra/aws/backups.yaml`.
 
@@ -26,7 +26,7 @@ cron schedule; the storage it uploads to is `infra/aws/backups.yaml`.
   owner gives it, and compares it with its manifest.
 
 Before changing the restore scripts, read
-`.scratch/backlog/issues/05-port-restore-scripts-to-typescript.md`: a real
+[#175](https://github.com/boonyarit-iamsaard/bookkeeping/issues/175): a real
 change to them reopens the deferred port to TypeScript.
 
 ## Restore drill

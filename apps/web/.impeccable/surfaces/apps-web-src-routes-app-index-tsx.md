@@ -11,8 +11,8 @@ Visitor mode: Operate. Platform: web (installed PWA), phone first at 360px,
 desktop from 640px, light and dark following the system setting.
 
 Replacement visual world for the whole SPA, set on Home and the shared shell
-by ticket `.scratch/modern-fintech-redesign/issues/01-foundation-system-shell-and-home.md`
-against the confirmed brief `.scratch/modern-fintech-redesign/design-brief.md`.
+by ticket [#209](https://github.com/boonyarit-iamsaard/bookkeeping/issues/209)
+against the confirmed brief [#208](https://github.com/boonyarit-iamsaard/bookkeeping/issues/208).
 Later tickets (02–08) compose their screens from this system.
 
 ## Job and constraints

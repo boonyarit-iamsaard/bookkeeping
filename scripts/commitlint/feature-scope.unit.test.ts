@@ -28,7 +28,7 @@ describe("findFeatureScopes", () => {
         "apps/web/src/features/home/home-page.tsx",
         "packages/domain/src/money/money.ts",
         "packages/database/drizzle/0001_create_wallets_table.sql",
-        ".scratch/wallets/issues/01-wallets.md",
+        "docs/runbooks/wallets/01-wallets.md",
         "package.json",
       ]),
     ).toEqual([]);

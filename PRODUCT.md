@@ -29,7 +29,7 @@ production, per `docs/adr/0008`.
 Status (2026-10-17): the user has kept their real ledger in the deployed app
 since 2026-09-27, so that data is kept rather than cleared. Milestone one
 closes after two specs: off-provider backups with a proven restore
-(`.scratch/production-backups/spec.md`, ADR 0013), then applying migrations to
+([#218](https://github.com/boonyarit-iamsaard/bookkeeping/issues/218), ADR 0013), then applying migrations to
 production. A milestone after tracking (budgeting or forecasting) has not been
 chosen.
 
@@ -72,7 +72,7 @@ confirmed spec does encode where those apps fell short for this user:
 
 ## Capabilities and Constraints
 
-Confirmed product facts live in `.scratch/tracking/spec.md` (direction
+Confirmed product facts live in [#80](https://github.com/boonyarit-iamsaard/bookkeeping/issues/80) (direction
 confirmed 2026-09-12) and `docs/adr/0001-transaction-derived-balances.md`;
 domain vocabulary lives in `CONTEXT.md`. Summary:
 
@@ -134,10 +134,10 @@ native wrappers are not planned.
 
 ## Evidence on Hand
 
-- Confirmed product spec: `.scratch/tracking/spec.md`.
+- Confirmed product spec: [#80](https://github.com/boonyarit-iamsaard/bookkeeping/issues/80).
 - Architecture decision: `docs/adr/0001-transaction-derived-balances.md`.
-- Implementation notes for the icon catalog:
-  `.scratch/tracking/technical-design.md`.
+- Implementation notes for the icon catalog: the technical design comment on
+  [#80](https://github.com/boonyarit-iamsaard/bookkeeping/issues/80).
 - Domain glossary: `CONTEXT.md`.
 - Debt decision: `docs/adr/0011-debt-cash-movements.md`.
 - Real data exists only in the production database on Railway. It is the

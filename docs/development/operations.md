@@ -9,7 +9,8 @@ committed migrations in the API's pre-deploy step
 Nightly encrypted backups go to AWS S3
 ([ADR 0013](../adr/0013-nightly-encrypted-backups-to-aws-s3.md)); the
 [backup README](../../apps/backup/README.md) covers the job and the restore
-drill.
+drill. Step-by-step procedures for Railway, the backup infrastructure,
+production migrations and recovery are in [`docs/runbooks/`](../runbooks/).
 
 ## Recovering a locked-out Account
 

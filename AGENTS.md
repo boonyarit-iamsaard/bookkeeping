@@ -63,7 +63,7 @@ in `docs/code-conventions.md#database-migrations`.
 
 ### Issue tracker
 
-Issues and specs live as local Markdown under `.scratch/<feature>/`. Before creating, fetching, or updating them, read `docs/agents/issue-tracker.md`.
+Issues and specs live in this repo's GitHub Issues, worked with the `gh` CLI. Before creating, fetching, or updating them, read `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

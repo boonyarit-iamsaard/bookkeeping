@@ -25,7 +25,7 @@ Rendering launches Playwright's Chromium; install it once with
 
 ```bash
 pnpm diagrams
-pnpm diagrams .scratch/production-backups/diagrams/architecture.diagram.html
+pnpm diagrams docs/diagrams/production-backups/architecture.diagram.html
 ```
 
 Each run writes `<name>.light.png` and `<name>.dark.png` at twice the size,

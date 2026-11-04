@@ -10,7 +10,7 @@ account. The bucket holds every object under compliance-mode Object Lock for
 AWS-side check emails the owner when a night is missing. A drill on the
 owner's machine restores a backup and checks it against its manifest, once
 before production migrations and then quarterly. The design is in
-`.scratch/production-backups/spec.md`.
+[#218](https://github.com/boonyarit-iamsaard/bookkeeping/issues/218).
 
 ## Considered options
 
@@ -57,7 +57,7 @@ The uploader key can also add objects under `manual/`. A backup run triggered
 by hand writes there, never to `daily/`, because a second version of a
 `daily/` key looks like a planted backup and the restore drill refuses it.
 `manual/` gets the same Object Lock retention and expires after 35 days. See
-`.scratch/production-backups/issues/07-manual-backup-prefix.md`.
+[#225](https://github.com/boonyarit-iamsaard/bookkeeping/issues/225).
 
 ## Amendment, 2026-10-23 (recovery)
 
@@ -66,4 +66,4 @@ for the length of the recovery and removes it at the end, so that decryption
 and `pg_restore` run on the owner's machine and the private key never goes to
 Railway. Nothing is exposed outside a recovery. A one-off restore service
 inside Railway was rejected because it would need the private key, or a
-second key pair, there. See `.scratch/production-recovery/spec.md`.
+second key pair, there. See [#232](https://github.com/boonyarit-iamsaard/bookkeeping/issues/232).
