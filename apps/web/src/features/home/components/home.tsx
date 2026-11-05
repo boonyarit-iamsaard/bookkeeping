@@ -80,7 +80,7 @@ export function Home({
   }
   const wallets = walletCollection.items;
   const arrive = useFirstShowing(wallets.length > 0);
-  const summaryCards: SummaryStripCard[] = [
+  const summaryCards: [SummaryStripCard, SummaryStripCard] = [
     {
       name: "Today",
       content: (

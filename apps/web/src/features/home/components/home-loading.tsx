@@ -24,6 +24,7 @@ export function HomeLoading() {
               <Skeleton className="h-12" />
             </div>
             <Skeleton className="h-6" />
+            <Skeleton className="h-24" />
           </div>
         </div>
         <div className="flex flex-col gap-3">

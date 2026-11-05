@@ -1,9 +1,19 @@
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
+import type { Locator } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
+
+/** The element's box, failing the test when it has none rather than comparing nulls. */
+async function boxOf(locator: Locator) {
+  const box = await locator.boundingBox();
+  if (!box) {
+    throw new Error("The element has no box");
+  }
+  return box;
+}
 
 test.afterEach(async ({ page }) => {
   expect(
@@ -108,6 +118,63 @@ test("Home shows the total, Today, this month and the latest entries", async ({
   await expect(page).toHaveURL(`/reports?month=${thisMonth}`);
   // Income is the report's first figure.
   await expect(page.getByRole("definition").first()).toHaveText("฿800.00");
+});
+
+test("moving between summary cards shifts nothing around them", {
+  tag: "@matrix",
+}, async ({ page }) => {
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  const earlier = `${today.slice(0, 7)}-01`;
+  test.skip(earlier === today, "Today needs an empty day in a busy month");
+  await signUpFreshUser(page);
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "1000",
+    openingDate: "2026-09-01",
+  });
+  await createWalletThroughForm(page, {
+    name: "Savings",
+    openingAmount: "200",
+    openingDate: "2026-09-01",
+  });
+  await page.goto("/transactions/new");
+  await page.getByLabel("Amount").fill("80");
+  await chooseDate(page.getByLabel("Date", { exact: true }), earlier);
+  await page.getByRole("button", { name: "Save −฿80.00 · Cash" }).click();
+  await expectSavedRecord(page);
+  await page.goto("/");
+
+  const summary = page.getByRole("region", { name: "Summary" });
+  const dayCard = summary.getByRole("region", { name: "Today" });
+  const monthCard = summary.getByRole("region", { name: "This month" });
+  // Wallets sits beneath the strip at every width.
+  const wallets = page.getByRole("region", { name: "Wallets" });
+  await expect(wallets).toBeVisible();
+  // An empty Today draws empty bars, so it matches the busy month.
+  const dayBox = await boxOf(dayCard);
+  expect(dayBox.height).toBe((await boxOf(monthCard)).height);
+  const total = page.getByRole("region", { name: "Total balance" });
+  const walletsY = (await boxOf(wallets)).y;
+  // Measured from the hero, because the click below may scroll the page.
+  const walletsOffset = walletsY - (await boxOf(total)).y;
+
+  // Each dot keeps its whole 44px target clear of both cards around it.
+  const monthDot = page.getByRole("button", { name: "This month" });
+  const dotBox = await boxOf(monthDot);
+  expect(dotBox.height).toBe(44);
+  expect(dotBox.width).toBe(44);
+  expect(dotBox.y).toBeGreaterThanOrEqual(dayBox.y + dayBox.height);
+  expect(dotBox.y + dotBox.height).toBeLessThanOrEqual(walletsY);
+
+  await monthDot.click();
+  await expect(monthCard).toBeInViewport({ ratio: 0.9 });
+  await expect(monthDot).toHaveAttribute("aria-current", "true");
+  expect((await boxOf(wallets)).y - (await boxOf(total)).y).toBe(walletsOffset);
+  // The last card snaps flush with the page's column, not short of it.
+  const totalX = (await boxOf(total)).x;
+  await expect
+    .poll(async () => (await boxOf(monthCard)).x)
+    .toBeCloseTo(totalX, 0);
 });
 
 test("with no wallets Home offers only wallet creation", async ({ page }) => {

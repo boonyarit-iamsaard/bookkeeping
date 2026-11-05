@@ -70,7 +70,8 @@ function FlowFigure({
 
 /**
  * How a period is going, as the report counts it: money in and out side by
- * side, Net beneath. The whole card is the way into that period's records;
+ * side, Net beneath, then the bars, drawn empty for an empty period so the
+ * strip's cards match. The whole card is the way into that period's records;
  * the link's name stays the heading.
  */
 export function SummaryCard({
@@ -82,7 +83,7 @@ export function SummaryCard({
   return (
     <section
       aria-labelledby={headingId}
-      className="bg-card shadow-card ease-out-expo relative flex flex-col gap-5 rounded-2xl p-5 transition-[background-color,scale] duration-150 has-[a:active]:duration-(--press-duration) has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-safe:has-[a:active]:scale-[0.98] motion-reduce:transition-none sm:p-6"
+      className="bg-card shadow-card ease-out-expo relative flex h-full flex-col gap-5 rounded-2xl p-5 transition-[background-color,scale] duration-150 has-[a:active]:duration-(--press-duration) has-[a:hover]:bg-[color-mix(in_oklch,var(--card),var(--accent)_70%)] motion-safe:has-[a:active]:scale-[0.98] motion-reduce:transition-none sm:p-6"
     >
       <h2 id={headingId} className="text-lg font-bold tracking-tight">
         {renderLink({
@@ -113,7 +114,7 @@ export function SummaryCard({
           icon={ArrowUpRight}
           flow="expense"
         />
-        <div className="col-span-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t pt-4">
+        <div className="col-span-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t pt-5">
           <dt className="font-semibold">{REPORT_FIGURE_LABELS.net}</dt>
           <dd className="text-xl">
             <Money amount={report.net} className="font-bold" />
@@ -121,15 +122,13 @@ export function SummaryCard({
         </div>
       </dl>
       {/* The figures above already say it in text; the bars only show the balance. */}
-      {report.transactionCount > 0 && (
-        <div aria-hidden="true">
-          <FlowBars
-            income={report.income}
-            netExpenses={report.netExpenses}
-            showAmounts={false}
-          />
-        </div>
-      )}
+      <div aria-hidden="true">
+        <FlowBars
+          income={report.income}
+          netExpenses={report.netExpenses}
+          showAmounts={false}
+        />
+      </div>
     </section>
   );
 }
