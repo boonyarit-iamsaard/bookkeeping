@@ -110,6 +110,46 @@ test("Home shows the total, Today, this month and the latest entries", async ({
   await expect(page.getByRole("definition").first()).toHaveText("฿800.00");
 });
 
+test("swiping the summary strip moves only its cards", async ({ page }) => {
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  const earlier = `${today.slice(0, 7)}-01`;
+  test.skip(earlier === today, "Today needs an empty day in a busy month");
+  await signUpFreshUser(page);
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "1000",
+    openingDate: "2026-09-01",
+  });
+  await page.goto("/transactions/new");
+  await page.getByLabel("Amount").fill("80");
+  await chooseDate(page.getByLabel("Date", { exact: true }), earlier);
+  await page.getByRole("button", { name: "Save −฿80.00 · Cash" }).click();
+  await expectSavedRecord(page);
+  await page.goto("/");
+
+  const summary = page.getByRole("region", { name: "Summary" });
+  const dayCard = summary.getByRole("region", { name: "Today" });
+  const monthCard = summary.getByRole("region", { name: "This month" });
+  const recent = page.getByRole("region", { name: "Recent transactions" });
+  await expect(recent).toBeVisible();
+  // An empty Today draws empty bars, so it matches the busy month.
+  expect((await dayCard.boundingBox())?.height).toBe(
+    (await monthCard.boundingBox())?.height,
+  );
+  const below = (await recent.boundingBox())?.y;
+
+  const monthDot = page.getByRole("button", { name: "This month" });
+  await monthDot.click();
+  await expect(monthCard).toBeInViewport({ ratio: 0.9 });
+  await expect(monthDot).toHaveAttribute("aria-current", "true");
+  expect((await recent.boundingBox())?.y).toBe(below);
+  // The last card snaps flush with the page's column, not short of it.
+  const total = page.getByRole("region", { name: "Total balance" });
+  await expect
+    .poll(async () => (await monthCard.boundingBox())?.x)
+    .toBeCloseTo((await total.boundingBox())?.x ?? 0, 0);
+});
+
 test("with no wallets Home offers only wallet creation", async ({ page }) => {
   await signUpFreshUser(page);
   await page.goto("/");
