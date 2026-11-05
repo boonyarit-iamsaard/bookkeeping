@@ -8,7 +8,8 @@ export interface SummaryStripCard {
 }
 
 interface SummaryStripProps {
-  cards: readonly SummaryStripCard[];
+  /** Two by design: each dot's target spreads outward from the pair. */
+  cards: readonly [SummaryStripCard, SummaryStripCard];
 }
 
 /** A card counts as shown once most of it sits in the strip. */
@@ -59,7 +60,7 @@ export function SummaryStrip({ cards }: Readonly<SummaryStripProps>) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col">
       {/* Padding and the matching negative margin leave the cards' shadows unclipped. */}
       <section
         ref={strip}
@@ -78,21 +79,21 @@ export function SummaryStrip({ cards }: Readonly<SummaryStripProps>) {
           </div>
         ))}
       </section>
-      {/* The 8px row sets the rhythm; its 44px buttons overflow it evenly. */}
-      <div className="relative -mb-2 flex h-2 items-center justify-center sm:-mb-4">
+      {/* The row is the 12px gap and the dot; each 44px button hangs into the page's gap beneath. */}
+      <div className="flex h-5 items-start justify-center">
         {cards.map((card, index) => (
           <button
             key={card.name}
             type="button"
             aria-current={index === shown ? "true" : undefined}
             onClick={() => show(index)}
-            className="group flex size-11 shrink-0 items-center justify-center outline-none first:justify-end first:pr-1 last:justify-start last:pl-1"
+            className="group flex size-11 shrink-0 items-start justify-center pt-3 outline-none first:justify-end first:pr-1 last:justify-start last:pl-1"
           >
             <span className="sr-only">{card.name}</span>
             <span
               aria-hidden="true"
               className={cn(
-                "ease-out-expo group-focus-visible:ring-ring/45 size-2 rounded-full transition-[background-color,scale] duration-150 group-focus-visible:ring-[3px] motion-reduce:transition-none",
+                "ease-out-expo group-focus-visible:ring-ring/45 ring-offset-background size-2 rounded-full transition-[background-color,scale] duration-150 group-focus-visible:ring-[3px] group-focus-visible:ring-offset-2 motion-reduce:transition-none",
                 index === shown
                   ? "bg-primary"
                   : "bg-muted-foreground/35 group-hover:bg-muted-foreground/60",
