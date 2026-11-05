@@ -55,7 +55,7 @@ export function SegmentedControl<Value extends string>({
     >
       <span
         aria-hidden="true"
-        className="bg-card shadow-card dark:bg-popover ease-out-expo pointer-events-none absolute inset-y-1 left-1 rounded-[0.625rem] transition-transform duration-200 motion-reduce:transition-none"
+        className="bg-card shadow-card dark:bg-popover ease-out-expo pointer-events-none absolute inset-y-1 left-1 rounded-md transition-transform duration-200 motion-reduce:transition-none"
         style={{
           width: `calc((100% - 0.5rem) / ${options.length})`,
           transform: `translateX(${selectedIndex * 100}%)`,
@@ -66,7 +66,7 @@ export function SegmentedControl<Value extends string>({
           key={option.value}
           value={option.value}
           className={cn(
-            "text-muted-foreground focus-visible:ring-ring/45 data-checked:text-foreground relative z-10 flex items-center justify-center rounded-[0.625rem] px-2 text-sm font-semibold whitespace-nowrap transition-colors duration-200 outline-none focus-visible:ring-[3px] motion-reduce:transition-none",
+            "text-muted-foreground focus-visible:ring-ring/45 data-checked:text-foreground relative z-10 flex items-center justify-center rounded-md px-2 text-sm font-semibold whitespace-nowrap transition-colors duration-200 outline-none focus-visible:ring-[3px] motion-reduce:transition-none",
             optionClassName,
           )}
         >
