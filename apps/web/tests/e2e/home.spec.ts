@@ -6,6 +6,7 @@ import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
+/** The element's box, failing the test when it has none rather than comparing nulls. */
 async function boxOf(locator: Locator) {
   const box = await locator.boundingBox();
   if (!box) {
