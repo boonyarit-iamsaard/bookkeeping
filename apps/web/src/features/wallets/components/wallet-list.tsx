@@ -51,6 +51,7 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
     <div className="flex flex-col gap-6 sm:gap-8">
       <WalletsTotal
         wallets={wallets}
+        lead="total"
         caption={`Across ${walletCountLabel(wallets.length)}`}
       />
 

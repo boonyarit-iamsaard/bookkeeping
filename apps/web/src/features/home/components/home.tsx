@@ -133,6 +133,7 @@ export function Home({
             <Arrival order={0} animate={arrive}>
               <WalletsTotal
                 wallets={wallets}
+                lead="spendable"
                 caption={`Across ${walletCountLabel(wallets.length)}`}
               />
             </Arrival>

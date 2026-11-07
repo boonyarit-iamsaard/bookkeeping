@@ -11,6 +11,8 @@ interface DisplayFigureProps {
   headingId: string;
   /** The Caption beneath, saying what the figure covers. */
   caption: React.ReactNode;
+  /** Secondary facts between the figure and its caption, when needed. */
+  children?: React.ReactNode;
   /** Shared with the card that opens this screen, which grows into the hero. */
   morphName?: string;
 }
@@ -50,6 +52,7 @@ export function DisplayFigure({
   heading,
   headingId,
   caption,
+  children,
   morphName,
 }: Readonly<DisplayFigureProps>) {
   return (
@@ -65,6 +68,7 @@ export function DisplayFigure({
       <p className="mt-auto pt-4 text-4xl leading-none font-bold tracking-[-0.025em] sm:text-5xl">
         <Money amount={amount} sign={sign} display className="font-bold" />
       </p>
+      {children}
       <p className="text-hero-muted mt-3 text-sm">{caption}</p>
     </section>
   );
