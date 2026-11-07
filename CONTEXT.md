@@ -16,6 +16,18 @@ _Avoid_: Registration, enabled/disabled sign-up
 A money holding owned by one Account, with a type of cash, bank account, or e-wallet.
 _Avoid_: Account when referring to money holdings collectively
 
+**Savings wallet**:
+A Wallet of any type whose whole balance the user treats as money to keep rather than spend. Being one is a choice about the Wallet, not a type, and it does not limit what can be recorded against it.
+_Avoid_: Buffer wallet, reserve, pot, savings as a wallet type
+
+**Set aside**:
+The balance held across a user's Savings wallets.
+_Avoid_: Savings when referring to the amount, reserved
+
+**Spendable**:
+The balance held across a user's Wallets that are not Savings wallets.
+_Avoid_: Safe to spend, available balance
+
 **Opening balance**:
 The amount held in a wallet on the date its tracked history begins.
 
