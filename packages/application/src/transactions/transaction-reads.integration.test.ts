@@ -12,8 +12,8 @@ import {
   softDelete,
   withClock,
 } from "../testing/transaction-suite-fixture";
+import { archiveWallet } from "../testing/wallet-fixture";
 import { listWallets, replaceWalletOpening } from "../wallets/wallet";
-import { changeWalletState } from "../wallets/wallet-state";
 import {
   createTransaction,
   deleteTransaction,
@@ -778,7 +778,7 @@ describe("filtered financial history", () => {
   });
 });
 
-test("edits, archive and category fallbacks update reads", async () => {
+test("corrections, archiving and category fallbacks replace effects across history and reports", async () => {
   await withRollback(async (db) => {
     const owner = await setupOwner(db);
     const expense = await createTransaction(db, {
@@ -836,15 +836,7 @@ test("edits, archive and category fallbacks update reads", async () => {
         })
       ).ok,
     ).toBe(true);
-    expect(
-      (
-        await changeWalletState(db, {
-          ownerId: owner.ownerId,
-          id: owner.cashId,
-          archived: true,
-        })
-      ).ok,
-    ).toBe(true);
+    await archiveWallet(db, { ownerId: owner.ownerId, id: owner.cashId });
     expect(
       (
         await listWallets(db, { ownerId: owner.ownerId, asOf: "2026-09-01" })

@@ -19,7 +19,7 @@ import type {
 } from "@bookkeeping/domain/transactions";
 import { and, asc, eq, gte, inArray, isNull, lt, lte, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { movesWallet, walletMovement } from "../wallets/wallet";
+import { movesWallet, walletMovement } from "../wallets/wallet-change";
 
 interface MonthlySummaryOptions {
   ownerId: string;

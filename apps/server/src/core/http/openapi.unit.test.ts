@@ -376,7 +376,7 @@ describe("OpenAPI document", () => {
     ).toHaveProperty("$ref", "#/components/schemas/MoneyInput");
   });
 
-  it("documents opening replacement", async () => {
+  it("documents the opening balance replacement as a subordinate resource", async () => {
     const document = await fetchDocument(createUnitTestApp());
     const operation: DocumentedOperation = documentedOperation(document, {
       method: "put",
@@ -429,12 +429,9 @@ describe("OpenAPI document", () => {
       }),
     ).toBe("#/components/schemas/Wallet");
     expectProblemResponses(operation, ["400", "401", "404", "422", "500"]);
-    expect(
-      documentedSchema(document, "WalletStateRequest").required,
-    ).toBeUndefined();
-    expect(
-      documentedSchema(document, "WalletStateRequest").additionalProperties,
-    ).toBe(false);
+    const request = documentedSchema(document, "WalletStateRequest");
+    expect(request.required).toBeUndefined();
+    expect(request.additionalProperties).toBe(false);
     expect(documentedSchema(document, "Wallet").required).toContain("savings");
   });
 

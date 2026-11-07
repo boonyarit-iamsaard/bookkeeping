@@ -9,7 +9,7 @@ import {
   readWalletSummaryAfterChange,
   recordWalletChange,
   updateWallet,
-} from "./wallet";
+} from "./wallet-change";
 
 export interface ChangeWalletStateInput extends WalletRef {
   /** True archives, false restores; omitted leaves the archive state alone. */
@@ -37,34 +37,39 @@ export async function changeWalletState(
     if (!current) {
       return err({ code: "wallet-not-found" });
     }
-    if (
-      input.archived !== undefined &&
-      Boolean(current.archivedAt) !== input.archived
-    ) {
-      const updated = await updateWallet(tx, {
-        id: input.id,
-        set: { archivedAt: input.archived ? new Date() : null },
-      });
+    for (const change of requestedStateChanges(current, input)) {
+      const updated = await updateWallet(tx, { id: input.id, set: change.set });
       await recordWalletChange(tx, {
         ref: input,
-        action: input.archived ? "archive" : "unarchive",
+        action: change.action,
         before: current,
         after: updated,
       });
       current = updated;
     }
-    if (input.savings !== undefined && current.savings !== input.savings) {
-      const updated = await updateWallet(tx, {
-        id: input.id,
-        set: { savings: input.savings },
-      });
-      await recordWalletChange(tx, {
-        ref: input,
-        action: input.savings ? "mark-savings" : "unmark-savings",
-        before: current,
-        after: updated,
-      });
-    }
     return ok(await readWalletSummaryAfterChange(tx, input));
   });
+}
+
+function* requestedStateChanges(
+  current: Readonly<Pick<WalletSummary, "archivedAt" | "savings">>,
+  input: Readonly<ChangeWalletStateInput>,
+) {
+  if (
+    input.archived !== undefined &&
+    Boolean(current.archivedAt) !== input.archived
+  ) {
+    yield {
+      set: { archivedAt: input.archived ? new Date() : null },
+      action: input.archived ? ("archive" as const) : ("unarchive" as const),
+    };
+  }
+  if (input.savings !== undefined && current.savings !== input.savings) {
+    yield {
+      set: { savings: input.savings },
+      action: input.savings
+        ? ("mark-savings" as const)
+        : ("unmark-savings" as const),
+    };
+  }
 }

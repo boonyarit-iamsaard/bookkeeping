@@ -7,12 +7,12 @@ import { eq } from "drizzle-orm";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import * as z from "zod";
 import { adoptBaseline } from "./adopt-baseline";
 import { users } from "./auth/auth.schema";
 import { createDatabase } from "./connection";
 import { migrateDatabase } from "./migrate";
 import { withEmptyDatabase } from "./testing/empty-database";
+import { readMigrationJournal } from "./testing/next-migration";
 import { createTestUser } from "./testing/test-database";
 
 // Each adoption starts a throwaway PostgreSQL container to compare schemas.
@@ -22,6 +22,10 @@ const committedMigrationsFolder = fileURLToPath(
   new URL("../drizzle", import.meta.url),
 );
 let baselineMigrationsFolder: string;
+
+function adoptBaselineFixture(url: string) {
+  return adoptBaseline({ url, migrationsFolder: baselineMigrationsFolder });
+}
 
 const secondMigrationFolder = fileURLToPath(
   new URL("testing/fixtures/second-migration", import.meta.url),
@@ -73,24 +77,11 @@ async function hasDrizzleSchema(url: string): Promise<boolean> {
   }
 }
 
-const journalSchema = z
-  .object({
-    entries: z.array(z.object({ tag: z.string() }).passthrough()),
-  })
-  .passthrough();
-
 beforeAll(async () => {
   baselineMigrationsFolder = await mkdtemp(
     join(tmpdir(), "baseline-migration-"),
   );
-  const journal = journalSchema.parse(
-    JSON.parse(
-      readFileSync(
-        join(committedMigrationsFolder, "meta/_journal.json"),
-        "utf8",
-      ),
-    ),
-  );
+  const journal = await readMigrationJournal(committedMigrationsFolder);
   journal.entries = journal.entries.filter(
     (entry) => entry.tag === "0000_baseline",
   );
@@ -117,12 +108,7 @@ describe("adoptBaseline", () => {
       await withEmptyDatabase(async (url) => {
         await createUntrackedBaseline(url);
 
-        expect(
-          await adoptBaseline({
-            url,
-            migrationsFolder: baselineMigrationsFolder,
-          }),
-        ).toEqual({ status: "adopted" });
+        expect(await adoptBaselineFixture(url)).toEqual({ status: "adopted" });
 
         const [baseline] = readMigrationFiles({
           migrationsFolder: baselineMigrationsFolder,
@@ -147,12 +133,7 @@ describe("adoptBaseline", () => {
       await withEmptyDatabase(async (url) => {
         await createUntrackedBaseline(url);
 
-        expect(
-          await adoptBaseline({
-            url,
-            migrationsFolder: baselineMigrationsFolder,
-          }),
-        ).toEqual({ status: "adopted" });
+        expect(await adoptBaselineFixture(url)).toEqual({ status: "adopted" });
 
         await migrateDatabase(url, {
           migrationsFolder: baselineMigrationsFolder,
@@ -181,12 +162,7 @@ describe("adoptBaseline", () => {
           migrationsFolder: baselineMigrationsFolder,
         });
 
-        expect(
-          await adoptBaseline({
-            url,
-            migrationsFolder: baselineMigrationsFolder,
-          }),
-        ).toEqual({
+        expect(await adoptBaselineFixture(url)).toEqual({
           status: "refused",
           reason: expect.stringContaining("drizzle.__drizzle_migrations"),
         });
@@ -208,12 +184,7 @@ describe("adoptBaseline", () => {
           reason: expect.stringContaining("0001_add_fixture_column"),
         });
         expect(await hasDrizzleSchema(url)).toBe(false);
-        expect(
-          await adoptBaseline({
-            url,
-            migrationsFolder: baselineMigrationsFolder,
-          }),
-        ).toEqual({ status: "adopted" });
+        expect(await adoptBaselineFixture(url)).toEqual({ status: "adopted" });
       });
     },
   );
@@ -240,24 +211,14 @@ describe("adoptBaseline", () => {
         await createUntrackedBaseline(url);
         await runStatement(url, apply);
 
-        expect(
-          await adoptBaseline({
-            url,
-            migrationsFolder: baselineMigrationsFolder,
-          }),
-        ).toEqual({
+        expect(await adoptBaselineFixture(url)).toEqual({
           status: "drifted",
           diff: expect.stringContaining(object),
         });
         expect(await hasDrizzleSchema(url)).toBe(false);
 
         await runStatement(url, undo);
-        expect(
-          await adoptBaseline({
-            url,
-            migrationsFolder: baselineMigrationsFolder,
-          }),
-        ).toEqual({ status: "adopted" });
+        expect(await adoptBaselineFixture(url)).toEqual({ status: "adopted" });
       });
     },
   );
@@ -279,12 +240,7 @@ describe("adoptBaseline", () => {
           status: "matches",
         });
         expect(await hasDrizzleSchema(url)).toBe(false);
-        expect(
-          await adoptBaseline({
-            url,
-            migrationsFolder: baselineMigrationsFolder,
-          }),
-        ).toEqual({ status: "adopted" });
+        expect(await adoptBaselineFixture(url)).toEqual({ status: "adopted" });
       });
     },
   );

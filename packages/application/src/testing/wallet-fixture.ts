@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { Database } from "@bookkeeping/database/connection";
+import type { Result } from "@bookkeeping/domain/result";
 import type { WalletSummary } from "@bookkeeping/domain/wallets";
+import type { WalletRef } from "../wallets/wallet";
 import { createWallet } from "../wallets/wallet";
+import { changeWalletState } from "../wallets/wallet-state";
 
 export interface WalletFixtureInput {
   ownerId: string;
@@ -25,4 +28,16 @@ export async function createWalletForTest(
     throw new Error(`Wallet fixture rejected: ${created.error.code}`);
   }
   return created.value.wallet;
+}
+
+/** Archives a fixture wallet, failing setup if the state change is rejected. */
+export async function archiveWallet(
+  db: Database,
+  ref: Readonly<WalletRef>,
+): Promise<Result<WalletSummary, never>> {
+  const result = await changeWalletState(db, { ...ref, archived: true });
+  if (!result.ok) {
+    throw new Error(`Wallet archive fixture rejected: ${result.error.code}`);
+  }
+  return result;
 }

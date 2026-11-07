@@ -33,6 +33,7 @@ import { cn } from "@/shared/helpers/cn";
 type Wallet = components["schemas"]["Wallet"];
 type WalletOpeningRequest = components["schemas"]["WalletOpeningRequest"];
 type WalletStateRequest = components["schemas"]["WalletStateRequest"];
+type ChangeSource = "savings" | "other";
 
 interface WalletManagementProps {
   wallet: Wallet;
@@ -92,9 +93,8 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [changeSource, setChangeSource] = useState<"savings" | "other">(
-    "other",
-  );
+  const [changeSource, setChangeSource] = useState<ChangeSource>("other");
+  const savingsChange = changeSource === "savings";
 
   const openingMutation = useApiMutation<WalletOpeningRequest, Wallet>({
     send: (input) =>
@@ -123,7 +123,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
     stateMutation.isPending ||
     deleteMutation.isPending;
 
-  function beginChange(source: "savings" | "other" = "other") {
+  function beginChange(source: ChangeSource = "other") {
     setChangeSource(source);
     setError("");
     setNotice("");
@@ -169,12 +169,13 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
     await refreshAfterChange("Opening balance corrected.");
   }
 
-  async function submitArchiveState() {
-    beginChange();
-    const nextArchived = !archived;
+  async function submitState(
+    change: Readonly<WalletStateRequest>,
+    successNotice: string,
+  ) {
     let result: WriteResult<Wallet>;
     try {
-      result = await stateMutation.submit({ archived: nextArchived });
+      result = await stateMutation.submit(change);
     } catch {
       setError(
         "The change could not be confirmed. Your values are kept; try again.",
@@ -185,7 +186,14 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       setError(describeWalletRejection(result.error));
       return;
     }
-    await refreshAfterChange(
+    await refreshAfterChange(successNotice);
+  }
+
+  async function submitArchiveState() {
+    beginChange();
+    const nextArchived = !archived;
+    await submitState(
+      { archived: nextArchived },
       nextArchived
         ? "Wallet archived. Its balance remains in your totals."
         : "Wallet unarchived. You can use it for new entries.",
@@ -195,20 +203,8 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   async function submitSavingsState() {
     beginChange("savings");
     const savings = !wallet.savings;
-    let result: WriteResult<Wallet>;
-    try {
-      result = await stateMutation.submit({ savings });
-    } catch {
-      setError(
-        "The change could not be confirmed. Your values are kept; try again.",
-      );
-      return;
-    }
-    if (!result.ok) {
-      setError(describeWalletRejection(result.error));
-      return;
-    }
-    await refreshAfterChange(
+    await submitState(
+      { savings },
       savings
         ? "Marked as a Savings wallet. Its balance now counts in Set aside."
         : "No longer a Savings wallet. Its balance now counts in Spendable.",
@@ -259,22 +255,18 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           />
         </div>
       </section>
-      {error && changeSource !== "savings" && (
+      {error && !savingsChange && (
         <div id="wallet-error">
           <ErrorNotice>{error}</ErrorNotice>
         </div>
       )}
-      {notice && changeSource !== "savings" && (
-        <SavedNotice>{notice}</SavedNotice>
-      )}
+      {notice && !savingsChange && <SavedNotice>{notice}</SavedNotice>}
       <form
         onSubmit={(event) => {
           event.preventDefault();
           void submitOpening();
         }}
-        aria-describedby={
-          error && changeSource !== "savings" ? "wallet-error" : undefined
-        }
+        aria-describedby={error && !savingsChange ? "wallet-error" : undefined}
         className={cn(manageCardClass, "gap-5")}
       >
         <div className="flex flex-col gap-1.5">
@@ -350,18 +342,14 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           onClick={() => void submitSavingsState()}
         >
           <PiggyBank data-icon="inline-start" strokeWidth={1.75} />
-          {stateMutation.isPending && changeSource === "savings"
+          {stateMutation.isPending && savingsChange
             ? "Saving…"
             : wallet.savings
               ? "Remove Savings wallet marker"
               : "Mark as a Savings wallet"}
         </Button>
-        {error && changeSource === "savings" && (
-          <ErrorNotice>{error}</ErrorNotice>
-        )}
-        {notice && changeSource === "savings" && (
-          <SavedNotice>{notice}</SavedNotice>
-        )}
+        {error && savingsChange && <ErrorNotice>{error}</ErrorNotice>}
+        {notice && savingsChange && <SavedNotice>{notice}</SavedNotice>}
       </section>
       <section aria-labelledby="archive-heading" className={manageCardClass}>
         <div className="flex flex-col gap-1.5">

@@ -23,10 +23,20 @@ export const nextMigrationColumn = "fixture_column";
 const journalSchema = z
   .object({
     entries: z.array(
-      z.object({ idx: z.number(), when: z.number() }).passthrough(),
+      z
+        .object({ idx: z.number(), when: z.number(), tag: z.string() })
+        .passthrough(),
     ),
   })
   .passthrough();
+
+export async function readMigrationJournal(
+  folder: string,
+): Promise<z.infer<typeof journalSchema>> {
+  return journalSchema.parse(
+    JSON.parse(await readFile(join(folder, "meta/_journal.json"), "utf8")),
+  );
+}
 
 /**
  * Runs `use` with the committed migrations plus a test-only migration whose
@@ -41,9 +51,7 @@ export async function withNextMigrationFolder(
     await chmod(folder, 0o755);
     await cp(migrationsFolder, folder, { recursive: true });
     const journalPath = join(folder, "meta/_journal.json");
-    const journal = journalSchema.parse(
-      JSON.parse(await readFile(journalPath, "utf8")),
-    );
+    const journal = await readMigrationJournal(folder);
     const latest = journal.entries.at(-1);
     if (!latest) {
       throw new Error("The committed migration journal is empty");

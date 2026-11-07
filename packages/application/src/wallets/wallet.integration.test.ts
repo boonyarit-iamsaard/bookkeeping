@@ -274,17 +274,13 @@ describe("findWallet", () => {
   });
 });
 
-interface CreateWalletFixture {
+interface CreateWalletFixture extends Partial<WalletFixture> {
   ownerId: string;
   idempotencyKey?: string;
-  name?: string;
-  type?: WalletType;
   savings?: boolean;
-  openingAmount?: bigint;
-  openingDate?: CalendarDate;
 }
 
-function createSavingsWallet(
+function openWallet(
   db: Database,
   {
     ownerId,
@@ -312,7 +308,7 @@ describe("createWallet", () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
 
-      const created = await createSavingsWallet(db, {
+      const created = await openWallet(db, {
         ownerId: owner.id,
         savings: true,
       });
@@ -344,12 +340,12 @@ describe("createWallet", () => {
   test("a retry with the same key replays the original wallet instead of opening another", async () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
-      const first = await createSavingsWallet(db, { ownerId: owner.id });
+      const first = await openWallet(db, { ownerId: owner.id });
       if (!first.ok) {
         throw new Error("Expected wallet creation to succeed");
       }
 
-      const retry = await createSavingsWallet(db, { ownerId: owner.id });
+      const retry = await openWallet(db, { ownerId: owner.id });
 
       expect(retry).toEqual({
         ok: true,
@@ -362,7 +358,7 @@ describe("createWallet", () => {
   test("a retry replays the wallet as created even after it was archived or removed", async () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
-      const first = await createSavingsWallet(db, { ownerId: owner.id });
+      const first = await openWallet(db, { ownerId: owner.id });
       if (!first.ok) {
         throw new Error("Expected wallet creation to succeed");
       }
@@ -372,9 +368,9 @@ describe("createWallet", () => {
         .update(wallets)
         .set({ name: "Renamed", archivedAt: new Date("2026-09-10T00:00:00Z") })
         .where(eq(wallets.id, id));
-      const afterChange = await createSavingsWallet(db, { ownerId: owner.id });
+      const afterChange = await openWallet(db, { ownerId: owner.id });
       await db.delete(wallets).where(eq(wallets.id, id));
-      const afterRemoval = await createSavingsWallet(db, { ownerId: owner.id });
+      const afterRemoval = await openWallet(db, { ownerId: owner.id });
 
       expect(afterChange).toEqual({
         ok: true,
@@ -385,30 +381,33 @@ describe("createWallet", () => {
     });
   });
 
-  test("a retry whose command differs conflicts and opens nothing", async () => {
-    await withRollback(async (db) => {
-      const owner = await createTestUser(db);
-      await createSavingsWallet(db, { ownerId: owner.id });
+  test.each([{ openingAmount: 1_200_001n }, { savings: true }])(
+    "a retry whose command differs conflicts and opens nothing",
+    async (change) => {
+      await withRollback(async (db) => {
+        const owner = await createTestUser(db);
+        await openWallet(db, { ownerId: owner.id });
 
-      const conflict = await createSavingsWallet(db, {
-        ownerId: owner.id,
-        savings: true,
-      });
+        const conflict = await openWallet(db, {
+          ownerId: owner.id,
+          ...change,
+        });
 
-      expect(conflict).toEqual({
-        ok: false,
-        error: { code: "idempotency-conflict" },
+        expect(conflict).toEqual({
+          ok: false,
+          error: { code: "idempotency-conflict" },
+        });
+        expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
       });
-      expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
-    });
-  });
+    },
+  );
 
   test("distinct keys open distinct wallets from the same command", async () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
 
-      await createSavingsWallet(db, { ownerId: owner.id, idempotencyKey: "a" });
-      await createSavingsWallet(db, { ownerId: owner.id, idempotencyKey: "b" });
+      await openWallet(db, { ownerId: owner.id, idempotencyKey: "a" });
+      await openWallet(db, { ownerId: owner.id, idempotencyKey: "b" });
 
       expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(2);
     });
@@ -418,12 +417,12 @@ describe("createWallet", () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
 
-      const rejected = await createSavingsWallet(db, {
+      const rejected = await openWallet(db, {
         ownerId: owner.id,
         name: "   ",
         openingDate: "2026-02-30",
       });
-      const corrected = await createSavingsWallet(db, { ownerId: owner.id });
+      const corrected = await openWallet(db, { ownerId: owner.id });
 
       expect(rejected).toEqual({
         ok: false,
@@ -447,9 +446,7 @@ describe("createWallet", () => {
     const owner = await createTestUser(db);
 
     const outcomes = await Promise.all(
-      Array.from({ length: 5 }, () =>
-        createSavingsWallet(db, { ownerId: owner.id }),
-      ),
+      Array.from({ length: 5 }, () => openWallet(db, { ownerId: owner.id })),
     );
 
     const successes = outcomes.flatMap((outcome) =>
@@ -496,14 +493,14 @@ async function insertTransfer(
 
 async function openCashPair(db: Database) {
   const owner = await createTestUser(db);
-  const cash = await createSavingsWallet(db, {
+  const cash = await openWallet(db, {
     ownerId: owner.id,
     idempotencyKey: "cash",
     name: "Cash",
     type: "cash",
     openingAmount: 10_000n,
   });
-  const bank = await createSavingsWallet(db, {
+  const bank = await openWallet(db, {
     ownerId: owner.id,
     idempotencyKey: "bank",
     name: "Bank",
@@ -738,7 +735,7 @@ describe("deleteWallet", () => {
   test("rejects a wallet referenced only by a retained transaction snapshot", async () => {
     await withRollback(async (db) => {
       const { owner, cash, bank } = await openCashPair(db);
-      const spare = await createSavingsWallet(db, {
+      const spare = await openWallet(db, {
         ownerId: owner.id,
         idempotencyKey: "spare",
         name: "Spare",
