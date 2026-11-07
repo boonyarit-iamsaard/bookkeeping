@@ -17,6 +17,13 @@ ticket's Comments.
 > ends config as code on 2026-12-01. The Config File steps below
 > record the first deploy. The restart policy ("On Failure") is the one
 > setting held only in each service's **Settings → Deploy** page.
+>
+> **Since 2026-10-31** this project is production and holds the real ledger,
+> and schema changes reach it as migrations in the `api` pre-deploy step
+> ([ADR 0014](../adr/0014-production-migrations-in-railway-pre-deploy.md)).
+> Stage 10 records the first deploy: never run `db:push` against production. To
+> rebuild a lost project, follow
+> [the recovery runbook](production-recovery/recover-production-new-project.md).
 
 ## Before you start
 
