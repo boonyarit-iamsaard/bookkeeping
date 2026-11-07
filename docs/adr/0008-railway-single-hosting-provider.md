@@ -40,3 +40,11 @@ strategy and the off-Railway backups existed. That data is kept, not wiped.
 Off-Railway backups are decided in
 `docs/adr/0013-nightly-encrypted-backups-to-aws-s3.md`, and applying
 migrations to production follows in its own spec.
+
+## Amendment, 2026-11-07
+
+Both conditions for holding real data are met, so this project is production
+rather than a trial. Nightly backups have reached S3 since 2026-10-19, and the
+first restore drill passed on 2026-10-22. Production has applied migrations
+since 2026-10-31, as
+`docs/adr/0014-production-migrations-in-railway-pre-deploy.md` records.

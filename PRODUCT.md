@@ -19,19 +19,20 @@ collaboration.
 ## Product Purpose
 
 A personal finance app covering tracking, budgeting, and forecasting. The
-first milestone is tracking: income, expenses, refunds, and transfers between
+first milestone was tracking: income, expenses, refunds, and transfers between
 user-owned wallets (cash, bank account, e-wallet), with two-level categories
-and monthly income/expense/net totals. The milestone ends when the deployed
-app can hold the user's real ledger: automated backups stored off the hosting
-provider with a proven restore, and a schema migration strategy for
-production, per `docs/adr/0008`.
+and monthly income/expense/net totals. It ended when the deployed app could
+hold the user's real ledger: automated backups stored off the hosting provider
+with a proven restore, and a schema migration strategy for production, per
+`docs/adr/0008`.
 
-Status (2026-10-17): the user has kept their real ledger in the deployed app
-since 2026-09-27, so that data is kept rather than cleared. Milestone one
-closes after two specs: off-provider backups with a proven restore
-([#218](https://github.com/boonyarit-iamsaard/bookkeeping/issues/218), ADR 0013), then applying migrations to
-production. A milestone after tracking (budgeting or forecasting) has not been
-chosen.
+Status (2026-11-07): milestone one is complete. The user has kept their real
+ledger in the deployed app since 2026-09-27. Off-provider backups with a proven
+restore ([#218](https://github.com/boonyarit-iamsaard/bookkeeping/issues/218),
+ADR 0013) and applying migrations to production
+([#241](https://github.com/boonyarit-iamsaard/bookkeeping/issues/241), ADR 0014)
+are both in place. A milestone after tracking (budgeting or forecasting) has not
+been chosen.
 
 Success is a ledger the user trusts enough to keep: every transaction captured
 close to the moment of spend, balances that reconcile with reality, and
@@ -62,7 +63,7 @@ confirmed spec does encode where those apps fell short for this user:
 - **Connectivity:** mobile networks; duplicate taps and retries are expected
   and must not create duplicate transactions (idempotency key per create).
 - **Locale:** Thailand. Currency is THB only; dates and times display in
-  Bangkok time; the interface is English-only for the first milestone.
+  Bangkok time; the interface is English-only.
 - **Devices and browsers:** installed as a PWA and used in Chrome or Edge on
   Android and on desktop. Chromium is the only supported engine
   (`docs/adr/0007`); revisit if the app is used on iPhone, iPad, or Safari.
@@ -140,11 +141,11 @@ native wrappers are not planned.
   [#80](https://github.com/boonyarit-iamsaard/bookkeeping/issues/80).
 - Domain glossary: `CONTEXT.md`.
 - Debt decision: `docs/adr/0011-debt-cash-movements.md`.
-- Real data exists only in the production database on Railway. It is the
-  user's actual finances and must never be copied into design work,
-  screenshots, or fixtures. No testimonials or usage metrics exist. Sample
-  data in the UI must be clearly placeholder; do not fabricate financial
-  figures as if they were the user's.
+- Real data exists only in the production database on Railway and its
+  encrypted backups in AWS S3. It is the user's actual finances and must never
+  be copied into design work, screenshots, or fixtures. No testimonials or
+  usage metrics exist. Sample data in the UI must be clearly placeholder; do
+  not fabricate financial figures as if they were the user's.
 
 ## Product Principles
 
