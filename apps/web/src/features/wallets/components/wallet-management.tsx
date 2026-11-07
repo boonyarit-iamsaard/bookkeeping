@@ -2,14 +2,18 @@ import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, PiggyBank, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "@/core/api/client";
 import { formatApiMoneyInput } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { walletQueries } from "@/core/api/queries";
 import { useApiMutation } from "@/core/api/use-api-mutation";
-import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
+import type {
+  ApiFieldError,
+  ApiRejection,
+  WriteResult,
+} from "@/core/api/write-submission";
 import {
   forgetReads,
   refreshAfterWrite,
@@ -88,6 +92,9 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [changeSource, setChangeSource] = useState<"savings" | "other">(
+    "other",
+  );
 
   const openingMutation = useApiMutation<WalletOpeningRequest, Wallet>({
     send: (input) =>
@@ -97,7 +104,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       }),
     describeFieldError: describeWalletFieldError,
   });
-  const archiveMutation = useApiMutation<WalletStateRequest, Wallet>({
+  const stateMutation = useApiMutation<WalletStateRequest, Wallet>({
     send: (input) =>
       apiClient.PATCH("/v1/wallets/{walletId}", {
         params: { path: { walletId: wallet.id } },
@@ -113,10 +120,11 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   });
   const pending =
     openingMutation.isPending ||
-    archiveMutation.isPending ||
+    stateMutation.isPending ||
     deleteMutation.isPending;
 
-  function beginChange() {
+  function beginChange(source: "savings" | "other" = "other") {
+    setChangeSource(source);
     setError("");
     setNotice("");
   }
@@ -136,7 +144,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       return;
     }
 
-    let result: Awaited<ReturnType<typeof openingMutation.submit>>;
+    let result: WriteResult<Wallet>;
     try {
       result = await openingMutation.submit({
         amount: {
@@ -161,11 +169,12 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
     await refreshAfterChange("Opening balance corrected.");
   }
 
-  async function submitArchiveState(archived: boolean) {
+  async function submitArchiveState() {
     beginChange();
-    let result: Awaited<ReturnType<typeof archiveMutation.submit>>;
+    const nextArchived = !archived;
+    let result: WriteResult<Wallet>;
     try {
-      result = await archiveMutation.submit({ archived });
+      result = await stateMutation.submit({ archived: nextArchived });
     } catch {
       setError(
         "The change could not be confirmed. Your values are kept; try again.",
@@ -177,15 +186,38 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       return;
     }
     await refreshAfterChange(
-      archived
+      nextArchived
         ? "Wallet archived. Its balance remains in your totals."
         : "Wallet unarchived. You can use it for new entries.",
     );
   }
 
+  async function submitSavingsState() {
+    beginChange("savings");
+    const savings = !wallet.savings;
+    let result: WriteResult<Wallet>;
+    try {
+      result = await stateMutation.submit({ savings });
+    } catch {
+      setError(
+        "The change could not be confirmed. Your values are kept; try again.",
+      );
+      return;
+    }
+    if (!result.ok) {
+      setError(describeWalletRejection(result.error));
+      return;
+    }
+    await refreshAfterChange(
+      savings
+        ? "Marked as a Savings wallet. Its balance now counts in Set aside."
+        : "No longer a Savings wallet. Its balance now counts in Spendable.",
+    );
+  }
+
   async function submitDelete() {
     beginChange();
-    let result: Awaited<ReturnType<typeof deleteMutation.submit>>;
+    let result: WriteResult<unknown>;
     try {
       result = await deleteMutation.submit(undefined);
     } catch {
@@ -227,18 +259,22 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           />
         </div>
       </section>
-      {error && (
+      {error && changeSource !== "savings" && (
         <div id="wallet-error">
           <ErrorNotice>{error}</ErrorNotice>
         </div>
       )}
-      {notice && <SavedNotice>{notice}</SavedNotice>}
+      {notice && changeSource !== "savings" && (
+        <SavedNotice>{notice}</SavedNotice>
+      )}
       <form
         onSubmit={(event) => {
           event.preventDefault();
           void submitOpening();
         }}
-        aria-describedby={error ? "wallet-error" : undefined}
+        aria-describedby={
+          error && changeSource !== "savings" ? "wallet-error" : undefined
+        }
         className={cn(manageCardClass, "gap-5")}
       >
         <div className="flex flex-col gap-1.5">
@@ -290,6 +326,43 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           {pending ? "Saving…" : "Save opening correction"}
         </Button>
       </form>
+      <section aria-labelledby="savings-heading" className={manageCardClass}>
+        <div className="flex flex-col gap-1.5">
+          <h2 id="savings-heading" className="text-lg font-bold tracking-tight">
+            Savings wallet
+          </h2>
+          <p
+            id="savings-description"
+            className="text-muted-foreground text-sm leading-normal"
+          >
+            {wallet.savings
+              ? "Its balance counts in Set aside instead of Spendable."
+              : "Its balance counts in Spendable. Mark it to count in Set aside instead."}{" "}
+            The marker does not change its type, balance or transactions.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="lg"
+          className="h-auto min-h-11 max-w-full self-start py-2.5 text-left whitespace-normal sm:h-auto sm:min-h-10 sm:py-2"
+          aria-describedby="savings-description"
+          disabled={pending}
+          onClick={() => void submitSavingsState()}
+        >
+          <PiggyBank data-icon="inline-start" strokeWidth={1.75} />
+          {stateMutation.isPending && changeSource === "savings"
+            ? "Saving…"
+            : wallet.savings
+              ? "Remove Savings wallet marker"
+              : "Mark as a Savings wallet"}
+        </Button>
+        {error && changeSource === "savings" && (
+          <ErrorNotice>{error}</ErrorNotice>
+        )}
+        {notice && changeSource === "savings" && (
+          <SavedNotice>{notice}</SavedNotice>
+        )}
+      </section>
       <section aria-labelledby="archive-heading" className={manageCardClass}>
         <div className="flex flex-col gap-1.5">
           <h2 id="archive-heading" className="text-lg font-bold tracking-tight">
@@ -306,7 +379,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           size="lg"
           className="self-start"
           disabled={pending}
-          onClick={() => void submitArchiveState(!archived)}
+          onClick={() => void submitArchiveState()}
         >
           {archived ? (
             <ArchiveRestore data-icon="inline-start" strokeWidth={1.75} />

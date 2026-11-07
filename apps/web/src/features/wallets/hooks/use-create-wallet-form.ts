@@ -7,7 +7,7 @@ import { useState } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useApiMutation } from "@/core/api/use-api-mutation";
-import type { ApiFieldError } from "@/core/api/write-submission";
+import type { ApiFieldError, WriteResult } from "@/core/api/write-submission";
 import { createFieldOf } from "@/core/api/write-submission";
 import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { WalletFormInput } from "@/features/wallets/wallet-form-schema";
@@ -19,6 +19,7 @@ type Wallet = components["schemas"]["Wallet"];
 const WALLET_FORM_FIELDS: readonly (keyof WalletFormInput)[] = [
   "name",
   "type",
+  "savings",
   "openingAmount",
   "openingDate",
 ];
@@ -64,6 +65,7 @@ export function useCreateWalletForm({
   const defaultValues: WalletFormInput = {
     name: "",
     type: "cash",
+    savings: false,
     openingAmount: "",
     openingDate: defaultOpeningDate,
   };
@@ -83,11 +85,12 @@ export function useCreateWalletForm({
         return;
       }
 
-      let result: Awaited<ReturnType<typeof createWallet.submit>>;
+      let result: WriteResult<Wallet>;
       try {
         result = await createWallet.submit({
           name: parsed.data.name,
           type: parsed.data.type,
+          savings: parsed.data.savings,
           openingAmount: {
             value: formatMoneyInput({
               amountInMinorUnits: parsed.data.openingAmount,

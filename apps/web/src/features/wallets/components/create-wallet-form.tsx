@@ -28,6 +28,11 @@ const TYPE_OPTIONS = WALLET_TYPES.map((value) => ({
   label: WALLET_TYPE_LABELS[value],
 }));
 
+const SAVINGS_OPTIONS = [
+  { value: "off", label: "Off" },
+  { value: "on", label: "On" },
+] as const;
+
 function describeOpeningDate(value: string): string {
   const parsed = parseCalendarDate(value);
   if (!parsed.ok) {
@@ -134,6 +139,42 @@ export function CreateWalletForm({
                   <FieldErrors
                     id={`${field.name}-error`}
                     serverError={serverFieldErrors.type}
+                    errors={field.state.meta.errors}
+                  />
+                </Field>
+              );
+            }}
+          </form.Field>
+
+          <form.Field name="savings">
+            {(field) => {
+              const invalid =
+                !field.state.meta.isValid || Boolean(serverFieldErrors.savings);
+              return (
+                <Field
+                  data-invalid={invalid}
+                  aria-labelledby="wallet-savings-label"
+                  aria-describedby="wallet-savings-description"
+                >
+                  <FieldLabel id="wallet-savings-label">
+                    Savings wallet
+                  </FieldLabel>
+                  <SegmentedControl
+                    name={field.name}
+                    aria-labelledby="wallet-savings-label"
+                    options={SAVINGS_OPTIONS}
+                    value={field.state.value ? "on" : "off"}
+                    onValueChange={(value) =>
+                      field.handleChange(value === "on")
+                    }
+                  />
+                  <FieldDescription id="wallet-savings-description">
+                    When on, this wallet's balance counts in Set aside instead
+                    of Spendable. Recording stays the same.
+                  </FieldDescription>
+                  <FieldErrors
+                    id={`${field.name}-error`}
+                    serverError={serverFieldErrors.savings}
                     errors={field.state.meta.errors}
                   />
                 </Field>

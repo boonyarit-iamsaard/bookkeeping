@@ -11,6 +11,16 @@ const validInput = {
 afterEach(() => vi.useRealTimers());
 
 describe("wallet creation validation", () => {
+  test("defaults the Savings wallet marker to false", () => {
+    expect(walletFormSchema.parse(validInput).savings).toBe(false);
+  });
+
+  test("accepts the Savings wallet marker", () => {
+    expect(
+      walletFormSchema.parse({ ...validInput, savings: true }).savings,
+    ).toBe(true);
+  });
+
   test("rejects future openings at Bangkok midnight", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-13T16:59:59Z"));
