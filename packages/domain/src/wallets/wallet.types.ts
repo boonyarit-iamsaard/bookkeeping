@@ -13,6 +13,8 @@ export interface WalletSummary {
   openingAmount: bigint;
   openingDate: CalendarDate;
   archivedAt: Date | null;
+  /** Marks a Savings wallet. */
+  savings: boolean;
   /** Derived: opening balance plus current transactions through `asOf`. */
   balance: bigint;
 }
@@ -21,4 +23,5 @@ export interface WalletSnapshot {
   openingAmount: string;
   openingDate: string;
   archivedAt: string | null;
+  savings: boolean;
 }

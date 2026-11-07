@@ -16,6 +16,7 @@ export async function createWalletForTest(
     ownerId,
     name: "Cash",
     type: "cash",
+    savings: false,
     openingAmount: 1_000_000n,
     openingDate: "2026-09-01",
     idempotencyKey: randomUUID(),

@@ -13,7 +13,8 @@ import {
   softDelete,
   withClock,
 } from "../testing/transaction-suite-fixture";
-import { listWallets, setWalletArchived } from "../wallets/wallet";
+import { listWallets } from "../wallets/wallet";
+import { changeWalletState } from "../wallets/wallet-state";
 import type { CreateTransactionInput } from "./transaction";
 import {
   createTransaction,
@@ -589,7 +590,7 @@ describe("updateTransaction", () => {
         ]);
       });
     });
-    test("refund edits exclude their own old amount, keep recording time and history, and cannot move to another archived wallet", async () => {
+    test("refund edits preserve history and recording time but cannot change to an archived wallet", async () => {
       await withRollback(async (db) => {
         const context = await setupExpense(db);
         const { ownerId, cashId, expense } = context;
@@ -732,7 +733,7 @@ describe("updateTransaction", () => {
       ["edit", "archive"],
     ] as const;
     for (const [operation, conflict] of refundConcurrencyCases) {
-      test(`refund ${operation} racing ${conflict} preserves financial constraints and history`, async () => {
+      test(`refund ${operation}/${conflict} race preserves constraints/history`, async () => {
         const db = committed();
         const context = await setupExpense(db);
         const { ownerId, cashId, expense } = context;
@@ -767,7 +768,7 @@ describe("updateTransaction", () => {
             });
         const competingWrite =
           conflict === "archive"
-            ? setWalletArchived(db, {
+            ? changeWalletState(db, {
                 ownerId,
                 id: receiver,
                 archived: true,

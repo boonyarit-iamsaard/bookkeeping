@@ -28,8 +28,7 @@ import { cn } from "@/shared/helpers/cn";
 
 type Wallet = components["schemas"]["Wallet"];
 type WalletOpeningRequest = components["schemas"]["WalletOpeningRequest"];
-type WalletArchiveStateRequest =
-  components["schemas"]["WalletArchiveStateRequest"];
+type WalletStateRequest = components["schemas"]["WalletStateRequest"];
 
 interface WalletManagementProps {
   wallet: Wallet;
@@ -98,7 +97,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       }),
     describeFieldError: describeWalletFieldError,
   });
-  const archiveMutation = useApiMutation<WalletArchiveStateRequest, Wallet>({
+  const archiveMutation = useApiMutation<WalletStateRequest, Wallet>({
     send: (input) =>
       apiClient.PATCH("/v1/wallets/{walletId}", {
         params: { path: { walletId: wallet.id } },

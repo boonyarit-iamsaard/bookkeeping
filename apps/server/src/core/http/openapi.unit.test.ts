@@ -376,7 +376,7 @@ describe("OpenAPI document", () => {
     ).toHaveProperty("$ref", "#/components/schemas/MoneyInput");
   });
 
-  it("documents the opening balance replacement as a subordinate resource", async () => {
+  it("documents opening replacement", async () => {
     const document = await fetchDocument(createUnitTestApp());
     const operation: DocumentedOperation = documentedOperation(document, {
       method: "put",
@@ -407,20 +407,20 @@ describe("OpenAPI document", () => {
     );
   });
 
-  it("documents the archive-state change as a strict partial update", async () => {
+  it("documents wallet state as a strict partial update", async () => {
     const document = await fetchDocument(createUnitTestApp());
     const operation: DocumentedOperation = documentedOperation(document, {
       method: "patch",
       path: "/v1/wallets/{walletId}",
     });
 
-    expect(operation.operationId).toBe("changeWalletArchiveState");
+    expect(operation.operationId).toBe("changeWalletState");
     expect(operation.parameters).toEqual([
       expect.objectContaining({ in: "path", name: "walletId", required: true }),
     ]);
     expect(operation.requestBody?.required).toBe(true);
     expect(operation.requestBody?.content["application/json"].schema.$ref).toBe(
-      "#/components/schemas/WalletArchiveStateRequest",
+      "#/components/schemas/WalletStateRequest",
     );
     expect(
       documentedSchemaRef(operation, {
@@ -430,12 +430,12 @@ describe("OpenAPI document", () => {
     ).toBe("#/components/schemas/Wallet");
     expectProblemResponses(operation, ["400", "401", "404", "422", "500"]);
     expect(
-      documentedSchema(document, "WalletArchiveStateRequest").required,
-    ).toEqual(["archived"]);
+      documentedSchema(document, "WalletStateRequest").required,
+    ).toBeUndefined();
     expect(
-      documentedSchema(document, "WalletArchiveStateRequest")
-        .additionalProperties,
+      documentedSchema(document, "WalletStateRequest").additionalProperties,
     ).toBe(false);
+    expect(documentedSchema(document, "Wallet").required).toContain("savings");
   });
 
   it("documents wallet deletion as a bodyless operation", async () => {

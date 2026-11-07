@@ -1,0 +1,1 @@
+ALTER TABLE "wallets" ADD COLUMN "savings" boolean DEFAULT false NOT NULL;

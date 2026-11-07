@@ -14,12 +14,11 @@ export function walletCountLabel(count: number): string {
 
 type Wallet = components["schemas"]["Wallet"];
 
-/** "Cash", "Cash · Archived": a wallet's caption on the list and its page. */
+/** A wallet's type, then Savings and Archived markers when applicable. */
 export function walletCaption({
   type,
+  savings,
   archivedAt,
-}: Readonly<Pick<Wallet, "type" | "archivedAt">>): string {
-  return archivedAt
-    ? `${WALLET_TYPE_LABELS[type]} · Archived`
-    : WALLET_TYPE_LABELS[type];
+}: Readonly<Pick<Wallet, "type" | "savings" | "archivedAt">>): string {
+  return `${WALLET_TYPE_LABELS[type]}${savings ? " · Savings" : ""}${archivedAt ? " · Archived" : ""}`;
 }

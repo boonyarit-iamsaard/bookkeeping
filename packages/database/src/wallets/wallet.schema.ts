@@ -3,6 +3,7 @@ import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   check,
   date,
   index,
@@ -35,6 +36,7 @@ export const wallets = pgTable(
     // The opening balance represents the start of this calendar date.
     openingDate: date("opening_date", { mode: "string" }).notNull(),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    savings: boolean("savings").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

@@ -133,6 +133,9 @@
             "type": "string",
             "format": "date",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "savings": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -206,6 +209,9 @@
               }
             ]
           },
+          "savings": {
+            "type": "boolean"
+          },
           "balance": {
             "$ref": "#/components/schemas/Money"
           }
@@ -218,6 +224,7 @@
           "openingAmount",
           "openingDate",
           "archivedAt",
+          "savings",
           "balance"
         ],
         "additionalProperties": false
@@ -290,16 +297,16 @@
           "date"
         ]
       },
-      "WalletArchiveStateRequest": {
+      "WalletStateRequest": {
         "type": "object",
         "properties": {
           "archived": {
             "type": "boolean"
+          },
+          "savings": {
+            "type": "boolean"
           }
         },
-        "required": [
-          "archived"
-        ],
         "additionalProperties": false
       },
       "HistoryRemainsProblem": {
@@ -1857,10 +1864,10 @@
         ]
       },
       "patch": {
-        "operationId": "changeWalletArchiveState",
+        "operationId": "changeWalletState",
         "responses": {
           "200": {
-            "description": "The wallet with its changed archived state",
+            "description": "The wallet with its changed state",
             "content": {
               "application/json": {
                 "schema": {
@@ -1920,11 +1927,21 @@
             }
           }
         },
-        "summary": "Change a wallet's archived state",
-        "description": "Archives the wallet by stamping the archived instant, or restores it by clearing it. Repeating the current state succeeds without effect, so a client may safely retry. A wallet that does not exist, belongs to another owner, or has a malformed identifier is not found alike.",
+        "summary": "Change a wallet's state",
+        "description": "Changes the archived state, the Savings wallet marker, or both. Omitted fields stay unchanged. Repeating the current state is a retry-safe no-op. A wallet that does not exist, belongs to another owner, or has a malformed identifier is not found alike.",
         "tags": [
           "Wallets"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletStateRequest"
+              }
+            }
+          }
+        },
         "parameters": [
           {
             "in": "path",
@@ -1936,17 +1953,7 @@
             },
             "required": true
           }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WalletArchiveStateRequest"
-              }
-            }
-          }
-        }
+        ]
       },
       "delete": {
         "operationId": "deleteWallet",

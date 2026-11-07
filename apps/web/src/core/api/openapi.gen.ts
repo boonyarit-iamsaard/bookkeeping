@@ -366,10 +366,10 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Change a wallet's archived state
-         * @description Archives the wallet by stamping the archived instant, or restores it by clearing it. Repeating the current state succeeds without effect, so a client may safely retry. A wallet that does not exist, belongs to another owner, or has a malformed identifier is not found alike.
+         * Change a wallet's state
+         * @description Changes the archived state, the Savings wallet marker, or both. Omitted fields stay unchanged. Repeating the current state is a retry-safe no-op. A wallet that does not exist, belongs to another owner, or has a malformed identifier is not found alike.
          */
-        patch: operations["changeWalletArchiveState"];
+        patch: operations["changeWalletState"];
         trace?: never;
     };
     "/v1/wallets/{walletId}/opening": {
@@ -508,6 +508,7 @@ export interface components {
             openingAmount: components["schemas"]["MoneyInput"];
             /** Format: date */
             openingDate: string;
+            savings?: boolean;
             /** @enum {string} */
             type: "cash" | "bank_account" | "e_wallet";
         };
@@ -746,11 +747,9 @@ export interface components {
             openingAmount: components["schemas"]["Money"];
             /** Format: date */
             openingDate: string;
+            savings: boolean;
             /** @enum {string} */
             type: "cash" | "bank_account" | "e_wallet";
-        };
-        WalletArchiveStateRequest: {
-            archived: boolean;
         };
         WalletCollection: {
             items: components["schemas"]["Wallet"][];
@@ -760,6 +759,10 @@ export interface components {
             amount: components["schemas"]["MoneyInput"];
             /** Format: date */
             date: string;
+        };
+        WalletStateRequest: {
+            archived?: boolean;
+            savings?: boolean;
         };
     };
     responses: never;
@@ -2079,7 +2082,7 @@ export interface operations {
             };
         };
     };
-    changeWalletArchiveState: {
+    changeWalletState: {
         parameters: {
             query?: never;
             header?: never;
@@ -2090,11 +2093,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["WalletArchiveStateRequest"];
+                "application/json": components["schemas"]["WalletStateRequest"];
             };
         };
         responses: {
-            /** @description The wallet with its changed archived state */
+            /** @description The wallet with its changed state */
             200: {
                 headers: {
                     [name: string]: unknown;
