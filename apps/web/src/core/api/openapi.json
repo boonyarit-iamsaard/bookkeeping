@@ -622,6 +622,92 @@
         ],
         "additionalProperties": false
       },
+      "TagNameRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "TagCollection": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSummary"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/Page"
+          }
+        },
+        "required": [
+          "items",
+          "page"
+        ],
+        "additionalProperties": false
+      },
+      "TagSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "transactionCount",
+          "lastUsedAt"
+        ],
+        "additionalProperties": false
+      },
       "CreateTransactionRequest": {
         "oneOf": [
           {
@@ -652,6 +738,14 @@
               },
               "note": {
                 "type": "string"
+              },
+              "tagIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                }
               }
             },
             "required": [
@@ -852,6 +946,12 @@
                 "type": "null"
               }
             ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionTag"
+            }
           }
         },
         "required": [
@@ -864,7 +964,8 @@
           "wallet",
           "destinationWallet",
           "category",
-          "refundOf"
+          "refundOf",
+          "tags"
         ],
         "additionalProperties": false
       },
@@ -896,6 +997,24 @@
           "name",
           "type",
           "archived"
+        ],
+        "additionalProperties": false
+      },
+      "TransactionTag": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
         ],
         "additionalProperties": false
       },
@@ -1132,6 +1251,8 @@
               "category-kind-mismatch",
               "amount-out-of-range",
               "note-too-long",
+              "too-many-tags",
+              "tag-not-found",
               "invalid-date",
               "future-date",
               "invalid-refund",
@@ -1234,6 +1355,14 @@
           },
           "note": {
             "type": "string"
+          },
+          "tagIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
           }
         },
         "required": [
@@ -2627,6 +2756,298 @@
         ]
       }
     },
+    "/v1/tags": {
+      "post": {
+        "operationId": "createTag",
+        "responses": {
+          "201": {
+            "description": "The created tag, or the original on a replay",
+            "headers": {
+              "Location": {
+                "description": "Where the created tag can be retrieved",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reused with a different payload",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Command is invalid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a tag",
+        "description": "Creates a tag the signed-in owner can put on income and expense transactions. Names are trimmed and unique per owner, ignoring case. The request must carry a client-generated Idempotency-Key: repeating it with the same normalized payload replays the original creation, while a different payload is a conflict. A rejected request never consumes its key.",
+        "tags": [
+          "Tags"
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "required": true,
+            "description": "A client-generated key naming this one creation"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagNameRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listTags",
+        "responses": {
+          "200": {
+            "description": "The owner's tags in suggestion order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagCollection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List tags",
+        "description": "Returns the signed-in owner's tags in suggestion order: most recently put on a current transaction first, then most used, then by name, with unused tags last. Each carries how many current income and expense transactions hold it and when it was last put on one; refunds and deleted transactions never count. The collection is unpaginated; `nextCursor` is always null.",
+        "tags": [
+          "Tags"
+        ]
+      }
+    },
+    "/v1/tags/{tagId}": {
+      "patch": {
+        "operationId": "updateTag",
+        "responses": {
+          "200": {
+            "description": "The renamed tag, or the tag it merged into",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Command is invalid",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Rename a tag",
+        "description": "Renames one of the signed-in owner's tags everywhere it is carried. Renaming to the name another of the owner's tags holds, ignoring case, merges this tag into that one, which takes the name as typed; the response is then that surviving tag, with its own id. Neither changes the transactions' history. A tag that does not exist, belongs to another owner, or has a malformed identifier is not found alike.",
+        "tags": [
+          "Tags"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tagId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagNameRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTag",
+        "responses": {
+          "204": {
+            "description": "The tag was deleted"
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Delete a tag",
+        "description": "Deletes one of the signed-in owner's tags and takes it off every transaction carrying it; the transactions stay. A tag that does not exist, belongs to another owner, or has a malformed identifier is not found alike.",
+        "tags": [
+          "Tags"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tagId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          }
+        ]
+      }
+    },
     "/v1/transactions": {
       "post": {
         "operationId": "createTransaction",
@@ -2701,7 +3122,7 @@
           }
         },
         "summary": "Create an income, expense, transfer, or refund",
-        "description": "Records income, expense, a wallet transfer, or a refund for the signed-in owner using an exact THB amount and a real calendar date. Income and expense requests name a matching category and active owned wallet; transfers name distinct active owned source and destination wallets; refunds name an active owned receiving wallet and one of the owner's own expenses, follow the expense's category, and cannot exceed what remains of it. The request must carry a client-generated Idempotency-Key: repeating it with the same normalized payload replays the original detail, while a different payload is a conflict. A rejected request never consumes its key.",
+        "description": "Records income, expense, a wallet transfer, or a refund for the signed-in owner using an exact THB amount and a real calendar date. Income and expense requests name a matching category and active owned wallet and may carry the owner's tags; transfers name distinct active owned source and destination wallets; refunds name an active owned receiving wallet and one of the owner's own expenses, follow the expense's category and tags, and cannot exceed what remains of it. The request must carry a client-generated Idempotency-Key: repeating it with the same normalized payload replays the original detail, while a different payload is a conflict. A rejected request never consumes its key.",
         "tags": [
           "Transactions"
         ],
@@ -2774,7 +3195,7 @@
           }
         },
         "summary": "List transactions",
-        "description": "Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, and type filters preserve transfer, parent category, refund, and ownership semantics. Pages use an opaque cursor bound to this ordering and the active filters; the server caps the requested limit.",
+        "description": "Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, type, and tag filters preserve transfer, parent category, refund, and ownership semantics; repeated tag ids match any of them, and a refund matches through its expense's tags. Pages use an opaque cursor bound to this ordering and the active filters; the server caps the requested limit.",
         "tags": [
           "Transactions"
         ],
@@ -2825,6 +3246,27 @@
                 "expense",
                 "transfer",
                 "refund"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "tagId",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                }
               ]
             }
           },
@@ -3017,7 +3459,7 @@
           }
         },
         "summary": "Update a transaction",
-        "description": "Corrects one of the signed-in owner's transactions with an exact THB amount and a real calendar date. The transaction's type and its expense link are fixed; the wallet, category, amount, date, and note are re-validated against the owner's records, and the transaction may keep the archived wallets it already has. An expense still covers every linked refund, and a refund stays within what remains of its expense. An update that changes nothing succeeds without effect, so a client may safely retry. A transaction that does not exist, has been deleted, belongs to another owner, or has a malformed identifier is not found alike.",
+        "description": "Corrects one of the signed-in owner's transactions with an exact THB amount and a real calendar date. The transaction's type and its expense link are fixed; the wallet, category, amount, date, note, and tags (kept when omitted) are re-validated against the owner's records, and the transaction may keep the archived wallets it already has. An expense still covers every linked refund, and a refund stays within what remains of its expense. An update that changes nothing succeeds without effect, so a client may safely retry. A transaction that does not exist, has been deleted, belongs to another owner, or has a malformed identifier is not found alike.",
         "tags": [
           "Transactions"
         ],

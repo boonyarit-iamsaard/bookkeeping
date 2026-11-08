@@ -1,4 +1,5 @@
 import type { CalendarDate } from "../dates/dates";
+import type { TransactionTag } from "../tags/tag.types";
 import type { WalletType } from "../wallets/wallet.types";
 
 // Plain value set, kept apart from the Drizzle table so client code can
@@ -50,6 +51,8 @@ export interface TransactionDetail {
   } | null;
   /** The expense a refund returns money for; null for every other type. */
   refundOf: LinkedExpense | null;
+  /** By name; a refund carries its expense's current tags and a transfer none. */
+  tags: readonly TransactionTag[];
 }
 
 export interface LinkedExpense {
@@ -93,6 +96,8 @@ export interface TransactionSnapshot {
   amount: string;
   transactionDate: string;
   note: string;
+  /** Sorted; absent when an income or expense carries none, and always for other types. */
+  tagIds?: readonly string[];
 }
 
 export interface TransactionChange {
@@ -108,6 +113,8 @@ export interface TransactionFilters {
   walletId?: string;
   categoryId?: string;
   type?: TransactionType;
+  /** Any of these tags; a refund matches through its expense's tags. */
+  tagIds?: readonly string[];
 }
 
 /** The figures of any inclusive date range: Net expenses and Net as CONTEXT.md defines them. */

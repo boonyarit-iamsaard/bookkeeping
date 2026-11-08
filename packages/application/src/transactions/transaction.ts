@@ -32,13 +32,26 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
 import type {
   IdempotencyConflict,
   ValidatedPayload,
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
+import {
+  carriesAnyTag,
+  lockOwnedTagIds,
+  normalizeTagIds,
+  readTagIdsOf,
+  replaceTagsOf,
+} from "../tags/tag-links";
+import type { DetailRow } from "./transaction-detail";
+import {
+  detailQuery,
+  recordingPosition,
+  toDetails,
+  toOneDetail,
+} from "./transaction-detail";
 import type {
   CategoryFact,
   CurrentTransactionFact,
@@ -67,113 +80,6 @@ export interface TransactionRef {
   id: string;
 }
 
-const destinationWallets = alias(wallets, "destination_wallets");
-
-const parentCategories = alias(categories, "parent_categories");
-
-const refundedExpenses = alias(transactions, "refunded_expenses");
-
-/** A text key that preserves PostgreSQL's microsecond recording precision. */
-const recordingPosition = sql<string>`to_char(${transactions.recordedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
-
-function detailQuery(db: Database) {
-  return (
-    db
-      .select({
-        id: transactions.id,
-        type: transactions.type,
-        amount: transactions.amount,
-        transactionDate: transactions.transactionDate,
-        note: transactions.note,
-        recordedAt: transactions.recordedAt,
-        recordingPosition,
-        walletId: wallets.id,
-        walletName: wallets.name,
-        walletType: wallets.type,
-        walletArchivedAt: wallets.archivedAt,
-        destinationWalletId: destinationWallets.id,
-        destinationWalletName: destinationWallets.name,
-        destinationWalletType: destinationWallets.type,
-        destinationWalletArchivedAt: destinationWallets.archivedAt,
-        categoryId: categories.id,
-        categoryName: categories.name,
-        categoryIconId: categories.iconId,
-        parentName: parentCategories.name,
-        refundOfId: refundedExpenses.id,
-        refundOfAmount: refundedExpenses.amount,
-        refundOfTransactionDate: refundedExpenses.transactionDate,
-      })
-      .from(transactions)
-      .innerJoin(wallets, eq(wallets.id, transactions.walletId))
-      .leftJoin(
-        destinationWallets,
-        eq(destinationWallets.id, transactions.destinationWalletId),
-      )
-      .leftJoin(
-        refundedExpenses,
-        eq(refundedExpenses.id, transactions.refundOfTransactionId),
-      )
-      // A refund carries no category of its own: it reads its expense's
-      // current one, so category changes and removal fallbacks follow at once.
-      .leftJoin(
-        categories,
-        eq(
-          categories.id,
-          sql`coalesce(${transactions.categoryId}, ${refundedExpenses.categoryId})`,
-        ),
-      )
-      .leftJoin(parentCategories, eq(parentCategories.id, categories.parentId))
-  );
-}
-
-type DetailRow = Awaited<ReturnType<typeof detailQuery>>[number];
-
-function toDetail(row: DetailRow): TransactionDetail {
-  return {
-    id: row.id,
-    type: row.type,
-    currency: "THB",
-    amount: row.amount,
-    transactionDate: row.transactionDate,
-    note: row.note,
-    recordedAt: row.recordedAt,
-    wallet: {
-      id: row.walletId,
-      name: row.walletName,
-      type: row.walletType,
-      archived: Boolean(row.walletArchivedAt),
-    },
-    destinationWallet:
-      row.destinationWalletId &&
-      row.destinationWalletName &&
-      row.destinationWalletType
-        ? {
-            id: row.destinationWalletId,
-            name: row.destinationWalletName,
-            type: row.destinationWalletType,
-            archived: Boolean(row.destinationWalletArchivedAt),
-          }
-        : null,
-    category:
-      row.categoryId && row.categoryName && row.categoryIconId
-        ? {
-            id: row.categoryId,
-            name: row.categoryName,
-            iconId: row.categoryIconId,
-            parentName: row.parentName,
-          }
-        : null,
-    refundOf:
-      row.refundOfId && row.refundOfAmount && row.refundOfTransactionDate
-        ? {
-            id: row.refundOfId,
-            amount: row.refundOfAmount,
-            transactionDate: row.refundOfTransactionDate,
-          }
-        : null,
-  };
-}
-
 /**
  * One owned current transaction with its wallet, destination, category, and
  * expense link, or `null` when the owner has none: a missing, deleted,
@@ -193,7 +99,7 @@ export async function findTransaction(
       isNull(transactions.deletedAt),
     ),
   );
-  return row ? toDetail(row) : null;
+  return row ? toOneDetail(db, row) : null;
 }
 
 export interface CreateTransactionInput {
@@ -211,6 +117,8 @@ export interface CreateTransactionInput {
   amount: bigint;
   transactionDate: CalendarDate;
   note: string;
+  /** The owner's tags to carry; income and expense only. */
+  tagIds?: readonly string[];
 }
 
 export interface CreateTransactionOutcome {
@@ -247,7 +155,11 @@ export async function createTransaction(
     return err(outcome.error);
   }
   return ok({
-    transaction: outcome.value.result,
+    // A receipt stored before tags existed holds a detail without them.
+    transaction: {
+      ...outcome.value.result,
+      tags: outcome.value.result.tags ?? [],
+    },
     replayed: outcome.value.replayed,
   });
 }
@@ -264,6 +176,7 @@ function toTransactionCommand(
       | "amount"
       | "transactionDate"
       | "note"
+      | "tagIds"
     >
   >,
 ): TransactionCommand {
@@ -276,6 +189,7 @@ function toTransactionCommand(
     amount: input.amount,
     transactionDate: input.transactionDate,
     note: input.note,
+    tagIds: normalizeTagIds(input.tagIds ?? []),
   };
 }
 
@@ -291,6 +205,8 @@ function transactionCreationPayload(
     amount: command.amount,
     transactionDate: command.transactionDate,
     note: command.note,
+    // Absent when untagged, so receipts from before tags existed still match.
+    ...(command.tagIds.length > 0 ? { tagIds: [...command.tagIds] } : {}),
   };
 }
 
@@ -324,13 +240,14 @@ async function insertTransaction(
   if (!row) {
     throw new Error("Transaction insert returned no row");
   }
+  await replaceTagsOf(tx, { transactionId: row.id, tagIds: command.tagIds });
   const [detailRow] = await detailQuery(tx).where(
     and(eq(transactions.id, row.id), eq(transactions.userId, ownerId)),
   );
   if (!detailRow) {
     throw new Error("Created transaction could not be read back");
   }
-  return ok(toDetail(detailRow));
+  return ok(await toOneDetail(tx, detailRow));
 }
 
 interface OwnedCommand {
@@ -358,6 +275,7 @@ async function judgeTransaction(
   return acceptTransaction(command, {
     today: todayIn({ timeZone: APP_TIME_ZONE }),
     wallets: owned,
+    tagIds: await lockOwnedTagIds(tx, { ownerId, tagIds: command.tagIds }),
     category,
     expense,
     current,
@@ -559,6 +477,8 @@ export interface UpdateTransactionInput {
   amount: bigint;
   transactionDate: CalendarDate;
   note: string;
+  /** Replaces the tags carried; omitted keeps them, so a client unaware of tags never drops any. */
+  tagIds?: readonly string[];
 }
 
 export type UpdateTransactionError =
@@ -613,6 +533,7 @@ export async function updateTransaction(
       rejection = { code: "transaction-not-found" };
       return;
     }
+    const currentTagIds = await readTagIdsOf(tx, current.id);
     const command = toTransactionCommand({
       type: current.type,
       walletId: input.walletId,
@@ -623,6 +544,7 @@ export async function updateTransaction(
       amount: input.amount,
       transactionDate: input.transactionDate,
       note: input.note,
+      tagIds: input.tagIds ?? currentTagIds,
     });
     const accepted = await judgeTransaction(tx, {
       ownerId: input.ownerId,
@@ -640,7 +562,7 @@ export async function updateTransaction(
       rejection = accepted.error;
       return;
     }
-    const before = snapshotOf(current);
+    const before = snapshotOf({ ...current, tagIds: currentTagIds });
     const after = snapshotOf(command);
     if (!sameSnapshot(before, after)) {
       await tx
@@ -654,6 +576,10 @@ export async function updateTransaction(
           note: command.note,
         })
         .where(eq(transactions.id, current.id));
+      await replaceTagsOf(tx, {
+        transactionId: current.id,
+        tagIds: command.tagIds,
+      });
       await recordChange(tx, {
         ownerId: input.ownerId,
         transactionId: current.id,
@@ -671,7 +597,7 @@ export async function updateTransaction(
     if (!detailRow) {
       throw new Error("Edited transaction could not be read back");
     }
-    updated = toDetail(detailRow);
+    updated = await toOneDetail(tx, detailRow);
   });
 
   if (rejection) {
@@ -727,7 +653,10 @@ export async function deleteTransaction(
       ownerId,
       transactionId: current.id,
       action: "delete",
-      before: snapshotOf(current),
+      before: snapshotOf({
+        ...current,
+        tagIds: await readTagIdsOf(tx, current.id),
+      }),
       after: null,
     });
   });
@@ -848,6 +777,12 @@ function transactionWhere({
           ),
         )
       : undefined,
+    filters.tagIds?.length
+      ? carriesAnyTag(
+          sql`coalesce(${transactions.refundOfTransactionId}, ${transactions.id})`,
+          filters.tagIds,
+        )
+      : undefined,
     after
       ? or(
           lt(transactions.transactionDate, after.transactionDate),
@@ -878,7 +813,7 @@ export async function listTransactions(
   const rows = await detailQuery(db)
     .where(transactionWhere({ filters }))
     .orderBy(...transactionListOrder);
-  return rows.map(toDetail);
+  return toDetails(db, rows);
 }
 
 /** One keyset page of current financial history, newest first. */
@@ -893,7 +828,7 @@ export async function listTransactionPage(
   const items = rows.slice(0, options.limit);
   const last = items.at(-1);
   return {
-    items: items.map(toDetail),
+    items: await toDetails(db, items),
     nextPosition:
       rows.length > options.limit && last
         ? toTransactionListPosition(last)

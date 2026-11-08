@@ -30,13 +30,14 @@ import {
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
-import type { OpenApiDocument } from "../../testing/openapi-document.js";
+import type { ContractExchange } from "../../testing/expect-documented-exchange.js";
+import { expectDocumentedExchange } from "../../testing/expect-documented-exchange.js";
 import {
-  documentedOperation,
   fetchDocument,
   publishedOperationIds,
 } from "../../testing/openapi-document.js";
 import { recordReportExchanges } from "./api-contract-reports.js";
+import { recordTagExchanges } from "./api-contract-tags.js";
 import { IDEMPOTENCY_KEY_HEADER } from "./idempotency.js";
 import type { ProblemCode } from "./problem-details.js";
 import {
@@ -63,58 +64,6 @@ const UNANSWERED_PROBLEM_CODES: readonly ProblemCode[] = [
   "rate-limited",
   "service-unavailable",
 ];
-
-/** One published operation answering one documented response. */
-interface ContractExchange {
-  operationId: string;
-  method: string;
-  path: string;
-  response: Response;
-  /** The schema the document must name; a bodyless response names none. */
-  schema?: z.ZodType;
-}
-
-/**
- * Asserts one exchange against the document that describes it: the operation
- * is published under the expected identifier, the status is documented, the
- * media type and schema reference match, and the actual body parses.
- */
-async function expectDocumentedExchange(
-  document: Readonly<OpenApiDocument>,
-  exchange: Readonly<ContractExchange>,
-): Promise<void> {
-  const operation = documentedOperation(document, exchange);
-  expect(operation.operationId).toBe(exchange.operationId);
-
-  const status = String(exchange.response.status);
-  const documented = operation.responses[status];
-  expect(
-    documented,
-    `${exchange.operationId} answered an undocumented ${status}`,
-  ).toBeDefined();
-
-  if (exchange.schema === undefined) {
-    expect(documented.content).toBeUndefined();
-    expect(exchange.response.headers.get("content-type")).toBeNull();
-    expect(await exchange.response.clone().text()).toBe("");
-    return;
-  }
-
-  const [mediaType, media] = Object.entries(documented.content ?? {})[0];
-  expect(exchange.response.headers.get("content-type")).toContain(mediaType);
-  expect(media.schema.$ref).toBe(
-    `#/components/schemas/${exchange.schema.meta()?.id}`,
-  );
-  const body: unknown = await exchange.response.clone().json();
-  const parsed = exchange.schema.safeParse(body);
-  expect(
-    parsed.error?.issues,
-    `${exchange.operationId} answered a body its schema rejects`,
-  ).toBeUndefined();
-  // Presented values are JSON throughout: no bigint or Date reaches the
-  // wire, so the parsed body round-trips to exactly what was sent.
-  expect(JSON.parse(JSON.stringify(parsed.data))).toEqual(body);
-}
 
 interface ApiRequest {
   method?: string;
@@ -442,6 +391,7 @@ describe("published API contract", () => {
         cashId,
         month: REPORT_MONTH,
       });
+      await recordTagExchanges({ call, record });
       record({
         operationId: "deleteTransaction",
         method: "delete",

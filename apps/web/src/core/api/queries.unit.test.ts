@@ -3,6 +3,7 @@ import { paths } from "./openapi.json";
 import {
   categoryQueries,
   reportQueries,
+  tagQueries,
   transactionQueries,
   walletQueries,
 } from "./queries";
@@ -15,6 +16,7 @@ const factoryInvocations = [
   categoryQueries.usage(),
   categoryQueries.detail("c1"),
   categoryQueries.detailUsage("c1"),
+  tagQueries.list(),
   transactionQueries.list(),
   transactionQueries.entryDefaults(),
   transactionQueries.detail("t1"),
@@ -44,6 +46,7 @@ describe("read query factories", () => {
     const factoryCount = [
       walletQueries,
       categoryQueries,
+      tagQueries,
       transactionQueries,
       reportQueries,
     ].reduce((count, group) => count + Object.keys(group).length, 0);

@@ -3,6 +3,7 @@ export const FEATURE_SCOPES = [
   "accounts",
   "categories",
   "reports",
+  "tags",
   "transactions",
   "wallets",
 ] as const;
@@ -17,6 +18,7 @@ const FEATURE_SCOPE_DIRECTORIES: Record<FeatureScope, readonly string[]> = {
   accounts: ["auth", "sign-up"],
   categories: ["categories"],
   reports: ["reports"],
+  tags: ["tags"],
   transactions: ["transactions"],
   wallets: ["wallets"],
 };

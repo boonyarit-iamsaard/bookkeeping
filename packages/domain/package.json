@@ -9,6 +9,7 @@
     "./dates": "./src/dates/dates.ts",
     "./wallets": "./src/wallets/wallet.types.ts",
     "./categories": "./src/categories/category.types.ts",
+    "./tags": "./src/tags/tag.types.ts",
     "./transactions": "./src/transactions/transaction.types.ts"
   },
   "scripts": {

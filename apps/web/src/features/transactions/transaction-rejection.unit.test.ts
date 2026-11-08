@@ -73,6 +73,16 @@ const REJECTIONS: Record<TransactionRejectionCode, ExpectedRejection> = {
     field: "note",
     message: "Notes can be at most 200 characters",
   },
+  "too-many-tags": {
+    pointer: "#/tagIds",
+    field: undefined,
+    message: "A transaction can carry at most 10 tags",
+  },
+  "tag-not-found": {
+    pointer: "#/tagIds",
+    field: undefined,
+    message: "That tag is no longer available. Choose another.",
+  },
   "invalid-date": {
     pointer: "#/transactionDate",
     field: "transactionDate",

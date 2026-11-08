@@ -25,6 +25,7 @@ const expense: components["schemas"]["Transaction"] = {
     parentName: "Food & Drink",
   },
   refundOf: null,
+  tags: [],
 };
 
 const refunds: components["schemas"]["TransactionRefunds"] = {

@@ -1,8 +1,4 @@
-import type {
-  ListTransactionsOptions,
-  TransactionField,
-  TransactionRejection,
-} from "@bookkeeping/application/transactions";
+import type { ListTransactionsOptions } from "@bookkeeping/application/transactions";
 import {
   createTransaction,
   deleteTransaction,
@@ -35,7 +31,6 @@ import {
 } from "../../core/http/money.js";
 import {
   describeProblem,
-  describeProblemAs,
   describeProblemResponse,
   describeProblemVariant,
 } from "../../core/http/openapi.js";
@@ -44,7 +39,6 @@ import {
   createProblemResponse,
   getProblemOptionsForStatus,
   problemDetailsSchema,
-  problemFieldErrorSchema,
 } from "../../core/http/problem-details.js";
 
 import type {
@@ -71,6 +65,13 @@ import {
   decodeTransactionCursor,
   encodeTransactionCursor,
 } from "./transaction-cursor.js";
+import type { transactionRejectionProblemSchema } from "./transaction-rejection.js";
+import {
+  CREATE_FIELD_POINTERS,
+  describeTransactionRejection,
+  toFieldErrors,
+  UPDATE_FIELD_POINTERS,
+} from "./transaction-rejection.js";
 
 export const transactionWalletSchema = z
   .object({
@@ -80,6 +81,13 @@ export const transactionWalletSchema = z
     archived: z.boolean(),
   })
   .meta({ id: "TransactionWallet" });
+
+export const transactionTagSchema = z
+  .object({ id: z.uuid(), name: z.string() })
+  .meta({ id: "TransactionTag" });
+
+// An update that omits it keeps the tags carried.
+const tagIdsInputSchema = z.array(z.uuid()).optional();
 
 export const transactionResponseSchema = z
   .object({
@@ -106,6 +114,7 @@ export const transactionResponseSchema = z
         transactionDate: z.iso.date(),
       })
       .nullable(),
+    tags: z.array(transactionTagSchema),
   })
   .meta({ id: "Transaction" });
 
@@ -164,6 +173,7 @@ const createIncomeExpenseTransactionRequestSchema = z.strictObject({
   categoryId: z.uuid(),
   transactionDate: calendarDateInputSchema,
   note: z.string(),
+  tagIds: tagIdsInputSchema,
 });
 
 const createTransferTransactionRequestSchema = z.strictObject({
@@ -200,6 +210,7 @@ export const updateTransactionRequestSchema = z
     destinationWalletId: z.uuid().optional(),
     transactionDate: calendarDateInputSchema,
     note: z.string(),
+    tagIds: tagIdsInputSchema,
   })
   .meta({ id: "UpdateTransactionRequest" });
 
@@ -212,201 +223,6 @@ interface CreateTransactionValidatedInput {
     json: z.output<typeof createTransactionRequestSchema>;
     header: z.output<typeof idempotencyKeyHeaderSchema>;
   };
-}
-
-/** Where each rejected input lives in a create request document. */
-const CREATE_FIELD_POINTERS: Record<TransactionField, string> = {
-  type: "#/type",
-  walletId: "#/walletId",
-  destinationWalletId: "#/destinationWalletId",
-  categoryId: "#/categoryId",
-  refundOfTransactionId: "#/refundOfTransactionId",
-  amount: "#/amount/value",
-  transactionDate: "#/transactionDate",
-  note: "#/note",
-};
-
-// The update request names no type or refund link: a contradiction with the
-// fixed type addresses the whole document.
-const UPDATE_FIELD_POINTERS: Record<TransactionField, string> = {
-  ...CREATE_FIELD_POINTERS,
-  type: "#/",
-  refundOfTransactionId: "#/",
-};
-
-/** The rejections whose message names a figure or date: each carries that fact. */
-type FactualRejectionCode =
-  | "exceeds-refundable"
-  | "below-refunded"
-  | "after-refund"
-  | "before-expense"
-  | "before-opening";
-
-type PlainRejectionCode = Exclude<
-  TransactionRejection["code"],
-  FactualRejectionCode
->;
-
-// Keyed by every plain code, so a new rejection fails to compile until it is
-// published here or given its facts.
-const PLAIN_REJECTION_CODES: { [Code in PlainRejectionCode]: Code } = {
-  "wallet-not-found": "wallet-not-found",
-  "destination-wallet-not-found": "destination-wallet-not-found",
-  "same-wallet": "same-wallet",
-  "wallet-archived": "wallet-archived",
-  "invalid-transfer": "invalid-transfer",
-  "category-not-found": "category-not-found",
-  "category-kind-mismatch": "category-kind-mismatch",
-  "amount-out-of-range": "amount-out-of-range",
-  "note-too-long": "note-too-long",
-  "invalid-date": "invalid-date",
-  "future-date": "future-date",
-  "invalid-refund": "invalid-refund",
-  "expense-not-found": "expense-not-found",
-};
-
-const refundAllowanceFieldErrorSchema = problemFieldErrorSchema
-  .extend({
-    code: z.literal("exceeds-refundable"),
-    /** What the expense has left to refund, not counting the refund being corrected. */
-    refundAllowance: moneySchema,
-  })
-  .meta({ id: "RefundAllowanceFieldError" });
-
-const refundedTotalFieldErrorSchema = problemFieldErrorSchema
-  .extend({
-    code: z.literal("below-refunded"),
-    /** What the expense's current refunds add up to. */
-    refundedTotal: moneySchema,
-  })
-  .meta({ id: "RefundedTotalFieldError" });
-
-const refundDateFieldErrorSchema = problemFieldErrorSchema
-  .extend({
-    code: z.literal("after-refund"),
-    /** The earliest linked refund's date. */
-    refundDate: z.iso.date(),
-  })
-  .meta({ id: "RefundDateFieldError" });
-
-const expenseDateFieldErrorSchema = problemFieldErrorSchema
-  .extend({
-    code: z.literal("before-expense"),
-    /** The refunded expense's date. */
-    expenseDate: z.iso.date(),
-  })
-  .meta({ id: "ExpenseDateFieldError" });
-
-const openingDateFieldErrorSchema = problemFieldErrorSchema
-  .extend({
-    code: z.literal("before-opening"),
-    /** The date the rejected wallet's tracked history begins. */
-    openingDate: z.iso.date(),
-  })
-  .meta({ id: "OpeningDateFieldError" });
-
-const plainRuleFieldErrorSchema = problemFieldErrorSchema
-  .extend({ code: z.enum(PLAIN_REJECTION_CODES) })
-  .meta({ id: "PlainRuleFieldError" });
-
-/** A rule rejection keyed by its code, carrying exactly the facts that code names. */
-const transactionRuleFieldErrorSchema = z
-  .discriminatedUnion("code", [
-    refundAllowanceFieldErrorSchema,
-    refundedTotalFieldErrorSchema,
-    refundDateFieldErrorSchema,
-    expenseDateFieldErrorSchema,
-    openingDateFieldErrorSchema,
-    plainRuleFieldErrorSchema,
-  ])
-  .meta({ id: "TransactionRuleFieldError" });
-
-const FACTUAL_REJECTION_CODES: { [Code in FactualRejectionCode]: Code } = {
-  "exceeds-refundable": "exceeds-refundable",
-  "below-refunded": "below-refunded",
-  "after-refund": "after-refund",
-  "before-expense": "before-expense",
-  "before-opening": "before-opening",
-};
-
-const RULE_REJECTION_CODES: ReadonlySet<string> = new Set([
-  ...Object.values(PLAIN_REJECTION_CODES),
-  ...Object.values(FACTUAL_REJECTION_CODES),
-]);
-
-/** A request validation error; a rule code never passes as one, so its facts cannot go missing. */
-const transactionValidationFieldErrorSchema = problemFieldErrorSchema
-  .refine((fieldError) => !RULE_REJECTION_CODES.has(fieldError.code))
-  .meta({ id: "TransactionValidationFieldError" });
-
-/**
- * A field error in a rejected transaction command: a rule rejection, with the
- * facts its message names, or a request validation error.
- */
-export const transactionFieldErrorSchema = z
-  .union([
-    transactionRuleFieldErrorSchema,
-    transactionValidationFieldErrorSchema,
-  ])
-  .meta({ id: "TransactionFieldError" });
-
-export const transactionRejectionProblemSchema = problemDetailsSchema
-  .extend({ errors: z.array(transactionFieldErrorSchema).optional() })
-  .meta({ id: "TransactionRejectionProblem" });
-
-type TransactionFieldError = z.infer<typeof transactionFieldErrorSchema>;
-
-/** The documented 422 a rejected create or update answers. */
-function describeTransactionRejection() {
-  return describeProblemAs(
-    getProblemOptionsForStatus(422),
-    transactionRejectionProblemSchema,
-  );
-}
-
-function toFieldErrors(
-  rejection: Readonly<TransactionRejection>,
-  pointers: Readonly<Record<TransactionField, string>>,
-): TransactionFieldError[] {
-  const pointer = pointers[rejection.field];
-  switch (rejection.code) {
-    case "exceeds-refundable":
-      return [
-        {
-          pointer,
-          code: rejection.code,
-          refundAllowance: presentMoney({
-            amountInMinorUnits: rejection.refundAllowance,
-            currency: "THB",
-          }),
-        },
-      ];
-    case "below-refunded":
-      return [
-        {
-          pointer,
-          code: rejection.code,
-          refundedTotal: presentMoney({
-            amountInMinorUnits: rejection.refundedTotal,
-            currency: "THB",
-          }),
-        },
-      ];
-    case "after-refund":
-      return [
-        { pointer, code: rejection.code, refundDate: rejection.refundDate },
-      ];
-    case "before-expense":
-      return [
-        { pointer, code: rejection.code, expenseDate: rejection.expenseDate },
-      ];
-    case "before-opening":
-      return [
-        { pointer, code: rejection.code, openingDate: rejection.openingDate },
-      ];
-    default:
-      return [{ pointer, code: PLAIN_REJECTION_CODES[rejection.code] }];
-  }
 }
 
 export type TransactionWalletResponse = z.infer<typeof transactionWalletSchema>;
@@ -456,6 +272,7 @@ export function presentTransaction(
           transactionDate: transaction.refundOf.transactionDate,
         }
       : null,
+    tags: transaction.tags.map((tag) => ({ id: tag.id, name: tag.name })),
   };
 }
 
@@ -518,6 +335,10 @@ const transactionListQuerySchema = z
     walletId: z.uuid().optional(),
     categoryId: z.uuid().optional(),
     type: z.enum(TRANSACTION_TYPES).optional(),
+    // Repeat it for any of several tags; a single one arrives as a string.
+    tagId: z
+      .union([z.uuid().transform((id) => [id]), z.array(z.uuid())])
+      .optional(),
     limit: transactionLimitSchema.optional(),
     cursor: z.string().min(1).optional(),
   })
@@ -569,10 +390,11 @@ export function createTransactionRoutes(db: Database) {
           "Records income, expense, a wallet transfer, or a refund for the " +
           "signed-in owner using an exact THB amount and a real calendar date. " +
           "Income and expense requests name a matching category and active " +
-          "owned wallet; transfers name distinct active owned source and " +
-          "destination wallets; refunds name an active owned receiving wallet " +
-          "and one of the owner's own expenses, follow the expense's category, " +
-          "and cannot exceed what remains of it. The request must carry a " +
+          "owned wallet and may carry the owner's tags; transfers name " +
+          "distinct active owned source and destination wallets; refunds " +
+          "name an active owned receiving wallet and one of the owner's own " +
+          "expenses, follow the expense's category and tags, and cannot " +
+          "exceed what remains of it. The request must carry a " +
           "client-generated Idempotency-Key: repeating it with the same " +
           "normalized payload replays the original detail, while a different " +
           "payload is a conflict. A rejected request never consumes its key.",
@@ -612,6 +434,10 @@ export function createTransactionRoutes(db: Database) {
               body.type === "refund" ? body.refundOfTransactionId : null,
             transactionDate: body.transactionDate,
             note: body.note,
+            tagIds:
+              body.type === "income" || body.type === "expense"
+                ? body.tagIds
+                : [],
           });
           return answerCreation(c, {
             result: created,
@@ -634,10 +460,11 @@ export function createTransactionRoutes(db: Database) {
         description:
           "Returns the signed-in owner's current financial history, newest " +
           "transaction date first, then newest recording time and identifier. " +
-          "Date, wallet, category, and type filters preserve transfer, parent " +
-          "category, refund, and ownership semantics. Pages use an opaque " +
-          "cursor bound to this ordering and the active filters; the server " +
-          "caps the requested limit.",
+          "Date, wallet, category, type, and tag filters preserve transfer, " +
+          "parent category, refund, and ownership semantics; repeated tag " +
+          "ids match any of them, and a refund matches through its " +
+          "expense's tags. Pages use an opaque cursor bound to this ordering " +
+          "and the active filters; the server caps the requested limit.",
         tags: ["Transactions"],
         responses: {
           400: describeProblemResponse(400),
@@ -663,6 +490,7 @@ export function createTransactionRoutes(db: Database) {
             walletId: query.walletId,
             categoryId: query.categoryId,
             type: query.type,
+            tagIds: query.tagId,
           };
           const after =
             query.cursor === undefined
@@ -791,7 +619,7 @@ export function createTransactionRoutes(db: Database) {
           "Corrects one of the signed-in owner's transactions with an exact " +
           "THB amount and a real calendar date. The transaction's type and " +
           "its expense link are fixed; the wallet, category, amount, date, " +
-          "and note are re-validated against the owner's records, and the " +
+          "note, and tags (kept when omitted) are re-validated against the owner's records, and the " +
           "transaction may keep the archived wallets it already has. An " +
           "expense still covers every linked refund, and a refund stays " +
           "within what remains of its expense. An update that changes " +
@@ -830,6 +658,7 @@ export function createTransactionRoutes(db: Database) {
             amount: body.amount.amountInMinorUnits,
             transactionDate: body.transactionDate,
             note: body.note,
+            tagIds: body.tagIds,
           });
           return answerCorrection(c, {
             result: updated,

@@ -169,6 +169,8 @@ const REJECTION_MESSAGES: Record<TransactionRejectionCode, string> = {
     "That category is not available for this type. Choose another.",
   "amount-out-of-range": "The amount must be between ฿0.01 and ฿99,999,999.99",
   "note-too-long": "Notes can be at most 200 characters",
+  "too-many-tags": "A transaction can carry at most 10 tags",
+  "tag-not-found": "That tag is no longer available. Choose another.",
   "invalid-date": "Enter a real calendar date",
   "future-date": "The date cannot be in the future",
   "invalid-refund": "Only a current expense can be refunded",

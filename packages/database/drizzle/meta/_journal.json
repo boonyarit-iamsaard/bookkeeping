@@ -15,6 +15,13 @@
       "when": 1794058675372,
       "tag": "0001_add_savings_to_wallets_table",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794135912494,
+      "tag": "0002_add_transaction_tags",
+      "breakpoints": true
     }
   ]
 }
