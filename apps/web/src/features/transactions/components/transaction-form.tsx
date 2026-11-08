@@ -64,8 +64,6 @@ const TYPE_OPTIONS = CREATABLE_TRANSACTION_TYPES.map((value) => ({
   label: TRANSACTION_TYPE_LABELS[value],
 }));
 
-/** An existing transaction as the edit form loads it. */
-
 export type TransactionFormMode =
   | {
       kind: "create";

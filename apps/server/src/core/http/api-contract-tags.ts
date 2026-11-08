@@ -3,14 +3,7 @@ import {
   tagCollectionResponseSchema,
   tagResponseSchema,
 } from "../../features/tags/tag.routes.js";
-
-interface TagExchange {
-  operationId: string;
-  method: string;
-  path: string;
-  schema?: z.ZodType;
-  response: Response;
-}
+import type { ContractExchange } from "../../testing/expect-documented-exchange.js";
 
 interface TagRequest {
   method?: string;
@@ -21,7 +14,7 @@ interface TagRequest {
 
 interface TagExchangesOptions {
   call: (request: TagRequest) => Promise<Response>;
-  record: (exchange: TagExchange) => Response;
+  record: (exchange: ContractExchange) => Response;
 }
 
 /** Records one exchange per tag operation for the contract test, ending with the tag deleted. */

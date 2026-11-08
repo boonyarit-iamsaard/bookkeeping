@@ -1,6 +1,7 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
+import { MAX_TAGS_PER_TRANSACTION } from "@bookkeeping/domain/tags";
 import * as z from "zod";
 import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
@@ -169,7 +170,7 @@ const REJECTION_MESSAGES: Record<TransactionRejectionCode, string> = {
     "That category is not available for this type. Choose another.",
   "amount-out-of-range": "The amount must be between ฿0.01 and ฿99,999,999.99",
   "note-too-long": "Notes can be at most 200 characters",
-  "too-many-tags": "A transaction can carry at most 5 tags",
+  "too-many-tags": `A transaction can carry at most ${MAX_TAGS_PER_TRANSACTION} tags`,
   "tag-not-found": "That tag is no longer available. Choose another.",
   "invalid-date": "Enter a real calendar date",
   "future-date": "The date cannot be in the future",

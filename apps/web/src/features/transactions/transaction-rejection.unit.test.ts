@@ -1,3 +1,4 @@
+import { MAX_TAGS_PER_TRANSACTION } from "@bookkeeping/domain/tags";
 import { describe, expect, test } from "vitest";
 import type { ApiFieldError } from "@/core/api/write-submission";
 import type { TransactionRejectionCode } from "@/features/transactions/transaction-rejection";
@@ -76,7 +77,7 @@ const REJECTIONS: Record<TransactionRejectionCode, ExpectedRejection> = {
   "too-many-tags": {
     pointer: "#/tagIds",
     field: undefined,
-    message: "A transaction can carry at most 5 tags",
+    message: `A transaction can carry at most ${MAX_TAGS_PER_TRANSACTION} tags`,
   },
   "tag-not-found": {
     pointer: "#/tagIds",
