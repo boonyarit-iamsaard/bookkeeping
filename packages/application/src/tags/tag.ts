@@ -150,9 +150,12 @@ export interface RenameTagInput extends TagRef {
   name: string;
 }
 
-export type RenameTagError =
+export interface TagNotFound {
   /** Also covers another owner's tag and a malformed identifier. */
-  { code: "tag-not-found" } | TagNameRejection;
+  code: "tag-not-found";
+}
+
+export type RenameTagError = TagNotFound | TagNameRejection;
 
 /**
  * Renames one of the owner's tags. Renaming to the name another of the
@@ -237,6 +240,8 @@ function renameOrMerge(db: Database, input: Readonly<RenameTagInput>) {
   );
 }
 
+export type DeleteTagError = TagNotFound;
+
 /**
  * Deletes one of the owner's tags and takes it off every transaction that
  * carries it. The transactions stay, without Change history.
@@ -244,7 +249,7 @@ function renameOrMerge(db: Database, input: Readonly<RenameTagInput>) {
 export async function deleteTag(
   db: Database,
   { ownerId, id }: Readonly<TagRef>,
-): Promise<Result<{ id: string }, { code: "tag-not-found" }>> {
+): Promise<Result<{ id: string }, DeleteTagError>> {
   if (!isUuid(id)) {
     return err({ code: "tag-not-found" });
   }
