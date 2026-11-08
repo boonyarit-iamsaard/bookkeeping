@@ -15,6 +15,7 @@ describe("pageTransitionTypes", () => {
     ["/", "/transactions"],
     ["/transactions", "/reports"],
     ["/wallets", "/categories"],
+    ["/categories", "/tags"],
     ["/transactions/transaction-1", "/transactions/transaction-2"],
     ["/sign-in", "/sign-up"],
     ["/sign-in", "/"],

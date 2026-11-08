@@ -18,6 +18,7 @@ const expense: components["schemas"]["Transaction"] = {
     parentName: "Food & Drink",
   },
   refundOf: null,
+  tags: [],
 };
 
 const refunds: components["schemas"]["TransactionRefunds"] = {
@@ -42,6 +43,7 @@ describe("linkedExpenseView", () => {
       categoryId: "category-1",
       categoryLabel: "Food & Drink › Groceries",
       categoryIconId: "shopping-cart",
+      tags: [],
       wallet: { id: "wallet-1", name: "Cash", archived: false },
       refundAllowanceText: "400.00",
       refundAllowanceLabel: "฿400.00",

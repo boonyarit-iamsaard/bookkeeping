@@ -47,9 +47,10 @@ test(
     await page.goto("/transactions/new");
     await expect(page.getByLabel("Amount")).toBeFocused();
     await page.getByLabel("Amount").fill("1000.01");
-    const dateBefore = await page
-      .getByLabel("Date", { exact: true })
-      .boundingBox();
+    const date = page.getByLabel("Date", { exact: true });
+    const dateBefore = await date.textContent();
+    const tags = page.getByRole("button", { name: /^Tags/ });
+    await expect(tags).toBeVisible();
     await page.getByRole("radio", { name: "Transfer" }).click();
     await expect(page.getByRole("button", { name: /^Category/ })).toHaveCount(
       0,
@@ -60,12 +61,8 @@ test(
     await expect(page.getByLabel("To", { exact: true })).toContainText(
       "Savings",
     );
-    const dateAfter = await page
-      .getByLabel("Date", { exact: true })
-      .boundingBox();
-    expect(
-      Math.abs((dateAfter?.y ?? 0) - (dateBefore?.y ?? 0)),
-    ).toBeLessThanOrEqual(48);
+    await expect(tags).toHaveCount(0);
+    await expect(date).toHaveText(dateBefore ?? "");
     // Archived Old is absent from both sides; the list must be open before
     // Escape, which otherwise cancels the whole form.
     for (const side of ["From", "To"]) {

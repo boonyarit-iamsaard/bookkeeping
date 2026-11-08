@@ -1,7 +1,7 @@
 "use client";
 
 import { useNavigate } from "@tanstack/react-router";
-import { LogOut, Tags } from "lucide-react";
+import { Hash, LogOut, Tags } from "lucide-react";
 import { parseAppearance } from "@/core/shell/appearance";
 import { APPEARANCE_OPTIONS } from "@/core/shell/appearance-labels";
 import { useAppearance } from "@/core/shell/use-appearance";
@@ -64,6 +64,10 @@ export function AccountMenu({ email }: Readonly<AccountMenuProps>) {
           >
             <Tags strokeWidth={1.75} />
             Categories
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => void navigate({ to: "/tags" })}>
+            <Hash strokeWidth={1.75} />
+            Tags
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

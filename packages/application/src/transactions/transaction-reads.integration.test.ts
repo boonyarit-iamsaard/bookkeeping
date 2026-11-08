@@ -781,21 +781,9 @@ describe("filtered financial history", () => {
 test("corrections, archiving and category fallbacks replace effects in history and reports", async () => {
   await withRollback(async (db) => {
     const owner = await setupOwner(db);
-    const expense = await createTransaction(db, {
-      ownerId: owner.ownerId,
-      idempotencyKey: `fallback-expense-${crypto.randomUUID()}`,
-      type: "expense",
-      walletId: owner.cashId,
-      categoryId: owner.childId,
-      amount: 50_000n,
-      transactionDate: "2026-09-02",
-      note: "",
-    });
-    if (!expense.ok) {
-      throw new Error("Expense rejected");
-    }
-    const expenseId = expense.value.transaction.id;
-    const childIconId = expense.value.transaction.category?.iconId;
+    const expense = await recordExpense(db, owner);
+    const expenseId = expense.id;
+    const childIconId = expense.category?.iconId;
     if (!childIconId) {
       throw new Error("Expected the expense to carry a category");
     }
@@ -823,6 +811,7 @@ test("corrections, archiving and category fallbacks replace effects in history a
           amount: 60_000n,
           transactionDate: "2026-09-01",
           note: "Corrected",
+          tagIds: [],
         })
       ).ok,
     ).toBe(true);

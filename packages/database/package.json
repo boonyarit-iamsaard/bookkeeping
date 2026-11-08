@@ -10,6 +10,7 @@
     "./wallets": "./src/wallets/wallet.schema.ts",
     "./categories": "./src/categories/category.schema.ts",
     "./idempotency": "./src/idempotency/creation-receipt.schema.ts",
+    "./tags": "./src/tags/tag.schema.ts",
     "./transactions": "./src/transactions/transaction.schema.ts",
     "./testing": "./src/testing/test-database.ts",
     "./testing/global-setup": "./src/testing/global-setup.ts",

@@ -228,6 +228,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tags
+         * @description Returns the signed-in owner's tags in suggestion order: most recently put on a current transaction first, then most used, then by name, with unused tags last. Each carries how many current income and expense transactions hold it and when it was last put on one; refunds and deleted transactions never count. The collection is unpaginated; `nextCursor` is always null.
+         */
+        get: operations["listTags"];
+        put?: never;
+        /**
+         * Create a tag
+         * @description Creates a tag the signed-in owner can put on income and expense transactions. Names are trimmed and unique per owner, ignoring case. The request must carry a client-generated Idempotency-Key: repeating it with the same normalized payload replays the original creation, while a different payload is a conflict. A rejected request never consumes its key.
+         */
+        post: operations["createTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/tags/{tagId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a tag
+         * @description Deletes one of the signed-in owner's tags and takes it off every transaction carrying it; the transactions stay. A tag that does not exist, belongs to another owner, or has a malformed identifier is not found alike.
+         */
+        delete: operations["deleteTag"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a tag
+         * @description Renames one of the signed-in owner's tags everywhere it is carried. Renaming to the name another of the owner's tags holds, ignoring case, merges this tag into that one, which takes the name as typed; the response is then that surviving tag, with its own id. Neither changes the transactions' history. A tag that does not exist, belongs to another owner, or has a malformed identifier is not found alike.
+         */
+        patch: operations["updateTag"];
+        trace?: never;
+    };
     "/v1/transactions": {
         parameters: {
             query?: never;
@@ -237,13 +285,13 @@ export interface paths {
         };
         /**
          * List transactions
-         * @description Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, and type filters preserve transfer, parent category, refund, and ownership semantics. Pages use an opaque cursor bound to this ordering and the active filters; the server caps the requested limit.
+         * @description Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, type, and tag filters preserve transfer, parent category, refund, and ownership semantics; repeated tag ids match any of them, and a refund matches through its expense's tags. Pages use an opaque cursor bound to this ordering and the active filters; the server caps the requested limit.
          */
         get: operations["listTransactions"];
         put?: never;
         /**
          * Create an income, expense, transfer, or refund
-         * @description Records income, expense, a wallet transfer, or a refund for the signed-in owner using an exact THB amount and a real calendar date. Income and expense requests name a matching category and active owned wallet; transfers name distinct active owned source and destination wallets; refunds name an active owned receiving wallet and one of the owner's own expenses, follow the expense's category, and cannot exceed what remains of it. The request must carry a client-generated Idempotency-Key: repeating it with the same normalized payload replays the original detail, while a different payload is a conflict. A rejected request never consumes its key.
+         * @description Records income, expense, a wallet transfer, or a refund for the signed-in owner using an exact THB amount and a real calendar date. Income and expense requests name a matching category and active owned wallet and may carry the owner's tags; transfers name distinct active owned source and destination wallets; refunds name an active owned receiving wallet and one of the owner's own expenses, follow the expense's category and tags, and cannot exceed what remains of it. The request must carry a client-generated Idempotency-Key: repeating it with the same normalized payload replays the original detail, while a different payload is a conflict. A rejected request never consumes its key.
          */
         post: operations["createTransaction"];
         delete?: never;
@@ -266,7 +314,7 @@ export interface paths {
         get: operations["getTransaction"];
         /**
          * Update a transaction
-         * @description Corrects one of the signed-in owner's transactions with an exact THB amount and a real calendar date. The transaction's type and its expense link are fixed; the wallet, category, amount, date, and note are re-validated against the owner's records, and the transaction may keep the archived wallets it already has. An expense still covers every linked refund, and a refund stays within what remains of its expense. An update that changes nothing succeeds without effect, so a client may safely retry. A transaction that does not exist, has been deleted, belongs to another owner, or has a malformed identifier is not found alike.
+         * @description Corrects one of the signed-in owner's transactions with an exact THB amount and a real calendar date. The transaction's type and its expense link are fixed; the wallet, category, amount, date, note, and tags are re-validated against the owner's records, and the transaction may keep the archived wallets it already has. An expense still covers every linked refund, and a refund stays within what remains of its expense. `tagIds` lists every tag; an empty list removes them. An update that changes nothing succeeds without effect, so a client may safely retry. A transaction that does not exist, has been deleted, belongs to another owner, or has a malformed identifier is not found alike.
          */
         put: operations["updateTransaction"];
         post?: never;
@@ -477,6 +525,7 @@ export interface components {
             /** Format: uuid */
             categoryId: string;
             note: string;
+            tagIds?: string[];
             transactionDate: string;
             /** @enum {string} */
             type: "income" | "expense";
@@ -588,7 +637,7 @@ export interface components {
         };
         PlainRuleFieldError: {
             /** @enum {string} */
-            code: "wallet-not-found" | "destination-wallet-not-found" | "same-wallet" | "wallet-archived" | "invalid-transfer" | "category-not-found" | "category-kind-mismatch" | "amount-out-of-range" | "note-too-long" | "invalid-date" | "future-date" | "invalid-refund" | "expense-not-found";
+            code: "wallet-not-found" | "destination-wallet-not-found" | "same-wallet" | "wallet-archived" | "invalid-transfer" | "category-not-found" | "category-kind-mismatch" | "amount-out-of-range" | "note-too-long" | "too-many-tags" | "tag-not-found" | "invalid-date" | "future-date" | "invalid-refund" | "expense-not-found";
             detail?: string;
             pointer: string;
         };
@@ -651,6 +700,25 @@ export interface components {
             /** @enum {string} */
             signUp: "open" | "closed";
         };
+        Tag: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        TagCollection: {
+            items: components["schemas"]["TagSummary"][];
+            page: components["schemas"]["Page"];
+        };
+        TagNameRequest: {
+            name: string;
+        };
+        TagSummary: {
+            /** Format: uuid */
+            id: string;
+            lastUsedAt: string | null;
+            name: string;
+            transactionCount: number;
+        };
         Transaction: {
             amount: components["schemas"]["Money"];
             category: {
@@ -673,6 +741,7 @@ export interface components {
                 /** Format: date */
                 transactionDate: string;
             } | null;
+            tags: components["schemas"]["TransactionTag"][];
             /** Format: date */
             transactionDate: string;
             /** @enum {string} */
@@ -713,6 +782,11 @@ export interface components {
             [key: string]: unknown;
         };
         TransactionRuleFieldError: components["schemas"]["RefundAllowanceFieldError"] | components["schemas"]["RefundedTotalFieldError"] | components["schemas"]["RefundDateFieldError"] | components["schemas"]["ExpenseDateFieldError"] | components["schemas"]["OpeningDateFieldError"] | components["schemas"]["PlainRuleFieldError"];
+        TransactionTag: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
         TransactionValidationFieldError: components["schemas"]["ProblemFieldError"];
         TransactionWallet: {
             archived: boolean;
@@ -733,6 +807,7 @@ export interface components {
             /** Format: uuid */
             destinationWalletId?: string;
             note: string;
+            tagIds: string[];
             transactionDate: string;
             /** Format: uuid */
             walletId: string;
@@ -1450,6 +1525,236 @@ export interface operations {
             };
         };
     };
+    listTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The owner's tags in suggestion order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagCollection"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    createTag: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A client-generated key naming this one creation */
+                "idempotency-key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagNameRequest"];
+            };
+        };
+        responses: {
+            /** @description The created tag, or the original on a replay */
+            201: {
+                headers: {
+                    /** @description Where the created tag can be retrieved */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Idempotency-Key reused with a different payload */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Command is invalid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    deleteTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tagId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tag was deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    updateTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tagId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagNameRequest"];
+            };
+        };
+        responses: {
+            /** @description The renamed tag, or the tag it merged into */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Command is invalid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     listTransactions: {
         parameters: {
             query?: {
@@ -1457,6 +1762,7 @@ export interface operations {
                 cursor?: string;
                 from?: string;
                 limit?: string;
+                tagId?: string | string[];
                 to?: string;
                 type?: "income" | "expense" | "transfer" | "refund";
                 walletId?: string;

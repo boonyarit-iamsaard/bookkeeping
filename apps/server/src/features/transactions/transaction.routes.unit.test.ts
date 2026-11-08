@@ -99,6 +99,7 @@ const validUpdateSchemaBody = {
   destinationWalletId: "01999999-0000-7000-8000-000000000002",
   transactionDate: "2026-09-02",
   note: "Corrected",
+  tagIds: [],
 } satisfies TransactionUpdateBody;
 
 describe("updateTransactionRequestSchema", () => {

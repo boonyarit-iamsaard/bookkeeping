@@ -2,7 +2,6 @@ import { Validator } from "@seriousme/openapi-schema-validator";
 import { describe, expect, it } from "vitest";
 import type * as z from "zod";
 import { healthResponseSchema } from "../../features/health/health.routes.js";
-import { transactionFieldErrorSchema } from "../../features/transactions/transaction.routes.js";
 import { createUnitTestApp } from "../../testing/create-unit-test-app.js";
 import type {
   DocumentedOperation,
@@ -555,12 +554,6 @@ describe("OpenAPI document", () => {
     expect(ruleBranches).toContain(
       '{"$ref":"#/components/schemas/RefundAllowanceFieldError"}',
     );
-    expect(
-      transactionFieldErrorSchema.safeParse({
-        pointer: "#/amount/value",
-        code: "exceeds-refundable",
-      }).success,
-    ).toBe(false);
 
     const requestSchema = documentedSchema(
       document,
@@ -646,6 +639,13 @@ describe("OpenAPI document", () => {
       ]),
     );
 
+    const transactionIdParameter = [
+      expect.objectContaining({
+        in: "path",
+        name: "transactionId",
+        required: true,
+      }),
+    ];
     expect(resource.operationId).toBe("getTransaction");
     expect(
       documentedSchemaRef(resource, {
@@ -654,26 +654,14 @@ describe("OpenAPI document", () => {
       }),
     ).toBe("#/components/schemas/Transaction");
     expectProblemResponses(resource, ["401", "404"]);
-    expect(resource.parameters).toEqual([
-      expect.objectContaining({
-        in: "path",
-        name: "transactionId",
-        required: true,
-      }),
-    ]);
+    expect(resource.parameters).toEqual(transactionIdParameter);
 
     expect(update.operationId).toBe("updateTransaction");
     expect(update.requestBody?.required).toBe(true);
     expect(update.requestBody?.content["application/json"].schema.$ref).toBe(
       "#/components/schemas/UpdateTransactionRequest",
     );
-    expect(update.parameters).toEqual([
-      expect.objectContaining({
-        in: "path",
-        name: "transactionId",
-        required: true,
-      }),
-    ]);
+    expect(update.parameters).toEqual(transactionIdParameter);
     expect(
       documentedSchemaRef(update, {
         status: "200",
@@ -692,6 +680,7 @@ describe("OpenAPI document", () => {
       "walletId",
       "transactionDate",
       "note",
+      "tagIds",
     ]);
     expect(updateSchema.properties).toEqual(
       expect.objectContaining({

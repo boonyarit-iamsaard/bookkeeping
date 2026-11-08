@@ -2,8 +2,10 @@ import { APP_TIME_ZONE, formatInstant } from "@bookkeeping/domain/dates";
 import { formatMoney } from "@bookkeeping/domain/money";
 import { formatApiMoneyInput, parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
-import type { EditableTransaction } from "@/features/transactions/components/transaction-form";
-import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
+import type {
+  EditableTransaction,
+  LinkedExpenseView,
+} from "@/features/transactions/transaction.types";
 
 type ApiTransaction = components["schemas"]["Transaction"];
 type ApiTransactionRefunds = components["schemas"]["TransactionRefunds"];
@@ -32,6 +34,8 @@ export function editableTransaction({
     amountText: formatApiMoneyInput(transaction.amount),
     transactionDate: transaction.transactionDate,
     note: transaction.note,
+    // A refund shows its expense's tags and never sends them back.
+    tagIds: refundOf ? [] : transaction.tags.map((tag) => tag.id),
     recordedLabel: formatInstant({
       instant: new Date(transaction.recordedAt),
       timeZone: APP_TIME_ZONE,

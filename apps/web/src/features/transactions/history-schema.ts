@@ -16,6 +16,8 @@ export const transactionFiltersSchema = z
     walletId: z.uuid().optional(),
     categoryId: z.uuid().optional(),
     type: z.enum(TRANSACTION_TYPES).optional(),
+    // Repeated: a transaction carrying any of them matches.
+    tagId: z.array(z.uuid()).min(1).optional(),
   })
   .refine(
     (value) => !value.from || !value.to || value.from <= value.to,
@@ -40,6 +42,17 @@ const searchValue = z.preprocess((value) => {
 }, z.string().optional());
 
 /**
+ * Every chosen tag's raw text. One value arrives as a string and several as
+ * an array, so both read as a list; an empty list is no filter.
+ */
+const searchValues = z.preprocess((value) => {
+  const values = (Array.isArray(value) ? value : [value]).flatMap((item) =>
+    typeof item === "string" && item !== "" ? [item] : [],
+  );
+  return values.length > 0 ? values : undefined;
+}, z.array(z.string()).optional());
+
+/**
  * `?deleted=1` after a deletion. The router writes validated search back to
  * the address, so the output stays the number `1`: a string would be quoted.
  */
@@ -59,6 +72,7 @@ export const historySearchSchema = z.object({
   walletId: searchValue,
   categoryId: searchValue,
   type: searchValue,
+  tagId: searchValues,
   cursor: searchValue,
   created: searchValue,
   deleted: deletedFlag,
@@ -74,20 +88,34 @@ export const HISTORY_FILTER_KEYS = [
   "type",
 ] as const;
 
+export type HistoryFilterKey = (typeof HISTORY_FILTER_KEYS)[number];
+
+/** The raw filter values: one text per single-choice control, and the chosen tags. */
+export interface HistoryFilterValues
+  extends Partial<Record<HistoryFilterKey, string>> {
+  tagId?: string[];
+}
+
 /** The filter controls' raw values alone; the cursor and saved id are not filters. */
 export function historyFilters(
   search: Readonly<HistorySearch>,
-): Partial<Record<(typeof HISTORY_FILTER_KEYS)[number], string>> {
-  return Object.fromEntries(
+): HistoryFilterValues {
+  const filters: HistoryFilterValues = Object.fromEntries(
     HISTORY_FILTER_KEYS.flatMap((key) =>
       search[key] === undefined ? [] : [[key, search[key]]],
     ),
   );
+  return search.tagId?.length
+    ? { ...filters, tagId: [...search.tagId] }
+    : filters;
 }
 
 /** Whether the address narrows the history at all. */
 export function hasHistoryFilters(search: Readonly<HistorySearch>): boolean {
-  return HISTORY_FILTER_KEYS.some((key) => Boolean(search[key]));
+  return (
+    HISTORY_FILTER_KEYS.some((key) => Boolean(search[key])) ||
+    Boolean(search.tagId?.length)
+  );
 }
 
 const FILTER_ERROR_MESSAGES = {
@@ -96,6 +124,7 @@ const FILTER_ERROR_MESSAGES = {
   walletId: "Choose a valid wallet.",
   categoryId: "Choose a valid category.",
   type: "Choose a valid type.",
+  tagId: "Choose tags from the list.",
 } as const;
 
 export type ParsedHistoryFilters =
@@ -124,6 +153,8 @@ export function parseHistoryFilters(
             return FILTER_ERROR_MESSAGES.categoryId;
           case "type":
             return FILTER_ERROR_MESSAGES.type;
+          case "tagId":
+            return FILTER_ERROR_MESSAGES.tagId;
           default:
             return issue.message;
         }

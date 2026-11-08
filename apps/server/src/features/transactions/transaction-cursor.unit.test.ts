@@ -50,4 +50,28 @@ describe("transaction cursor", () => {
       decodeTransactionCursor(cursor, { ...options, to: undefined }),
     ).toBeNull();
   });
+
+  test("binds the tag filter as a set: order and repeats don't matter, the set does", () => {
+    const coffee = "01999999-0000-7000-8000-000000000005";
+    const shop = "01999999-0000-7000-8000-000000000006";
+    const tagged = { ...options, tagIds: [shop, coffee] };
+    const cursor = encodeTransactionCursor({ options: tagged, position });
+
+    expect(
+      decodeTransactionCursor(cursor, {
+        ...options,
+        tagIds: [coffee, shop, shop],
+      }),
+    ).toEqual(position);
+    expect(
+      decodeTransactionCursor(cursor, { ...options, tagIds: [coffee] }),
+    ).toBeNull();
+    expect(decodeTransactionCursor(cursor, options)).toBeNull();
+    expect(
+      decodeTransactionCursor(encodeTransactionCursor({ options, position }), {
+        ...options,
+        tagIds: [],
+      }),
+    ).toEqual(position);
+  });
 });

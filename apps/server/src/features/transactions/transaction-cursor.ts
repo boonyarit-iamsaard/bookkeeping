@@ -3,6 +3,11 @@ import type {
   ListTransactionsOptions,
   TransactionListPosition,
 } from "@bookkeeping/application/transactions";
+import {
+  normalizeTagIds,
+  optionalTagIds,
+  sameTagIds,
+} from "@bookkeeping/domain/tags";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import * as z from "zod";
 
@@ -38,6 +43,7 @@ const transactionCursorSchema = z.strictObject({
     walletId: z.uuid().optional(),
     categoryId: z.uuid().optional(),
     type: z.enum(TRANSACTION_TYPES).optional(),
+    tagIds: z.array(z.uuid()).min(1).optional(),
   }),
   position: z.strictObject({
     transactionDate: z.iso.date(),
@@ -57,6 +63,8 @@ function filtersOf(options: Readonly<ListTransactionsOptions>): CursorFilters {
     walletId: options.walletId,
     categoryId: options.categoryId,
     type: options.type,
+    // A set: each tag once, sorted, and absent when none is chosen.
+    ...optionalTagIds(normalizeTagIds(options.tagIds ?? [])),
   };
 }
 
@@ -64,7 +72,10 @@ function sameFilters(
   left: Readonly<CursorFilters>,
   right: Readonly<CursorFilters>,
 ) {
-  return FILTER_KEYS.every((key) => left[key] === right[key]);
+  return (
+    FILTER_KEYS.every((key) => left[key] === right[key]) &&
+    sameTagIds(left.tagIds, right.tagIds)
+  );
 }
 
 export function encodeTransactionCursor(

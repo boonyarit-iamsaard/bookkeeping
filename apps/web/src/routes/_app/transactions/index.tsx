@@ -2,6 +2,7 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   categoryQueries,
+  tagQueries,
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
@@ -47,6 +48,7 @@ export const Route = createFileRoute("/_app/transactions/")({
       listQuery && context.queryClient.ensureQueryData(listQuery),
       context.queryClient.ensureQueryData(walletQueries.list()),
       context.queryClient.ensureQueryData(categoryQueries.list()),
+      context.queryClient.ensureQueryData(tagQueries.list()),
     ]);
   },
   pendingComponent: HistoryLoading,
@@ -66,7 +68,8 @@ function TransactionsPage() {
   });
   const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
   const { data: categoryCollection } = useSuspenseQuery(categoryQueries.list());
-  if (!walletCollection || !categoryCollection) {
+  const { data: tagCollection } = useSuspenseQuery(tagQueries.list());
+  if (!walletCollection || !categoryCollection || !tagCollection) {
     throw new Error("The history queries returned no data");
   }
   const transactions = listQuery && page ? page.items : [];
@@ -82,6 +85,7 @@ function TransactionsPage() {
           <HistoryFilters
             wallets={walletCollection.items}
             categories={categoryCollection.items}
+            tags={tagCollection.items}
             values={search}
           />
         }
@@ -89,6 +93,7 @@ function TransactionsPage() {
       <HistoryFilterChips
         wallets={walletCollection.items}
         categories={categoryCollection.items}
+        tags={tagCollection.items}
         values={search}
       />
       {justDeleted && (

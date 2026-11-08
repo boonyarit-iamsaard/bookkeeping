@@ -31,6 +31,7 @@ export function linkedExpenseView({
       ? categoryLabel(expense.category)
       : "Uncategorized",
     categoryIconId: expense.category?.iconId ?? "",
+    tags: expense.tags,
     wallet: {
       id: expense.wallet.id,
       name: expense.wallet.name,

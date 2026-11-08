@@ -100,6 +100,16 @@ export const categoryQueries = {
   },
 };
 
+export const tagQueries = {
+  list() {
+    return createReadQuery({
+      path: "/v1/tags",
+      params: {},
+      read: (params, signal) => apiClient.GET("/v1/tags", { params, signal }),
+    });
+  },
+};
+
 interface RefundsQuery {
   excluding?: string;
 }

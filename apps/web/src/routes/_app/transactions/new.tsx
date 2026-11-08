@@ -4,6 +4,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { Wallet as WalletIcon } from "lucide-react";
 import {
   categoryQueries,
+  tagQueries,
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/_app/transactions/new")({
     await Promise.all([
       context.queryClient.ensureQueryData(walletQueries.list()),
       context.queryClient.ensureQueryData(categoryQueries.list()),
+      context.queryClient.ensureQueryData(tagQueries.list()),
       context.queryClient.ensureQueryData(transactionQueries.entryDefaults()),
     ]);
   },

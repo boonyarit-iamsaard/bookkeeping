@@ -15,7 +15,11 @@ import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
-import { FieldGroup } from "@/shared/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+} from "@/shared/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -107,6 +111,34 @@ export function FixedLabel({ children }: Readonly<FixedLabelProps>) {
     >
       {children}
     </span>
+  );
+}
+
+interface LinkedCategoryFieldProps {
+  expense: LinkedExpenseView;
+}
+
+/** A refund's fixed Category: the expense's, in its hue, never chosen here. */
+export function LinkedCategoryField({
+  expense,
+}: Readonly<LinkedCategoryFieldProps>) {
+  const colorOf = useCategoryColors();
+  return (
+    <Field>
+      <FixedLabel>Category</FixedLabel>
+      <p className="flex min-h-11 items-center gap-3 font-semibold">
+        <CategoryTile
+          color={expense.categoryId ? colorOf(expense.categoryId) : "neutral"}
+          className="size-9 rounded-md"
+        >
+          <CategoryIcon iconId={expense.categoryIconId} className="size-4" />
+        </CategoryTile>
+        {expense.categoryLabel}
+      </p>
+      <FieldDescription>
+        Follows the expense’s category, including later changes.
+      </FieldDescription>
+    </Field>
   );
 }
 

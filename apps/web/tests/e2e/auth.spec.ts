@@ -19,9 +19,10 @@ test("sign-up lands on Home, whose account control reaches Categories", {
     const menu = page.getByRole("menu");
     await expect(menu.getByText("Signed in as")).toBeVisible();
     await expect(menu.getByText(email)).toBeVisible();
-    // Categories sits above Sign out.
+    // Management pages sit above Sign out.
     await expect(menu.getByRole("menuitem")).toHaveText([
       "Categories",
+      "Tags",
       "Sign out",
     ]);
     await menu.getByRole("menuitem", { name: "Categories" }).click();
@@ -31,6 +32,7 @@ test("sign-up lands on Home, whose account control reaches Categories", {
     await expect(sheet.getByRole("heading", { name: "Account" })).toBeVisible();
     await expect(sheet.getByRole("listitem")).toHaveText([
       "Categories",
+      "Tags",
       /^Appearance/,
       "Sign out",
     ]);

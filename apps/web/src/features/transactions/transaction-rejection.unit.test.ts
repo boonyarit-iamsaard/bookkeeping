@@ -1,3 +1,4 @@
+import { MAX_TAGS_PER_TRANSACTION } from "@bookkeeping/domain/tags";
 import { describe, expect, test } from "vitest";
 import type { ApiFieldError } from "@/core/api/write-submission";
 import type { TransactionRejectionCode } from "@/features/transactions/transaction-rejection";
@@ -72,6 +73,16 @@ const REJECTIONS: Record<TransactionRejectionCode, ExpectedRejection> = {
     pointer: "#/note",
     field: "note",
     message: "Notes can be at most 200 characters",
+  },
+  "too-many-tags": {
+    pointer: "#/tagIds",
+    field: "tagIds",
+    message: `A transaction can carry at most ${MAX_TAGS_PER_TRANSACTION} tags`,
+  },
+  "tag-not-found": {
+    pointer: "#/tagIds",
+    field: "tagIds",
+    message: "That tag is no longer available. Choose another.",
   },
   "invalid-date": {
     pointer: "#/transactionDate",

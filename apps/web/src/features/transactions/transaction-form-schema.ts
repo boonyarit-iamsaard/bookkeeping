@@ -99,6 +99,8 @@ function transactionFields() {
         MAX_NOTE_LENGTH,
         `Notes can be at most ${MAX_NOTE_LENGTH} characters`,
       ),
+    // The picker keeps the set within the limit; the API owns that rule.
+    tagIds: z.array(z.string()),
   };
 }
 

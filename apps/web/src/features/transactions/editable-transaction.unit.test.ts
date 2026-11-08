@@ -25,6 +25,7 @@ const expense: components["schemas"]["Transaction"] = {
     parentName: "Food & Drink",
   },
   refundOf: null,
+  tags: [{ id: "tag-1", name: "Coffee" }],
 };
 
 const refunds: components["schemas"]["TransactionRefunds"] = {
@@ -47,7 +48,7 @@ const refunds: components["schemas"]["TransactionRefunds"] = {
 };
 
 describe("editableTransaction", () => {
-  test("loads an expense with its category, amount text, and refund footer", () => {
+  test("loads an expense with its category, amount text, tags, and refund footer", () => {
     expect(editableTransaction({ transaction: expense, refunds })).toEqual({
       id: "expense-1",
       type: "expense",
@@ -57,13 +58,14 @@ describe("editableTransaction", () => {
       amountText: "500.00",
       transactionDate: "2026-09-02",
       note: "Kettle",
+      tagIds: ["tag-1"],
       recordedLabel: "2 Sep 2026, 12:04",
       refundOf: undefined,
       refundedLabel: "฿150.00",
     });
   });
 
-  test("leaves a refund's category empty and carries its expense", () => {
+  test("leaves a refund's category and tags empty and carries its expense", () => {
     const refundOf = {
       id: "expense-1",
       amountLabel: "฿500.00",
@@ -71,6 +73,7 @@ describe("editableTransaction", () => {
       categoryId: "category-1",
       categoryLabel: "Food & Drink › Groceries",
       categoryIconId: "shopping-cart",
+      tags: [{ id: "tag-1", name: "Coffee" }],
       wallet: { id: "wallet-1", name: "Cash", archived: false },
       refundAllowanceText: "450.00",
       refundAllowanceLabel: "฿450.00",
@@ -90,6 +93,7 @@ describe("editableTransaction", () => {
       refundOf,
     });
     expect(editable.categoryId).toBe("");
+    expect(editable.tagIds).toEqual([]);
     expect(editable.refundOf).toBe(refundOf);
     expect(editable.refundedLabel).toBeUndefined();
   });

@@ -13,6 +13,8 @@ const BANK = "0192f7a0-0000-7000-8000-000000000002";
 const GROCERIES = "0192f7a0-0000-7000-8000-000000000010";
 const EXPENSE = "0192f7a0-0000-7000-8000-000000000100";
 const REFUND = "0192f7a0-0000-7000-8000-000000000101";
+const COFFEE = "0192f7a0-0000-7000-8000-000000000200";
+const SHOP = "0192f7a0-0000-7000-8000-000000000201";
 
 const wallet = {
   id: CASH,
@@ -31,6 +33,7 @@ const facts: TransactionFacts = {
     { id: CASH, openingDate: "2026-09-01", archivedAt: null },
     { id: BANK, openingDate: "2026-09-03", archivedAt: null },
   ],
+  tagIds: [COFFEE, SHOP],
   category: { id: GROCERIES, kind: "expense" },
   expense: null,
   current: null,
@@ -45,6 +48,7 @@ const expense: TransactionCommand = {
   amount: 50_000n,
   transactionDate: "2026-09-05",
   note: "Weekly shop",
+  tagIds: [],
 };
 
 const transfer: TransactionCommand = {
@@ -324,5 +328,68 @@ describe("refundAllowanceOf", () => {
     expect(
       refundAllowanceOf({ expenseAmount: 5_000n, refunds: [refund(6_000n)] }),
     ).toBe(0n);
+  });
+});
+
+describe("tags", () => {
+  test("an expense may carry the owner's tags", () => {
+    const tagged = { ...expense, tagIds: [COFFEE, SHOP] };
+
+    expect(acceptTransaction(tagged, facts)).toEqual({
+      ok: true,
+      value: tagged,
+    });
+  });
+
+  test("a tag the owner does not have is not found", () => {
+    const foreign = "0192f7a0-0000-7000-8000-000000000299";
+
+    expect(
+      acceptTransaction({ ...expense, tagIds: [COFFEE, foreign] }, facts),
+    ).toEqual({ ok: false, error: { field: "tagIds", code: "tag-not-found" } });
+  });
+
+  test("five tags are allowed and a sixth is refused before any record is consulted", () => {
+    const six = Array.from(
+      { length: 6 },
+      (_, index) =>
+        `0192f7a0-0000-7000-8000-${String(300 + index).padStart(12, "0")}`,
+    );
+    const five = six.slice(0, 5);
+
+    expect(
+      acceptTransaction(
+        { ...expense, tagIds: five },
+        { ...facts, tagIds: five },
+      ),
+    ).toEqual({ ok: true, value: { ...expense, tagIds: five } });
+    expect(acceptTransaction({ ...expense, tagIds: six }, facts)).toEqual({
+      ok: false,
+      error: { field: "tagIds", code: "too-many-tags" },
+    });
+  });
+
+  test("a transfer cannot carry tags", () => {
+    expect(acceptTransaction({ ...transfer, tagIds: [COFFEE] }, facts)).toEqual(
+      { ok: false, error: { field: "type", code: "invalid-transfer" } },
+    );
+  });
+
+  test("a refund cannot carry tags of its own", () => {
+    expect(
+      acceptTransaction({ ...refundCommand, tagIds: [COFFEE] }, facts),
+    ).toEqual({ ok: false, error: { field: "type", code: "invalid-refund" } });
+  });
+
+  test("snapshots differ when only the tags do, and record none when untagged", () => {
+    const untagged = snapshotOf(expense);
+    const tagged = snapshotOf({ ...expense, tagIds: [COFFEE] });
+
+    expect(untagged).not.toHaveProperty("tagIds");
+    expect(tagged.tagIds).toEqual([COFFEE]);
+    expect(sameSnapshot(untagged, tagged)).toBe(false);
+    expect(
+      sameSnapshot(tagged, snapshotOf({ ...expense, tagIds: [COFFEE] })),
+    ).toBe(true);
   });
 });

@@ -11,6 +11,7 @@ const base = {
   amount: "120",
   transactionDate: "2026-09-13",
   note: "",
+  tagIds: [],
 };
 
 describe("transaction form schema", () => {

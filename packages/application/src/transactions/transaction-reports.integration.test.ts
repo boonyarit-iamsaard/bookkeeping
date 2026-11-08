@@ -189,6 +189,7 @@ describe("getMonthlySummary", () => {
             amount: 60_000n,
             transactionDate: "2026-09-01",
             note: "Corrected",
+            tagIds: [],
           })
         ).ok,
       ).toBe(true);

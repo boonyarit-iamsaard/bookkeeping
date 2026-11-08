@@ -1,9 +1,9 @@
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import { insertTransaction } from "@bookkeeping/application/testing/transaction-fixture";
+import { softDelete } from "@bookkeeping/application/testing/transaction-suite-fixture";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
-import { transactions } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import type { WalletType } from "@bookkeeping/domain/wallets";
 import { eq } from "drizzle-orm";
@@ -21,9 +21,9 @@ import {
 } from "../../testing/create-test-auth-gateway.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import { expectProblem } from "../../testing/expect-problem.js";
+import { expectRejection } from "../../testing/expect-transaction-rejection.js";
 import type {
   createTransactionRequestSchema,
-  transactionFieldErrorSchema,
   updateTransactionRequestSchema,
 } from "./transaction.routes.js";
 import {
@@ -31,9 +31,9 @@ import {
   transactionCollectionResponseSchema,
   transactionEntryDefaultsResponseSchema,
   transactionRefundsResponseSchema,
-  transactionRejectionProblemSchema,
   transactionResponseSchema,
 } from "./transaction.routes.js";
+import type { TransactionFieldError } from "./transaction-rejection.js";
 
 const { withRollback } = setupTestDatabase();
 
@@ -118,22 +118,6 @@ async function createOwner({
     childId: child.id,
     incomeId: income.id,
   };
-}
-
-/** Asserts a rejected transaction command and returns its field errors with their facts. */
-async function expectRejection(response: Response) {
-  await expectProblem(response.clone(), {
-    status: 422,
-    code: "invalid-command",
-  });
-  return transactionRejectionProblemSchema.parse(await response.json()).errors;
-}
-
-async function softDelete(db: Database, id: string): Promise<void> {
-  await db
-    .update(transactions)
-    .set({ deletedAt: new Date() })
-    .where(eq(transactions.id, id));
 }
 
 interface ReadRequest {
@@ -266,6 +250,7 @@ function updateExpenseBody(
     categoryId: owner.childId,
     transactionDate: "2026-09-02",
     note: "Lunch",
+    tagIds: [],
   };
 }
 
@@ -287,7 +272,8 @@ function putTransaction(
       origin: TEST_CLIENT_ORIGIN,
       ...(cookie ? { cookie } : {}),
     },
-    body: rawBody ?? JSON.stringify(body),
+    // An edit naming no tag change sends the tags carried: none here.
+    body: rawBody ?? JSON.stringify({ tagIds: [], ...Object(body) }),
   });
 }
 
@@ -345,6 +331,7 @@ describe("POST /v1/transactions", () => {
         },
         category: null,
         refundOf: null,
+        tags: [],
       });
     });
   });
@@ -565,6 +552,7 @@ describe("POST /v1/transactions", () => {
           parentName: "Food & Drink",
         },
         refundOf: null,
+        tags: [],
       });
 
       const income = transactionResponseSchema.parse(
@@ -826,6 +814,7 @@ describe("POST /v1/transactions", () => {
           amount: { value: "123.45", currency: "THB" },
           transactionDate: "2026-09-02",
         },
+        tags: [],
       });
     });
   });
@@ -978,6 +967,7 @@ describe("PUT /v1/transactions/{transactionId}", () => {
           parentName: "Food & Drink",
         },
         refundOf: null,
+        tags: [],
       });
     });
   });
@@ -1117,6 +1107,7 @@ describe("PUT /v1/transactions/{transactionId}", () => {
           amount: { value: "500.00", currency: "THB" },
           transactionDate: "2026-09-02",
         },
+        tags: [],
       });
     });
   });
@@ -1214,7 +1205,7 @@ describe("PUT /v1/transactions/{transactionId}", () => {
       const base = updateExpenseBody(owner);
       const attempt = async (
         body: Readonly<Partial<TransactionUpdateBody>>,
-        expected: Readonly<z.infer<typeof transactionFieldErrorSchema>>,
+        expected: Readonly<TransactionFieldError>,
       ) => {
         const errors = await expectRejection(
           await putTransaction(app, {
@@ -1663,6 +1654,7 @@ describe("GET /v1/transactions/{transactionId}", () => {
           parentName: "Food & Drink",
         },
         refundOf: null,
+        tags: [],
       });
     });
   });

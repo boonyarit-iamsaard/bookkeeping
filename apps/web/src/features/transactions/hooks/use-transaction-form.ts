@@ -13,6 +13,7 @@ import { pickFieldErrors } from "@/core/api/write-submission";
 import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { CaptureOrigin } from "@/features/transactions/capture-origin";
 import { captureReturnHref } from "@/features/transactions/capture-origin";
+import type { EditableTransaction } from "@/features/transactions/transaction.types";
 import type {
   LinkedExpenseLimits,
   TransactionFormInput,
@@ -46,7 +47,7 @@ interface UseTransactionFormOptions {
   /** Set when the form records or corrects a refund of one expense. */
   linkedExpense?: LinkedExpenseLimits;
   /** Set when the form corrects an existing transaction instead of recording one. */
-  editingId?: string;
+  editing?: Pick<EditableTransaction, "id">;
   /** Set only for a new entry that returns to its opening screen. */
   captureOrigin?: CaptureOrigin;
 }
@@ -81,6 +82,8 @@ function toCreateTransactionRequest(
         ...common,
         type: values.type,
         categoryId: values.categoryId,
+        // Untagged entries send exactly what they sent before tags existed.
+        ...(values.tagIds.length > 0 ? { tagIds: [...values.tagIds] } : {}),
       };
     case "transfer":
       return {
@@ -97,10 +100,14 @@ function toCreateTransactionRequest(
   }
 }
 
-/** An edit carries every field but the type and the expense link, which are fixed. */
+/**
+ * An edit carries every field but the type and the expense link, which are
+ * fixed. Only income and expense carry tags of their own; the rest send none.
+ */
 function toUpdateTransactionRequest(
   values: Readonly<TransactionFormValues>,
 ): UpdateTransactionRequest {
+  const ownTags = values.type === "income" || values.type === "expense";
   const request: UpdateTransactionRequest = {
     amount: {
       value: formatMoneyInput({
@@ -112,6 +119,7 @@ function toUpdateTransactionRequest(
     walletId: values.walletId,
     transactionDate: values.transactionDate,
     note: values.note,
+    tagIds: ownTags ? [...values.tagIds] : [],
   };
   if (values.type === "transfer") {
     return { ...request, destinationWalletId: values.destinationWalletId };
@@ -144,7 +152,7 @@ export function useTransactionForm({
   categories,
   initialValues,
   linkedExpense,
-  editingId,
+  editing,
   captureOrigin,
 }: Readonly<UseTransactionFormOptions>) {
   const navigate = useNavigate();
@@ -183,7 +191,7 @@ export function useTransactionForm({
   >({
     send: (input) =>
       apiClient.PUT("/v1/transactions/{transactionId}", {
-        params: { path: { transactionId: editingId ?? "" } },
+        params: { path: { transactionId: editing?.id ?? "" } },
         body: input,
       }),
     describeFieldError: describeTransactionFieldError,
@@ -207,7 +215,7 @@ export function useTransactionForm({
 
       let result: Awaited<ReturnType<typeof createTransaction.submit>>;
       try {
-        result = editingId
+        result = editing
           ? await updateTransaction.submit(
               toUpdateTransactionRequest(parsed.data),
             )
@@ -253,6 +261,7 @@ export function useTransactionForm({
     setFieldErrors({});
     if (type === "transfer") {
       form.setFieldValue("categoryId", "");
+      form.setFieldValue("tagIds", []);
       if (!form.getFieldValue("destinationWalletId")) {
         form.setFieldValue(
           "destinationWalletId",

@@ -55,8 +55,7 @@ describe("updateTransaction", () => {
       ).toBe(950_000n);
 
       const updated = await updateTransaction(db, {
-        ownerId: owner.ownerId,
-        id: transaction.id,
+        ...expenseUpdateInput({ owner, transaction }),
         walletId: savingsId,
         categoryId: uncategorized.id,
         amount: 75_050n,
@@ -135,13 +134,7 @@ describe("updateTransaction", () => {
       const owner = await setupOwner(db);
       const transaction = await recordExpense(db, owner);
       const unchanged = await updateTransaction(db, {
-        ownerId: owner.ownerId,
-        id: transaction.id,
-        walletId: owner.cashId,
-        categoryId: owner.childId,
-        amount: 50_000n,
-        transactionDate: "2026-09-02",
-        note: "Weekly shop",
+        ...expenseUpdateInput({ owner, transaction }),
       });
       expect(unchanged.ok).toBe(true);
       expect(
@@ -263,6 +256,7 @@ describe("updateTransaction", () => {
           amount: 1n,
           transactionDate: "2026-09-02",
           note: "",
+          tagIds: [],
         }),
       ).toEqual({ ok: false, error: { code: "transaction-not-found" } });
       // Bob's own wallet and category cannot be attached to Alice's record,
@@ -276,6 +270,7 @@ describe("updateTransaction", () => {
           amount: 1n,
           transactionDate: "2026-09-02",
           note: "",
+          tagIds: [],
         }),
       ).toEqual({
         ok: false,
@@ -290,6 +285,7 @@ describe("updateTransaction", () => {
           amount: 1n,
           transactionDate: "2026-09-02",
           note: "",
+          tagIds: [],
         }),
       ).toEqual({
         ok: false,
@@ -319,12 +315,8 @@ describe("updateTransaction", () => {
       await softDelete(db, transaction.id);
       expect(
         await updateTransaction(db, {
-          ownerId: owner.ownerId,
-          id: transaction.id,
-          walletId: owner.cashId,
-          categoryId: owner.childId,
+          ...expenseUpdateInput({ owner, transaction }),
           amount: 1n,
-          transactionDate: "2026-09-02",
           note: "",
         }),
       ).toEqual({ ok: false, error: { code: "transaction-not-found" } });
@@ -337,6 +329,7 @@ describe("updateTransaction", () => {
           amount: 1n,
           transactionDate: "2026-09-02",
           note: "",
+          tagIds: [],
         }),
       ).toEqual({ ok: false, error: { code: "transaction-not-found" } });
     });
@@ -410,7 +403,7 @@ describe("updateTransaction", () => {
         };
         // ฿10,000 is held by the other refund; this refund's own ฿30,000 is free.
         expect(
-          await updateTransaction(db, { ...base, amount: 40_001n }),
+          await updateTransaction(db, { ...base, amount: 40_001n, tagIds: [] }),
         ).toEqual({
           ok: false,
           error: {
@@ -423,6 +416,7 @@ describe("updateTransaction", () => {
           await updateTransaction(db, {
             ...base,
             transactionDate: "2026-09-01",
+            tagIds: [],
           }),
         ).toEqual({
           ok: false,
@@ -437,6 +431,7 @@ describe("updateTransaction", () => {
           await updateTransaction(db, {
             ...base,
             categoryId: context.childId,
+            tagIds: [],
           }),
         ).toEqual({
           ok: false,
@@ -447,6 +442,7 @@ describe("updateTransaction", () => {
           walletId: context.bankId,
           amount: 40_000n,
           transactionDate: "2026-09-04",
+          tagIds: [],
         });
         expect(grown.ok && grown.value).toEqual(
           expect.objectContaining({
@@ -477,6 +473,7 @@ describe("updateTransaction", () => {
               walletId: context.bankId,
               amount: 39_999n,
               transactionDate: "2026-09-04",
+              tagIds: [],
             })
           ).ok,
         ).toBe(true);
@@ -530,7 +527,7 @@ describe("updateTransaction", () => {
           note: "Weekly shop",
         };
         expect(
-          await updateTransaction(db, { ...base, amount: 14_999n }),
+          await updateTransaction(db, { ...base, amount: 14_999n, tagIds: [] }),
         ).toEqual({
           ok: false,
           error: {
@@ -543,6 +540,7 @@ describe("updateTransaction", () => {
           await updateTransaction(db, {
             ...base,
             transactionDate: "2026-09-04",
+            tagIds: [],
           }),
         ).toEqual({
           ok: false,
@@ -558,6 +556,7 @@ describe("updateTransaction", () => {
           categoryId: uncategorized.id,
           amount: 15_000n,
           transactionDate: "2026-09-03",
+          tagIds: [],
         });
         expect(corrected.ok).toBe(true);
         // Every linked refund now reads the expense's new category.
@@ -628,7 +627,7 @@ describe("updateTransaction", () => {
         };
         // ฿10,000 is held by the other refund; this refund's own ฿30,000 is free.
         expect(
-          await updateTransaction(db, { ...base, amount: 40_001n }),
+          await updateTransaction(db, { ...base, amount: 40_001n, tagIds: [] }),
         ).toEqual({
           ok: false,
           error: {
@@ -641,6 +640,7 @@ describe("updateTransaction", () => {
           await updateTransaction(db, {
             ...base,
             transactionDate: "2026-09-01",
+            tagIds: [],
           }),
         ).toEqual({
           ok: false,
@@ -655,6 +655,7 @@ describe("updateTransaction", () => {
           walletId: bank,
           amount: 40_000n,
           transactionDate: "2026-09-04",
+          tagIds: [],
         });
         expect(grown.ok && grown.value).toEqual(
           expect.objectContaining({
@@ -681,11 +682,16 @@ describe("updateTransaction", () => {
               walletId: bank,
               amount: 39_999n,
               transactionDate: "2026-09-04",
+              tagIds: [],
             })
           ).ok,
         ).toBe(true);
         expect(
-          await updateTransaction(db, { ...base, walletId: retired }),
+          await updateTransaction(db, {
+            ...base,
+            walletId: retired,
+            tagIds: [],
+          }),
         ).toEqual({
           ok: false,
           error: expect.objectContaining({ code: "wallet-archived" }),
@@ -761,6 +767,7 @@ describe("updateTransaction", () => {
               amount: 40_000n,
               transactionDate: "2026-09-03",
               note: "Corrected refund",
+              tagIds: [],
             })
           : createTransaction(db, {
               ...refundInput(context, 40_000n),
@@ -782,6 +789,7 @@ describe("updateTransaction", () => {
                       ? "2026-09-04"
                       : expense.transactionDate,
                   note: expense.note,
+                  tagIds: [],
                 });
         const [refundResult, competingResult] = await Promise.all([
           refundWrite,
@@ -892,6 +900,7 @@ describe("updateTransaction", () => {
             amount: 30_000n,
             transactionDate: "2026-09-03",
             note: "",
+            tagIds: [],
           }),
         ).rejects.toThrow();
         await db.execute(
@@ -931,6 +940,7 @@ describe("updateTransaction", () => {
           amount,
           transactionDate: "2026-09-02",
           note: "Weekly shop",
+          tagIds: [],
         }),
       ),
     );
@@ -982,13 +992,8 @@ describe("updateTransaction", () => {
     // ฿250.00 fits inside whatever the expense currently is.
     const [shrunk, grown] = await Promise.all([
       updateTransaction(db, {
-        ownerId: owner.ownerId,
-        id: expense.id,
-        walletId: owner.cashId,
-        categoryId: owner.childId,
+        ...expenseUpdateInput({ owner, transaction: expense }),
         amount: 30_000n,
-        transactionDate: "2026-09-02",
-        note: "Weekly shop",
       }),
       updateTransaction(db, {
         ownerId: owner.ownerId,
@@ -998,6 +1003,7 @@ describe("updateTransaction", () => {
         amount: 25_000n,
         transactionDate: "2026-09-03",
         note: "",
+        tagIds: [],
       }),
     ]);
 
@@ -1030,13 +1036,8 @@ describe("updateTransaction", () => {
         .set({ archivedAt: new Date() })
         .where(eq(wallets.id, owner.cashId));
       const retained = await updateTransaction(db, {
-        ownerId: owner.ownerId,
-        id: transaction.id,
-        walletId: owner.cashId,
-        categoryId: owner.childId,
+        ...expenseUpdateInput({ owner, transaction }),
         amount: 200n,
-        transactionDate: "2026-09-02",
-        note: "Weekly shop",
       });
       expect(retained.ok && retained.value.wallet).toEqual(
         expect.objectContaining({ id: owner.cashId, archived: true }),
@@ -1053,13 +1054,9 @@ describe("updateTransaction", () => {
         .where(eq(wallets.id, otherId));
       expect(
         await updateTransaction(db, {
-          ownerId: owner.ownerId,
-          id: transaction.id,
+          ...expenseUpdateInput({ owner, transaction }),
           walletId: otherId,
-          categoryId: owner.childId,
           amount: 200n,
-          transactionDate: "2026-09-02",
-          note: "Weekly shop",
         }),
       ).toEqual({
         ok: false,
@@ -1110,6 +1107,7 @@ describe("updateTransaction", () => {
         amount: 200n,
         transactionDate: "2026-09-05",
         note: "",
+        tagIds: [],
       });
       expect(kept.ok).toBe(true);
       const swapped = await updateTransaction(db, {
@@ -1121,6 +1119,7 @@ describe("updateTransaction", () => {
         amount: 300n,
         transactionDate: "2026-09-05",
         note: "",
+        tagIds: [],
       });
       expect(swapped.ok).toBe(true);
       expect(
@@ -1133,6 +1132,7 @@ describe("updateTransaction", () => {
           amount: 300n,
           transactionDate: "2026-09-05",
           note: "",
+          tagIds: [],
         }),
       ).toEqual({
         ok: false,
@@ -1190,6 +1190,7 @@ describe("updateTransaction", () => {
         destinationWalletId: travel,
         amount: 200_001n,
         transactionDate: "2026-09-03",
+        tagIds: [],
       });
       expect(edited.ok && edited.value.recordedAt).toEqual(recordedAt);
       expect(
@@ -1272,6 +1273,7 @@ describe("updateTransaction", () => {
           amount: 200_000n,
           transactionDate: "2026-09-05",
           note: "",
+          tagIds: [],
         }),
       ).rejects.toThrow();
       expect(await findTransaction(db, { ownerId: owner.ownerId, id })).toEqual(
@@ -1307,6 +1309,7 @@ describe("updateTransaction", () => {
         amount: 100_000n,
         transactionDate: "2026-09-05",
         note: "",
+        tagIds: [],
       });
       expect(recovered.ok).toBe(true);
     });

@@ -2,6 +2,11 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { parseCalendarDate } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
+import {
+  MAX_TAGS_PER_TRANSACTION,
+  optionalTagIds,
+  sameTagIds,
+} from "@bookkeeping/domain/tags";
 import type {
   LinkedExpense,
   RefundSummary,
@@ -23,7 +28,8 @@ export type TransactionField =
   | "refundOfTransactionId"
   | "amount"
   | "transactionDate"
-  | "note";
+  | "note"
+  | "tagIds";
 
 /**
  * One expected reason a create or edit is refused, addressed to the input
@@ -44,6 +50,8 @@ export type TransactionRejection =
   | { field: "categoryId"; code: "category-kind-mismatch" }
   | { field: "amount"; code: "amount-out-of-range" }
   | { field: "note"; code: "note-too-long" }
+  | { field: "tagIds"; code: "too-many-tags" }
+  | { field: "tagIds"; code: "tag-not-found" }
   | { field: "transactionDate"; code: "invalid-date" }
   | { field: "transactionDate"; code: "future-date"; today: CalendarDate }
   | {
@@ -78,6 +86,8 @@ export interface TransactionCommand {
   amount: bigint;
   transactionDate: CalendarDate;
   note: string;
+  /** Each tag once, sorted; only income and expense may carry any. */
+  tagIds: readonly string[];
 }
 
 export interface WalletFact {
@@ -108,11 +118,13 @@ export interface CurrentTransactionFact {
  * Everything the owner's records say that the rules need, loaded and locked
  * by the operation before it asks. Absent facts read as not found: a wallet
  * missing from `wallets` is not the owner's, a null `category` or `expense`
- * was not found among the owner's current records.
+ * was not found among the owner's current records, and a tag missing from
+ * `tagIds` is not the owner's.
  */
 export interface TransactionFacts {
   today: CalendarDate;
   wallets: readonly WalletFact[];
+  tagIds: readonly string[];
   category: CategoryFact | null;
   expense: ExpenseFact | null;
   current: CurrentTransactionFact | null;
@@ -136,6 +148,7 @@ export function acceptTransaction(
     rejectMissingExpense(command, facts) ??
     rejectWallets(command, facts) ??
     rejectCategory(command, facts) ??
+    rejectTags(command, facts) ??
     rejectDate(command, facts) ??
     rejectRefundAgainstExpense(command, facts) ??
     rejectExpenseAgainstRefunds(command, facts);
@@ -154,13 +167,16 @@ function rejectValues(
   if (command.note.length > MAX_NOTE_LENGTH) {
     return { field: "note", code: "note-too-long" };
   }
+  if (command.tagIds.length > MAX_TAGS_PER_TRANSACTION) {
+    return { field: "tagIds", code: "too-many-tags" };
+  }
   if (!parseCalendarDate(command.transactionDate).ok) {
     return { field: "transactionDate", code: "invalid-date" };
   }
   return undefined;
 }
 
-/** A transfer names two distinct wallets and no category. */
+/** A transfer names two distinct wallets, no category, and no tags. */
 function rejectTransferShape(
   command: Readonly<TransactionCommand>,
 ): TransactionRejection | undefined {
@@ -169,7 +185,11 @@ function rejectTransferShape(
       ? { field: "type", code: "invalid-transfer" }
       : undefined;
   }
-  if (!command.destinationWalletId || command.categoryId !== null) {
+  if (
+    !command.destinationWalletId ||
+    command.categoryId !== null ||
+    command.tagIds.length > 0
+  ) {
     return { field: "type", code: "invalid-transfer" };
   }
   if (command.walletId === command.destinationWalletId) {
@@ -178,7 +198,10 @@ function rejectTransferShape(
   return undefined;
 }
 
-/** A refund names its expense and no category; nothing else names an expense. */
+/**
+ * A refund names its expense and no category or tags of its own: it follows
+ * the expense's. Nothing else names an expense.
+ */
 function rejectRefundShape(
   command: Readonly<TransactionCommand>,
 ): TransactionRejection | undefined {
@@ -187,7 +210,11 @@ function rejectRefundShape(
       ? { field: "type", code: "invalid-refund" }
       : undefined;
   }
-  if (!command.refundOfTransactionId || command.categoryId !== null) {
+  if (
+    !command.refundOfTransactionId ||
+    command.categoryId !== null ||
+    command.tagIds.length > 0
+  ) {
     return { field: "type", code: "invalid-refund" };
   }
   return undefined;
@@ -255,6 +282,17 @@ function rejectCategory(
   }
   if (facts.category.kind !== command.type) {
     return { field: "categoryId", code: "category-kind-mismatch" };
+  }
+  return undefined;
+}
+
+function rejectTags(
+  command: Readonly<TransactionCommand>,
+  facts: Readonly<TransactionFacts>,
+): TransactionRejection | undefined {
+  const owned = new Set(facts.tagIds);
+  if (command.tagIds.some((id) => !owned.has(id))) {
+    return { field: "tagIds", code: "tag-not-found" };
   }
   return undefined;
 }
@@ -368,7 +406,10 @@ export type SnapshotSource = Omit<
   refundOfTransactionId?: string | null;
 };
 
-/** Freezes the financial fields, keeping only the link that matches the type. */
+/**
+ * Freezes the financial and descriptive fields, keeping only the link that
+ * matches the type, and tags only when there are any.
+ */
 export function snapshotOf(row: Readonly<SnapshotSource>): TransactionSnapshot {
   return {
     type: row.type,
@@ -383,6 +424,7 @@ export function snapshotOf(row: Readonly<SnapshotSource>): TransactionSnapshot {
     amount: row.amount.toString(),
     transactionDate: row.transactionDate,
     note: row.note,
+    ...optionalTagIds(row.tagIds),
   };
 }
 
@@ -401,5 +443,8 @@ export function sameSnapshot(
   a: Readonly<TransactionSnapshot>,
   b: Readonly<TransactionSnapshot>,
 ): boolean {
-  return SNAPSHOT_KEYS.every((key) => a[key] === b[key]);
+  return (
+    SNAPSHOT_KEYS.every((key) => a[key] === b[key]) &&
+    sameTagIds(a.tagIds, b.tagIds)
+  );
 }

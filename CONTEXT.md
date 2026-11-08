@@ -101,6 +101,14 @@ A selectable category at the second and final level of an income or expense cate
 **Uncategorized**:
 A protected parent category in each income and expense tree, used by default and as a fallback when a parent is removed. It cannot be removed or renamed and has no children.
 
+**Tag**:
+A named label an Account reuses across its income and expense transactions to mark something that repeats but is not a category, such as a shop or a game. An income or expense carries up to five tags; a refund carries its expense's tags and a transfer carries none. Names are unique per Account, ignoring case and surrounding whitespace.
+_Avoid_: Label, payee, merchant
+
+**Note**:
+Optional free text on a transaction for one-off detail that no tag or category captures.
+_Avoid_: Description, memo
+
 **Change history**:
 The internal record of what a transaction or wallet looked like before and after each correction or deletion, kept for traceability and never shown as a user-facing feature.
 _Avoid_: Audit log, revision

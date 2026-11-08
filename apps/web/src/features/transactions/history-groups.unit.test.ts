@@ -14,6 +14,7 @@ function transactionOn(id: string, transactionDate: string) {
     destinationWallet: null,
     category: null,
     refundOf: null,
+    tags: [],
   };
   return transaction;
 }

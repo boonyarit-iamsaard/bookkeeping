@@ -2,7 +2,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { SlidersHorizontal, TriangleAlert, X } from "lucide-react";
+import { Check, Hash, SlidersHorizontal, TriangleAlert, X } from "lucide-react";
 import type { SyntheticEvent } from "react";
 import { useState } from "react";
 import type { components } from "@/core/api/openapi.gen";
@@ -23,10 +23,12 @@ import { cn } from "@/shared/helpers/cn";
 
 type ApiWallet = components["schemas"]["Wallet"];
 type ApiCategory = components["schemas"]["Category"];
+type ApiTag = components["schemas"]["TagSummary"];
 
 interface HistoryFilterChipsProps {
   wallets: readonly ApiWallet[];
   categories: readonly ApiCategory[];
+  tags: readonly ApiTag[];
   values: Readonly<HistorySearch>;
 }
 
@@ -55,11 +57,65 @@ function categoryGroups(
 /** The controls' values as the GET form would have sent them; empty ones lift the filter. */
 function filtersFromForm(form: HTMLFormElement): HistorySearch {
   const data = new FormData(form);
-  return Object.fromEntries(
+  const filters: HistorySearch = Object.fromEntries(
     HISTORY_FILTER_KEYS.flatMap((key) => {
       const value = data.get(key);
       return typeof value === "string" && value !== "" ? [[key, value]] : [];
     }),
+  );
+  const tagIds = data
+    .getAll("tagId")
+    .filter((value) => typeof value === "string");
+  return tagIds.length > 0 ? { ...filters, tagId: tagIds } : filters;
+}
+
+interface TagFilterProps {
+  tags: readonly ApiTag[];
+  chosen: readonly string[];
+}
+
+/**
+ * Tags as toggle chips, one checkbox each under one name, so choosing
+ * several sends them all and matches a transaction carrying any of them.
+ */
+function TagFilter({ tags, chosen }: Readonly<TagFilterProps>) {
+  return (
+    <fieldset className="flex min-w-0 flex-col gap-2 sm:col-span-2">
+      <legend className="mb-2 text-sm font-semibold">Tags</legend>
+      {tags.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          No tags yet. Add them on income and expense entries.
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <label
+              key={tag.id}
+              className="border-border bg-card hover:bg-accent has-checked:bg-secondary has-checked:text-secondary-foreground has-focus-visible:ring-ring/45 dark:bg-input/30 flex min-h-11 max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors duration-150 has-checked:border-transparent has-focus-visible:ring-[3px] motion-reduce:transition-none"
+            >
+              <input
+                type="checkbox"
+                name="tagId"
+                value={tag.id}
+                defaultChecked={chosen.includes(tag.id)}
+                className="peer sr-only"
+              />
+              <Hash
+                aria-hidden="true"
+                strokeWidth={2}
+                className="text-muted-foreground size-4 shrink-0 peer-checked:hidden"
+              />
+              <Check
+                aria-hidden="true"
+                strokeWidth={2.25}
+                className="hidden size-4 shrink-0 peer-checked:block"
+              />
+              <span className="min-w-0 wrap-break-word">{tag.name}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </fieldset>
   );
 }
 
@@ -70,6 +126,7 @@ function filtersFromForm(form: HTMLFormElement): HistorySearch {
 export function HistoryFilters({
   wallets,
   categories,
+  tags,
   values,
 }: Readonly<HistoryFiltersProps>) {
   const navigate = useNavigate();
@@ -185,10 +242,13 @@ export function HistoryFilters({
                   ]}
                 />
               </div>
+              <TagFilter tags={tags} chosen={values.tagId ?? []} />
             </div>
             <p className="text-muted-foreground text-sm">
               Dates are inclusive. A parent category includes its children; a
-              wallet includes transfers in either direction.
+              wallet includes transfers in either direction. Several tags match
+              a transaction carrying any of them; a refund carries its
+              expense’s.
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-3 px-4 py-4 sm:px-6 sm:pb-6">
@@ -214,9 +274,10 @@ export function HistoryFilters({
 export function HistoryFilterChips({
   wallets,
   categories,
+  tags,
   values,
 }: Readonly<HistoryFilterChipsProps>) {
-  const chips = historyFilterChips(values, { wallets, categories });
+  const chips = historyFilterChips(values, { wallets, categories, tags });
   if (chips.length === 0) {
     return null;
   }
