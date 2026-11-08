@@ -25,7 +25,7 @@ function findDiagrams(directory: string): string[] {
       found.push(path);
     }
   }
-  return found.sort();
+  return found.sort((left, right) => left.localeCompare(right));
 }
 
 function chooseDiagrams(paths: readonly string[]): string[] {

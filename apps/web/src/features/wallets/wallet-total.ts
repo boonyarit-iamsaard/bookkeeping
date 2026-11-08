@@ -15,7 +15,9 @@ export interface WalletBalanceSplit {
 export function totalWalletBalance(
   wallets: readonly WalletSummary[],
 ): ApiMoney {
-  return moneyFromMinorUnits(wallets.reduce(addWalletBalance, 0n));
+  return moneyFromMinorUnits(
+    wallets.reduce((total, wallet) => addWalletBalance(total, wallet), 0n),
+  );
 }
 
 /** Spendable and set-aside balances in THB, or no split without Savings wallets. */

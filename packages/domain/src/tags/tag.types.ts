@@ -14,7 +14,9 @@ export function normalizeTagName(raw: string): string {
 
 /** Each named tag once, in a stable order, so equal choices compare and fingerprint alike. */
 export function normalizeTagIds(tagIds: readonly string[]): string[] {
-  return [...new Set(tagIds)].toSorted();
+  return [...new Set(tagIds)].toSorted((left, right) =>
+    left.localeCompare(right),
+  );
 }
 
 /** Whether two normalized tag sets name the same tags; an absent set is empty. */

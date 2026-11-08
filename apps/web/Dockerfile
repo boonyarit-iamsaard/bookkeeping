@@ -17,5 +17,8 @@ RUN test -n "$VITE_API_ORIGIN" || (echo "VITE_API_ORIGIN build argument is requi
 RUN pnpm --filter @bookkeeping/web build
 
 FROM caddy:2-alpine@sha256:e70b164da81ef698b3ad19af799ea6086ce6d9e48ed4079eb9fe26f6fbf14ee5
+RUN addgroup -S web && adduser -S -G web web \
+    && chown -R web:web /config /data
+USER web
 COPY apps/web/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /repo/apps/web/dist /srv
