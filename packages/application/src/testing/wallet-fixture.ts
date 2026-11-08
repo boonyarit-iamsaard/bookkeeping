@@ -30,7 +30,10 @@ export async function createWalletForTest(
   return created.value.wallet;
 }
 
-/** Archives a fixture wallet, failing setup if the state change is rejected. */
+/**
+ * Archives a fixture wallet, failing setup if the state change is rejected.
+ * It stays a Result so a test can race it against operations that return one.
+ */
 export async function archiveForTest(
   db: Database,
   ref: Readonly<WalletRef>,
