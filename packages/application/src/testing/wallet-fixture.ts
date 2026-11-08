@@ -31,7 +31,7 @@ export async function createWalletForTest(
 }
 
 /** Archives a fixture wallet, failing setup if the state change is rejected. */
-export async function archiveWallet(
+export async function archiveForTest(
   db: Database,
   ref: Readonly<WalletRef>,
 ): Promise<Result<WalletSummary, never>> {

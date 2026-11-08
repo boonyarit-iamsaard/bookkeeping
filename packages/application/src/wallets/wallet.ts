@@ -18,11 +18,11 @@ import { and, eq, lt, or, sql } from "drizzle-orm";
 import type { IdempotencyConflict } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
+import { selectWalletSummaries } from "./wallet-balance";
 import {
   loadWalletForUpdate,
   readWalletSummaryAfterChange,
   recordWalletChange,
-  selectWalletSummaries,
   updateWallet,
 } from "./wallet-change";
 

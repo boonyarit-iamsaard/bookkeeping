@@ -15,6 +15,8 @@ export interface WalletShare {
 
 interface WalletShareChartProps {
   shares: readonly WalletShare[];
+  /** Names Savings wallets; Reports leave this off, as the marker is current status. */
+  showSavings?: boolean;
 }
 
 /**
@@ -22,7 +24,10 @@ interface WalletShareChartProps {
  * zero line, so a negative wallet reaches left of it and says so in its signed
  * amount. A ring could not show that slice.
  */
-export function WalletShareChart({ shares }: Readonly<WalletShareChartProps>) {
+export function WalletShareChart({
+  shares,
+  showSavings = false,
+}: Readonly<WalletShareChartProps>) {
   const { zero, bars } = scaleBars(
     shares.map((share) => parseApiMoney(share.balance)),
   );
@@ -34,6 +39,9 @@ export function WalletShareChart({ shares }: Readonly<WalletShareChartProps>) {
           <div className="flex items-baseline justify-between gap-3">
             <span className="min-w-0 text-sm wrap-break-word">
               {wallet.name}
+              {showSavings && wallet.savings && (
+                <span className="text-muted-foreground"> · Savings</span>
+              )}
               {wallet.archivedAt && (
                 <span className="text-muted-foreground"> · Archived</span>
               )}

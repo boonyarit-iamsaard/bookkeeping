@@ -32,6 +32,11 @@ test("Savings wallets split Home's spendable balance until their marker is remov
   await parkPointer(page);
   await expect(page).toHaveURL(/\/wallets(\?.*)?$/);
 
+  await page.goto("/");
+  await expect(
+    page.getByRole("region", { name: "Spendable", exact: true }),
+  ).toContainText("Every wallet is a Savings wallet");
+
   await createWalletThroughForm(page, {
     name: "Cash",
     openingAmount: "200",
@@ -55,7 +60,7 @@ test("Savings wallets split Home's spendable balance until their marker is remov
     "฿800.00",
     "฿1,000.00",
   ]);
-  await expect(spendable).toContainText("Across 2 wallets");
+  await expect(spendable).toContainText("Across 1 wallet");
 
   await nav.getByRole("link", { name: "Wallets", exact: true }).click();
   const total = page.getByRole("region", {
@@ -78,11 +83,14 @@ test("Savings wallets split Home's spendable balance until their marker is remov
   await bank.getByRole("link", { name: "Rainy day", exact: true }).click();
   await page.getByRole("link", { name: "Manage", exact: true }).click();
   await page
-    .getByRole("button", { name: "Remove Savings wallet marker", exact: true })
+    .getByRole("button", { name: "Unmark as a Savings wallet", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText(
     "No longer a Savings wallet. Its balance now counts in Spendable.",
   );
+  await expect(
+    page.getByRole("button", { name: "Mark as a Savings wallet", exact: true }),
+  ).toBeFocused();
 
   await page
     .getByRole("link", { name: "Back to Rainy day", exact: true })

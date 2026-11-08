@@ -100,7 +100,7 @@ describe("splitWalletBalance", () => {
     });
   });
 
-  test("keeps negative spendable and savings balances as they are", () => {
+  test("keeps negative spendable and set-aside balances as they are", () => {
     expect(
       splitWalletBalance([
         wallet({ balance: { value: "-5.10", currency: "THB" } }),

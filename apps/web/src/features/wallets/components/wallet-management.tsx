@@ -9,11 +9,7 @@ import { formatApiMoneyInput } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { walletQueries } from "@/core/api/queries";
 import { useApiMutation } from "@/core/api/use-api-mutation";
-import type {
-  ApiFieldError,
-  ApiRejection,
-  WriteResult,
-} from "@/core/api/write-submission";
+import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
 import {
   forgetReads,
   refreshAfterWrite,
@@ -38,6 +34,8 @@ type ChangeSource = "savings" | "other";
 interface WalletManagementProps {
   wallet: Wallet;
 }
+
+const NO_OUTCOME = { error: "", notice: "" };
 
 /** Each management task is its own card on the ground. */
 const manageCardClass =
@@ -94,7 +92,10 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   const [notice, setNotice] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [changeSource, setChangeSource] = useState<ChangeSource>("other");
-  const savingsChange = changeSource === "savings";
+  // A change reads back in the card that made it, not in both.
+  const pageOutcome = changeSource === "other" ? { error, notice } : NO_OUTCOME;
+  const savingsOutcome =
+    changeSource === "savings" ? { error, notice } : NO_OUTCOME;
 
   const openingMutation = useApiMutation<WalletOpeningRequest, Wallet>({
     send: (input) =>
@@ -144,7 +145,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       return;
     }
 
-    let result: WriteResult<Wallet>;
+    let result: Awaited<ReturnType<typeof openingMutation.submit>>;
     try {
       result = await openingMutation.submit({
         amount: {
@@ -173,13 +174,11 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
     change: Readonly<WalletStateRequest>,
     successNotice: string,
   ) {
-    let result: WriteResult<Wallet>;
+    let result: Awaited<ReturnType<typeof stateMutation.submit>>;
     try {
       result = await stateMutation.submit(change);
     } catch {
-      setError(
-        "The change could not be confirmed. Your values are kept; try again.",
-      );
+      setError("The change could not be confirmed. Try again.");
       return;
     }
     if (!result.ok) {
@@ -190,6 +189,9 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   }
 
   async function submitArchiveState() {
+    if (pending) {
+      return;
+    }
     beginChange();
     const nextArchived = !archived;
     await submitState(
@@ -201,6 +203,9 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   }
 
   async function submitSavingsState() {
+    if (pending) {
+      return;
+    }
     beginChange("savings");
     const savings = !wallet.savings;
     await submitState(
@@ -213,7 +218,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
 
   async function submitDelete() {
     beginChange();
-    let result: WriteResult<unknown>;
+    let result: Awaited<ReturnType<typeof deleteMutation.submit>>;
     try {
       result = await deleteMutation.submit(undefined);
     } catch {
@@ -247,7 +252,8 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
             {wallet.name}
           </p>
           <p className="text-muted-foreground text-sm">
-            Current balance{archived ? " · Archived" : ""}
+            Current balance{wallet.savings ? " · Savings" : ""}
+            {archived ? " · Archived" : ""}
           </p>
           <Money
             amount={wallet.balance}
@@ -255,18 +261,22 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           />
         </div>
       </section>
-      {error && !savingsChange && (
+      {pageOutcome.error && (
         <div id="wallet-error">
-          <ErrorNotice>{error}</ErrorNotice>
+          <ErrorNotice>{pageOutcome.error}</ErrorNotice>
         </div>
       )}
-      {notice && !savingsChange && <SavedNotice>{notice}</SavedNotice>}
+      {changeSource === "other" && (
+        <SavedNotice className={cn(!pageOutcome.notice && "sr-only")}>
+          {pageOutcome.notice}
+        </SavedNotice>
+      )}
       <form
         onSubmit={(event) => {
           event.preventDefault();
           void submitOpening();
         }}
-        aria-describedby={error && !savingsChange ? "wallet-error" : undefined}
+        aria-describedby={pageOutcome.error ? "wallet-error" : undefined}
         className={cn(manageCardClass, "gap-5")}
       >
         <div className="flex flex-col gap-1.5">
@@ -328,28 +338,34 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
             className="text-muted-foreground text-sm leading-normal"
           >
             {wallet.savings
-              ? "Its balance counts in Set aside instead of Spendable."
-              : "Its balance counts in Spendable. Mark it to count in Set aside instead."}{" "}
-            The marker does not change its type, balance or transactions.
+              ? "This is a Savings wallet. Its balance counts in Set aside."
+              : "This is not a Savings wallet. Its balance counts in Spendable."}{" "}
+            Its type, balance and transactions stay the same.
           </p>
         </div>
         <Button
           variant="outline"
           size="lg"
-          className="h-auto min-h-11 max-w-full self-start py-2.5 text-left whitespace-normal sm:h-auto sm:min-h-10 sm:py-2"
+          className="h-auto min-h-11 max-w-full self-start py-2.5 text-left whitespace-normal aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-auto sm:min-h-10 sm:py-2"
           aria-describedby="savings-description"
-          disabled={pending}
+          aria-disabled={pending}
           onClick={() => void submitSavingsState()}
         >
           <PiggyBank data-icon="inline-start" strokeWidth={1.75} />
-          {stateMutation.isPending && savingsChange
+          {stateMutation.isPending && changeSource === "savings"
             ? "Saving…"
             : wallet.savings
-              ? "Remove Savings wallet marker"
+              ? "Unmark as a Savings wallet"
               : "Mark as a Savings wallet"}
         </Button>
-        {error && savingsChange && <ErrorNotice>{error}</ErrorNotice>}
-        {notice && savingsChange && <SavedNotice>{notice}</SavedNotice>}
+        {savingsOutcome.error && (
+          <ErrorNotice>{savingsOutcome.error}</ErrorNotice>
+        )}
+        {changeSource === "savings" && (
+          <SavedNotice className={cn(!savingsOutcome.notice && "sr-only")}>
+            {savingsOutcome.notice}
+          </SavedNotice>
+        )}
       </section>
       <section aria-labelledby="archive-heading" className={manageCardClass}>
         <div className="flex flex-col gap-1.5">
@@ -365,8 +381,8 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
         <Button
           variant="outline"
           size="lg"
-          className="self-start"
-          disabled={pending}
+          className="self-start aria-disabled:pointer-events-none aria-disabled:opacity-50"
+          aria-disabled={pending}
           onClick={() => void submitArchiveState()}
         >
           {archived ? (

@@ -45,7 +45,6 @@ a request body.
 | `createWalletAction`                       | `createWallet`         | `wallet.routes.integration.test.ts` |
 | `manageWalletAction` — opening correction  | `replaceWalletOpening` | `wallet.routes.integration.test.ts` |
 | `manageWalletAction` — archive and restore | `changeWalletState`    | `wallet.routes.integration.test.ts` |
-| manage page — Savings wallet marker        | `changeWalletState`    | `wallet.routes.integration.test.ts` |
 | `manageWalletAction` — delete              | `deleteWallet`         | `wallet.routes.integration.test.ts` |
 
 ## Categories

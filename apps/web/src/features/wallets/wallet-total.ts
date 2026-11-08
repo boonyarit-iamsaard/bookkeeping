@@ -5,7 +5,7 @@ import type { components } from "@/core/api/openapi.gen";
 
 type WalletSummary = components["schemas"]["Wallet"];
 
-interface WalletBalanceSplit {
+export interface WalletBalanceSplit {
   total: ApiMoney;
   spendable: ApiMoney;
   setAside: ApiMoney;

@@ -151,17 +151,14 @@ export function CreateWalletForm({
               const invalid =
                 !field.state.meta.isValid || Boolean(serverFieldErrors.savings);
               return (
-                <Field
-                  data-invalid={invalid}
-                  aria-labelledby="wallet-savings-label"
-                  aria-describedby="wallet-savings-description"
-                >
+                <Field data-invalid={invalid}>
                   <FieldLabel id="wallet-savings-label">
                     Savings wallet
                   </FieldLabel>
                   <SegmentedControl
                     name={field.name}
                     aria-labelledby="wallet-savings-label"
+                    aria-describedby="wallet-savings-description"
                     options={SAVINGS_OPTIONS}
                     value={field.state.value ? "on" : "off"}
                     onValueChange={(value) =>
@@ -169,8 +166,8 @@ export function CreateWalletForm({
                     }
                   />
                   <FieldDescription id="wallet-savings-description">
-                    When on, this wallet's balance counts in Set aside instead
-                    of Spendable. Recording stays the same.
+                    Its balance counts in Set aside instead of Spendable. You
+                    can still record against it.
                   </FieldDescription>
                   <FieldErrors
                     id={`${field.name}-error`}

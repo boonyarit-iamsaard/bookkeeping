@@ -1,81 +1,13 @@
 import type { Database } from "@bookkeeping/database/connection";
-import { transactions } from "@bookkeeping/database/transactions";
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
-import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type {
   WalletSnapshot,
   WalletSummary,
 } from "@bookkeeping/domain/wallets";
-import type { SQL } from "drizzle-orm";
-import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
-
-interface WalletSummaryQuery {
-  ownerId: string;
-  asOf: CalendarDate;
-  /** Narrows beyond ownership; the owner condition is always applied. */
-  filter?: SQL;
-}
-
-/**
- * The signed sum of the joined transactions' effect on `wallets.id`, as a
- * decimal string; zero when none joined. Pair it with `movesWallet`.
- */
-export const walletMovement = sql<string>`coalesce(sum(case ${transactions.type}
-    when 'income' then ${transactions.amount}
-    when 'expense' then -${transactions.amount}
-    when 'refund' then ${transactions.amount}
-    when 'transfer' then case when ${transactions.walletId} = ${wallets.id} then -${transactions.amount} else ${transactions.amount} end
-    else 0 end), 0)`;
-
-/** Joins the current transactions that move `wallets.id`, narrowed by `filter`. */
-export function movesWallet(filter: SQL | undefined) {
-  return and(
-    or(
-      eq(transactions.walletId, wallets.id),
-      eq(transactions.destinationWalletId, wallets.id),
-    ),
-    isNull(transactions.deletedAt),
-    filter,
-  );
-}
-
-export async function selectWalletSummaries(
-  db: Database,
-  { ownerId, asOf, filter }: Readonly<WalletSummaryQuery>,
-): Promise<WalletSummary[]> {
-  const rows = await db
-    .select({
-      id: wallets.id,
-      name: wallets.name,
-      type: wallets.type,
-      openingAmount: wallets.openingAmount,
-      openingDate: wallets.openingDate,
-      archivedAt: wallets.archivedAt,
-      savings: wallets.savings,
-      movement: walletMovement,
-    })
-    .from(wallets)
-    .leftJoin(
-      transactions,
-      movesWallet(lte(transactions.transactionDate, asOf)),
-    )
-    .where(and(eq(wallets.userId, ownerId), filter))
-    .groupBy(wallets.id)
-    .orderBy(asc(wallets.createdAt), asc(wallets.id));
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    currency: "THB",
-    openingAmount: row.openingAmount,
-    openingDate: row.openingDate,
-    archivedAt: row.archivedAt,
-    savings: row.savings,
-    balance:
-      row.openingDate <= asOf ? row.openingAmount + BigInt(row.movement) : 0n,
-  }));
-}
+import { and, eq } from "drizzle-orm";
+import type { WalletRef } from "./wallet";
+import { selectWalletSummaries } from "./wallet-balance";
 
 type WalletRow = typeof wallets.$inferSelect;
 type WalletChangeAction =
@@ -85,9 +17,19 @@ type WalletChangeAction =
   | "mark-savings"
   | "unmark-savings";
 
-interface WalletChangeRef {
-  ownerId: string;
+interface WalletUpdate {
   id: string;
+  set:
+    | { archivedAt: Date | null }
+    | { savings: boolean }
+    | Pick<WalletRow, "openingAmount" | "openingDate">;
+}
+
+interface WalletChangeRecord {
+  ref: WalletRef;
+  action: WalletChangeAction;
+  before: WalletRow;
+  after: WalletRow;
 }
 
 function snapshotWallet(
@@ -109,7 +51,7 @@ function snapshotWallet(
  */
 export async function loadWalletForUpdate(
   db: Database,
-  ref: Readonly<WalletChangeRef>,
+  ref: Readonly<WalletRef>,
 ): Promise<WalletRow | null> {
   const [current] = await db
     .select()
@@ -126,13 +68,7 @@ export async function loadWalletForUpdate(
  */
 export async function updateWallet(
   db: Database,
-  change: Readonly<{
-    id: string;
-    set:
-      | { archivedAt: Date | null }
-      | { savings: boolean }
-      | Pick<WalletRow, "openingAmount" | "openingDate">;
-  }>,
+  change: Readonly<WalletUpdate>,
 ): Promise<WalletRow> {
   const [updated] = await db
     .update(wallets)
@@ -148,12 +84,7 @@ export async function updateWallet(
 /** Retains the before and after of a wallet change in internal history. */
 export async function recordWalletChange(
   db: Database,
-  change: Readonly<{
-    ref: WalletChangeRef;
-    action: WalletChangeAction;
-    before: WalletRow;
-    after: WalletRow;
-  }>,
+  change: Readonly<WalletChangeRecord>,
 ): Promise<void> {
   await db.insert(walletChanges).values({
     userId: change.ref.ownerId,
@@ -170,7 +101,7 @@ export async function recordWalletChange(
  */
 export async function readWalletSummaryAfterChange(
   db: Database,
-  ref: Readonly<WalletChangeRef>,
+  ref: Readonly<WalletRef>,
 ): Promise<WalletSummary> {
   const [wallet] = await selectWalletSummaries(db, {
     ownerId: ref.ownerId,

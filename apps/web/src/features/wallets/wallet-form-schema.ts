@@ -19,7 +19,7 @@ const AMOUNT_MESSAGES: Record<MoneyParseError, string> = {
 export const walletFormSchema = z.object({
   name: z.string().trim().min(1, "Enter a wallet name"),
   type: z.enum(WALLET_TYPES, { error: "Choose a wallet type" }),
-  savings: z.boolean().default(false),
+  savings: z.boolean(),
   openingAmount: z.string().transform((raw, ctx) => {
     const result = parseMoneyInput({ text: raw, currency: "THB" });
     if (!result.ok) {

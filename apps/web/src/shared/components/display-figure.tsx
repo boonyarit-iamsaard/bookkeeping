@@ -11,7 +11,7 @@ interface DisplayFigureProps {
   headingId: string;
   /** The Caption beneath, saying what the figure covers. */
   caption: React.ReactNode;
-  /** Secondary facts between the figure and its caption, when needed. */
+  /** Secondary facts beneath the caption, when needed. */
   children?: React.ReactNode;
   /** Shared with the card that opens this screen, which grows into the hero. */
   morphName?: string;
@@ -44,7 +44,7 @@ function HeroCoin() {
 
 /**
  * A screen's one large figure on the Midnight hero card: its label, the
- * figure with the ฿ and satang stepped down, and the Caption beneath.
+ * figure with the ฿ and satang stepped down, and the Caption beneath it.
  */
 export function DisplayFigure({
   amount,
@@ -68,8 +68,8 @@ export function DisplayFigure({
       <p className="mt-auto pt-4 text-4xl leading-none font-bold tracking-[-0.025em] sm:text-5xl">
         <Money amount={amount} sign={sign} display className="font-bold" />
       </p>
-      {children}
       <p className="text-hero-muted mt-3 text-sm">{caption}</p>
+      {children}
     </section>
   );
 }

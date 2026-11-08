@@ -13,7 +13,7 @@ import {
   softDelete,
   withClock,
 } from "../testing/transaction-suite-fixture";
-import { archiveWallet } from "../testing/wallet-fixture";
+import { archiveForTest } from "../testing/wallet-fixture";
 import { listWallets } from "../wallets/wallet";
 import type { CreateTransactionInput } from "./transaction";
 import {
@@ -469,7 +469,7 @@ describe("updateTransaction", () => {
           .update(wallets)
           .set({ archivedAt: new Date() })
           .where(inArray(wallets.id, [context.bankId]));
-        // Retaining its own archived wallet is allowed.
+        // Keeping its own archived wallet is allowed.
         expect(
           (
             await updateTransaction(db, {
@@ -768,7 +768,7 @@ describe("updateTransaction", () => {
             });
         const competingWrite =
           conflict === "archive"
-            ? archiveWallet(db, { ownerId, id: receiver })
+            ? archiveForTest(db, { ownerId, id: receiver })
             : conflict === "delete"
               ? deleteTransaction(db, { ownerId, id: expense.id })
               : updateTransaction(db, {

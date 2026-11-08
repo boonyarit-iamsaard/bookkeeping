@@ -7,7 +7,7 @@ import { useState } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useApiMutation } from "@/core/api/use-api-mutation";
-import type { ApiFieldError, WriteResult } from "@/core/api/write-submission";
+import type { ApiFieldError } from "@/core/api/write-submission";
 import { createFieldOf } from "@/core/api/write-submission";
 import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { WalletFormInput } from "@/features/wallets/wallet-form-schema";
@@ -85,7 +85,7 @@ export function useCreateWalletForm({
         return;
       }
 
-      let result: WriteResult<Wallet>;
+      let result: Awaited<ReturnType<typeof createWallet.submit>>;
       try {
         result = await createWallet.submit({
           name: parsed.data.name,

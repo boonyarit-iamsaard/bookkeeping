@@ -23,5 +23,6 @@ export interface WalletSnapshot {
   openingAmount: string;
   openingDate: string;
   archivedAt: string | null;
-  savings: boolean;
+  /** Absent from history written before the marker existed. */
+  savings?: boolean;
 }

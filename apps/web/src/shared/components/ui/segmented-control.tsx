@@ -15,6 +15,7 @@ export interface SegmentedControlProps<Value extends string> {
   onValueChange: (value: Value) => void;
   name?: string;
   "aria-labelledby"?: string;
+  "aria-describedby"?: string;
   className?: string;
   /** Added to every segment, for a field whose longest label needs the room. */
   optionClassName?: string;
@@ -32,6 +33,7 @@ export function SegmentedControl<Value extends string>({
   className,
   optionClassName,
   "aria-labelledby": ariaLabelledBy,
+  "aria-describedby": ariaDescribedBy,
 }: Readonly<SegmentedControlProps<Value>>) {
   const selectedIndex = Math.max(
     0,
@@ -44,6 +46,7 @@ export function SegmentedControl<Value extends string>({
       value={value}
       onValueChange={(next) => onValueChange(next)}
       aria-labelledby={ariaLabelledBy}
+      aria-describedby={ariaDescribedBy}
       // 52px on phone keeps a 4px inset around 44px segments; 44px from 640px.
       className={cn(
         "bg-muted relative grid h-13 rounded-lg p-1 sm:h-11",
