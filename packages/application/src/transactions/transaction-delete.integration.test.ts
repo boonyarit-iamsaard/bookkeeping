@@ -489,6 +489,7 @@ describe("deleteTransaction", () => {
         amount: 15_000n,
         transactionDate: "2026-09-02",
         note: "Weekly shop",
+        tagIds: [],
       }),
     ]);
 

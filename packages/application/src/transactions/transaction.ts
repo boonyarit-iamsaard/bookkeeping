@@ -477,8 +477,8 @@ export interface UpdateTransactionInput {
   amount: bigint;
   transactionDate: CalendarDate;
   note: string;
-  /** Replaces the tags carried; omitted keeps them, so a client unaware of tags never drops any. */
-  tagIds?: readonly string[];
+  /** Every tag the transaction carries afterwards; an empty list removes them all. */
+  tagIds: readonly string[];
 }
 
 export type UpdateTransactionError =
@@ -544,7 +544,7 @@ export async function updateTransaction(
       amount: input.amount,
       transactionDate: input.transactionDate,
       note: input.note,
-      tagIds: input.tagIds ?? currentTagIds,
+      tagIds: input.tagIds,
     });
     const accepted = await judgeTransaction(tx, {
       ownerId: input.ownerId,

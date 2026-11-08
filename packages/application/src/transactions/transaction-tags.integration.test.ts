@@ -159,39 +159,6 @@ describe("tagging on correction", () => {
     });
   });
 
-  test("a correction that names no tags keeps the ones carried", async () => {
-    await withRollback(async (db) => {
-      const owner = await setupOwner(db);
-      const coffee = await createTagForTest(db, {
-        ownerId: owner.ownerId,
-        name: "Coffee",
-      });
-      const expense = await record(
-        db,
-        expenseInput(owner, { tagIds: [coffee] }),
-      );
-
-      const updated = await updateTransaction(db, {
-        ownerId: owner.ownerId,
-        id: expense.id,
-        walletId: owner.cashId,
-        categoryId: owner.childId,
-        amount: 7_000n,
-        transactionDate: "2026-09-02",
-        note: "",
-      });
-
-      expect(updated.ok && updated.value.tags).toEqual([
-        { id: coffee, name: "Coffee" },
-      ]);
-      const changes = await listTransactionChanges(db, {
-        ownerId: owner.ownerId,
-        id: expense.id,
-      });
-      expect(changes.map((change) => change.after?.tagIds)).toEqual([[coffee]]);
-    });
-  });
-
   test("repeating the same tags in another order changes nothing and records nothing", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);

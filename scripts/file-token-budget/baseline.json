@@ -19,8 +19,8 @@
   "packages/application/src/categories/category.integration.test.ts": 42405,
   "packages/application/src/categories/category.ts": 24260,
   "packages/application/src/transactions/transaction-create.integration.test.ts": 56825,
-  "packages/application/src/transactions/transaction-reads.integration.test.ts": 29074,
-  "packages/application/src/transactions/transaction-update.integration.test.ts": 41596,
-  "packages/application/src/transactions/transaction.ts": 24729,
+  "packages/application/src/transactions/transaction-reads.integration.test.ts": 28725,
+  "packages/application/src/transactions/transaction-update.integration.test.ts": 41567,
+  "packages/application/src/transactions/transaction.ts": 24697,
   "packages/application/src/wallets/wallet.integration.test.ts": 28225
 }

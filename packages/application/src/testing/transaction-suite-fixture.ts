@@ -138,6 +138,7 @@ export function expenseUpdateInput({
     amount: 50_000n,
     transactionDate: "2026-09-02",
     note: "Weekly shop",
+    tagIds: [],
   };
 }
 
