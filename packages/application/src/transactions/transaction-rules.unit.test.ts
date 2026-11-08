@@ -349,14 +349,21 @@ describe("tags", () => {
     ).toEqual({ ok: false, error: { field: "tagIds", code: "tag-not-found" } });
   });
 
-  test("more than ten tags is refused before any record is consulted", () => {
-    const eleven = Array.from(
-      { length: 11 },
+  test("five tags are allowed and a sixth is refused before any record is consulted", () => {
+    const six = Array.from(
+      { length: 6 },
       (_, index) =>
         `0192f7a0-0000-7000-8000-${String(300 + index).padStart(12, "0")}`,
     );
+    const five = six.slice(0, 5);
 
-    expect(acceptTransaction({ ...expense, tagIds: eleven }, facts)).toEqual({
+    expect(
+      acceptTransaction(
+        { ...expense, tagIds: five },
+        { ...facts, tagIds: five },
+      ),
+    ).toEqual({ ok: true, value: { ...expense, tagIds: five } });
+    expect(acceptTransaction({ ...expense, tagIds: six }, facts)).toEqual({
       ok: false,
       error: { field: "tagIds", code: "too-many-tags" },
     });

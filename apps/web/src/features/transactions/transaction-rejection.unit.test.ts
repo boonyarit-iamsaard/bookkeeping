@@ -76,7 +76,7 @@ const REJECTIONS: Record<TransactionRejectionCode, ExpectedRejection> = {
   "too-many-tags": {
     pointer: "#/tagIds",
     field: undefined,
-    message: "A transaction can carry at most 10 tags",
+    message: "A transaction can carry at most 5 tags",
   },
   "tag-not-found": {
     pointer: "#/tagIds",

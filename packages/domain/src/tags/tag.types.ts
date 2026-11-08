@@ -2,7 +2,7 @@
 export const MAX_TAG_NAME_LENGTH = 40;
 
 /** How many tags one transaction may carry. */
-export const MAX_TAGS_PER_TRANSACTION = 10;
+export const MAX_TAGS_PER_TRANSACTION = 5;
 
 /**
  * Surrounding whitespace never counts; inner spacing is kept as typed.
