@@ -28,7 +28,7 @@ const IDENTIFIER_PATTERNS = [
   {
     kind: "personal email address",
     pattern:
-      /[\w.%+-]+@(?:gmail|googlemail|outlook|hotmail|live|yahoo|icloud|me|proton|protonmail)\.[a-z.]{2,}/gi,
+      /(?<![\w.%+-])[\w.%+-]+@(?:gmail|googlemail|outlook|hotmail|live|yahoo|icloud|me|proton|protonmail)\.[a-z.]{2,}/gi,
   },
 ] as const;
 

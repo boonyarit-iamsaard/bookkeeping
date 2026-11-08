@@ -33,7 +33,7 @@ function findSqlFiles(rootDirectory: string): string[] {
   }
 
   visit(rootDirectory);
-  return files.sort();
+  return files.sort((left, right) => left.localeCompare(right));
 }
 
 // Runs the bin through Node rather than the `pnpm` shim, which Windows cannot

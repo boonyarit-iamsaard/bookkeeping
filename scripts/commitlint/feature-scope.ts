@@ -49,7 +49,7 @@ export function findFeatureScopes(paths: readonly string[]): FeatureScope[] {
     }
   }
 
-  return [...scopes].sort();
+  return [...scopes].sort((left, right) => left.localeCompare(right));
 }
 
 export interface FeatureScopeInput {
