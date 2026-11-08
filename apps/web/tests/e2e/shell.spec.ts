@@ -470,9 +470,9 @@ test("phone form controls keep a 44px touch target", async ({ page }) => {
   await expectTouchTarget(page.getByRole("button", { name: "Yesterday" }));
   const note = page.getByLabel("Note");
   await expectTouchTarget(note);
-  // The fixed Save bar stays in the thumb zone as the form scrolls beneath it.
+  // Compare form controls, not fields scrolling under the fixed title bar.
   await note.evaluate((element) => element.scrollIntoView({ block: "center" }));
-  await expectNoOverlappingTouchTargets(page.locator("main"));
+  await expectNoOverlappingTouchTargets(page.locator("form"));
 
   // Segmented segments sit in a 52px track with a 4px inset on phone.
   const type = page.getByRole("radiogroup", { name: "Type" });
