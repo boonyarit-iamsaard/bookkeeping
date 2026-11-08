@@ -102,7 +102,7 @@ A selectable category at the second and final level of an income or expense cate
 A protected parent category in each income and expense tree, used by default and as a fallback when a parent is removed. It cannot be removed or renamed and has no children.
 
 **Tag**:
-A named label an Account reuses across its income and expense transactions to mark something that repeats but is not a category, such as a shop or a game. A transaction carries any number of tags; a refund carries its expense's tags and a transfer carries none. Names are unique per Account, ignoring case and whitespace.
+A named label an Account reuses across its income and expense transactions to mark something that repeats but is not a category, such as a shop or a game. An income or expense carries up to five tags; a refund carries its expense's tags and a transfer carries none. Names are unique per Account, ignoring case and surrounding whitespace.
 _Avoid_: Label, payee, merchant
 
 **Note**:

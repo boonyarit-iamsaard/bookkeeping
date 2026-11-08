@@ -110,6 +110,25 @@ test("creates a tag inline on an expense, filters history, and merges it from Ta
   await tagsField.click();
   const picker = page.getByRole("dialog", { name: "Tags", exact: true });
   const search = picker.getByRole("searchbox", { name: "Search tags" });
+  await search.fill("Coffee");
+  for (const key of ["Home", "End"]) {
+    await search.focus();
+    await search.press(key);
+    await expect(search).toBeFocused();
+  }
+  await search.focus();
+  await search.dispatchEvent("keydown", {
+    key: "Enter",
+    code: "Enter",
+    isComposing: true,
+  });
+  const coffeeOption = picker.getByRole("button", { name: /^Coffee/ });
+  await expect(coffeeOption).toHaveAttribute("aria-pressed", "false");
+  await expect(search).toHaveValue("Coffee");
+  await search.press("ArrowDown");
+  await expect(coffeeOption).toBeFocused();
+  await coffeeOption.press("ArrowUp");
+  await expect(search).toBeFocused();
   await search.fill("Corner cafe");
   await picker.getByRole("button", { name: /Create “Corner cafe”/ }).click();
   await expect(search).toHaveValue("", ROUND_TRIP);

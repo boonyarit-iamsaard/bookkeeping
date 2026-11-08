@@ -199,7 +199,7 @@ function TagSheet({
   const tooLong = typed.length > MAX_TAG_NAME_LENGTH;
 
   async function createTyped() {
-    if (!offerCreate || full || tooLong) {
+    if (!offerCreate || full || tooLong || isPending) {
       return;
     }
     const created = await create(typed);

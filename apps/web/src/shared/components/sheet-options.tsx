@@ -59,12 +59,17 @@ export function useSheetOptions() {
       event: React.KeyboardEvent<HTMLInputElement>,
       onEnter: () => void = () => options()[0]?.click(),
     ) {
+      if (event.nativeEvent.isComposing) {
+        return;
+      }
       if (event.key === "Enter") {
         event.preventDefault();
         onEnter();
         return;
       }
-      moveFocus(event, -1);
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        moveFocus(event, -1);
+      }
     },
   };
 }
