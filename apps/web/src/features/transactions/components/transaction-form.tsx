@@ -37,7 +37,10 @@ import {
   uncategorizedFor,
   useTransactionForm,
 } from "@/features/transactions/hooks/use-transaction-form";
-import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
+import type {
+  EditableTransaction,
+  LinkedExpenseView,
+} from "@/features/transactions/transaction.types";
 import type {
   LinkedExpenseLimits,
   TransactionFormInput,
@@ -62,23 +65,6 @@ const TYPE_OPTIONS = CREATABLE_TRANSACTION_TYPES.map((value) => ({
 }));
 
 /** An existing transaction as the edit form loads it. */
-export interface EditableTransaction {
-  id: string;
-  type: TransactionType;
-  walletId: string;
-  categoryId: string;
-  destinationWalletId: string;
-  /** The stored amount in baht text, e.g. "120.00", exactly as saved. */
-  amountText: string;
-  transactionDate: CalendarDate;
-  note: string;
-  /** "13 Sep 2026, 14:32", already in Bangkok time. */
-  recordedLabel: string;
-  /** Set when the transaction is a refund. */
-  refundOf?: LinkedExpenseView;
-  /** For an expense: what its linked refunds add up to, if any. */
-  refundedLabel?: string;
-}
 
 export type TransactionFormMode =
   | {
@@ -279,7 +265,7 @@ export function TransactionForm({
       today: initialToday,
     }),
     linkedExpense,
-    editingId: editing?.id,
+    editing,
     captureOrigin: mode.kind === "create" ? mode.captureOrigin : undefined,
   });
   const today = useBangkokToday(initialToday);

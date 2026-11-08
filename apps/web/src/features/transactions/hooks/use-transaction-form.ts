@@ -13,6 +13,7 @@ import { pickFieldErrors } from "@/core/api/write-submission";
 import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { CaptureOrigin } from "@/features/transactions/capture-origin";
 import { captureReturnHref } from "@/features/transactions/capture-origin";
+import type { EditableTransaction } from "@/features/transactions/transaction.types";
 import type {
   LinkedExpenseLimits,
   TransactionFormInput,
@@ -46,7 +47,7 @@ interface UseTransactionFormOptions {
   /** Set when the form records or corrects a refund of one expense. */
   linkedExpense?: LinkedExpenseLimits;
   /** Set when the form corrects an existing transaction instead of recording one. */
-  editingId?: string;
+  editing?: Pick<EditableTransaction, "id" | "tagIds">;
   /** Set only for a new entry that returns to its opening screen. */
   captureOrigin?: CaptureOrigin;
 }
@@ -100,6 +101,7 @@ function toCreateTransactionRequest(
 /** An edit carries every field but the type and the expense link, which are fixed. */
 function toUpdateTransactionRequest(
   values: Readonly<TransactionFormValues>,
+  tagIds: readonly string[],
 ): UpdateTransactionRequest {
   const request: UpdateTransactionRequest = {
     amount: {
@@ -112,6 +114,7 @@ function toUpdateTransactionRequest(
     walletId: values.walletId,
     transactionDate: values.transactionDate,
     note: values.note,
+    tagIds: [...tagIds],
   };
   if (values.type === "transfer") {
     return { ...request, destinationWalletId: values.destinationWalletId };
@@ -144,7 +147,7 @@ export function useTransactionForm({
   categories,
   initialValues,
   linkedExpense,
-  editingId,
+  editing,
   captureOrigin,
 }: Readonly<UseTransactionFormOptions>) {
   const navigate = useNavigate();
@@ -183,7 +186,7 @@ export function useTransactionForm({
   >({
     send: (input) =>
       apiClient.PUT("/v1/transactions/{transactionId}", {
-        params: { path: { transactionId: editingId ?? "" } },
+        params: { path: { transactionId: editing?.id ?? "" } },
         body: input,
       }),
     describeFieldError: describeTransactionFieldError,
@@ -207,9 +210,9 @@ export function useTransactionForm({
 
       let result: Awaited<ReturnType<typeof createTransaction.submit>>;
       try {
-        result = editingId
+        result = editing
           ? await updateTransaction.submit(
-              toUpdateTransactionRequest(parsed.data),
+              toUpdateTransactionRequest(parsed.data, editing.tagIds),
             )
           : await createTransaction.submit(
               toCreateTransactionRequest(parsed.data),

@@ -31,7 +31,10 @@ import {
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import type { ContractExchange } from "../../testing/expect-documented-exchange.js";
-import { expectDocumentedExchange } from "../../testing/expect-documented-exchange.js";
+import {
+  createCollector,
+  expectDocumentedExchange,
+} from "../../testing/expect-documented-exchange.js";
 import {
   fetchDocument,
   publishedOperationIds,
@@ -109,22 +112,6 @@ const UNKNOWN_WALLET_ID = "01999999-0000-7000-8000-000000000000";
 const OPENING_DATE = "2026-09-01";
 const ENTRY_DATE = "2026-09-02";
 const REPORT_MONTH = "2026-09";
-
-interface ExchangeCollector {
-  exchanges: ContractExchange[];
-  record: (exchange: ContractExchange) => Response;
-}
-
-function createCollector(): ExchangeCollector {
-  const exchanges: ContractExchange[] = [];
-  return {
-    exchanges,
-    record(exchange) {
-      exchanges.push(exchange);
-      return exchange.response;
-    },
-  };
-}
 
 async function readId(response: Response): Promise<string> {
   const body = z.object({ id: z.uuid() }).parse(await response.clone().json());
@@ -366,6 +353,7 @@ describe("published API contract", () => {
             categoryId: expenseCategory.id,
             transactionDate: ENTRY_DATE,
             note: "Corrected",
+            tagIds: [],
           },
         }),
       });

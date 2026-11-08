@@ -25,7 +25,7 @@ const expense: components["schemas"]["Transaction"] = {
     parentName: "Food & Drink",
   },
   refundOf: null,
-  tags: [],
+  tags: [{ id: "tag-1", name: "Coffee" }],
 };
 
 const refunds: components["schemas"]["TransactionRefunds"] = {
@@ -48,7 +48,7 @@ const refunds: components["schemas"]["TransactionRefunds"] = {
 };
 
 describe("editableTransaction", () => {
-  test("loads an expense with its category, amount text, and refund footer", () => {
+  test("loads an expense with its category, amount text, tags, and refund footer", () => {
     expect(editableTransaction({ transaction: expense, refunds })).toEqual({
       id: "expense-1",
       type: "expense",
@@ -58,6 +58,7 @@ describe("editableTransaction", () => {
       amountText: "500.00",
       transactionDate: "2026-09-02",
       note: "Kettle",
+      tagIds: ["tag-1"],
       recordedLabel: "2 Sep 2026, 12:04",
       refundOf: undefined,
       refundedLabel: "฿150.00",

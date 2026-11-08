@@ -54,3 +54,20 @@ export async function expectDocumentedExchange(
   // wire, so the parsed body round-trips to exactly what was sent.
   expect(JSON.parse(JSON.stringify(parsed.data))).toEqual(body);
 }
+
+export interface ExchangeCollector {
+  exchanges: ContractExchange[];
+  record: (exchange: ContractExchange) => Response;
+}
+
+/** Gathers the exchanges a contract test records, handing each response back. */
+export function createCollector(): ExchangeCollector {
+  const exchanges: ContractExchange[] = [];
+  return {
+    exchanges,
+    record(exchange) {
+      exchanges.push(exchange);
+      return exchange.response;
+    },
+  };
+}

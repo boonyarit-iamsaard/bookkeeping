@@ -134,6 +134,47 @@ describe("transaction tags over HTTP", () => {
     });
   });
 
+  test("an edit must name its tags: an empty list removes them, none at all is refused", async () => {
+    await withRollback(async (db) => {
+      const app = createIntegrationTestApp(db, {
+        auth: createTestAuthGateway(db),
+      });
+      const owner = await createTaggingOwner(db);
+      const expense = transactionResponseSchema.parse(
+        await (
+          await request(app, {
+            method: "POST",
+            cookie: owner.cookie,
+            idempotencyKey: "edit-tags",
+            body: expenseBody(owner, [owner.coffeeId]),
+          })
+        ).json(),
+      );
+      const { type: _type, ...correction } = expenseBody(owner);
+
+      const unnamed = await request(app, {
+        method: "PUT",
+        path: `/${expense.id}`,
+        cookie: owner.cookie,
+        body: correction,
+      });
+      const cleared = await request(app, {
+        method: "PUT",
+        path: `/${expense.id}`,
+        cookie: owner.cookie,
+        body: { ...correction, tagIds: [] },
+      });
+
+      expect(await expectRejection(unnamed)).toEqual([
+        { pointer: "#/tagIds", code: "invalid-type" },
+      ]);
+      expect(cleared.status).toBe(200);
+      expect(
+        transactionResponseSchema.parse(await cleared.json()).tags,
+      ).toEqual([]);
+    });
+  });
+
   test("maps tag rejections and malformed tag ids to the tag list", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {

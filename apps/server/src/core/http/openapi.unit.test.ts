@@ -639,6 +639,13 @@ describe("OpenAPI document", () => {
       ]),
     );
 
+    const transactionIdParameter = [
+      expect.objectContaining({
+        in: "path",
+        name: "transactionId",
+        required: true,
+      }),
+    ];
     expect(resource.operationId).toBe("getTransaction");
     expect(
       documentedSchemaRef(resource, {
@@ -647,26 +654,14 @@ describe("OpenAPI document", () => {
       }),
     ).toBe("#/components/schemas/Transaction");
     expectProblemResponses(resource, ["401", "404"]);
-    expect(resource.parameters).toEqual([
-      expect.objectContaining({
-        in: "path",
-        name: "transactionId",
-        required: true,
-      }),
-    ]);
+    expect(resource.parameters).toEqual(transactionIdParameter);
 
     expect(update.operationId).toBe("updateTransaction");
     expect(update.requestBody?.required).toBe(true);
     expect(update.requestBody?.content["application/json"].schema.$ref).toBe(
       "#/components/schemas/UpdateTransactionRequest",
     );
-    expect(update.parameters).toEqual([
-      expect.objectContaining({
-        in: "path",
-        name: "transactionId",
-        required: true,
-      }),
-    ]);
+    expect(update.parameters).toEqual(transactionIdParameter);
     expect(
       documentedSchemaRef(update, {
         status: "200",
@@ -685,6 +680,7 @@ describe("OpenAPI document", () => {
       "walletId",
       "transactionDate",
       "note",
+      "tagIds",
     ]);
     expect(updateSchema.properties).toEqual(
       expect.objectContaining({

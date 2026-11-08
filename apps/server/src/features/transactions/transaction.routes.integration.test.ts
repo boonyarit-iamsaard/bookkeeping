@@ -1,9 +1,9 @@
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import { insertTransaction } from "@bookkeeping/application/testing/transaction-fixture";
+import { softDelete } from "@bookkeeping/application/testing/transaction-suite-fixture";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
-import { transactions } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import type { WalletType } from "@bookkeeping/domain/wallets";
 import { eq } from "drizzle-orm";
@@ -118,13 +118,6 @@ async function createOwner({
     childId: child.id,
     incomeId: income.id,
   };
-}
-
-async function softDelete(db: Database, id: string): Promise<void> {
-  await db
-    .update(transactions)
-    .set({ deletedAt: new Date() })
-    .where(eq(transactions.id, id));
 }
 
 interface ReadRequest {
@@ -257,6 +250,7 @@ function updateExpenseBody(
     categoryId: owner.childId,
     transactionDate: "2026-09-02",
     note: "Lunch",
+    tagIds: [],
   };
 }
 
@@ -278,7 +272,8 @@ function putTransaction(
       origin: TEST_CLIENT_ORIGIN,
       ...(cookie ? { cookie } : {}),
     },
-    body: rawBody ?? JSON.stringify(body),
+    // An edit naming no tag change sends the tags carried: none here.
+    body: rawBody ?? JSON.stringify({ tagIds: [], ...Object(body) }),
   });
 }
 

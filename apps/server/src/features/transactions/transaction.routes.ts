@@ -86,8 +86,7 @@ export const transactionTagSchema = z
   .object({ id: z.uuid(), name: z.string() })
   .meta({ id: "TransactionTag" });
 
-// An update that omits it keeps the tags carried.
-const tagIdsInputSchema = z.array(z.uuid()).optional();
+const tagIdsInputSchema = z.array(z.uuid());
 
 export const transactionResponseSchema = z
   .object({
@@ -173,7 +172,7 @@ const createIncomeExpenseTransactionRequestSchema = z.strictObject({
   categoryId: z.uuid(),
   transactionDate: calendarDateInputSchema,
   note: z.string(),
-  tagIds: tagIdsInputSchema,
+  tagIds: tagIdsInputSchema.optional(),
 });
 
 const createTransferTransactionRequestSchema = z.strictObject({
@@ -619,11 +618,12 @@ export function createTransactionRoutes(db: Database) {
           "Corrects one of the signed-in owner's transactions with an exact " +
           "THB amount and a real calendar date. The transaction's type and " +
           "its expense link are fixed; the wallet, category, amount, date, " +
-          "note, and tags (kept when omitted) are re-validated against the owner's records, and the " +
+          "note, and tags are re-validated against the owner's records, and the " +
           "transaction may keep the archived wallets it already has. An " +
           "expense still covers every linked refund, and a refund stays " +
-          "within what remains of its expense. An update that changes " +
-          "nothing succeeds without effect, so a client may safely retry. " +
+          "within what remains of its expense. `tagIds` lists every tag; " +
+          "an empty list removes them. An update that changes nothing " +
+          "succeeds without effect, so a client may safely retry. " +
           "A transaction that does not exist, has been deleted, belongs to " +
           "another owner, or has a malformed identifier is not found alike.",
         tags: ["Transactions"],

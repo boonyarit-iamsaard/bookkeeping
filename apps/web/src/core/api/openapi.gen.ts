@@ -314,7 +314,7 @@ export interface paths {
         get: operations["getTransaction"];
         /**
          * Update a transaction
-         * @description Corrects one of the signed-in owner's transactions with an exact THB amount and a real calendar date. The transaction's type and its expense link are fixed; the wallet, category, amount, date, note, and tags (kept when omitted) are re-validated against the owner's records, and the transaction may keep the archived wallets it already has. An expense still covers every linked refund, and a refund stays within what remains of its expense. An update that changes nothing succeeds without effect, so a client may safely retry. A transaction that does not exist, has been deleted, belongs to another owner, or has a malformed identifier is not found alike.
+         * @description Corrects one of the signed-in owner's transactions with an exact THB amount and a real calendar date. The transaction's type and its expense link are fixed; the wallet, category, amount, date, note, and tags are re-validated against the owner's records, and the transaction may keep the archived wallets it already has. An expense still covers every linked refund, and a refund stays within what remains of its expense. `tagIds` lists every tag; an empty list removes them. An update that changes nothing succeeds without effect, so a client may safely retry. A transaction that does not exist, has been deleted, belongs to another owner, or has a malformed identifier is not found alike.
          */
         put: operations["updateTransaction"];
         post?: never;
@@ -807,7 +807,7 @@ export interface components {
             /** Format: uuid */
             destinationWalletId?: string;
             note: string;
-            tagIds?: string[];
+            tagIds: string[];
             transactionDate: string;
             /** Format: uuid */
             walletId: string;
