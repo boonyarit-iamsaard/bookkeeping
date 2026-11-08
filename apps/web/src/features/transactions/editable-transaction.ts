@@ -34,7 +34,8 @@ export function editableTransaction({
     amountText: formatApiMoneyInput(transaction.amount),
     transactionDate: transaction.transactionDate,
     note: transaction.note,
-    tagIds: transaction.tags.map((tag) => tag.id),
+    // A refund shows its expense's tags and never sends them back.
+    tagIds: refundOf ? [] : transaction.tags.map((tag) => tag.id),
     recordedLabel: formatInstant({
       instant: new Date(transaction.recordedAt),
       timeZone: APP_TIME_ZONE,

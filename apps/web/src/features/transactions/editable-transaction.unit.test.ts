@@ -65,7 +65,7 @@ describe("editableTransaction", () => {
     });
   });
 
-  test("leaves a refund's category empty and carries its expense", () => {
+  test("leaves a refund's category and tags empty and carries its expense", () => {
     const refundOf = {
       id: "expense-1",
       amountLabel: "฿500.00",
@@ -92,6 +92,7 @@ describe("editableTransaction", () => {
       refundOf,
     });
     expect(editable.categoryId).toBe("");
+    expect(editable.tagIds).toEqual([]);
     expect(editable.refundOf).toBe(refundOf);
     expect(editable.refundedLabel).toBeUndefined();
   });
