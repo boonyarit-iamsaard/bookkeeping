@@ -5,6 +5,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type { components } from "@/core/api/openapi.gen";
 import {
   categoryQueries,
+  tagQueries,
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/_app/transactions/$transactionId_/edit")(
       await Promise.all([
         context.queryClient.ensureQueryData(walletQueries.list()),
         context.queryClient.ensureQueryData(categoryQueries.list()),
+        context.queryClient.ensureQueryData(tagQueries.list()),
         transaction.refundOf
           ? context.queryClient.ensureQueryData(
               transactionQueries.detail(refundedExpenseId),

@@ -11,6 +11,7 @@ import {
   CategoryTile,
 } from "@/features/categories/components/category-icon";
 import { useCategoryColors } from "@/features/categories/hooks/use-category-colors";
+import { TagChip } from "@/features/tags/components/tag-chip";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
@@ -73,6 +74,31 @@ export function TransactionDetailView({
               </CategoryTile>
               {categoryLabel(transaction.category)}
             </span>
+          </Row>
+        )}
+        {transaction.type !== "transfer" && (
+          <Row term="Tags">
+            {transaction.tags.length > 0 ? (
+              <ul aria-label="Tags" className="-my-2 flex flex-wrap gap-x-1.5">
+                {transaction.tags.map((tag) => (
+                  <li key={tag.id} className="flex max-w-full">
+                    <Link
+                      to="/transactions"
+                      search={{ tagId: [tag.id] }}
+                      aria-label={`Transactions tagged ${tag.name}`}
+                      className="group/tag focus-visible:ring-ring/45 flex min-h-11 max-w-full items-center rounded-full outline-none focus-visible:ring-[3px]"
+                    >
+                      <TagChip
+                        name={tag.name}
+                        className="group-hover/tag:bg-accent transition-colors duration-150 motion-reduce:transition-none"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-muted-foreground">No tags</span>
+            )}
           </Row>
         )}
         <Row term={walletTerm(transaction)}>

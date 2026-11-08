@@ -47,7 +47,7 @@ interface UseTransactionFormOptions {
   /** Set when the form records or corrects a refund of one expense. */
   linkedExpense?: LinkedExpenseLimits;
   /** Set when the form corrects an existing transaction instead of recording one. */
-  editing?: Pick<EditableTransaction, "id" | "tagIds">;
+  editing?: Pick<EditableTransaction, "id">;
   /** Set only for a new entry that returns to its opening screen. */
   captureOrigin?: CaptureOrigin;
 }
@@ -82,6 +82,8 @@ function toCreateTransactionRequest(
         ...common,
         type: values.type,
         categoryId: values.categoryId,
+        // Untagged entries send exactly what they sent before tags existed.
+        ...(values.tagIds.length > 0 ? { tagIds: [...values.tagIds] } : {}),
       };
     case "transfer":
       return {
@@ -98,11 +100,14 @@ function toCreateTransactionRequest(
   }
 }
 
-/** An edit carries every field but the type and the expense link, which are fixed. */
+/**
+ * An edit carries every field but the type and the expense link, which are
+ * fixed. Only income and expense carry tags of their own; the rest send none.
+ */
 function toUpdateTransactionRequest(
   values: Readonly<TransactionFormValues>,
-  tagIds: readonly string[],
 ): UpdateTransactionRequest {
+  const ownTags = values.type === "income" || values.type === "expense";
   const request: UpdateTransactionRequest = {
     amount: {
       value: formatMoneyInput({
@@ -114,7 +119,7 @@ function toUpdateTransactionRequest(
     walletId: values.walletId,
     transactionDate: values.transactionDate,
     note: values.note,
-    tagIds: [...tagIds],
+    tagIds: ownTags ? [...values.tagIds] : [],
   };
   if (values.type === "transfer") {
     return { ...request, destinationWalletId: values.destinationWalletId };
@@ -212,7 +217,7 @@ export function useTransactionForm({
       try {
         result = editing
           ? await updateTransaction.submit(
-              toUpdateTransactionRequest(parsed.data, editing.tagIds),
+              toUpdateTransactionRequest(parsed.data),
             )
           : await createTransaction.submit(
               toCreateTransactionRequest(parsed.data),
@@ -256,6 +261,7 @@ export function useTransactionForm({
     setFieldErrors({});
     if (type === "transfer") {
       form.setFieldValue("categoryId", "");
+      form.setFieldValue("tagIds", []);
       if (!form.getFieldValue("destinationWalletId")) {
         form.setFieldValue(
           "destinationWalletId",

@@ -11,10 +11,6 @@ import {
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowDownUp, CircleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
-import {
-  CategoryIcon,
-  CategoryTile,
-} from "@/features/categories/components/category-icon";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
 import { useCategoryCatalog } from "@/features/categories/hooks/use-category-catalog";
 import type { CaptureOrigin } from "@/features/transactions/capture-origin";
@@ -24,10 +20,12 @@ import {
   DateChip,
   FixedLabel,
   FormCard,
+  LinkedCategoryField,
   LinkedExpenseChip,
   SaveLabel,
   WalletSelect,
 } from "@/features/transactions/components/transaction-form-fields";
+import { TransactionTagsField } from "@/features/transactions/components/transaction-tags-field";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import type {
   CategoryOption,
@@ -104,6 +102,7 @@ function initialValuesFor({
       amount: transaction.amountText,
       transactionDate: transaction.transactionDate,
       note: transaction.note,
+      tagIds: transaction.tagIds,
     };
   }
   if (mode.kind === "refund") {
@@ -117,6 +116,7 @@ function initialValuesFor({
       amount: mode.expense.refundAllowanceText,
       transactionDate: today,
       note: "",
+      tagIds: [],
     };
   }
   return {
@@ -129,6 +129,7 @@ function initialValuesFor({
     amount: "",
     transactionDate: today,
     note: "",
+    tagIds: [],
   };
 }
 
@@ -218,7 +219,7 @@ export function TransactionForm({
 }: Readonly<TransactionFormProps>) {
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
-  const { categories, colorOf } = useCategoryCatalog();
+  const { categories } = useCategoryCatalog();
   const editing = mode.kind === "edit" ? mode.transaction : undefined;
   const linked = mode.kind === "refund" ? mode.expense : editing?.refundOf;
   const linkedExpense = useMemo(() => limitsOf(linked), [linked]);
@@ -471,31 +472,7 @@ export function TransactionForm({
               <form.Subscribe selector={(state) => state.values.type}>
                 {(type) => {
                   if (linked) {
-                    return (
-                      <Field>
-                        <FixedLabel>Category</FixedLabel>
-                        <p className="flex min-h-11 items-center gap-3 font-semibold">
-                          <CategoryTile
-                            color={
-                              linked.categoryId
-                                ? colorOf(linked.categoryId)
-                                : "neutral"
-                            }
-                            className="size-9 rounded-md"
-                          >
-                            <CategoryIcon
-                              iconId={linked.categoryIconId}
-                              className="size-4"
-                            />
-                          </CategoryTile>
-                          {linked.categoryLabel}
-                        </p>
-                        <FieldDescription>
-                          Follows the expense’s category, including later
-                          changes.
-                        </FieldDescription>
-                      </Field>
-                    );
+                    return <LinkedCategoryField expense={linked} />;
                   }
                   if (type === "refund") {
                     return null;
@@ -600,6 +577,26 @@ export function TransactionForm({
                     </form.Field>
                   );
                 }}
+              </form.Subscribe>
+
+              <form.Subscribe selector={(state) => state.values.type}>
+                {(type) => (
+                  <form.Field name="tagIds">
+                    {(field) => (
+                      <TransactionTagsField
+                        type={type}
+                        linked={linked}
+                        value={field.state.value}
+                        onChange={(next) => {
+                          clearFieldError("tagIds");
+                          field.handleChange(next);
+                        }}
+                        serverError={fieldErrors.tagIds}
+                        disabled={isPending || isSubmitting}
+                      />
+                    )}
+                  </form.Field>
+                )}
               </form.Subscribe>
 
               <form.Field name="transactionDate">

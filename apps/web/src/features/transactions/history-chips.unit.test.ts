@@ -3,9 +3,15 @@ import { historyFilterChips } from "./history-chips";
 
 const CASH = "00000000-0000-4000-8000-000000000001";
 const FOOD = "00000000-0000-4000-8000-000000000002";
+const COFFEE = "00000000-0000-4000-8000-000000000003";
+const SNACKS = "00000000-0000-4000-8000-000000000004";
 const names = {
   wallets: [{ id: CASH, name: "Cash" }],
   categories: [{ id: FOOD, name: "Food" }],
+  tags: [
+    { id: COFFEE, name: "Coffee" },
+    { id: SNACKS, name: "Snacks" },
+  ],
 };
 
 describe("history filter chips", () => {
@@ -53,6 +59,25 @@ describe("history filter chips", () => {
         names,
       ).map((chip) => chip.invalid),
     ).toEqual([false, true, true]);
+  });
+
+  test("gives each chosen tag its own chip that lifts only that tag", () => {
+    const chips = historyFilterChips(
+      { type: "expense", tagId: [COFFEE, SNACKS] },
+      names,
+    );
+    expect(chips.map((chip) => chip.label)).toEqual([
+      "Expense",
+      "# Coffee",
+      "# Snacks",
+    ]);
+    expect(chips[1]?.without).toEqual({ type: "expense", tagId: [SNACKS] });
+    expect(chips[2]?.without).toEqual({ type: "expense", tagId: [COFFEE] });
+  });
+
+  test("drops the tag filter with its last tag and flags an unknown one", () => {
+    const [chip] = historyFilterChips({ tagId: ["gone"] }, names);
+    expect(chip).toMatchObject({ label: "# gone", invalid: true, without: {} });
   });
 
   test("has no chips without filters", () => {

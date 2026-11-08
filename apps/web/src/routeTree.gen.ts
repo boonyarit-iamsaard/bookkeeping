@@ -17,6 +17,7 @@ import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AuthSignInRouteImport } from './routes/_auth/sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as AppCategoriesIndexRouteImport } from './routes/_app/categories/index'
+import { Route as AppTagsIndexRouteImport } from './routes/_app/tags/index'
 import { Route as AppTransactionsIndexRouteImport } from './routes/_app/transactions/index'
 import { Route as AppTransactionsTransactionIdRouteImport } from './routes/_app/transactions/$transactionId'
 import { Route as AppTransactionsNewRouteImport } from './routes/_app/transactions/new'
@@ -63,6 +64,11 @@ const AuthSignUpRoute = AuthSignUpRouteImport.update({
 const AppCategoriesIndexRoute = AppCategoriesIndexRouteImport.update({
   id: '/categories/',
   path: '/categories/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTagsIndexRoute = AppTagsIndexRouteImport.update({
+  id: '/tags/',
+  path: '/tags/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTransactionsIndexRoute = AppTransactionsIndexRouteImport.update({
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/wallets/$walletId': typeof AppWalletsWalletIdRoute
   '/wallets/new': typeof AppWalletsNewRoute
   '/categories/': typeof AppCategoriesIndexRoute
+  '/tags/': typeof AppTagsIndexRoute
   '/transactions/': typeof AppTransactionsIndexRoute
   '/wallets/': typeof AppWalletsIndexRoute
   '/transactions/$transactionId/edit': typeof AppTransactionsTransactionIdEditRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/wallets/$walletId': typeof AppWalletsWalletIdRoute
   '/wallets/new': typeof AppWalletsNewRoute
   '/categories': typeof AppCategoriesIndexRoute
+  '/tags': typeof AppTagsIndexRoute
   '/transactions': typeof AppTransactionsIndexRoute
   '/wallets': typeof AppWalletsIndexRoute
   '/transactions/$transactionId/edit': typeof AppTransactionsTransactionIdEditRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/_app/wallets/$walletId': typeof AppWalletsWalletIdRoute
   '/_app/wallets/new': typeof AppWalletsNewRoute
   '/_app/categories/': typeof AppCategoriesIndexRoute
+  '/_app/tags/': typeof AppTagsIndexRoute
   '/_app/transactions/': typeof AppTransactionsIndexRoute
   '/_app/wallets/': typeof AppWalletsIndexRoute
   '/_app/transactions/$transactionId_/edit': typeof AppTransactionsTransactionIdEditRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/wallets/$walletId'
     | '/wallets/new'
     | '/categories/'
+    | '/tags/'
     | '/transactions/'
     | '/wallets/'
     | '/transactions/$transactionId/edit'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/wallets/$walletId'
     | '/wallets/new'
     | '/categories'
+    | '/tags'
     | '/transactions'
     | '/wallets'
     | '/transactions/$transactionId/edit'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/_app/wallets/$walletId'
     | '/_app/wallets/new'
     | '/_app/categories/'
+    | '/_app/tags/'
     | '/_app/transactions/'
     | '/_app/wallets/'
     | '/_app/transactions/$transactionId_/edit'
@@ -286,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/categories'
       fullPath: '/categories/'
       preLoaderRoute: typeof AppCategoriesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tags/': {
+      id: '/_app/tags/'
+      path: '/tags'
+      fullPath: '/tags/'
+      preLoaderRoute: typeof AppTagsIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/transactions/': {
@@ -363,6 +382,7 @@ interface AppRouteChildren {
   AppWalletsWalletIdRoute: typeof AppWalletsWalletIdRoute
   AppWalletsNewRoute: typeof AppWalletsNewRoute
   AppCategoriesIndexRoute: typeof AppCategoriesIndexRoute
+  AppTagsIndexRoute: typeof AppTagsIndexRoute
   AppTransactionsIndexRoute: typeof AppTransactionsIndexRoute
   AppWalletsIndexRoute: typeof AppWalletsIndexRoute
   AppTransactionsTransactionIdEditRoute: typeof AppTransactionsTransactionIdEditRoute
@@ -379,6 +399,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppWalletsWalletIdRoute: AppWalletsWalletIdRoute,
   AppWalletsNewRoute: AppWalletsNewRoute,
   AppCategoriesIndexRoute: AppCategoriesIndexRoute,
+  AppTagsIndexRoute: AppTagsIndexRoute,
   AppTransactionsIndexRoute: AppTransactionsIndexRoute,
   AppWalletsIndexRoute: AppWalletsIndexRoute,
   AppTransactionsTransactionIdEditRoute: AppTransactionsTransactionIdEditRoute,

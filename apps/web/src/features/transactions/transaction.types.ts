@@ -1,4 +1,5 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
+import type { TransactionTag } from "@bookkeeping/domain/tags";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
 
 /**
@@ -14,6 +15,8 @@ export interface LinkedExpenseView {
   categoryId: string | null;
   categoryLabel: string;
   categoryIconId: string;
+  /** The expense's tags, which a refund reports as its own. */
+  tags: readonly TransactionTag[];
   wallet: { id: string; name: string; archived: boolean };
   /** What is left to refund, excluding the refund being edited: "300.00". */
   refundAllowanceText: string;
@@ -32,8 +35,8 @@ export interface EditableTransaction {
   amountText: string;
   transactionDate: CalendarDate;
   note: string;
-  /** The tags it carries, sent back unchanged until the form edits them. */
-  tagIds: readonly string[];
+  /** The tags it carries itself; a refund's are its expense's and stay empty here. */
+  tagIds: string[];
   /** "13 Sep 2026, 14:32", already in Bangkok time. */
   recordedLabel: string;
   /** Set when the transaction is a refund. */

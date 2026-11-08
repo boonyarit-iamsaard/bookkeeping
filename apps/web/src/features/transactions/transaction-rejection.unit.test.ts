@@ -76,12 +76,12 @@ const REJECTIONS: Record<TransactionRejectionCode, ExpectedRejection> = {
   },
   "too-many-tags": {
     pointer: "#/tagIds",
-    field: undefined,
+    field: "tagIds",
     message: `A transaction can carry at most ${MAX_TAGS_PER_TRANSACTION} tags`,
   },
   "tag-not-found": {
     pointer: "#/tagIds",
-    field: undefined,
+    field: "tagIds",
     message: "That tag is no longer available. Choose another.",
   },
   "invalid-date": {

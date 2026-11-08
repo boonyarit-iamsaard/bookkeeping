@@ -73,6 +73,7 @@ describe("editableTransaction", () => {
       categoryId: "category-1",
       categoryLabel: "Food & Drink › Groceries",
       categoryIconId: "shopping-cart",
+      tags: [{ id: "tag-1", name: "Coffee" }],
       wallet: { id: "wallet-1", name: "Cash", archived: false },
       refundAllowanceText: "450.00",
       refundAllowanceLabel: "฿450.00",

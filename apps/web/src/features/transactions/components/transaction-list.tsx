@@ -8,6 +8,7 @@ import {
   CategoryTile,
 } from "@/features/categories/components/category-icon";
 import { useCategoryColors } from "@/features/categories/hooks/use-category-colors";
+import { TagChipList } from "@/features/tags/components/tag-chip";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
@@ -153,6 +154,7 @@ export function TransactionList({
                       {transaction.note}
                     </p>
                   )}
+                  <TagChipList tags={transaction.tags} className="mt-1.5" />
                 </div>
                 <Money
                   amount={transaction.amount}

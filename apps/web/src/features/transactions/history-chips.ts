@@ -1,6 +1,10 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
-import type { HistorySearch } from "@/features/transactions/history-schema";
+import type {
+  HistoryFilterKey,
+  HistoryFilterValues,
+  HistorySearch,
+} from "@/features/transactions/history-schema";
 import {
   calendarDate,
   HISTORY_FILTER_KEYS,
@@ -8,8 +12,6 @@ import {
   transactionFiltersSchema,
 } from "@/features/transactions/history-schema";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
-
-type HistoryFilterKey = (typeof HISTORY_FILTER_KEYS)[number];
 
 interface Named {
   id: string;
@@ -19,15 +21,17 @@ interface Named {
 interface HistoryFilterNames {
   wallets: readonly Named[];
   categories: readonly Named[];
+  tags: readonly Named[];
 }
 
 export interface HistoryFilterChip {
-  key: HistoryFilterKey;
+  /** Unique per chip: the filter's key, or `tagId:<id>` for each tag. */
+  key: HistoryFilterKey | `tagId:${string}`;
   label: string;
   /** The value is not one the history accepts, so it filters nothing. */
   invalid: boolean;
   /** The address with just this filter lifted, back on the first page. */
-  without: HistorySearch;
+  without: HistoryFilterValues;
 }
 
 function dateLabel(value: string): string {
@@ -42,6 +46,24 @@ function nameOf(items: readonly Named[], id: string): string {
 function typeLabel(value: string): string {
   const type = TRANSACTION_TYPES.find((candidate) => candidate === value);
   return type ? TRANSACTION_TYPE_LABELS[type] : value;
+}
+
+/** One chip per chosen tag, each lifting only its own tag. */
+function tagChips(
+  filters: Readonly<HistoryFilterValues>,
+  tags: readonly Named[],
+): HistoryFilterChip[] {
+  const chosen = filters.tagId ?? [];
+  return chosen.map((tagId) => {
+    const rest = chosen.filter((other) => other !== tagId);
+    const { tagId: _removed, ...others } = filters;
+    return {
+      key: `tagId:${tagId}`,
+      label: `# ${nameOf(tags, tagId)}`,
+      invalid: !transactionFiltersSchema.safeParse({ tagId: [tagId] }).success,
+      without: rest.length > 0 ? { ...others, tagId: rest } : others,
+    };
+  });
 }
 
 /**
@@ -60,7 +82,7 @@ export function historyFilterChips(
     categoryId: (value) => nameOf(names.categories, value),
     type: typeLabel,
   };
-  return HISTORY_FILTER_KEYS.flatMap((key) => {
+  const single = HISTORY_FILTER_KEYS.flatMap((key) => {
     const value = filters[key];
     if (!value) {
       return [];
@@ -70,4 +92,5 @@ export function historyFilterChips(
       .success;
     return [{ key, label: labels[key](value), invalid, without }];
   });
+  return [...single, ...tagChips(filters, names.tags)];
 }

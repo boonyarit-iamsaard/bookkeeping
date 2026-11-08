@@ -46,7 +46,8 @@ export type TransactionFormField =
   | "destinationWalletId"
   | "categoryId"
   | "transactionDate"
-  | "note";
+  | "note"
+  | "tagIds";
 
 export const TRANSACTION_FORM_FIELDS: readonly TransactionFormField[] = [
   "amount",
@@ -55,6 +56,7 @@ export const TRANSACTION_FORM_FIELDS: readonly TransactionFormField[] = [
   "categoryId",
   "transactionDate",
   "note",
+  "tagIds",
 ];
 
 /** A rejection addressed to any other input, such as the type or the refunded expense, goes to the error bar. */

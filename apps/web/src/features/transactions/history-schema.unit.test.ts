@@ -108,6 +108,35 @@ describe("history filters", () => {
   });
 });
 
+describe("tag filter", () => {
+  const Coffee = "00000000-0000-4000-8000-000000000003";
+  const Snacks = "00000000-0000-4000-8000-000000000004";
+
+  test("reads one tag or several from the address as a list", () => {
+    expect(historySearchSchema.parse({ tagId: Coffee }).tagId).toEqual([
+      Coffee,
+    ]);
+    expect(
+      historySearchSchema.parse({ tagId: [Coffee, "", Snacks] }).tagId,
+    ).toEqual([Coffee, Snacks]);
+    expect(historySearchSchema.parse({ tagId: [] }).tagId).toBeUndefined();
+  });
+
+  test("counts as a filter and keeps its order", () => {
+    expect(historyFilters({ tagId: [Snacks, Coffee] })).toEqual({
+      tagId: [Snacks, Coffee],
+    });
+    expect(hasHistoryFilters({ tagId: [Coffee] })).toBe(true);
+  });
+
+  test("rejects a tag that is not an identifier", () => {
+    expect(parseHistoryFilters({ tagId: ["gone"] })).toEqual({
+      ok: false,
+      errors: ["Choose tags from the list."],
+    });
+  });
+});
+
 describe("parsed history filters", () => {
   test("valid filters parse with no errors", () => {
     expect(

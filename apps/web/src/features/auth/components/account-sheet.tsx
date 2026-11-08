@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Link } from "@tanstack/react-router";
-import { LogOut, Tags } from "lucide-react";
+import { Hash, LogOut, Tags } from "lucide-react";
 import { useId, useState } from "react";
 import { APPEARANCE_OPTIONS } from "@/core/shell/appearance-labels";
 import { useAppearance } from "@/core/shell/use-appearance";
@@ -57,6 +57,18 @@ export function AccountSheet({ email }: Readonly<AccountSheetProps>) {
                 <Tags aria-hidden="true" strokeWidth={2} />
               </span>
               {"Categories"}
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/tags"
+              onClick={() => setOpen(false)}
+              className={ROW_CLASS}
+            >
+              <span className={ROW_TILE_CLASS}>
+                <Hash aria-hidden="true" strokeWidth={2} />
+              </span>
+              {"Tags"}
             </Link>
           </li>
           <li className="flex flex-col gap-2.5 px-4 py-3.5">

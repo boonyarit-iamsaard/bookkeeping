@@ -5,8 +5,8 @@ import type {
   CategoryKind,
   CategorySummary,
 } from "@bookkeeping/domain/categories";
-import { ArrowLeft, Check, ChevronDown, Plus, Search } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { ArrowLeft, Check, ChevronDown, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { CategoryColor } from "@/features/categories/category-color";
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
 import type { CategoryGroup } from "@/features/categories/category-search";
@@ -21,6 +21,11 @@ import {
 } from "@/features/categories/components/category-icon";
 import { CreateCategoryForm } from "@/features/categories/components/create-category-form";
 import { useCategoryCatalog } from "@/features/categories/hooks/use-category-catalog";
+import {
+  CreateTile,
+  SheetOption,
+  useSheetOptions,
+} from "@/shared/components/sheet-options";
 import { Button } from "@/shared/components/ui/button";
 import { fieldControlClass, Input } from "@/shared/components/ui/input";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
@@ -210,50 +215,11 @@ function SearchView({
   onSelect,
   onCreate,
 }: Readonly<SearchViewProps>) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const searchId = useId();
+  const { listRef, searchId, optionKeyDown, searchKeyDown } = useSheetOptions();
   const trimmed = query.trim();
   const { groups, exactMatch } = searchCategories({ categories, kind, query });
   const offerCreate = trimmed.length > 0 && !exactMatch;
   const nothingMatched = groups.length === 0;
-
-  function options(): HTMLButtonElement[] {
-    return Array.from(
-      listRef.current?.querySelectorAll<HTMLButtonElement>("[data-option]") ??
-        [],
-    );
-  }
-
-  /** Arrow keys walk the results; Enter in the search box takes the first. */
-  function moveFocus(event: React.KeyboardEvent, from: number) {
-    const items = options();
-    if (items.length === 0) {
-      return;
-    }
-    let next: number | undefined;
-    if (event.key === "ArrowDown") {
-      next = Math.min(from + 1, items.length - 1);
-    } else if (event.key === "ArrowUp") {
-      next = from <= 0 ? -1 : from - 1;
-    } else if (event.key === "Home") {
-      next = 0;
-    } else if (event.key === "End") {
-      next = items.length - 1;
-    }
-    if (next === undefined) {
-      return;
-    }
-    event.preventDefault();
-    if (next < 0) {
-      document.getElementById(searchId)?.focus();
-    } else {
-      items[next]?.focus();
-    }
-  }
-
-  function optionKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
-    moveFocus(event, options().indexOf(event.currentTarget));
-  }
 
   // A query that fell inside exactly one parent's children most likely
   // wants to join them; anything more ambiguous leaves the parent unset.
@@ -263,7 +229,7 @@ function SearchView({
       : undefined;
 
   const createRow = offerCreate && (
-    <OptionRow
+    <SheetOption
       onKeyDown={optionKeyDown}
       onClick={() => onCreate(trimmed, impliedParent)}
       className="min-h-15 py-2.5"
@@ -277,7 +243,7 @@ function SearchView({
           New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
         </span>
       </span>
-    </OptionRow>
+    </SheetOption>
   );
 
   return (
@@ -299,14 +265,7 @@ function SearchView({
             aria-label="Search categories"
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                options()[0]?.click();
-                return;
-              }
-              moveFocus(event, -1);
-            }}
+            onKeyDown={(event) => searchKeyDown(event)}
             className="pl-11 [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
@@ -337,14 +296,14 @@ function SearchView({
         )}
         {!nothingMatched && createRow}
         {!offerCreate && (
-          <OptionRow
+          <SheetOption
             onKeyDown={optionKeyDown}
             onClick={() => onCreate("")}
             className="min-h-15 py-2.5"
           >
             <CreateTile />
             <span className="font-semibold">New category</span>
-          </OptionRow>
+          </SheetOption>
         )}
       </div>
     </>
@@ -414,7 +373,7 @@ function CategoryRow({
   onKeyDown,
 }: Readonly<CategoryRowProps>) {
   return (
-    <OptionRow
+    <SheetOption
       data-category-option={category.id}
       aria-current={selected || undefined}
       onClick={() => onSelect(category.id)}
@@ -443,30 +402,6 @@ function CategoryRow({
           className="text-link size-5 shrink-0"
         />
       )}
-    </OptionRow>
-  );
-}
-
-/** One full-width row in the results; arrow keys move between them. */
-function OptionRow({ className, ...props }: React.ComponentProps<"button">) {
-  return (
-    <button
-      type="button"
-      data-option
-      className={cn(
-        "group/row hover:bg-accent/70 focus-visible:ring-ring/45 active:bg-accent flex w-full items-center gap-3.5 px-5 text-left transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none sm:px-6",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-/** The Iris Tonal tile that leads a create row, sized like a Category Tile. */
-function CreateTile() {
-  return (
-    <span className="bg-secondary text-secondary-foreground flex size-11 shrink-0 items-center justify-center rounded-lg">
-      <Plus aria-hidden="true" strokeWidth={2} className="size-5" />
-    </span>
+    </SheetOption>
   );
 }
