@@ -13,16 +13,18 @@ import {
 import { MAX_WHOLE_DIGITS } from "@bookkeeping/domain/money";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
-import type {
-  WalletSnapshot,
-  WalletSummary,
-  WalletType,
-} from "@bookkeeping/domain/wallets";
-import type { SQL } from "drizzle-orm";
-import { and, asc, eq, isNull, lt, lte, or, sql } from "drizzle-orm";
+import type { WalletSummary, WalletType } from "@bookkeeping/domain/wallets";
+import { and, eq, lt, or, sql } from "drizzle-orm";
 import type { IdempotencyConflict } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
+import { selectWalletSummaries } from "./wallet-balance";
+import {
+  loadWalletForUpdate,
+  readWalletSummaryAfterChange,
+  recordWalletChange,
+  updateWallet,
+} from "./wallet-change";
 
 export interface ListWalletsOptions {
   /** Always the session user; never a client-supplied identifier. */
@@ -41,12 +43,6 @@ export interface WalletRef {
 export interface FindWalletOptions extends WalletRef {
   /** End-of-day balances through this date; defaults to today in Bangkok. */
   asOf?: CalendarDate;
-}
-
-interface WalletSummaryQuery extends ListWalletsOptions {
-  asOf: CalendarDate;
-  /** Narrows beyond ownership; the owner condition is always applied. */
-  filter?: SQL;
 }
 
 /**
@@ -85,64 +81,6 @@ export async function findWallet(
     filter: eq(wallets.id, id),
   });
   return wallet ?? null;
-}
-
-/**
- * The signed sum of the joined transactions' effect on `wallets.id`, as a
- * decimal string; zero when none joined. Pair it with `movesWallet`.
- */
-export const walletMovement = sql<string>`coalesce(sum(case ${transactions.type}
-    when 'income' then ${transactions.amount}
-    when 'expense' then -${transactions.amount}
-    when 'refund' then ${transactions.amount}
-    when 'transfer' then case when ${transactions.walletId} = ${wallets.id} then -${transactions.amount} else ${transactions.amount} end
-    else 0 end), 0)`;
-
-/** Joins the current transactions that move `wallets.id`, narrowed by `filter`. */
-export function movesWallet(filter: SQL | undefined) {
-  return and(
-    or(
-      eq(transactions.walletId, wallets.id),
-      eq(transactions.destinationWalletId, wallets.id),
-    ),
-    isNull(transactions.deletedAt),
-    filter,
-  );
-}
-
-async function selectWalletSummaries(
-  db: Database,
-  { ownerId, asOf, filter }: Readonly<WalletSummaryQuery>,
-): Promise<WalletSummary[]> {
-  const rows = await db
-    .select({
-      id: wallets.id,
-      name: wallets.name,
-      type: wallets.type,
-      openingAmount: wallets.openingAmount,
-      openingDate: wallets.openingDate,
-      archivedAt: wallets.archivedAt,
-      movement: walletMovement,
-    })
-    .from(wallets)
-    .leftJoin(
-      transactions,
-      movesWallet(lte(transactions.transactionDate, asOf)),
-    )
-    .where(and(eq(wallets.userId, ownerId), filter))
-    .groupBy(wallets.id)
-    .orderBy(asc(wallets.createdAt), asc(wallets.id));
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    currency: "THB",
-    openingAmount: row.openingAmount,
-    openingDate: row.openingDate,
-    archivedAt: row.archivedAt,
-    balance:
-      row.openingDate <= asOf ? row.openingAmount + BigInt(row.movement) : 0n,
-  }));
 }
 
 /** The opening balance: what a wallet held at the start of its history. */
@@ -204,6 +142,7 @@ export function validateWalletOpening(
 export interface WalletCreationCommand extends WalletOpening {
   name: string;
   type: WalletType;
+  savings: boolean;
 }
 
 export type WalletCreationField = "name" | WalletOpeningField;
@@ -285,6 +224,7 @@ export async function createWallet(
     payload: {
       name: command.name,
       type: command.type,
+      savings: command.savings,
       openingAmount: command.openingAmount,
       openingDate: command.openingDate,
     },
@@ -314,6 +254,7 @@ async function insertWallet(
       userId: command.ownerId,
       name: command.name,
       type: command.type,
+      savings: command.savings,
       currency: "THB",
       openingAmount: command.openingAmount,
       openingDate: command.openingDate,
@@ -330,6 +271,7 @@ async function insertWallet(
     openingAmount: row.openingAmount,
     openingDate: row.openingDate,
     archivedAt: row.archivedAt,
+    savings: row.savings,
     // Validation rejects future openings, so the opening is already in effect.
     balance: row.openingAmount,
   };
@@ -350,101 +292,6 @@ export type ReplaceWalletOpeningError =
   | InvalidWalletOpening
   | WalletNotFound
   | MovementBeforeOpening;
-
-function snapshotWallet(
-  row: Readonly<{
-    openingAmount: bigint;
-    openingDate: CalendarDate;
-    archivedAt: Date | null;
-  }>,
-): WalletSnapshot {
-  return {
-    openingAmount: row.openingAmount.toString(),
-    openingDate: row.openingDate,
-    archivedAt: row.archivedAt?.toISOString() ?? null,
-  };
-}
-
-type WalletRow = typeof wallets.$inferSelect;
-
-type WalletChangeAction = "opening" | "archive" | "unarchive";
-
-/**
- * Loads the owned wallet under an exclusive row lock, so concurrent state
- * changes serialize and every change applies to what was read.
- */
-async function loadWalletForUpdate(
-  db: Database,
-  ref: Readonly<WalletRef>,
-): Promise<WalletRow | null> {
-  const [current] = await db
-    .select()
-    .from(wallets)
-    .where(and(eq(wallets.id, ref.id), eq(wallets.userId, ref.ownerId)))
-    .for("update");
-  return current ?? null;
-}
-
-/**
- * Writes one wallet change inside the caller's transaction. The update
- * targets the locked row, so its disappearance is a fault rather than a
- * silent miss.
- */
-async function updateWallet(
-  db: Database,
-  change: Readonly<{
-    id: string;
-    set: { archivedAt: Date | null } | WalletOpening;
-  }>,
-): Promise<WalletRow> {
-  const [updated] = await db
-    .update(wallets)
-    .set(change.set)
-    .where(eq(wallets.id, change.id))
-    .returning();
-  if (!updated) {
-    throw new Error("Locked wallet disappeared");
-  }
-  return updated;
-}
-
-/** Retains the before and after of a wallet change in internal history. */
-async function recordWalletChange(
-  db: Database,
-  change: Readonly<{
-    ref: WalletRef;
-    action: WalletChangeAction;
-    before: WalletRow;
-    after: WalletRow;
-  }>,
-): Promise<void> {
-  await db.insert(walletChanges).values({
-    userId: change.ref.ownerId,
-    walletId: change.ref.id,
-    action: change.action,
-    before: snapshotWallet(change.before),
-    after: snapshotWallet(change.after),
-  });
-}
-
-/**
- * Reads the updated wallet through the shared balance query. The wallet is
- * locked for the whole transaction, so its absence is a fault.
- */
-async function readWalletSummaryAfterChange(
-  db: Database,
-  ref: Readonly<WalletRef>,
-): Promise<WalletSummary> {
-  const [wallet] = await selectWalletSummaries(db, {
-    ownerId: ref.ownerId,
-    asOf: todayIn({ timeZone: APP_TIME_ZONE }),
-    filter: eq(wallets.id, ref.id),
-  });
-  if (!wallet) {
-    throw new Error("Locked wallet disappeared");
-  }
-  return wallet;
-}
 
 /**
  * Replaces the opening balance as one value: amount and date change together
@@ -497,48 +344,6 @@ export async function replaceWalletOpening(
       await recordWalletChange(tx, {
         ref: input,
         action: "opening",
-        before: current,
-        after: updated,
-      });
-    }
-    return ok(await readWalletSummaryAfterChange(tx, input));
-  });
-}
-
-export interface SetWalletArchivedInput extends WalletRef {
-  /** The complete archived state: true archives, false restores. */
-  archived: boolean;
-}
-
-export type SetWalletArchivedError = WalletNotFound;
-
-/**
- * Changes the archived state as one value: archiving stamps the instant and
- * restoring clears it. Repeating the current state is a no-op that records
- * nothing. The change-history row is written in the same transaction under
- * an exclusive wallet lock. Ownership is checked with the lock, so an
- * unowned, unknown, or malformed id is not found alike.
- */
-export async function setWalletArchived(
-  db: Database,
-  input: Readonly<SetWalletArchivedInput>,
-): Promise<Result<WalletSummary, SetWalletArchivedError>> {
-  if (!isUuid(input.id)) {
-    return err({ code: "wallet-not-found" });
-  }
-  return db.transaction(async (tx) => {
-    const current = await loadWalletForUpdate(tx, input);
-    if (!current) {
-      return err({ code: "wallet-not-found" });
-    }
-    if (Boolean(current.archivedAt) !== input.archived) {
-      const updated = await updateWallet(tx, {
-        id: input.id,
-        set: { archivedAt: input.archived ? new Date() : null },
-      });
-      await recordWalletChange(tx, {
-        ref: input,
-        action: input.archived ? "archive" : "unarchive",
         before: current,
         after: updated,
       });

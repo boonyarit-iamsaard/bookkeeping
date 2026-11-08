@@ -8,6 +8,13 @@
       "when": 1790521579298,
       "tag": "0000_baseline",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794058675372,
+      "tag": "0001_add_savings_to_wallets_table",
+      "breakpoints": true
     }
   ]
 }

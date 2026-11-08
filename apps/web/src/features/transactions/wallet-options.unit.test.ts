@@ -17,6 +17,7 @@ function wallet(overrides: Partial<ApiWallet> = {}): ApiWallet {
     openingAmount: { value: "1000.00", currency: "THB" },
     balance: { value: "1234.50", currency: "THB" },
     archivedAt: null,
+    savings: false,
     ...overrides,
   };
 }

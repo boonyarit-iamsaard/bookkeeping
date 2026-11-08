@@ -348,7 +348,7 @@ describe("published API contract", () => {
         }),
       });
       record({
-        operationId: "changeWalletArchiveState",
+        operationId: "changeWalletState",
         method: "patch",
         path: "/v1/wallets/{walletId}",
         schema: walletResponseSchema,

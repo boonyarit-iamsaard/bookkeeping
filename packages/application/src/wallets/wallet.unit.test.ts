@@ -5,6 +5,7 @@ import { validateWalletCreation, validateWalletOpening } from "./wallet";
 const command: WalletCreationCommand = {
   name: "Cash",
   type: "cash",
+  savings: false,
   openingAmount: 0n,
   openingDate: "2026-09-01",
 };
@@ -91,6 +92,7 @@ describe("validateWalletCreation", () => {
     const result = validateWalletCreation({
       name: "",
       type: "cash",
+      savings: false,
       openingAmount: 10n ** 20n,
       openingDate: "tomorrow",
     });

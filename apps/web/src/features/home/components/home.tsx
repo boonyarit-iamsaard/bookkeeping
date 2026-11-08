@@ -13,7 +13,6 @@ import { createHomeQueryPlan } from "@/features/home/home-queries";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import { EmptyWallets } from "@/features/wallets/components/wallet-list";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
-import { walletCountLabel } from "@/features/wallets/wallet-labels";
 
 /** From 1024px the figures hold the left column and the rows the right. */
 export const HOME_COLUMNS_CLASS =
@@ -131,10 +130,7 @@ export function Home({
         <div className={HOME_COLUMNS_CLASS}>
           <div className="flex flex-col gap-6 sm:gap-8">
             <Arrival order={0} animate={arrive}>
-              <WalletsTotal
-                wallets={wallets}
-                caption={`Across ${walletCountLabel(wallets.length)}`}
-              />
+              <WalletsTotal wallets={wallets} lead="spendable" />
             </Arrival>
             <Arrival order={1} animate={arrive}>
               <SummaryStrip cards={summaryCards} />

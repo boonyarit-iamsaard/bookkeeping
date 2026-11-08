@@ -4,6 +4,7 @@ import { walletFormSchema } from "./wallet-form-schema";
 const validInput = {
   name: "Savings",
   type: "cash",
+  savings: false,
   openingAmount: "0",
   openingDate: "2026-09-13",
 };
@@ -11,6 +12,12 @@ const validInput = {
 afterEach(() => vi.useRealTimers());
 
 describe("wallet creation validation", () => {
+  test("accepts the Savings wallet marker", () => {
+    expect(
+      walletFormSchema.parse({ ...validInput, savings: true }).savings,
+    ).toBe(true);
+  });
+
   test("rejects future openings at Bangkok midnight", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-13T16:59:59Z"));

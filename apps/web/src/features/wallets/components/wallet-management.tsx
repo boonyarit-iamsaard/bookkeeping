@@ -2,7 +2,7 @@ import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, PiggyBank, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "@/core/api/client";
 import { formatApiMoneyInput } from "@/core/api/money";
@@ -28,12 +28,14 @@ import { cn } from "@/shared/helpers/cn";
 
 type Wallet = components["schemas"]["Wallet"];
 type WalletOpeningRequest = components["schemas"]["WalletOpeningRequest"];
-type WalletArchiveStateRequest =
-  components["schemas"]["WalletArchiveStateRequest"];
+type WalletStateRequest = components["schemas"]["WalletStateRequest"];
+type ChangeSource = "savings" | "other";
 
 interface WalletManagementProps {
   wallet: Wallet;
 }
+
+const NO_OUTCOME = { error: "", notice: "" };
 
 /** Each management task is its own card on the ground. */
 const manageCardClass =
@@ -89,6 +91,11 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [changeSource, setChangeSource] = useState<ChangeSource>("other");
+  // A change reads back in the card that made it, not in both.
+  const pageOutcome = changeSource === "other" ? { error, notice } : NO_OUTCOME;
+  const savingsOutcome =
+    changeSource === "savings" ? { error, notice } : NO_OUTCOME;
 
   const openingMutation = useApiMutation<WalletOpeningRequest, Wallet>({
     send: (input) =>
@@ -98,7 +105,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       }),
     describeFieldError: describeWalletFieldError,
   });
-  const archiveMutation = useApiMutation<WalletArchiveStateRequest, Wallet>({
+  const stateMutation = useApiMutation<WalletStateRequest, Wallet>({
     send: (input) =>
       apiClient.PATCH("/v1/wallets/{walletId}", {
         params: { path: { walletId: wallet.id } },
@@ -114,10 +121,11 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   });
   const pending =
     openingMutation.isPending ||
-    archiveMutation.isPending ||
+    stateMutation.isPending ||
     deleteMutation.isPending;
 
-  function beginChange() {
+  function beginChange(source: ChangeSource = "other") {
+    setChangeSource(source);
     setError("");
     setNotice("");
   }
@@ -162,25 +170,49 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
     await refreshAfterChange("Opening balance corrected.");
   }
 
-  async function submitArchiveState(archived: boolean) {
-    beginChange();
-    let result: Awaited<ReturnType<typeof archiveMutation.submit>>;
+  async function submitState(
+    change: Readonly<WalletStateRequest>,
+    successNotice: string,
+  ) {
+    let result: Awaited<ReturnType<typeof stateMutation.submit>>;
     try {
-      result = await archiveMutation.submit({ archived });
+      result = await stateMutation.submit(change);
     } catch {
-      setError(
-        "The change could not be confirmed. Your values are kept; try again.",
-      );
+      setError("The change could not be confirmed. Try again.");
       return;
     }
     if (!result.ok) {
       setError(describeWalletRejection(result.error));
       return;
     }
-    await refreshAfterChange(
-      archived
+    await refreshAfterChange(successNotice);
+  }
+
+  async function submitArchiveState() {
+    if (pending) {
+      return;
+    }
+    beginChange();
+    const nextArchived = !archived;
+    await submitState(
+      { archived: nextArchived },
+      nextArchived
         ? "Wallet archived. Its balance remains in your totals."
         : "Wallet unarchived. You can use it for new entries.",
+    );
+  }
+
+  async function submitSavingsState() {
+    if (pending) {
+      return;
+    }
+    beginChange("savings");
+    const savings = !wallet.savings;
+    await submitState(
+      { savings },
+      savings
+        ? "Marked as a Savings wallet. Its balance now counts in Set aside."
+        : "No longer a Savings wallet. Its balance now counts in Spendable.",
     );
   }
 
@@ -220,7 +252,8 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
             {wallet.name}
           </p>
           <p className="text-muted-foreground text-sm">
-            Current balance{archived ? " · Archived" : ""}
+            Current balance{wallet.savings ? " · Savings" : ""}
+            {archived ? " · Archived" : ""}
           </p>
           <Money
             amount={wallet.balance}
@@ -228,18 +261,22 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           />
         </div>
       </section>
-      {error && (
+      {pageOutcome.error && (
         <div id="wallet-error">
-          <ErrorNotice>{error}</ErrorNotice>
+          <ErrorNotice>{pageOutcome.error}</ErrorNotice>
         </div>
       )}
-      {notice && <SavedNotice>{notice}</SavedNotice>}
+      {changeSource === "other" && (
+        <SavedNotice className={cn(!pageOutcome.notice && "sr-only")}>
+          {pageOutcome.notice}
+        </SavedNotice>
+      )}
       <form
         onSubmit={(event) => {
           event.preventDefault();
           void submitOpening();
         }}
-        aria-describedby={error ? "wallet-error" : undefined}
+        aria-describedby={pageOutcome.error ? "wallet-error" : undefined}
         className={cn(manageCardClass, "gap-5")}
       >
         <div className="flex flex-col gap-1.5">
@@ -291,6 +328,45 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           {pending ? "Saving…" : "Save opening correction"}
         </Button>
       </form>
+      <section aria-labelledby="savings-heading" className={manageCardClass}>
+        <div className="flex flex-col gap-1.5">
+          <h2 id="savings-heading" className="text-lg font-bold tracking-tight">
+            Savings wallet
+          </h2>
+          <p
+            id="savings-description"
+            className="text-muted-foreground text-sm leading-normal"
+          >
+            {wallet.savings
+              ? "This is a Savings wallet. Its balance counts in Set aside."
+              : "This is not a Savings wallet. Its balance counts in Spendable."}{" "}
+            Its type, balance and transactions stay the same.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="lg"
+          className="h-auto min-h-11 max-w-full self-start py-2.5 text-left whitespace-normal aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:h-auto sm:min-h-10 sm:py-2"
+          aria-describedby="savings-description"
+          aria-disabled={pending}
+          onClick={() => void submitSavingsState()}
+        >
+          <PiggyBank data-icon="inline-start" strokeWidth={1.75} />
+          {stateMutation.isPending && changeSource === "savings"
+            ? "Saving…"
+            : wallet.savings
+              ? "Unmark as a Savings wallet"
+              : "Mark as a Savings wallet"}
+        </Button>
+        {savingsOutcome.error && (
+          <ErrorNotice>{savingsOutcome.error}</ErrorNotice>
+        )}
+        {changeSource === "savings" && (
+          <SavedNotice className={cn(!savingsOutcome.notice && "sr-only")}>
+            {savingsOutcome.notice}
+          </SavedNotice>
+        )}
+      </section>
       <section aria-labelledby="archive-heading" className={manageCardClass}>
         <div className="flex flex-col gap-1.5">
           <h2 id="archive-heading" className="text-lg font-bold tracking-tight">
@@ -305,9 +381,9 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
         <Button
           variant="outline"
           size="lg"
-          className="self-start"
-          disabled={pending}
-          onClick={() => void submitArchiveState(!archived)}
+          className="self-start aria-disabled:pointer-events-none aria-disabled:opacity-50"
+          aria-disabled={pending}
+          onClick={() => void submitArchiveState()}
         >
           {archived ? (
             <ArchiveRestore data-icon="inline-start" strokeWidth={1.75} />

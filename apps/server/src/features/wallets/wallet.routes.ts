@@ -8,8 +8,8 @@ import {
   findWallet,
   listWallets,
   replaceWalletOpening,
-  setWalletArchived,
 } from "@bookkeeping/application/wallets";
+import { changeWalletState } from "@bookkeeping/application/wallets/state";
 import type { Database } from "@bookkeeping/database/connection";
 import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
@@ -70,6 +70,7 @@ export const walletResponseSchema = z
     openingAmount: moneySchema,
     openingDate: z.iso.date(),
     archivedAt: z.iso.datetime().nullable(),
+    savings: z.boolean(),
     balance: moneySchema,
   })
   .meta({ id: "Wallet" });
@@ -88,6 +89,7 @@ export interface WalletResponse {
   openingDate: string;
   /** UTC RFC 3339 instant, or null while the wallet is active. */
   archivedAt: string | null;
+  savings: boolean;
   balance: Money;
 }
 
@@ -103,6 +105,7 @@ export function presentWallet(wallet: Readonly<WalletSummary>): WalletResponse {
     }),
     openingDate: wallet.openingDate,
     archivedAt: wallet.archivedAt?.toISOString() ?? null,
+    savings: wallet.savings,
     balance: presentMoney({
       amountInMinorUnits: wallet.balance,
       currency: wallet.currency,
@@ -135,6 +138,7 @@ export const createWalletRequestSchema = z
     type: z.enum(WALLET_TYPES),
     openingAmount: moneyInputSchema,
     openingDate: z.iso.date(),
+    savings: z.boolean().optional(),
   })
   .meta({ id: "CreateWalletRequest" });
 
@@ -193,10 +197,17 @@ function toOpeningFieldErrors(
   }));
 }
 
-/** The archived state as its own partial update: the only mutable field. */
-export const walletArchiveStateRequestSchema = z
-  .strictObject({ archived: z.boolean() })
-  .meta({ id: "WalletArchiveStateRequest" });
+/** Archive and Savings wallet markers can change independently. */
+export const walletStateRequestSchema = z
+  .strictObject({
+    archived: z.boolean().optional(),
+    savings: z.boolean().optional(),
+  })
+  .refine(
+    (state) => state.archived !== undefined || state.savings !== undefined,
+    { error: "Provide at least one wallet state field" },
+  )
+  .meta({ id: "WalletStateRequest" });
 
 /** The 409 a wallet answers while transactions or history still refer to it. */
 export const historyRemainsProblemSchema = problemDetailsSchema
@@ -254,6 +265,7 @@ export function createWalletRoutes(db: Database) {
             type: body.type,
             openingAmount: body.openingAmount.amountInMinorUnits,
             openingDate: body.openingDate,
+            savings: body.savings ?? false,
           });
           return answerCreation(c, {
             result: created,
@@ -406,26 +418,26 @@ export function createWalletRoutes(db: Database) {
     .patch(
       RESOURCE_PATH,
       describeRoute({
-        operationId: "changeWalletArchiveState",
-        summary: "Change a wallet's archived state",
+        operationId: "changeWalletState",
+        summary: "Change a wallet's state",
         description:
-          "Archives the wallet by stamping the archived instant, or restores " +
-          "it by clearing it. Repeating the current state succeeds without " +
-          "effect, so a client may safely retry. A wallet that does not " +
-          "exist, belongs to another owner, or has a malformed identifier is " +
-          "not found alike.",
+          "Changes the archived state, the Savings wallet marker, or both. " +
+          "Omitted fields stay unchanged. Repeating the current state is a " +
+          "retry-safe no-op. A wallet that does not exist, belongs to another " +
+          "owner, or has a malformed identifier is not found alike.",
         tags: ["Wallets"],
+        requestBody: { required: true, content: {} },
         responses: {
           400: describeProblemResponse(400),
           401: describeProblemResponse(401),
         },
       }),
       walletParamMiddleware,
-      createCommandMiddleware(walletArchiveStateRequestSchema),
+      createCommandMiddleware(walletStateRequestSchema),
       describeResponse<
         AuthenticatedEnv,
         typeof RESOURCE_PATH,
-        WalletCommandValidatedInput<typeof walletArchiveStateRequestSchema>,
+        WalletCommandValidatedInput<typeof walletStateRequestSchema>,
         {
           200: typeof walletResponseSchema;
           404: typeof problemDetailsSchema;
@@ -434,10 +446,11 @@ export function createWalletRoutes(db: Database) {
       >(
         async (c) => {
           const body = c.req.valid("json");
-          const changed = await setWalletArchived(db, {
+          const changed = await changeWalletState(db, {
             ownerId: c.get("session").user.id,
             id: c.req.valid("param").walletId,
-            archived: body.archived,
+            ...(body.archived === undefined ? {} : { archived: body.archived }),
+            ...(body.savings === undefined ? {} : { savings: body.savings }),
           });
           // Only "not found" can refuse this; the command middleware owns the 422.
           return answerRead(c, {
@@ -446,7 +459,7 @@ export function createWalletRoutes(db: Database) {
           });
         },
         describeCorrection(
-          "The wallet with its changed archived state",
+          "The wallet with its changed state",
           walletResponseSchema,
         ),
       ),

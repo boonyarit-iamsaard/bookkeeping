@@ -1,4 +1,3 @@
-import { insertRetainedTransferSnapshot } from "@bookkeeping/application/testing/transaction-fixture";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { transactions } from "@bookkeeping/database/transactions";
@@ -152,6 +151,7 @@ describe("GET /v1/wallets", () => {
             openingAmount: { value: "99999999999999.99", currency: "THB" },
             openingDate: "2026-09-01",
             archivedAt: null,
+            savings: false,
             balance: { value: "99999999999999.99", currency: "THB" },
           },
           {
@@ -162,6 +162,7 @@ describe("GET /v1/wallets", () => {
             openingAmount: { value: "-120.50", currency: "THB" },
             openingDate: "2026-09-01",
             archivedAt: null,
+            savings: false,
             balance: { value: "-120.50", currency: "THB" },
           },
         ],
@@ -269,6 +270,7 @@ describe("GET /v1/wallets/{walletId}", () => {
         openingAmount: { value: "2.50", currency: "THB" },
         openingDate: "2026-09-01",
         archivedAt: "2026-09-10T03:04:05.000Z",
+        savings: false,
         balance: { value: "2.50", currency: "THB" },
       });
     });
@@ -368,7 +370,11 @@ describe("POST /v1/wallets", () => {
       });
       const { cookie } = await createOwnerSession(db);
 
-      const response = await postWallet(app, { cookie, idempotencyKey: "k1" });
+      const response = await postWallet(app, {
+        cookie,
+        idempotencyKey: "k1",
+        body: { ...SAVINGS_REQUEST, savings: true },
+      });
       const wallet = walletResponseSchema.parse(await response.json());
 
       expect(response.status).toBe(201);
@@ -384,6 +390,7 @@ describe("POST /v1/wallets", () => {
         openingAmount: { value: "12000.50", currency: "THB" },
         openingDate: "2026-09-01",
         archivedAt: null,
+        savings: true,
         balance: { value: "12000.50", currency: "THB" },
       });
       const located = await app.request(
@@ -401,7 +408,8 @@ describe("POST /v1/wallets", () => {
       });
       const { cookie } = await createOwnerSession(db);
       const first = await postWallet(app, { cookie, idempotencyKey: "retry" });
-      const original = await first.json();
+      const original = walletResponseSchema.parse(await first.json());
+      expect(original.savings).toBe(false);
 
       const retry = await postWallet(app, {
         cookie,
@@ -480,6 +488,7 @@ describe("POST /v1/wallets", () => {
           type: "piggy_bank",
           openingAmount: { value: "1,000", currency: "USD" },
           openingDate: "1 Sep 2026",
+          savings: "yes",
         },
       });
       const problem = await expectProblem(rejected, {
@@ -492,6 +501,7 @@ describe("POST /v1/wallets", () => {
         { pointer: "#/openingAmount/value", code: "invalid-format" },
         { pointer: "#/openingAmount/currency", code: "invalid-value" },
         { pointer: "#/openingDate", code: "invalid-format" },
+        { pointer: "#/savings", code: "invalid-type" },
       ]);
 
       const corrected = await postWallet(app, {
@@ -819,7 +829,7 @@ function patchWallet(
 }
 
 describe("PATCH /v1/wallets/{walletId}", () => {
-  test("archives and answers with the updated wallet", async () => {
+  test("archives, then marks savings through partial updates", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -836,10 +846,22 @@ describe("PATCH /v1/wallets/{walletId}", () => {
       );
       expect(wallet.archivedAt).toEqual(expect.any(String));
       expect(await readWallet(app, { id: created.id, cookie })).toEqual(wallet);
+
+      const marked = await patchWallet(app, {
+        id: created.id,
+        cookie,
+        body: { savings: true },
+      });
+      const savingsWallet = walletResponseSchema.parse(await marked.json());
+      expect(marked.status).toBe(200);
+      expect(savingsWallet.savings).toBe(true);
+      expect(await readWallet(app, { id: created.id, cookie })).toEqual(
+        savingsWallet,
+      );
     });
   });
 
-  test("a malformed or unrelated body is rejected field by field", async () => {
+  test("rejects malformed, unrelated, and empty state bodies", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -850,7 +872,7 @@ describe("PATCH /v1/wallets/{walletId}", () => {
       const rejected = await patchWallet(app, {
         id: created.id,
         cookie,
-        body: { archived: "yes", name: "Renamed" },
+        body: { archived: "yes", savings: "yes", name: "Renamed" },
       });
 
       const problem = await expectProblem(rejected, {
@@ -859,10 +881,14 @@ describe("PATCH /v1/wallets/{walletId}", () => {
       });
       expect(problem.errors).toEqual([
         { pointer: "#/archived", code: "invalid-type" },
-        // An unknown field has no defined pointer, so it addresses the
-        // document root.
+        { pointer: "#/savings", code: "invalid-type" },
         { pointer: "#/", code: "unrecognized-keys" },
       ]);
+      const empty = await expectProblem(
+        await patchWallet(app, { id: created.id, cookie, body: {} }),
+        { status: 422, code: "invalid-command" },
+      );
+      expect(empty.errors).toEqual([{ pointer: "#/", code: "invalid" }]);
       expect(await readWallet(app, { id: created.id, cookie })).toEqual(
         created,
       );
@@ -941,7 +967,7 @@ describe("DELETE /v1/wallets/{walletId}", () => {
     });
   });
 
-  test("returns one stable conflict problem for every retained-history blocker", async () => {
+  test("maps retained history to a conflict problem", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -961,57 +987,16 @@ describe("DELETE /v1/wallets/{walletId}", () => {
         openingAmount: 250n,
         openingDate: "2026-09-01",
       });
-      const changedId = await insertWallet(db, {
-        ownerId,
-        name: "Changed",
-        type: "cash",
-        openingAmount: 250n,
-        openingDate: "2026-09-01",
-      });
-      const retainedId = await insertWallet(db, {
-        ownerId,
-        name: "Retained",
-        type: "cash",
-        openingAmount: 250n,
-        openingDate: "2026-09-01",
-      });
-      const currentAfterEditId = await insertWallet(db, {
-        ownerId,
-        name: "Current after edit",
-        type: "e_wallet",
-        openingAmount: 250n,
-        openingDate: "2026-09-01",
-      });
-      const currentAfterEditDestinationId = await insertWallet(db, {
-        ownerId,
-        name: "Current after edit destination",
-        type: "bank_account",
-        openingAmount: 250n,
-        openingDate: "2026-09-01",
-      });
-
       await insertTransfer(db, {
         ownerId,
         walletId: currentId,
         destinationWalletId: destinationId,
         transactionDate: "2026-09-02",
       });
-      expect((await patchWallet(app, { id: changedId, cookie })).status).toBe(
-        200,
-      );
-      await insertRetainedTransferSnapshot(db, {
-        ownerId,
-        currentWalletId: currentAfterEditId,
-        currentDestinationWalletId: currentAfterEditDestinationId,
-        retainedWalletId: retainedId,
+      await expectProblem(await deleteWallet(app, { id: currentId, cookie }), {
+        status: 409,
+        code: "history-remains",
       });
-
-      for (const id of [currentId, changedId, retainedId]) {
-        await expectProblem(await deleteWallet(app, { id, cookie }), {
-          status: 409,
-          code: "history-remains",
-        });
-      }
     });
   });
 

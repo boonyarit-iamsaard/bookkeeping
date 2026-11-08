@@ -37,15 +37,15 @@ a request body.
 
 ## Wallets
 
-| Next.js flow                               | Hono operation             | Proven by                           |
-| ------------------------------------------ | -------------------------- | ----------------------------------- |
-| `/wallets` list                            | `listWallets`              | `wallet.routes.integration.test.ts` |
-| Dashboard balances on a chosen date        | `listWallets?asOf=`        | `wallet.routes.integration.test.ts` |
-| `/wallets/[id]` detail                     | `getWallet`                | `wallet.routes.integration.test.ts` |
-| `createWalletAction`                       | `createWallet`             | `wallet.routes.integration.test.ts` |
-| `manageWalletAction` — opening correction  | `replaceWalletOpening`     | `wallet.routes.integration.test.ts` |
-| `manageWalletAction` — archive and restore | `changeWalletArchiveState` | `wallet.routes.integration.test.ts` |
-| `manageWalletAction` — delete              | `deleteWallet`             | `wallet.routes.integration.test.ts` |
+| Next.js flow                               | Hono operation         | Proven by                           |
+| ------------------------------------------ | ---------------------- | ----------------------------------- |
+| `/wallets` list                            | `listWallets`          | `wallet.routes.integration.test.ts` |
+| Dashboard balances on a chosen date        | `listWallets?asOf=`    | `wallet.routes.integration.test.ts` |
+| `/wallets/[id]` detail                     | `getWallet`            | `wallet.routes.integration.test.ts` |
+| `createWalletAction`                       | `createWallet`         | `wallet.routes.integration.test.ts` |
+| `manageWalletAction` — opening correction  | `replaceWalletOpening` | `wallet.routes.integration.test.ts` |
+| `manageWalletAction` — archive and restore | `changeWalletState`    | `wallet.routes.integration.test.ts` |
+| `manageWalletAction` — delete              | `deleteWallet`         | `wallet.routes.integration.test.ts` |
 
 ## Categories
 

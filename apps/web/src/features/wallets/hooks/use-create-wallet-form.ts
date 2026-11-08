@@ -19,6 +19,7 @@ type Wallet = components["schemas"]["Wallet"];
 const WALLET_FORM_FIELDS: readonly (keyof WalletFormInput)[] = [
   "name",
   "type",
+  "savings",
   "openingAmount",
   "openingDate",
 ];
@@ -64,6 +65,7 @@ export function useCreateWalletForm({
   const defaultValues: WalletFormInput = {
     name: "",
     type: "cash",
+    savings: false,
     openingAmount: "",
     openingDate: defaultOpeningDate,
   };
@@ -88,6 +90,7 @@ export function useCreateWalletForm({
         result = await createWallet.submit({
           name: parsed.data.name,
           type: parsed.data.type,
+          savings: parsed.data.savings,
           openingAmount: {
             value: formatMoneyInput({
               amountInMinorUnits: parsed.data.openingAmount,

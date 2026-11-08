@@ -40,7 +40,7 @@ export function WalletBalances({ wallets }: Readonly<WalletBalancesProps>) {
           />
         </Link>
       </h2>
-      <WalletShareChart shares={shares} />
+      <WalletShareChart shares={shares} showSavings />
     </section>
   );
 }

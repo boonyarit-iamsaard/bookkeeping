@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { createDatabase } from "@bookkeeping/database/connection";
+import { migrationsFolder } from "@bookkeeping/database/migrate";
 import { withEmptyDatabase } from "@bookkeeping/database/testing/empty-database";
 import {
   nextMigrationColumn,
@@ -12,6 +13,7 @@ import {
   withLockedWallets,
 } from "@bookkeeping/database/testing/wallets-table";
 import { sql } from "drizzle-orm";
+import { readMigrationFiles } from "drizzle-orm/migrator";
 import { beforeAll, describe, expect, test } from "vitest";
 import * as z from "zod";
 import { LOCK_TIMEOUT_MS } from "./migration-lock";
@@ -24,6 +26,7 @@ const IMAGE = "bookkeeping-api-migrate-test";
 const DOCKER_HOST_ALIAS = "host.docker.internal";
 const repositoryDirectory = fileURLToPath(new URL("../../..", import.meta.url));
 const runTestOptions = { timeout: 60_000 };
+const committedMigrationCount = readMigrationFiles({ migrationsFolder }).length;
 
 const run = promisify(execFile);
 
@@ -107,14 +110,14 @@ describe("the api image's migrate entrypoint", () => {
         const result = await runMigrate(url);
 
         expect(result).toMatchObject({ exitCode: 0 });
-        expect(await countAppliedMigrations(url)).toBe(1);
+        expect(await countAppliedMigrations(url)).toBe(committedMigrationCount);
         expect(await hasWalletColumn(url, "id")).toBe(true);
       });
     },
   );
 
   test(
-    "applies a migration added after the baseline",
+    "applies a migration added after the committed migrations",
     runTestOptions,
     async () => {
       await withEmptyDatabase(async (url) => {
@@ -125,7 +128,9 @@ describe("the api image's migrate entrypoint", () => {
 
           expect(result).toMatchObject({ exitCode: 0 });
         });
-        expect(await countAppliedMigrations(url)).toBe(2);
+        expect(await countAppliedMigrations(url)).toBe(
+          committedMigrationCount + 1,
+        );
         expect(await hasWalletColumn(url, nextMigrationColumn)).toBe(true);
       });
     },
@@ -151,7 +156,7 @@ describe("the api image's migrate entrypoint", () => {
             expect(elapsed).toBeLessThan(LOCK_TIMEOUT_MS + 15_000);
           }),
         );
-        expect(await countAppliedMigrations(url)).toBe(1);
+        expect(await countAppliedMigrations(url)).toBe(committedMigrationCount);
         expect(await hasWalletColumn(url, nextMigrationColumn)).toBe(false);
       });
     },

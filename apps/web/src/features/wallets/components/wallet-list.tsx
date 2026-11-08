@@ -4,10 +4,7 @@ import { ChevronRight, Plus, Wallet } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
 import { WalletTile } from "@/features/wallets/components/wallet-tile";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
-import {
-  walletCaption,
-  walletCountLabel,
-} from "@/features/wallets/wallet-labels";
+import { walletCaption } from "@/features/wallets/wallet-labels";
 import { walletMorphName } from "@/features/wallets/wallet-morph";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Money } from "@/shared/components/money";
@@ -49,10 +46,7 @@ export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
-      <WalletsTotal
-        wallets={wallets}
-        caption={`Across ${walletCountLabel(wallets.length)}`}
-      />
+      <WalletsTotal wallets={wallets} lead="total" />
 
       <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4" aria-label="Wallets">
         {wallets.map((wallet) => (
