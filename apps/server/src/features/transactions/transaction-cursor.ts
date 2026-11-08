@@ -3,6 +3,11 @@ import type {
   ListTransactionsOptions,
   TransactionListPosition,
 } from "@bookkeeping/application/transactions";
+import {
+  normalizeTagIds,
+  optionalTagIds,
+  sameTagIds,
+} from "@bookkeeping/domain/tags";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import * as z from "zod";
 
@@ -59,9 +64,7 @@ function filtersOf(options: Readonly<ListTransactionsOptions>): CursorFilters {
     categoryId: options.categoryId,
     type: options.type,
     // A set: each tag once, sorted, and absent when none is chosen.
-    tagIds: options.tagIds?.length
-      ? [...new Set(options.tagIds)].toSorted()
-      : undefined,
+    ...optionalTagIds(normalizeTagIds(options.tagIds ?? [])),
   };
 }
 
@@ -71,7 +74,7 @@ function sameFilters(
 ) {
   return (
     FILTER_KEYS.every((key) => left[key] === right[key]) &&
-    (left.tagIds ?? []).join() === (right.tagIds ?? []).join()
+    sameTagIds(left.tagIds, right.tagIds)
   );
 }
 

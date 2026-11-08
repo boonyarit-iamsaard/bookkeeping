@@ -12,6 +12,31 @@ export function normalizeTagName(raw: string): string {
   return raw.trim();
 }
 
+/** Each named tag once, in a stable order, so equal choices compare and fingerprint alike. */
+export function normalizeTagIds(tagIds: readonly string[]): string[] {
+  return [...new Set(tagIds)].toSorted();
+}
+
+/** Whether two normalized tag sets name the same tags; an absent set is empty. */
+export function sameTagIds(
+  left: readonly string[] | undefined,
+  right: readonly string[] | undefined,
+): boolean {
+  return (left ?? []).join() === (right ?? []).join();
+}
+
+export interface OptionalTagIds {
+  tagIds?: string[];
+}
+
+/**
+ * The tags as a member to spread into a recorded shape: absent when there are
+ * none, so untagged records keep the shape they had before tags existed.
+ */
+export function optionalTagIds(tagIds: readonly string[]): OptionalTagIds {
+  return tagIds.length > 0 ? { tagIds: [...tagIds] } : {};
+}
+
 /** A tag as a transaction carries it. */
 export interface TransactionTag {
   id: string;

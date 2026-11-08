@@ -2,7 +2,11 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { parseCalendarDate } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
-import { MAX_TAGS_PER_TRANSACTION } from "@bookkeeping/domain/tags";
+import {
+  MAX_TAGS_PER_TRANSACTION,
+  optionalTagIds,
+  sameTagIds,
+} from "@bookkeeping/domain/tags";
 import type {
   LinkedExpense,
   RefundSummary,
@@ -420,7 +424,7 @@ export function snapshotOf(row: Readonly<SnapshotSource>): TransactionSnapshot {
     amount: row.amount.toString(),
     transactionDate: row.transactionDate,
     note: row.note,
-    ...(row.tagIds.length > 0 ? { tagIds: [...row.tagIds] } : {}),
+    ...optionalTagIds(row.tagIds),
   };
 }
 
@@ -441,6 +445,6 @@ export function sameSnapshot(
 ): boolean {
   return (
     SNAPSHOT_KEYS.every((key) => a[key] === b[key]) &&
-    (a.tagIds ?? []).join() === (b.tagIds ?? []).join()
+    sameTagIds(a.tagIds, b.tagIds)
   );
 }

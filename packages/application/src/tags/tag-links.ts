@@ -1,14 +1,10 @@
 import type { Database } from "@bookkeeping/database/connection";
 import { tags, transactionTags } from "@bookkeeping/database/tags";
 import type { TransactionTag } from "@bookkeeping/domain/tags";
+import { normalizeTagIds } from "@bookkeeping/domain/tags";
 import type { SQL } from "drizzle-orm";
 import { and, asc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { isUuid } from "../shared/identifier";
-
-/** Each named tag once, in a stable order, so equal choices compare and fingerprint alike. */
-export function normalizeTagIds(tagIds: readonly string[]): string[] {
-  return [...new Set(tagIds)].toSorted();
-}
 
 export interface OwnedTagsQuery {
   ownerId: string;
@@ -103,11 +99,14 @@ export async function readTagsByTransaction(
   return byTransaction;
 }
 
-/** Holds when the transaction whose tags `carrier` names carries any of these tags. */
-export function carriesAnyTag(carrier: SQL, tagIds: readonly string[]): SQL {
+/** Holds when the transaction `transactionId` names carries any of these tags. */
+export function carriesAnyTag(
+  transactionId: SQL,
+  tagIds: readonly string[],
+): SQL {
   const ids = tagIds.filter(isUuid);
   if (ids.length === 0) {
     return sql`false`;
   }
-  return sql`exists (select 1 from ${transactionTags} where ${transactionTags.transactionId} = ${carrier} and ${inArray(transactionTags.tagId, ids)})`;
+  return sql`exists (select 1 from ${transactionTags} where ${transactionTags.transactionId} = ${transactionId} and ${inArray(transactionTags.tagId, ids)})`;
 }

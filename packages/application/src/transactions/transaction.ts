@@ -9,6 +9,7 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
+import { normalizeTagIds, optionalTagIds } from "@bookkeeping/domain/tags";
 import type {
   ExpenseRefunds,
   RefundSummary,
@@ -41,7 +42,6 @@ import { isUuid } from "../shared/identifier";
 import {
   carriesAnyTag,
   lockOwnedTagIds,
-  normalizeTagIds,
   readTagIdsOf,
   replaceTagsOf,
 } from "../tags/tag-links";
@@ -205,8 +205,8 @@ function transactionCreationPayload(
     amount: command.amount,
     transactionDate: command.transactionDate,
     note: command.note,
-    // Absent when untagged, so receipts from before tags existed still match.
-    ...(command.tagIds.length > 0 ? { tagIds: [...command.tagIds] } : {}),
+    // So receipts from before tags existed still match.
+    ...optionalTagIds(command.tagIds),
   };
 }
 
