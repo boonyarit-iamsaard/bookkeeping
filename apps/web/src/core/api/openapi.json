@@ -259,7 +259,7 @@
             "$ref": "#/components/schemas/Page"
           },
           "balance": {
-            "$ref": "#/components/schemas/WalletBalance"
+            "$ref": "#/components/schemas/TotalBalanceSplit"
           }
         },
         "required": [
@@ -284,7 +284,7 @@
         ],
         "additionalProperties": false
       },
-      "WalletBalance": {
+      "TotalBalanceSplit": {
         "type": "object",
         "properties": {
           "total": {

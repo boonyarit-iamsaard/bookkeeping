@@ -2,7 +2,10 @@ import type { Database } from "@bookkeeping/database/connection";
 import { transactions } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import type { WalletBalance, WalletSummary } from "@bookkeeping/domain/wallets";
+import type {
+  TotalBalanceSplit,
+  WalletSummary,
+} from "@bookkeeping/domain/wallets";
 import type { SQL } from "drizzle-orm";
 import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
 
@@ -70,7 +73,7 @@ export interface WalletBalanceFacts {
  */
 export function summarizeWalletBalance(
   facts: readonly Readonly<WalletBalanceFacts>[],
-): WalletBalance {
+): TotalBalanceSplit {
   let spendable = 0n;
   let setAside = 0n;
   let spendableWalletCount = 0;

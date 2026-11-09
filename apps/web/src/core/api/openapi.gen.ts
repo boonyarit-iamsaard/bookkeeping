@@ -719,6 +719,14 @@ export interface components {
             name: string;
             transactionCount: number;
         };
+        TotalBalanceSplit: {
+            savingsWalletCount: number;
+            setAside: components["schemas"]["Money"] | null;
+            spendable: components["schemas"]["Money"] | null;
+            spendableWalletCount: number;
+            total: components["schemas"]["Money"] | null;
+            walletCount: number;
+        };
         Transaction: {
             amount: components["schemas"]["Money"];
             category: {
@@ -826,16 +834,8 @@ export interface components {
             /** @enum {string} */
             type: "cash" | "bank_account" | "e_wallet";
         };
-        WalletBalance: {
-            savingsWalletCount: number;
-            setAside: components["schemas"]["Money"] | null;
-            spendable: components["schemas"]["Money"] | null;
-            spendableWalletCount: number;
-            total: components["schemas"]["Money"] | null;
-            walletCount: number;
-        };
         WalletCollection: {
-            balance: components["schemas"]["WalletBalance"];
+            balance: components["schemas"]["TotalBalanceSplit"];
             items: components["schemas"]["Wallet"][];
             page: components["schemas"]["Page"];
         };

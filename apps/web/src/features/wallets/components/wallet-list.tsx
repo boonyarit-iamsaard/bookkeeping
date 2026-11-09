@@ -14,11 +14,11 @@ import { cn } from "@/shared/helpers/cn";
 import { morphProps } from "@/shared/helpers/morph";
 
 type WalletSummary = components["schemas"]["Wallet"];
-type WalletBalance = components["schemas"]["WalletBalance"];
+type TotalBalanceSplit = components["schemas"]["TotalBalanceSplit"];
 
 interface WalletListProps {
   wallets: readonly WalletSummary[];
-  balance: Readonly<WalletBalance>;
+  balance: Readonly<TotalBalanceSplit>;
   /** The wallet just created, if any; it alone arrives with a rise. */
   createdId?: string;
 }

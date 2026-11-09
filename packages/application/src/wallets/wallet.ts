@@ -14,7 +14,7 @@ import { MAX_WHOLE_DIGITS } from "@bookkeeping/domain/money";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import type {
-  WalletBalance,
+  TotalBalanceSplit,
   WalletSummary,
   WalletType,
 } from "@bookkeeping/domain/wallets";
@@ -70,7 +70,7 @@ export async function listWallets(
 /** The listed Wallets and their Total balance split into Spendable and Set aside. */
 export interface WalletsWithBalance {
   wallets: readonly WalletSummary[];
-  balance: WalletBalance;
+  balance: TotalBalanceSplit;
 }
 
 /** `listWallets` with the balance split authored over the same Wallets. */
@@ -84,7 +84,7 @@ export async function listWalletsWithBalance(
 
 /**
  * One owned wallet with the balance the listing would show, or `null` when
- * the owner has no wallet with that id.
+ * the owner has no wallet with that id or it has not opened by `asOf`.
  */
 export async function findWallet(
   db: Database,

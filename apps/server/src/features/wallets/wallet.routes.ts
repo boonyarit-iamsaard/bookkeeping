@@ -11,7 +11,10 @@ import {
 } from "@bookkeeping/application/wallets";
 import { changeWalletState } from "@bookkeeping/application/wallets/state";
 import type { Database } from "@bookkeeping/database/connection";
-import type { WalletBalance, WalletSummary } from "@bookkeeping/domain/wallets";
+import type {
+  TotalBalanceSplit,
+  WalletSummary,
+} from "@bookkeeping/domain/wallets";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import type { Input } from "hono";
 import { Hono } from "hono";
@@ -80,7 +83,7 @@ export const walletResponseSchema = z
  * into Spendable and Set aside. A figure is null when no wallet of its kind
  * had opened by the date; the counts cover the listed wallets.
  */
-export const walletBalanceSchema = z
+export const totalBalanceSplitSchema = z
   .object({
     total: moneySchema.nullable(),
     spendable: moneySchema.nullable(),
@@ -89,12 +92,12 @@ export const walletBalanceSchema = z
     spendableWalletCount: z.int().nonnegative(),
     savingsWalletCount: z.int().nonnegative(),
   })
-  .meta({ id: "WalletBalance" });
+  .meta({ id: "TotalBalanceSplit" });
 
 export const walletCollectionResponseSchema = createCollectionResponseSchema(
   walletResponseSchema,
 )
-  .extend({ balance: walletBalanceSchema })
+  .extend({ balance: totalBalanceSplitSchema })
   .meta({ id: "WalletCollection" });
 
 export interface WalletResponse {
@@ -137,9 +140,9 @@ function presentAmount(amountInMinorUnits: bigint | null): Money | null {
     : presentMoney({ amountInMinorUnits, currency: "THB" });
 }
 
-export function presentWalletBalance(
-  balance: Readonly<WalletBalance>,
-): z.infer<typeof walletBalanceSchema> {
+export function presentTotalBalanceSplit(
+  balance: Readonly<TotalBalanceSplit>,
+): z.infer<typeof totalBalanceSplitSchema> {
   return {
     ...balance,
     total: presentAmount(balance.total),
@@ -357,7 +360,7 @@ export function createWalletRoutes(db: Database) {
             {
               items: listed.wallets.map(presentWallet),
               page: { nextCursor: null },
-              balance: presentWalletBalance(listed.balance),
+              balance: presentTotalBalanceSplit(listed.balance),
             },
             200,
           );

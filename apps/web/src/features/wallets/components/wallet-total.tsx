@@ -3,18 +3,18 @@ import { walletCountLabel } from "@/features/wallets/wallet-labels";
 import { DisplayFigure } from "@/shared/components/display-figure";
 import { Money } from "@/shared/components/money";
 
-type WalletBalance = components["schemas"]["WalletBalance"];
-type WalletBalanceName = "total" | "spendable" | "setAside";
+type TotalBalanceSplit = components["schemas"]["TotalBalanceSplit"];
+type WalletBalanceName = Exclude<keyof TotalBalanceSplit, `${string}Count`>;
 
 interface WalletsTotalProps {
-  balance: Readonly<WalletBalance>;
+  balance: Readonly<TotalBalanceSplit>;
   lead: "spendable" | "total";
 }
 
 interface HeroBalances {
   headingId: string;
   secondary: readonly WalletBalanceName[];
-  countOf: (balance: Readonly<WalletBalance>) => number;
+  countOf: (balance: Readonly<TotalBalanceSplit>) => number;
 }
 
 const BALANCE_LABELS: Record<WalletBalanceName, string> = {
