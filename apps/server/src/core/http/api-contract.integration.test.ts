@@ -30,7 +30,6 @@ import {
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
-import type { ContractExchange } from "../../testing/expect-documented-exchange.js";
 import {
   createCollector,
   expectDocumentedExchange,

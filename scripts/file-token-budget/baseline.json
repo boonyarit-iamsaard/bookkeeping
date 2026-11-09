@@ -1,7 +1,7 @@
 {
   "docs/runbooks/production-backups/01-aws-foundation-and-railway-backups.md": 36911,
   "docs/runbooks/production-backups/03-deploy-storage-and-uploader-key.md": 28028,
-  "apps/server/src/core/http/api-contract.integration.test.ts": 20418,
+  "apps/server/src/core/http/api-contract.integration.test.ts": 20333,
   "apps/server/src/core/http/openapi.unit.test.ts": 30718,
   "apps/server/src/features/categories/category.routes.integration.test.ts": 35043,
   "apps/server/src/features/categories/category.routes.ts": 20160,
