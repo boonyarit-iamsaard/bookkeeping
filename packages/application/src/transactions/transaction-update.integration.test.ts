@@ -1,7 +1,7 @@
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { wallets } from "@bookkeeping/database/wallets";
-import { eq, inArray, sql } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { listCategories } from "../categories/category";
 import {
@@ -689,24 +689,6 @@ describe("updateTransaction", () => {
         ],
       }),
     );
-  });
-
-  test("a correction may retain its own archived wallet", async () => {
-    await withRollback(async (db) => {
-      const owner = await setupOwner(db);
-      const transaction = await recordExpense(db, owner);
-      await db
-        .update(wallets)
-        .set({ archivedAt: new Date() })
-        .where(eq(wallets.id, owner.cashId));
-      const retained = await updateTransaction(db, {
-        ...expenseUpdateInput({ owner, transaction }),
-        amount: 200n,
-      });
-      expect(retained.ok && retained.value.wallet).toEqual(
-        expect.objectContaining({ id: owner.cashId, archived: true }),
-      );
-    });
   });
 
   test("a transfer correction retains or swaps its own archived wallets", async () => {

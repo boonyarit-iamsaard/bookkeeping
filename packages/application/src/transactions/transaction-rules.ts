@@ -333,31 +333,25 @@ export function sumOf(refunds: readonly RefundSummary[]): bigint {
  */
 export function refundsCountingAgainst(
   refunds: readonly RefundSummary[],
-  underCorrection: Readonly<{ id: string }> | null | undefined,
+  underCorrection: string | undefined,
 ): readonly RefundSummary[] {
-  return underCorrection
-    ? refunds.filter((refund) => refund.id !== underCorrection.id)
-    : refunds;
+  return underCorrection === undefined
+    ? refunds
+    : refunds.filter((refund) => refund.id !== underCorrection);
 }
 
 export interface RefundAllowanceInput {
   expenseAmount: bigint;
+  /** The refunds counting against the expense; see `refundsCountingAgainst`. */
   refunds: readonly RefundSummary[];
-  /** A refund under correction, which does not count its own old amount. */
-  excluding?: string;
 }
 
 /** What an expense has left to refund once its refunds count against it; never negative. */
 export function refundAllowanceOf({
   expenseAmount,
   refunds,
-  excluding,
 }: Readonly<RefundAllowanceInput>): bigint {
-  const counted = refundsCountingAgainst(
-    refunds,
-    excluding === undefined ? null : { id: excluding },
-  );
-  const refundAllowance = expenseAmount - sumOf(counted);
+  const refundAllowance = expenseAmount - sumOf(refunds);
   return refundAllowance > 0n ? refundAllowance : 0n;
 }
 
@@ -377,7 +371,7 @@ function rejectRefundAgainstExpense(
   }
   const refundAllowance = refundAllowanceOf({
     expenseAmount: facts.expense.amount,
-    refunds: refundsCountingAgainst(facts.expense.refunds, facts.current),
+    refunds: refundsCountingAgainst(facts.expense.refunds, facts.current?.id),
   });
   if (command.amount > refundAllowance) {
     return { field: "amount", code: "exceeds-refundable", refundAllowance };

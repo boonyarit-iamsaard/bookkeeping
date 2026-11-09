@@ -261,7 +261,7 @@ export async function findExpenseRefunds(
   }
   const refunds = refundsCountingAgainst(
     await currentRefundsOf(db, id),
-    excluding === undefined ? null : { id: excluding },
+    excluding,
   );
   return {
     refunds,

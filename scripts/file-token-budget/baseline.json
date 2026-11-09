@@ -18,6 +18,6 @@
   "packages/application/src/categories/category.ts": 24226,
   "packages/application/src/transactions/transaction-create.integration.test.ts": 33030,
   "packages/application/src/transactions/transaction-reads.integration.test.ts": 28719,
-  "packages/application/src/transactions/transaction-update.integration.test.ts": 30165,
+  "packages/application/src/transactions/transaction-update.integration.test.ts": 29528,
   "packages/application/src/wallets/wallet.integration.test.ts": 28129
 }

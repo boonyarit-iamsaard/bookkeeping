@@ -74,7 +74,7 @@ export function judgeNewTransaction(
   tx: Database,
   { ownerId, command }: Readonly<OwnedCommand>,
 ): Promise<Result<TransactionCommand, TransactionRejection>> {
-  return judge(tx, { ownerId, command, current: null });
+  return judgeAgainstLockedFacts(tx, { ownerId, command, current: null });
 }
 
 /** What a correction may change; the type and refund link stay the record's. */
@@ -128,16 +128,13 @@ export async function judgeCorrection(
     note: correction.note,
     tagIds: normalizeTagIds(correction.tagIds),
   };
-  const accepted = await judge(tx, {
+  const accepted = await judgeAgainstLockedFacts(tx, {
     ownerId,
     command,
     current: {
       id: current.id,
       walletIds: walletIdsOf(current),
-      refunds:
-        current.type === "expense"
-          ? await currentRefundsOf(tx, current.id)
-          : [],
+      refunds: await currentRefundsOf(tx, current.id),
     },
   });
   if (!accepted.ok) {
@@ -188,7 +185,7 @@ interface JudgementInput extends OwnedCommand {
 }
 
 /** Steps 2 to 5 of the global order, then the pure judgement. */
-async function judge(
+async function judgeAgainstLockedFacts(
   tx: Database,
   { ownerId, command, current }: Readonly<JudgementInput>,
 ): Promise<Result<TransactionCommand, TransactionRejection>> {
