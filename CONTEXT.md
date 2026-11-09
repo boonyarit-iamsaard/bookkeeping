@@ -93,6 +93,10 @@ The wallet a transfer adds money to; shown as "To".
 The wallet of a user's most recently recorded transaction, offered as the default on a new entry.
 _Avoid_: Previous wallet, likely wallet
 
+**Correction**:
+Changing a recorded transaction's wallets, category, amount, date, note or tags in place, keeping its type, refund link and recording time.
+_Avoid_: Edit, amendment
+
 **Retained wallet**:
 An archived wallet that a transaction already points at, which correcting that transaction may keep even though new entries and moves cannot use archived wallets.
 
