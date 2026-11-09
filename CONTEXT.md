@@ -21,12 +21,16 @@ A Wallet of any type whose whole balance the user treats as money to keep rather
 _Avoid_: Buffer wallet, reserve, pot, savings as a wallet type
 
 **Set aside**:
-The balance held across a user's Savings wallets.
+The signed balance held across a user's Savings wallets, archived ones included.
 _Avoid_: Savings when referring to the amount, reserved
 
 **Spendable**:
-The balance held across a user's Wallets that are not Savings wallets.
+The signed balance held across a user's Wallets that are not Savings wallets, archived ones included.
 _Avoid_: Safe to spend, available balance
+
+**Total balance**:
+The signed balance held across all of a user's Wallets, archived ones included; Spendable plus Set aside.
+_Avoid_: Overall balance, net worth
 
 **Opening balance**:
 The amount held in a wallet on the date its tracked history begins.
