@@ -54,7 +54,7 @@ hook enforces it; read its scope list before writing a message.
 Before writing, refactoring, or reviewing application code, read the
 `docs/code-conventions.md` sections the change touches (naming, vocabulary
 ownership, house-style enforcement); each `##` section stands alone, and
-`grep -n '^## '` lists them.
+`grep -n '^## ' docs/code-conventions.md` lists them.
 
 ### Database schema changes
 
