@@ -323,8 +323,8 @@ interface FallbackOptions {
 /**
  * Removes a category and moves its transactions to the fallback in one
  * transaction; refunds read their expense's category, so they follow by
- * themselves. Transaction rows are locked before the category row, the
- * same order edits take, so the two never deadlock. The restrict foreign
+ * themselves. Its locks follow the global order in
+ * `transactions/transaction-judgement.ts`. The restrict foreign
  * keys are the final word: a transaction or child committed meanwhile
  * fails the delete, and nothing is changed.
  */

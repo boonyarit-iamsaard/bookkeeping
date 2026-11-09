@@ -4,6 +4,7 @@ import type { TransactionCommand, TransactionFacts } from "./transaction-rules";
 import {
   acceptTransaction,
   refundAllowanceOf,
+  refundsBlockingDeletion,
   sameSnapshot,
   snapshotOf,
 } from "./transaction-rules";
@@ -391,5 +392,21 @@ describe("tags", () => {
     expect(
       sameSnapshot(tagged, snapshotOf({ ...expense, tagIds: [COFFEE] })),
     ).toBe(true);
+  });
+});
+
+describe("refundsBlockingDeletion", () => {
+  test("an expense keeps its row while its refunds count", () => {
+    const refunds = [refund(10_000n)];
+    expect(refundsBlockingDeletion({ type: "expense" }, refunds)).toEqual(
+      refunds,
+    );
+    expect(refundsBlockingDeletion({ type: "expense" }, [])).toEqual([]);
+  });
+
+  test("nothing but an expense is ever blocked", () => {
+    expect(
+      refundsBlockingDeletion({ type: "refund" }, [refund(10_000n)]),
+    ).toEqual([]);
   });
 });

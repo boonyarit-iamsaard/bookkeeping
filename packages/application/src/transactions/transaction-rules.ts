@@ -327,6 +327,19 @@ export function sumOf(refunds: readonly RefundSummary[]): bigint {
   return refunds.reduce((total, refund) => total + refund.amount, 0n);
 }
 
+/**
+ * The refunds that count against an expense: every one but the refund under
+ * correction, which does not count its own old amount.
+ */
+export function refundsCountingAgainst(
+  refunds: readonly RefundSummary[],
+  underCorrection: Readonly<{ id: string }> | null | undefined,
+): readonly RefundSummary[] {
+  return underCorrection
+    ? refunds.filter((refund) => refund.id !== underCorrection.id)
+    : refunds;
+}
+
 export interface RefundAllowanceInput {
   expenseAmount: bigint;
   refunds: readonly RefundSummary[];
@@ -340,12 +353,14 @@ export function refundAllowanceOf({
   refunds,
   excluding,
 }: Readonly<RefundAllowanceInput>): bigint {
-  const counted = refunds.filter((refund) => refund.id !== excluding);
+  const counted = refundsCountingAgainst(
+    refunds,
+    excluding === undefined ? null : { id: excluding },
+  );
   const refundAllowance = expenseAmount - sumOf(counted);
   return refundAllowance > 0n ? refundAllowance : 0n;
 }
 
-/** A refund under correction does not count its own old amount against the allowance. */
 function rejectRefundAgainstExpense(
   command: Readonly<TransactionCommand>,
   facts: Readonly<TransactionFacts>,
@@ -362,8 +377,7 @@ function rejectRefundAgainstExpense(
   }
   const refundAllowance = refundAllowanceOf({
     expenseAmount: facts.expense.amount,
-    refunds: facts.expense.refunds,
-    excluding: facts.current?.id,
+    refunds: refundsCountingAgainst(facts.expense.refunds, facts.current),
   });
   if (command.amount > refundAllowance) {
     return { field: "amount", code: "exceeds-refundable", refundAllowance };
@@ -395,6 +409,17 @@ function rejectExpenseAgainstRefunds(
     };
   }
   return undefined;
+}
+
+/**
+ * The refunds that keep a transaction's row from deletion: an expense keeps
+ * it while any of its refunds still count. Nothing else is ever blocked.
+ */
+export function refundsBlockingDeletion(
+  record: Readonly<{ type: TransactionType }>,
+  refunds: readonly RefundSummary[],
+): readonly RefundSummary[] {
+  return record.type === "expense" ? refunds : [];
 }
 
 /** What a snapshot is taken from: a command, or a stored row with the same fields. */

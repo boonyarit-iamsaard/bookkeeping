@@ -15,10 +15,9 @@
   "apps/web/tests/e2e/transaction-entry.spec.ts": 21863,
   "docs/research/supply-chain-hardening.md": 55266,
   "packages/application/src/categories/category.integration.test.ts": 42405,
-  "packages/application/src/categories/category.ts": 24260,
+  "packages/application/src/categories/category.ts": 24231,
   "packages/application/src/transactions/transaction-create.integration.test.ts": 56725,
   "packages/application/src/transactions/transaction-reads.integration.test.ts": 28719,
   "packages/application/src/transactions/transaction-update.integration.test.ts": 41567,
-  "packages/application/src/transactions/transaction.ts": 24696,
   "packages/application/src/wallets/wallet.integration.test.ts": 28129
 }

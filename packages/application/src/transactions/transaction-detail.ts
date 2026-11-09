@@ -2,8 +2,11 @@ import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { transactions } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
-import type { TransactionDetail } from "@bookkeeping/domain/transactions";
-import { eq, sql } from "drizzle-orm";
+import type {
+  RefundSummary,
+  TransactionDetail,
+} from "@bookkeeping/domain/transactions";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { readTagsByTransaction } from "../tags/tag-links";
 
@@ -15,6 +18,11 @@ const refundedExpenses = alias(transactions, "refunded_expenses");
 
 /** A text key that preserves PostgreSQL's microsecond recording precision. */
 export const recordingPosition = sql<string>`to_char(${transactions.recordedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
+
+/** The owner's current transactions: their own and not deleted. */
+export function ownedCurrent(ownerId: string) {
+  return and(eq(transactions.userId, ownerId), isNull(transactions.deletedAt));
+}
 
 /** Every current or past transaction joined to what its detail names; callers add the filter. */
 export function detailQuery(db: Database) {
@@ -141,4 +149,45 @@ export async function toOneDetail(
     throw new Error("Transaction detail could not be mapped");
   }
   return detail;
+}
+
+/** The nondeleted refunds linked to an expense, oldest date first. */
+export async function currentRefundsOf(
+  db: Database,
+  expenseId: string,
+): Promise<readonly RefundSummary[]> {
+  const rows = await db
+    .select({
+      id: transactions.id,
+      amount: transactions.amount,
+      transactionDate: transactions.transactionDate,
+      walletId: wallets.id,
+      walletName: wallets.name,
+      walletType: wallets.type,
+      walletArchivedAt: wallets.archivedAt,
+    })
+    .from(transactions)
+    .innerJoin(wallets, eq(wallets.id, transactions.walletId))
+    .where(
+      and(
+        eq(transactions.refundOfTransactionId, expenseId),
+        isNull(transactions.deletedAt),
+      ),
+    )
+    .orderBy(
+      asc(transactions.transactionDate),
+      asc(transactions.recordedAt),
+      asc(transactions.id),
+    );
+  return rows.map((row) => ({
+    id: row.id,
+    amount: row.amount,
+    transactionDate: row.transactionDate,
+    wallet: {
+      id: row.walletId,
+      name: row.walletName,
+      type: row.walletType,
+      archived: Boolean(row.walletArchivedAt),
+    },
+  }));
 }

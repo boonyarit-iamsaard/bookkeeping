@@ -6,7 +6,6 @@ import {
 } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { normalizeTagIds, optionalTagIds } from "@bookkeeping/domain/tags";
@@ -20,53 +19,43 @@ import type {
   TransactionSnapshot,
   TransactionType,
 } from "@bookkeeping/domain/transactions";
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  gte,
-  inArray,
-  isNull,
-  lt,
-  lte,
-  or,
-  sql,
-} from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
 import type {
   IdempotencyConflict,
   ValidatedPayload,
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
-import {
-  carriesAnyTag,
-  lockOwnedTagIds,
-  readTagIdsOf,
-  replaceTagsOf,
-} from "../tags/tag-links";
+import { carriesAnyTag, replaceTagsOf } from "../tags/tag-links";
 import type { DetailRow } from "./transaction-detail";
 import {
+  currentRefundsOf,
   detailQuery,
+  ownedCurrent,
   recordingPosition,
   toDetails,
   toOneDetail,
 } from "./transaction-detail";
 import type {
-  CategoryFact,
-  CurrentTransactionFact,
-  ExpenseFact,
+  OwnedCommand,
+  TransactionCorrection,
+  TransactionNotFound,
+} from "./transaction-judgement";
+import {
+  judgeCorrection,
+  judgeNewTransaction,
+  lockForDeletion,
+} from "./transaction-judgement";
+import type {
   TransactionCommand,
   TransactionRejection,
-  WalletFact,
 } from "./transaction-rules";
 import {
-  acceptTransaction,
   refundAllowanceOf,
+  refundsCountingAgainst,
   sameSnapshot,
   snapshotOf,
   sumOf,
-  walletIdsOf,
 } from "./transaction-rules";
 
 export type {
@@ -93,11 +82,7 @@ export async function findTransaction(
     return null;
   }
   const [row] = await detailQuery(db).where(
-    and(
-      eq(transactions.id, id),
-      eq(transactions.userId, ownerId),
-      isNull(transactions.deletedAt),
-    ),
+    and(eq(transactions.id, id), ownedCurrent(ownerId)),
   );
   return row ? toOneDetail(db, row) : null;
 }
@@ -214,11 +199,7 @@ async function insertTransaction(
   tx: Database,
   { ownerId, command }: Readonly<OwnedCommand>,
 ): Promise<Result<TransactionDetail, TransactionRejection>> {
-  const accepted = await judgeTransaction(tx, {
-    ownerId,
-    command,
-    current: null,
-  });
+  const accepted = await judgeNewTransaction(tx, { ownerId, command });
   if (!accepted.ok) {
     return err(accepted.error);
   }
@@ -250,159 +231,6 @@ async function insertTransaction(
   return ok(await toOneDetail(tx, detailRow));
 }
 
-interface OwnedCommand {
-  ownerId: string;
-  command: Readonly<TransactionCommand>;
-}
-
-interface JudgementInput extends OwnedCommand {
-  /** The record under correction, or null for a new one. */
-  current: CurrentTransactionFact | null;
-}
-
-/**
- * Loads and locks the owner's records the command names, then judges it.
- * The expense lock comes before wallet locks everywhere, so refunds,
- * corrections, and wallet archiving cannot wait on each other in a cycle.
- */
-async function judgeTransaction(
-  tx: Database,
-  { ownerId, command, current }: Readonly<JudgementInput>,
-): Promise<Result<TransactionCommand, TransactionRejection>> {
-  const expense = await lockRefundedExpense(tx, { ownerId, command });
-  const owned = await lockOwnedWallets(tx, { ownerId, command });
-  const category = await readOwnedCategory(tx, { ownerId, command });
-  return acceptTransaction(command, {
-    today: todayIn({ timeZone: APP_TIME_ZONE }),
-    wallets: owned,
-    tagIds: await lockOwnedTagIds(tx, { ownerId, tagIds: command.tagIds }),
-    category,
-    expense,
-    current,
-  });
-}
-
-/** A refund's expense with its current refunds; null unless it is one of the owner's current expenses. */
-async function lockRefundedExpense(
-  tx: Database,
-  { ownerId, command }: Readonly<OwnedCommand>,
-): Promise<ExpenseFact | null> {
-  if (
-    command.type !== "refund" ||
-    !command.refundOfTransactionId ||
-    !isUuid(command.refundOfTransactionId)
-  ) {
-    return null;
-  }
-  const [expense] = await tx
-    .select({
-      id: transactions.id,
-      type: transactions.type,
-      amount: transactions.amount,
-      transactionDate: transactions.transactionDate,
-      deletedAt: transactions.deletedAt,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.id, command.refundOfTransactionId),
-        eq(transactions.userId, ownerId),
-      ),
-    )
-    .for("update");
-  if (!expense || expense.deletedAt || expense.type !== "expense") {
-    return null;
-  }
-  return {
-    id: expense.id,
-    amount: expense.amount,
-    transactionDate: expense.transactionDate,
-    refunds: await currentRefundsOf(tx, expense.id),
-  };
-}
-
-/** The owner's wallets among those the command names, share-locked for the rest of the transaction. */
-async function lockOwnedWallets(
-  tx: Database,
-  { ownerId, command }: Readonly<OwnedCommand>,
-): Promise<WalletFact[]> {
-  const ids = walletIdsOf(command).filter(isUuid);
-  if (ids.length === 0) {
-    return [];
-  }
-  return tx
-    .select({
-      id: wallets.id,
-      openingDate: wallets.openingDate,
-      archivedAt: wallets.archivedAt,
-    })
-    .from(wallets)
-    .where(and(inArray(wallets.id, ids), eq(wallets.userId, ownerId)))
-    .orderBy(asc(wallets.id))
-    .for("share");
-}
-
-async function readOwnedCategory(
-  tx: Database,
-  { ownerId, command }: Readonly<OwnedCommand>,
-): Promise<CategoryFact | null> {
-  if (!command.categoryId || !isUuid(command.categoryId)) {
-    return null;
-  }
-  const [category] = await tx
-    .select({ id: categories.id, kind: categories.kind })
-    .from(categories)
-    .where(
-      and(
-        eq(categories.id, command.categoryId),
-        eq(categories.userId, ownerId),
-      ),
-    )
-    .for("share");
-  return category ?? null;
-}
-
-/** The nondeleted refunds linked to an expense, oldest date first. */
-async function currentRefundsOf(
-  db: Database,
-  expenseId: string,
-): Promise<readonly RefundSummary[]> {
-  const rows = await db
-    .select({
-      id: transactions.id,
-      amount: transactions.amount,
-      transactionDate: transactions.transactionDate,
-      walletId: wallets.id,
-      walletName: wallets.name,
-      walletType: wallets.type,
-      walletArchivedAt: wallets.archivedAt,
-    })
-    .from(transactions)
-    .innerJoin(wallets, eq(wallets.id, transactions.walletId))
-    .where(
-      and(
-        eq(transactions.refundOfTransactionId, expenseId),
-        isNull(transactions.deletedAt),
-      ),
-    )
-    .orderBy(
-      asc(transactions.transactionDate),
-      asc(transactions.recordedAt),
-      asc(transactions.id),
-    );
-  return rows.map((row) => ({
-    id: row.id,
-    amount: row.amount,
-    transactionDate: row.transactionDate,
-    wallet: {
-      id: row.walletId,
-      name: row.walletName,
-      type: row.walletType,
-      archived: Boolean(row.walletArchivedAt),
-    },
-  }));
-}
-
 export interface ExpenseRefundsQuery extends TransactionRef {
   /**
    * A refund under correction, left out so the allowance is what that refund
@@ -427,18 +255,13 @@ export async function findExpenseRefunds(
   const [expense] = await db
     .select({ amount: transactions.amount, type: transactions.type })
     .from(transactions)
-    .where(
-      and(
-        eq(transactions.id, id),
-        eq(transactions.userId, ownerId),
-        isNull(transactions.deletedAt),
-      ),
-    );
+    .where(and(eq(transactions.id, id), ownedCurrent(ownerId)));
   if (expense?.type !== "expense") {
     return null;
   }
-  const refunds = (await currentRefundsOf(db, id)).filter(
-    (refund) => refund.id !== excluding,
+  const refunds = refundsCountingAgainst(
+    await currentRefundsOf(db, id),
+    excluding === undefined ? null : { id: excluding },
   );
   return {
     refunds,
@@ -458,59 +281,19 @@ export async function findLastUsedWalletId(
   const [row] = await db
     .select({ walletId: transactions.walletId })
     .from(transactions)
-    .where(
-      and(eq(transactions.userId, ownerId), isNull(transactions.deletedAt)),
-    )
+    .where(ownedCurrent(ownerId))
     .orderBy(desc(transactions.recordedAt), desc(transactions.id))
     .limit(1);
   return row?.walletId ?? null;
 }
 
-export interface UpdateTransactionInput {
-  /** Always the session user; never a client-supplied identifier. */
-  ownerId: string;
-  id: string;
-  walletId: string;
-  categoryId: string | null;
-  destinationWalletId?: string | null;
-  /** Integer satang, always positive; the stored type carries the sign. */
-  amount: bigint;
-  transactionDate: CalendarDate;
-  note: string;
-  /** Every tag the transaction carries afterwards; an empty list removes them all. */
-  tagIds: readonly string[];
-}
+export interface UpdateTransactionInput
+  extends TransactionRef,
+    TransactionCorrection {}
 
 export type UpdateTransactionError =
   /** Also covers another owner's record and a deleted one. */
-  { code: "transaction-not-found" } | TransactionRejection;
-
-/**
- * Locks the owner's current (undeleted) transaction for the rest of the
- * transaction, so concurrent edits and deletions apply one after another.
- */
-async function lockCurrentTransaction(
-  tx: Database,
-  { ownerId, id }: Readonly<TransactionRef>,
-) {
-  const [row] = await tx
-    .select({
-      id: transactions.id,
-      type: transactions.type,
-      walletId: transactions.walletId,
-      categoryId: transactions.categoryId,
-      destinationWalletId: transactions.destinationWalletId,
-      refundOfTransactionId: transactions.refundOfTransactionId,
-      amount: transactions.amount,
-      transactionDate: transactions.transactionDate,
-      note: transactions.note,
-      deletedAt: transactions.deletedAt,
-    })
-    .from(transactions)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
-    .for("update");
-  return row;
-}
+  TransactionNotFound | TransactionRejection;
 
 /**
  * Corrects a transaction in place. The type and its refund link are fixed;
@@ -523,46 +306,15 @@ async function lockCurrentTransaction(
  */
 export async function updateTransaction(
   db: Database,
-  input: Readonly<UpdateTransactionInput>,
+  { ownerId, id, ...correction }: Readonly<UpdateTransactionInput>,
 ): Promise<Result<TransactionDetail, UpdateTransactionError>> {
-  let rejection: UpdateTransactionError | undefined;
-  let updated: TransactionDetail | undefined;
-  await db.transaction(async (tx) => {
-    const current = await lockCurrentTransaction(tx, input);
-    if (!current || current.deletedAt) {
-      rejection = { code: "transaction-not-found" };
-      return;
+  return db.transaction(async (tx) => {
+    const judged = await judgeCorrection(tx, { ownerId, id, correction });
+    if (!judged.ok) {
+      return err(judged.error);
     }
-    const currentTagIds = await readTagIdsOf(tx, current.id);
-    const command = toTransactionCommand({
-      type: current.type,
-      walletId: input.walletId,
-      categoryId: input.categoryId,
-      destinationWalletId: input.destinationWalletId,
-      // The link is fixed with the type; the input cannot repoint a refund.
-      refundOfTransactionId: current.refundOfTransactionId,
-      amount: input.amount,
-      transactionDate: input.transactionDate,
-      note: input.note,
-      tagIds: input.tagIds,
-    });
-    const accepted = await judgeTransaction(tx, {
-      ownerId: input.ownerId,
-      command,
-      current: {
-        id: current.id,
-        walletIds: walletIdsOf(current),
-        refunds:
-          current.type === "expense"
-            ? await currentRefundsOf(tx, current.id)
-            : [],
-      },
-    });
-    if (!accepted.ok) {
-      rejection = accepted.error;
-      return;
-    }
-    const before = snapshotOf({ ...current, tagIds: currentTagIds });
+    const { current, command } = judged.value;
+    const before = snapshotOf(current);
     const after = snapshotOf(command);
     if (!sameSnapshot(before, after)) {
       await tx
@@ -581,7 +333,7 @@ export async function updateTransaction(
         tagIds: command.tagIds,
       });
       await recordChange(tx, {
-        ownerId: input.ownerId,
+        ownerId,
         transactionId: current.id,
         action: "edit",
         before,
@@ -589,24 +341,13 @@ export async function updateTransaction(
       });
     }
     const [detailRow] = await detailQuery(tx).where(
-      and(
-        eq(transactions.id, current.id),
-        eq(transactions.userId, input.ownerId),
-      ),
+      and(eq(transactions.id, current.id), eq(transactions.userId, ownerId)),
     );
     if (!detailRow) {
       throw new Error("Edited transaction could not be read back");
     }
-    updated = await toOneDetail(tx, detailRow);
+    return ok(await toOneDetail(tx, detailRow));
   });
-
-  if (rejection) {
-    return err(rejection);
-  }
-  if (!updated) {
-    throw new Error("Edited transaction could not be read back");
-  }
-  return ok(updated);
 }
 
 /**
@@ -620,53 +361,39 @@ export async function updateTransaction(
  */
 export type DeleteTransactionError =
   /** Also covers another owner's record and an unknown identifier. */
-  | { code: "transaction-not-found" }
+  | TransactionNotFound
   /** An expense keeps its row while any of these refunds still count. */
   | { code: "refunds-exist"; refunds: readonly RefundSummary[] };
 
 export async function deleteTransaction(
   db: Database,
-  { ownerId, id }: Readonly<TransactionRef>,
+  ref: Readonly<TransactionRef>,
 ): Promise<Result<{ id: string }, DeleteTransactionError>> {
-  let found = false;
-  let blocking: readonly RefundSummary[] = [];
-  await db.transaction(async (tx) => {
-    const current = await lockCurrentTransaction(tx, { ownerId, id });
-    if (!current) {
-      return;
+  return db.transaction(async (tx) => {
+    const locked = await lockForDeletion(tx, ref);
+    if (locked.kind === "not-found") {
+      return err({ code: "transaction-not-found" });
     }
-    found = true;
-    if (current.deletedAt) {
-      return;
+    if (locked.kind === "already-deleted") {
+      return ok({ id: ref.id });
     }
-    if (current.type === "expense") {
-      blocking = await currentRefundsOf(tx, current.id);
-      if (blocking.length > 0) {
-        return;
-      }
+    const { current, blockingRefunds } = locked;
+    if (blockingRefunds.length > 0) {
+      return err({ code: "refunds-exist", refunds: blockingRefunds });
     }
     await tx
       .update(transactions)
       .set({ deletedAt: new Date() })
       .where(eq(transactions.id, current.id));
     await recordChange(tx, {
-      ownerId,
+      ownerId: ref.ownerId,
       transactionId: current.id,
       action: "delete",
-      before: snapshotOf({
-        ...current,
-        tagIds: await readTagIdsOf(tx, current.id),
-      }),
+      before: snapshotOf(current),
       after: null,
     });
+    return ok({ id: current.id });
   });
-  if (!found) {
-    return err({ code: "transaction-not-found" });
-  }
-  if (blocking.length > 0) {
-    return err({ code: "refunds-exist", refunds: blocking });
-  }
-  return ok({ id });
 }
 
 interface RecordChangeInput {
@@ -754,8 +481,7 @@ function transactionWhere({
     : undefined;
 
   return and(
-    eq(transactions.userId, filters.ownerId),
-    isNull(transactions.deletedAt),
+    ownedCurrent(filters.ownerId),
     filters.from ? gte(transactions.transactionDate, filters.from) : undefined,
     filters.to ? lte(transactions.transactionDate, filters.to) : undefined,
     filters.type ? eq(transactions.type, filters.type) : undefined,
