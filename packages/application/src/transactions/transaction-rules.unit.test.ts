@@ -4,6 +4,8 @@ import type { TransactionCommand, TransactionFacts } from "./transaction-rules";
 import {
   acceptTransaction,
   refundAllowanceOf,
+  refundsBlockingDeletion,
+  refundsCountingAgainst,
   sameSnapshot,
   snapshotOf,
 } from "./transaction-rules";
@@ -314,20 +316,23 @@ describe("refundAllowanceOf", () => {
     ).toBe(35_000n);
   });
 
-  test("leaves out a refund under correction", () => {
-    expect(
-      refundAllowanceOf({
-        expenseAmount: 50_000n,
-        refunds: [refund(10_000n), { ...refund(5_000n), id: Other }],
-        excluding: REFUND,
-      }),
-    ).toBe(45_000n);
-  });
-
   test("never reads below zero", () => {
     expect(
       refundAllowanceOf({ expenseAmount: 5_000n, refunds: [refund(6_000n)] }),
     ).toBe(0n);
+  });
+});
+
+describe("refundsCountingAgainst", () => {
+  const Other = "0192f7a0-0000-7000-8000-000000000102";
+  const refunds = [refund(10_000n), { ...refund(5_000n), id: Other }];
+
+  test("counts every refund when none is under correction", () => {
+    expect(refundsCountingAgainst(refunds, undefined)).toEqual(refunds);
+  });
+
+  test("leaves out the refund under correction", () => {
+    expect(refundsCountingAgainst(refunds, REFUND)).toEqual([refunds[1]]);
   });
 });
 
@@ -391,5 +396,21 @@ describe("tags", () => {
     expect(
       sameSnapshot(tagged, snapshotOf({ ...expense, tagIds: [COFFEE] })),
     ).toBe(true);
+  });
+});
+
+describe("refundsBlockingDeletion", () => {
+  test("an expense keeps its row while its refunds count", () => {
+    const refunds = [refund(10_000n)];
+    expect(refundsBlockingDeletion({ type: "expense" }, refunds)).toEqual(
+      refunds,
+    );
+    expect(refundsBlockingDeletion({ type: "expense" }, [])).toEqual([]);
+  });
+
+  test("nothing but an expense is ever blocked", () => {
+    expect(
+      refundsBlockingDeletion({ type: "refund" }, [refund(10_000n)]),
+    ).toEqual([]);
   });
 });

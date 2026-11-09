@@ -47,7 +47,8 @@ function snapshotWallet(
 
 /**
  * Loads the owned wallet under an exclusive row lock, so concurrent state
- * changes serialize and every change applies to what was read.
+ * changes serialize and every change applies to what was read. The lock
+ * follows the global order in `transactions/transaction-judgement.ts`.
  */
 export async function loadWalletForUpdate(
   db: Database,

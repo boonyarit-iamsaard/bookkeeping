@@ -327,25 +327,34 @@ export function sumOf(refunds: readonly RefundSummary[]): bigint {
   return refunds.reduce((total, refund) => total + refund.amount, 0n);
 }
 
+/**
+ * The refunds that count against an expense: every one but the refund under
+ * correction, which does not count its own old amount.
+ */
+export function refundsCountingAgainst(
+  refunds: readonly RefundSummary[],
+  underCorrection: string | undefined,
+): readonly RefundSummary[] {
+  return underCorrection === undefined
+    ? refunds
+    : refunds.filter((refund) => refund.id !== underCorrection);
+}
+
 export interface RefundAllowanceInput {
   expenseAmount: bigint;
+  /** The refunds counting against the expense; see `refundsCountingAgainst`. */
   refunds: readonly RefundSummary[];
-  /** A refund under correction, which does not count its own old amount. */
-  excluding?: string;
 }
 
 /** What an expense has left to refund once its refunds count against it; never negative. */
 export function refundAllowanceOf({
   expenseAmount,
   refunds,
-  excluding,
 }: Readonly<RefundAllowanceInput>): bigint {
-  const counted = refunds.filter((refund) => refund.id !== excluding);
-  const refundAllowance = expenseAmount - sumOf(counted);
+  const refundAllowance = expenseAmount - sumOf(refunds);
   return refundAllowance > 0n ? refundAllowance : 0n;
 }
 
-/** A refund under correction does not count its own old amount against the allowance. */
 function rejectRefundAgainstExpense(
   command: Readonly<TransactionCommand>,
   facts: Readonly<TransactionFacts>,
@@ -362,8 +371,7 @@ function rejectRefundAgainstExpense(
   }
   const refundAllowance = refundAllowanceOf({
     expenseAmount: facts.expense.amount,
-    refunds: facts.expense.refunds,
-    excluding: facts.current?.id,
+    refunds: refundsCountingAgainst(facts.expense.refunds, facts.current?.id),
   });
   if (command.amount > refundAllowance) {
     return { field: "amount", code: "exceeds-refundable", refundAllowance };
@@ -395,6 +403,17 @@ function rejectExpenseAgainstRefunds(
     };
   }
   return undefined;
+}
+
+/**
+ * The refunds that keep a transaction's row from deletion: an expense keeps
+ * it while any of its refunds still count. Nothing else is ever blocked.
+ */
+export function refundsBlockingDeletion(
+  record: Readonly<{ type: TransactionType }>,
+  refunds: readonly RefundSummary[],
+): readonly RefundSummary[] {
+  return record.type === "expense" ? refunds : [];
 }
 
 /** What a snapshot is taken from: a command, or a stored row with the same fields. */

@@ -124,7 +124,7 @@ describe("initializeDefaultCategories", () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
       // An unprotected expense tree whose only member clashes with a default
-      // name: seeding expense trips the scoped name index after income landed.
+      // name: the scoped name index rejects the whole batch, including income.
       await db.insert(categories).values({
         userId: owner.id,
         kind: "expense",

@@ -58,7 +58,10 @@ Each scan is one-off. It removes anything an earlier scan left behind, starts a
 SonarQube Community Build container on a free loopback port, replaces the
 default admin password with a random one, creates the private `bookkeeping`
 project and an analysis token, runs the scanner, and waits for the server to
-process the analysis. It then writes the issues and detailed security hotspots
+process the analysis. JavaScript and TypeScript use the explicit **Sonar way
+comprehensive** profile, including S9382 (sequential awaits in loops), rather
+than the server's smaller default core profile. It then writes the issues and
+detailed security hotspots
 to `.sonar-reports/issues.json` and `.sonar-reports/issues.md`, and removes
 every container, volume, and network it created, also when the scan fails or
 you interrupt it. No credentials are saved; without `--keep`, nothing but the

@@ -323,8 +323,8 @@ interface FallbackOptions {
 /**
  * Removes a category and moves its transactions to the fallback in one
  * transaction; refunds read their expense's category, so they follow by
- * themselves. Transaction rows are locked before the category row, the
- * same order edits take, so the two never deadlock. The restrict foreign
+ * themselves. Its locks follow the global order in
+ * `transactions/transaction-judgement.ts`. The restrict foreign
  * keys are the final word: a transaction or child committed meanwhile
  * fails the delete, and nothing is changed.
  */
@@ -769,74 +769,68 @@ export async function initializeDefaultCategories(
 ): Promise<ProvisioningOutcome> {
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${ownerId}))`);
-    const seededKinds: CategoryKind[] = [];
-    for (const kind of CATEGORY_KINDS) {
-      const [existing] = await tx
-        .select({ id: categories.id })
-        .from(categories)
-        .where(
-          and(
-            eq(categories.userId, ownerId),
-            eq(categories.kind, kind),
-            eq(categories.isProtected, true),
-          ),
-        )
-        .limit(1);
-      if (existing) {
-        continue;
-      }
-      await seedTree(tx, { ownerId, kind });
-      seededKinds.push(kind);
+    const existing = await tx
+      .select({ kind: categories.kind })
+      .from(categories)
+      .where(
+        and(eq(categories.userId, ownerId), eq(categories.isProtected, true)),
+      );
+    const seededKinds = CATEGORY_KINDS.filter(
+      (kind) => !existing.some((tree) => tree.kind === kind),
+    );
+    if (seededKinds.length > 0) {
+      await seedTrees(tx, { ownerId, kinds: seededKinds });
     }
     return { seededKinds };
   });
 }
 
-interface SeedTreeOptions {
+interface SeedTreesOptions {
   ownerId: string;
-  kind: CategoryKind;
+  kinds: readonly CategoryKind[];
 }
 
 /** Runs inside the provisioning transaction, after the owner lock is held. */
-async function seedTree(
+async function seedTrees(
   tx: Database,
-  { ownerId, kind }: Readonly<SeedTreeOptions>,
+  { ownerId, kinds }: Readonly<SeedTreesOptions>,
 ) {
-  await tx.insert(categories).values({
-    userId: ownerId,
-    kind,
-    name: UNCATEGORIZED_NAME,
-    iconId: GENERIC_ICON_ID,
-    isProtected: true,
-    sortOrder: 0,
-  });
-  const defaults = DEFAULT_CATEGORIES[kind];
-  for (const [index, parent] of defaults.entries()) {
-    const [row] = await tx
-      .insert(categories)
-      .values({
-        userId: ownerId,
-        kind,
-        name: parent.name,
-        iconId: parent.iconId,
-        sortOrder: index + 1,
-      })
-      .returning({ id: categories.id });
-    if (!row) {
-      throw new Error("Category insert returned no row");
-    }
-    const children = parent.children ?? [];
-    if (children.length > 0) {
-      await tx.insert(categories).values(
-        children.map((child, childIndex) => ({
+  const parents = await tx
+    .insert(categories)
+    .values(
+      kinds.flatMap((kind) =>
+        [
+          { name: UNCATEGORIZED_NAME, iconId: GENERIC_ICON_ID },
+          ...DEFAULT_CATEGORIES[kind],
+        ].map(({ name, iconId }, sortOrder) => ({
           userId: ownerId,
           kind,
-          parentId: row.id,
-          name: child.name,
-          iconId: child.iconId,
-          sortOrder: childIndex,
+          name,
+          iconId,
+          isProtected: sortOrder === 0,
+          sortOrder,
         })),
-      );
-    }
+      ),
+    )
+    .returning({
+      id: categories.id,
+      kind: categories.kind,
+      sortOrder: categories.sortOrder,
+    });
+  // Parent sort order is its catalog index plus one; zero is Uncategorized.
+  const children = parents.flatMap((parent) =>
+    (DEFAULT_CATEGORIES[parent.kind][parent.sortOrder - 1]?.children ?? []).map(
+      (child, index) => ({
+        userId: ownerId,
+        kind: parent.kind,
+        parentId: parent.id,
+        name: child.name,
+        iconId: child.iconId,
+        sortOrder: index,
+      }),
+    ),
+  );
+  if (children.length > 0) {
+    await tx.insert(categories).values(children);
   }
 }

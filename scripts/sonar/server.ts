@@ -99,6 +99,21 @@ export async function provisionServer(url: string): Promise<ProvisionedServer> {
       visibility: "private",
     }),
   });
+  // Fresh servers default to the smaller core profile, which omits S9382.
+  // Select the full built-in JS/TS profile explicitly on every one-off run.
+  await Promise.all(
+    ["js", "ts"].map((language) =>
+      server.request("qualityprofiles/add_project", {
+        method: "POST",
+        body: new URLSearchParams({
+          project: PROJECT_KEY,
+          language,
+          qualityProfile: "Sonar way comprehensive",
+        }),
+      }),
+    ),
+  );
+  console.log("JavaScript/TypeScript quality profile: Sonar way comprehensive");
   const { token } = tokenSchema.parse(
     await server.request("user_tokens/generate", {
       method: "POST",
