@@ -33,7 +33,6 @@ import {
   transactionRefundsResponseSchema,
   transactionResponseSchema,
 } from "./transaction.routes.js";
-import type { TransactionFieldError } from "./transaction-rejection.js";
 
 const { withRollback } = setupTestDatabase();
 
@@ -375,141 +374,51 @@ describe("POST /v1/transactions", () => {
     });
   });
 
-  test("rejects invalid transfer shapes and maps ownership failures", async () => {
+  test("maps request validation failures to field errors", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
       });
       const owner = await createOwner({ db });
-      const foreign = await createOwner({ db });
-      const body = transferBody(owner);
-
-      const missingDestination = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "transfer-missing-destination",
-          body: { ...body, destinationWalletId: undefined },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(missingDestination.errors).toEqual([
-        { pointer: "#/destinationWalletId", code: "invalid-type" },
-      ]);
-
-      const category = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "transfer-category",
-          body: { ...body, categoryId: owner.childId },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(category.errors).toEqual([
-        { pointer: "#/", code: "unrecognized-keys" },
-      ]);
-
-      const refund = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "transfer-refund",
-          body: { ...body, refundOfTransactionId: owner.childId },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(refund.errors).toEqual([
-        { pointer: "#/", code: "unrecognized-keys" },
-      ]);
-
-      const sameWallet = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "transfer-same-wallet",
-          body: { ...body, destinationWalletId: owner.cashId },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(sameWallet.errors).toEqual([
-        { pointer: "#/destinationWalletId", code: "same-wallet" },
-      ]);
-
-      const foreignSource = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "transfer-foreign-source",
-          body: { ...body, walletId: foreign.cashId },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(foreignSource.errors).toEqual([
-        { pointer: "#/walletId", code: "wallet-not-found" },
-      ]);
-
-      await db
-        .update(wallets)
-        .set({ archivedAt: new Date() })
-        .where(eq(wallets.id, owner.cashId));
-      const archivedSource = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "transfer-archived-source",
-          body,
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(archivedSource.errors).toEqual([
-        { pointer: "#/walletId", code: "wallet-archived" },
-      ]);
-      await db
-        .update(wallets)
-        .set({ archivedAt: null })
-        .where(eq(wallets.id, owner.cashId));
-
-      const foreignDestination = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "transfer-foreign-destination",
-          body: { ...body, destinationWalletId: foreign.bankId },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(foreignDestination.errors).toEqual([
-        {
-          pointer: "#/destinationWalletId",
-          code: "destination-wallet-not-found",
-        },
-      ]);
-
-      await db
-        .update(wallets)
-        .set({ archivedAt: new Date() })
-        .where(eq(wallets.id, owner.bankId));
-      const archivedDestination = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "transfer-archived-destination",
-          body,
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(archivedDestination.errors).toEqual([
-        { pointer: "#/destinationWalletId", code: "wallet-archived" },
-      ]);
-
-      await db
-        .update(wallets)
-        .set({ archivedAt: null, openingDate: "2026-09-03" })
-        .where(eq(wallets.id, owner.bankId));
-      const beforeDestinationOpening = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "transfer-before-destination-opening",
-          body,
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(beforeDestinationOpening.errors).toEqual([
-        { pointer: "#/transactionDate", code: "before-opening" },
-      ]);
+      const transfer = transferBody(owner);
+      const refund = refundBody(owner, UNKNOWN_TRANSACTION_ID);
+      for (const [idempotencyKey, body, expected] of [
+        [
+          "transfer-missing-destination",
+          { ...transfer, destinationWalletId: undefined },
+          { pointer: "#/destinationWalletId", code: "invalid-type" },
+        ],
+        [
+          "transfer-category",
+          { ...transfer, categoryId: owner.childId },
+          { pointer: "#/", code: "unrecognized-keys" },
+        ],
+        [
+          "transfer-refund",
+          { ...transfer, refundOfTransactionId: UNKNOWN_TRANSACTION_ID },
+          { pointer: "#/", code: "unrecognized-keys" },
+        ],
+        [
+          "refund-missing-link",
+          { ...refund, refundOfTransactionId: undefined },
+          { pointer: "#/refundOfTransactionId", code: "invalid-type" },
+        ],
+        [
+          "refund-category",
+          { ...refund, categoryId: owner.childId },
+          { pointer: "#/", code: "unrecognized-keys" },
+        ],
+      ] as const) {
+        const problem = await expectProblem(
+          await postTransaction(app, {
+            cookie: owner.cookie,
+            idempotencyKey,
+            body,
+          }),
+          { status: 422, code: "invalid-command" },
+        );
+        expect(problem.errors).toEqual([expected]);
+      }
     });
   });
 
@@ -613,22 +522,21 @@ describe("POST /v1/transactions", () => {
     });
   });
 
-  test("does not consume a key after application validation and maps field failures", async () => {
+  test("a rule rejection answers its field errors and does not consume the key", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
       });
       const owner = await createOwner({ db });
       const base = expenseBody(owner);
-      const invalidDate = await expectProblem(
+      const invalidDate = await expectRejection(
         await postTransaction(app, {
           cookie: owner.cookie,
           idempotencyKey: "correct-date",
           body: { ...base, transactionDate: "2026-02-30" },
         }),
-        { status: 422, code: "invalid-command" },
       );
-      expect(invalidDate.errors).toEqual([
+      expect(invalidDate).toEqual([
         { pointer: "#/transactionDate", code: "invalid-date" },
       ]);
       expect(
@@ -640,86 +548,6 @@ describe("POST /v1/transactions", () => {
           })
         ).status,
       ).toBe(201);
-
-      const amount = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "bad-amount",
-          body: { ...base, amount: { value: "0.00", currency: "THB" } },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(amount.errors).toEqual([
-        { pointer: "#/amount/value", code: "amount-out-of-range" },
-      ]);
-      const note = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "bad-note",
-          body: { ...base, note: "x".repeat(201) },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(note.errors).toEqual([
-        { pointer: "#/note", code: "note-too-long" },
-      ]);
-      const future = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "future",
-          body: { ...base, transactionDate: "2999-01-01" },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(future.errors).toEqual([
-        { pointer: "#/transactionDate", code: "future-date" },
-      ]);
-      const beforeOpening = await expectRejection(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "before-opening",
-          body: { ...base, transactionDate: "2026-08-31" },
-        }),
-      );
-      expect(beforeOpening).toEqual([
-        {
-          pointer: "#/transactionDate",
-          code: "before-opening",
-          openingDate: "2026-09-01",
-        },
-      ]);
-    });
-  });
-
-  test("rejects foreign, archived, and wrong-tree resources", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const owner = await createOwner({ db });
-      const foreign = await createOwner({ db });
-      const category = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "foreign-category",
-          body: { ...expenseBody(owner), categoryId: foreign.childId },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(category.errors).toEqual([
-        { pointer: "#/categoryId", code: "category-not-found" },
-      ]);
-      const mismatch = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "wrong-tree",
-          body: { ...expenseBody(owner), categoryId: owner.incomeId },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(mismatch.errors).toEqual([
-        { pointer: "#/categoryId", code: "category-kind-mismatch" },
-      ]);
     });
   });
 
@@ -816,102 +644,6 @@ describe("POST /v1/transactions", () => {
         },
         tags: [],
       });
-    });
-  });
-
-  test("rejects invalid refund shapes and maps refund failures", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const owner = await createOwner({ db });
-      const foreign = await createOwner({ db });
-      const expense = transactionResponseSchema.parse(
-        await (
-          await postTransaction(app, {
-            cookie: owner.cookie,
-            idempotencyKey: "refund-validation-expense",
-            body: {
-              ...expenseBody(owner),
-              amount: { value: "20.00", currency: "THB" },
-            },
-          })
-        ).json(),
-      );
-      const foreignExpense = transactionResponseSchema.parse(
-        await (
-          await postTransaction(app, {
-            cookie: foreign.cookie,
-            idempotencyKey: "refund-validation-foreign-expense",
-            body: expenseBody(foreign),
-          })
-        ).json(),
-      );
-      const body = refundBody(owner, expense.id);
-
-      const missingLink = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "refund-missing-link",
-          body: { ...body, refundOfTransactionId: undefined },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(missingLink.errors).toEqual([
-        { pointer: "#/refundOfTransactionId", code: "invalid-type" },
-      ]);
-      const category = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "refund-category",
-          body: { ...body, categoryId: owner.childId },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(category.errors).toEqual([
-        { pointer: "#/", code: "unrecognized-keys" },
-      ]);
-
-      const overLimit = await expectRejection(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "refund-over-limit",
-          body: { ...body, amount: { value: "20.01", currency: "THB" } },
-        }),
-      );
-      expect(overLimit).toEqual([
-        {
-          pointer: "#/amount/value",
-          code: "exceeds-refundable",
-          refundAllowance: { value: "20.00", currency: "THB" },
-        },
-      ]);
-      const beforeExpense = await expectRejection(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "refund-before-expense",
-          body: { ...body, transactionDate: "2026-09-01" },
-        }),
-      );
-      expect(beforeExpense).toEqual([
-        {
-          pointer: "#/transactionDate",
-          code: "before-expense",
-          expenseDate: "2026-09-02",
-        },
-      ]);
-
-      const foreignExpenseLink = await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "refund-foreign-expense",
-          body: { ...body, refundOfTransactionId: foreignExpense.id },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(foreignExpenseLink.errors).toEqual([
-        { pointer: "#/refundOfTransactionId", code: "expense-not-found" },
-      ]);
     });
   });
 });
@@ -1012,63 +744,7 @@ describe("PUT /v1/transactions/{transactionId}", () => {
         },
       });
 
-      // The other refund holds ฿100.00, so the edited one may take ฿400.00.
-      const overLimit = await expectRejection(
-        await putTransaction(app, {
-          id: first.id,
-          cookie: owner.cookie,
-          body: {
-            amount: { value: "400.01", currency: "THB" },
-            walletId: owner.bankId,
-            transactionDate: "2026-09-03",
-            note: "Returned",
-          },
-        }),
-      );
-      expect(overLimit).toEqual([
-        {
-          pointer: "#/amount/value",
-          code: "exceeds-refundable",
-          refundAllowance: { value: "400.00", currency: "THB" },
-        },
-      ]);
-      const beforeExpense = await expectRejection(
-        await putTransaction(app, {
-          id: first.id,
-          cookie: owner.cookie,
-          body: {
-            amount: { value: "300.00", currency: "THB" },
-            walletId: owner.bankId,
-            transactionDate: "2026-09-01",
-            note: "Returned",
-          },
-        }),
-      );
-      expect(beforeExpense).toEqual([
-        {
-          pointer: "#/transactionDate",
-          code: "before-expense",
-          expenseDate: "2026-09-02",
-        },
-      ]);
-      const withCategory = await expectProblem(
-        await putTransaction(app, {
-          id: first.id,
-          cookie: owner.cookie,
-          body: {
-            amount: { value: "300.00", currency: "THB" },
-            walletId: owner.bankId,
-            categoryId: owner.childId,
-            transactionDate: "2026-09-03",
-            note: "Returned",
-          },
-        }),
-        { status: 422, code: "invalid-command" },
-      );
-      expect(withCategory.errors).toEqual([
-        { pointer: "#/", code: "invalid-refund" },
-      ]);
-
+      // The other refund holds ฿100.00, so the corrected one may take ฿400.00.
       const response = await putTransaction(app, {
         id: first.id,
         cookie: owner.cookie,
@@ -1112,87 +788,12 @@ describe("PUT /v1/transactions/{transactionId}", () => {
     });
   });
 
-  test("an expense keeps covering its refunds in amount and date", async () => {
+  test("maps a rule rejection into the update document and rejects unknown keys", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
       });
       const owner = await createOwner({ db });
-      const expense = transactionResponseSchema.parse(
-        await (
-          await postTransaction(app, {
-            cookie: owner.cookie,
-            idempotencyKey: "update-refunded-expense",
-            body: {
-              ...expenseBody(owner),
-              amount: { value: "500.00", currency: "THB" },
-            },
-          })
-        ).json(),
-      );
-      await postTransaction(app, {
-        cookie: owner.cookie,
-        idempotencyKey: "update-refunded-early",
-        body: {
-          ...refundBody(owner, expense.id),
-          amount: { value: "100.00", currency: "THB" },
-        },
-      });
-      await postTransaction(app, {
-        cookie: owner.cookie,
-        idempotencyKey: "update-refunded-late",
-        body: {
-          ...refundBody(owner, expense.id),
-          amount: { value: "50.00", currency: "THB" },
-          transactionDate: "2026-09-05",
-        },
-      });
-
-      const belowRefunded = await expectRejection(
-        await putTransaction(app, {
-          id: expense.id,
-          cookie: owner.cookie,
-          body: {
-            ...updateExpenseBody(owner),
-            amount: { value: "149.99", currency: "THB" },
-          },
-        }),
-      );
-      expect(belowRefunded).toEqual([
-        {
-          pointer: "#/amount/value",
-          code: "below-refunded",
-          refundedTotal: { value: "150.00", currency: "THB" },
-        },
-      ]);
-      const afterRefund = await expectRejection(
-        await putTransaction(app, {
-          id: expense.id,
-          cookie: owner.cookie,
-          body: {
-            ...updateExpenseBody(owner),
-            amount: { value: "500.00", currency: "THB" },
-            transactionDate: "2026-09-04",
-          },
-        }),
-      );
-      expect(afterRefund).toEqual([
-        {
-          pointer: "#/transactionDate",
-          code: "after-refund",
-          refundDate: "2026-09-03",
-        },
-      ]);
-    });
-  });
-
-  test("maps invalid update input to field errors", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const owner = await createOwner({ db });
-      const foreign = await createOwner({ db });
       const expense = transactionResponseSchema.parse(
         await (
           await postTransaction(app, {
@@ -1203,64 +804,17 @@ describe("PUT /v1/transactions/{transactionId}", () => {
         ).json(),
       );
       const base = updateExpenseBody(owner);
-      const attempt = async (
-        body: Readonly<Partial<TransactionUpdateBody>>,
-        expected: Readonly<TransactionFieldError>,
-      ) => {
-        const errors = await expectRejection(
-          await putTransaction(app, {
-            id: expense.id,
-            cookie: owner.cookie,
-            body: { ...base, ...body },
-          }),
-        );
-        expect(errors).toEqual([expected]);
-      };
-
-      await attempt(
-        { amount: { value: "0.00", currency: "THB" } },
-        { pointer: "#/amount/value", code: "amount-out-of-range" },
+      // The update document names no type, so a type rejection addresses its root.
+      const invalidTransfer = await expectRejection(
+        await putTransaction(app, {
+          id: expense.id,
+          cookie: owner.cookie,
+          body: { ...base, destinationWalletId: owner.bankId },
+        }),
       );
-      await attempt(
-        { amount: { value: "100000000.00", currency: "THB" } },
-        { pointer: "#/amount/value", code: "amount-out-of-range" },
-      );
-      await attempt(
-        { note: "x".repeat(201) },
-        { pointer: "#/note", code: "note-too-long" },
-      );
-      await attempt(
-        { transactionDate: "2026-02-30" },
-        { pointer: "#/transactionDate", code: "invalid-date" },
-      );
-      await attempt(
-        { transactionDate: "2026-08-31" },
-        {
-          pointer: "#/transactionDate",
-          code: "before-opening",
-          openingDate: "2026-09-01",
-        },
-      );
-      await attempt(
-        { transactionDate: "2999-01-01" },
-        { pointer: "#/transactionDate", code: "future-date" },
-      );
-      await attempt(
-        { walletId: foreign.cashId },
-        { pointer: "#/walletId", code: "wallet-not-found" },
-      );
-      await attempt(
-        { categoryId: foreign.childId },
-        { pointer: "#/categoryId", code: "category-not-found" },
-      );
-      await attempt(
-        { categoryId: owner.incomeId },
-        { pointer: "#/categoryId", code: "category-kind-mismatch" },
-      );
-      await attempt(
-        { destinationWalletId: owner.bankId },
+      expect(invalidTransfer).toEqual([
         { pointer: "#/", code: "invalid-transfer" },
-      );
+      ]);
       const unrecognized = await expectProblem(
         await putTransaction(app, {
           id: expense.id,

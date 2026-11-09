@@ -128,6 +128,95 @@ describe("judgeNewTransaction", () => {
       });
     });
   });
+
+  test("another owner's destination wallet reads as not found", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const other = await setupOwner(db);
+      expect(
+        await judgeNewTransaction(db, {
+          ownerId: owner.ownerId,
+          command: {
+            ...newExpense(owner),
+            type: "transfer",
+            categoryId: null,
+            destinationWalletId: other.bankId,
+          },
+        }),
+      ).toEqual({
+        ok: false,
+        error: {
+          field: "destinationWalletId",
+          code: "destination-wallet-not-found",
+        },
+      });
+    });
+  });
+
+  test("another owner's or a malformed category reads as not found", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const other = await setupOwner(db);
+      for (const categoryId of [other.childId, "not-a-uuid"]) {
+        expect(
+          await judgeNewTransaction(db, {
+            ownerId: owner.ownerId,
+            command: { ...newExpense(owner), categoryId },
+          }),
+        ).toEqual({
+          ok: false,
+          error: { field: "categoryId", code: "category-not-found" },
+        });
+      }
+    });
+  });
+
+  test("a refund of anything but the owner's current expense finds no expense", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const other = await setupOwner(db);
+      const foreignExpense = await recordExpense(db, other);
+      const deletedExpense = await recordExpense(db, owner);
+      await softDelete(db, deletedExpense.id);
+      const income = await createTransaction(db, {
+        ownerId: owner.ownerId,
+        idempotencyKey: `judgement-income-${crypto.randomUUID()}`,
+        type: "income",
+        walletId: owner.cashId,
+        categoryId: owner.incomeId,
+        amount: 10_000n,
+        transactionDate: "2026-09-02",
+        note: "Salary",
+      });
+      if (!income.ok) {
+        throw new Error("Expected the income to save");
+      }
+
+      for (const refundOfTransactionId of [
+        foreignExpense.id,
+        deletedExpense.id,
+        income.value.transaction.id,
+        crypto.randomUUID(),
+        "not-a-uuid",
+      ]) {
+        expect(
+          await judgeNewTransaction(db, {
+            ownerId: owner.ownerId,
+            command: {
+              ...newExpense(owner),
+              type: "refund",
+              categoryId: null,
+              refundOfTransactionId,
+              transactionDate: "2026-09-03",
+            },
+          }),
+        ).toEqual({
+          ok: false,
+          error: { field: "refundOfTransactionId", code: "expense-not-found" },
+        });
+      }
+    });
+  });
 });
 
 describe("judgeCorrection", () => {
