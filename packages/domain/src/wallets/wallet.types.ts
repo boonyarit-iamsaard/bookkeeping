@@ -26,3 +26,17 @@ export interface WalletSnapshot {
   /** Absent from history written before the marker existed. */
   savings?: boolean;
 }
+
+/**
+ * The Total balance and its split into Spendable and Set aside, over the
+ * Wallets opened by a date, archived ones included. Each figure is `null`
+ * when no Wallet of its kind had opened; the counts cover opened Wallets.
+ */
+export interface TotalBalanceSplit {
+  total: bigint | null;
+  spendable: bigint | null;
+  setAside: bigint | null;
+  walletCount: number;
+  spendableWalletCount: number;
+  savingsWalletCount: number;
+}

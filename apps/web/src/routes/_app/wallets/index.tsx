@@ -44,7 +44,11 @@ function WalletsPage() {
           )
         }
       />
-      <WalletList wallets={data.items} createdId={created} />
+      <WalletList
+        wallets={data.items}
+        balance={data.balance}
+        createdId={created}
+      />
     </Page>
   );
 }

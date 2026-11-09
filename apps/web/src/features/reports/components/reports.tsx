@@ -87,7 +87,9 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
           comparedWalletId={comparedWalletId}
           onCompareWallet={setComparedWalletId}
           currentWallets={report.currentWallets}
+          currentTotal={report.currentTotal}
           datedWallets={report.datedWallets}
+          datedTotal={report.datedTotal}
           asOf={report.values.asOf}
           balanceDate={balanceDate}
           trend={report.trend}

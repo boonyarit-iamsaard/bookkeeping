@@ -1453,7 +1453,6 @@ describe("createTransaction", () => {
       ).toEqual([
         expect.objectContaining({ balance: 1_000_000n }),
         expect.objectContaining({ balance: 0n }),
-        expect.objectContaining({ balance: 0n }),
       ]);
       expect(
         await listWallets(db, { ownerId: owner.ownerId, asOf: "2026-09-02" }),
@@ -1764,7 +1763,6 @@ describe("createTransaction", () => {
         await listWallets(db, { ownerId: owner.ownerId, asOf: "2026-09-03" }),
       ).toEqual([
         expect.objectContaining({ balance: 950_100n }),
-        expect.objectContaining({ balance: 0n }),
         expect.objectContaining({ balance: 0n }),
         expect.objectContaining({ balance: 0n }),
       ]);

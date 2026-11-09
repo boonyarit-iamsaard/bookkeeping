@@ -21,18 +21,22 @@ A Wallet of any type whose whole balance the user treats as money to keep rather
 _Avoid_: Buffer wallet, reserve, pot, savings as a wallet type
 
 **Set aside**:
-The balance held across a user's Savings wallets.
+The signed balance held across a user's Savings wallets, archived ones included. On a past date it counts only the Savings wallets opened by then, and there is none before the first of them opened.
 _Avoid_: Savings when referring to the amount, reserved
 
 **Spendable**:
-The balance held across a user's Wallets that are not Savings wallets.
+The signed balance held across a user's Wallets that are not Savings wallets, archived ones included. On a past date it counts only those Wallets opened by then, and there is none before the first of them opened.
 _Avoid_: Safe to spend, available balance
+
+**Total balance**:
+The signed balance held across all of a user's Wallets, archived ones included; Spendable plus Set aside. On a past date it counts only the Wallets opened by then, and there is none before the first Wallet opened.
+_Avoid_: Overall balance, net worth
 
 **Opening balance**:
 The amount held in a wallet on the date its tracked history begins.
 
 **Closing balance**:
-A wallet's balance at the end of a calendar date: its opening balance plus every current transaction dated on or before that date.
+A wallet's balance at the end of a calendar date: its opening balance plus every current transaction dated on or before that date. A wallet has no Closing balance before its opening date: it was not yet tracked, which is not the same as holding zero.
 _Avoid_: End-of-day balance, daily balance
 
 **Transaction date**:

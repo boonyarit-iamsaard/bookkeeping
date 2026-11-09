@@ -78,7 +78,7 @@ describe("listWallets", () => {
     });
   });
 
-  test("future openings do not contribute to current balances", async () => {
+  test("a future opening stays out of the list until it opens", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
     try {
@@ -91,9 +91,7 @@ describe("listWallets", () => {
           openingAmount: 12000n,
           openingDate: "2026-09-14",
         });
-        expect(await listWallets(db, { ownerId: owner.id })).toEqual([
-          expect.objectContaining({ openingAmount: 12000n, balance: 0n }),
-        ]);
+        expect(await listWallets(db, { ownerId: owner.id })).toEqual([]);
         vi.setSystemTime(new Date("2026-09-13T17:00:00Z"));
         expect(await listWallets(db, { ownerId: owner.id })).toEqual([
           expect.objectContaining({ balance: 12000n }),
@@ -173,7 +171,6 @@ describe("listWallets", () => {
       });
       expect(dated.map((wallet) => wallet.balance)).toEqual([
         90_071_992_547_409_919n,
-        0n,
       ]);
       const current = await listWallets(db, { ownerId: owner.id });
       expect(

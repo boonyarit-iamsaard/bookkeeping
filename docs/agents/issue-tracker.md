@@ -20,6 +20,18 @@ Issues filed before 2026-11-04 were imported from the former `.scratch/` Markdow
 
 File issues only into the user's own repo. Never file into `mattpocock/skills` (the repo these skills come from) unless the user owns it. In a fork, `gh` can default to the upstream parent, so before the first `gh issue create` of a session, check the target with `gh repo view --json nameWithOwner` and confirm it with the user if it is not their repo.
 
+## Sizing a ticket
+
+Size every ticket to **one window**: its exploration, code, tests and debugging
+fit one context window with room left for review and commit. A ticket that
+crosses domain, application, API, client and e2e is past that; split it at the
+API seam into a server ticket and a client ticket blocked by it. Bundle tickets
+for one implement run only when the combined work still fits one window.
+
+Post each grilling outcome as a comment on its ticket, so an implementer whose
+context was compacted re-reads the decisions with
+`gh issue view <n> --comments` instead of re-deriving them.
+
 ## Project board
 
 Every issue is on the `bookkeeping` project (`gh project ... 2 --owner boonyarit-iamsaard`), which is linked to this repo. Its built-in workflows add new issues and their sub-issues and move closed ones to `Done`, so filing or closing an issue needs no project command. The **Board** view groups by `Status` (`Todo`, `In Progress`, `Done`); the **Hierarchy** view nests sub-issues under their parents.
