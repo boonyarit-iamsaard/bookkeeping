@@ -1,5 +1,4 @@
 {
-  ".impeccable/design.json": 57334,
   "docs/runbooks/production-backups/01-aws-foundation-and-railway-backups.md": 36911,
   "docs/runbooks/production-backups/03-deploy-storage-and-uploader-key.md": 28028,
   "apps/server/src/core/http/api-contract.integration.test.ts": 20418,
@@ -14,7 +13,6 @@
   "apps/web/src/features/transactions/components/transaction-form.tsx": 30425,
   "apps/web/tests/e2e/shell.spec.ts": 23125,
   "apps/web/tests/e2e/transaction-entry.spec.ts": 21863,
-  "DESIGN.md": 51835,
   "docs/research/supply-chain-hardening.md": 55266,
   "packages/application/src/categories/category.integration.test.ts": 42405,
   "packages/application/src/categories/category.ts": 24260,

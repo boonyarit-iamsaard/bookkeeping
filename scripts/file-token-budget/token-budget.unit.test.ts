@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { TrackedFile } from "./token-budget";
 import {
+  applyBaselineCorrections,
   findBaselineChanges,
   findViolations,
+  formatBaseline,
+  isBaselineCorrection,
   isExemptPath,
   MAX_BYTES,
   parseBaseline,
@@ -146,6 +149,39 @@ describe("findBaselineChanges", () => {
   });
 });
 
+describe("applyBaselineCorrections", () => {
+  it("lowers shrunk entries and removes within-limit and untracked ones, keeping order", () => {
+    const baseline = {
+      "src/a.ts": MAX_BYTES + 400,
+      "src/b.ts": MAX_BYTES + 300,
+      "src/c.ts": MAX_BYTES + 200,
+      "src/d.ts": MAX_BYTES + 100,
+    };
+    const violations = findViolations(
+      [
+        textFile("src/a.ts", MAX_BYTES + 50),
+        textFile("src/b.ts", MAX_BYTES),
+        textFile("src/d.ts", MAX_BYTES + 101),
+      ],
+      { trackedPaths: ["src/a.ts", "src/b.ts", "src/d.ts"], baseline },
+    );
+    const corrections = violations.filter(isBaselineCorrection);
+    expect(violations.filter((v) => !isBaselineCorrection(v))).toEqual([
+      expect.objectContaining({ kind: "grew", path: "src/d.ts" }),
+    ]);
+    expect(applyBaselineCorrections(baseline, corrections)).toEqual({
+      "src/a.ts": MAX_BYTES + 50,
+      "src/d.ts": MAX_BYTES + 100,
+    });
+  });
+
+  it("formats the baseline as two-space JSON with a trailing newline", () => {
+    expect(formatBaseline({ "src/a.ts": 20_400 })).toBe(
+      '{\n  "src/a.ts": 20400\n}\n',
+    );
+  });
+});
+
 describe("parseBaseline", () => {
   it("reads a map of paths to byte sizes", () => {
     expect(parseBaseline('{"src/big.ts": 20400}')).toEqual({
@@ -160,6 +196,13 @@ describe("parseBaseline", () => {
 });
 
 describe("isExemptPath", () => {
+  it("exempts the root DESIGN.md and its generated sidecar", () => {
+    expect(isExemptPath("DESIGN.md")).toBe(true);
+    expect(isExemptPath(".impeccable/design.json")).toBe(true);
+    expect(isExemptPath("docs/DESIGN.md")).toBe(false);
+    expect(isExemptPath(".impeccable/surfaces/design.json")).toBe(false);
+  });
+
   it("does not exempt authored files that merely resemble generated names", () => {
     expect(isExemptPath("apps/web/src/gen.ts")).toBe(false);
     expect(isExemptPath("docs/openapi-notes.md")).toBe(false);

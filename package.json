@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-    "ci": "pnpm check:database-migrations && pnpm check:migration-freeze && pnpm check:file-token-budget && pnpm check:public-identifiers && biome ci --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && pnpm lint:sh && turbo run types:check types:check:scripts test test:scripts && turbo run build",
+    "ci": "pnpm check:database-migrations && pnpm check:migration-freeze && pnpm check:file-token-budget && pnpm check:public-identifiers && biome ci --error-on-warnings --no-errors-on-unmatched --files-ignore-unknown=true . && pnpm format:check && pnpm lint:md && pnpm lint:sh && turbo run types:check types:check:scripts test test:scripts && turbo run build",
     "ci:e2e": "turbo run test:e2e:ci",
     "db:push": "pnpm --filter @bookkeeping/database db:push",
     "db:migrate": "pnpm --filter @bookkeeping/database db:migrate",
@@ -26,7 +26,7 @@
     "format": "prettier --write \"**/*.{md,yaml,yml,html}\"",
     "format:check": "prettier --check \"**/*.{md,yaml,yml,html}\"",
     "generate:api": "pnpm --filter @bookkeeping/web generate:api",
-    "lint": "biome check --no-errors-on-unmatched --files-ignore-unknown=true",
+    "lint": "biome check --error-on-warnings --no-errors-on-unmatched --files-ignore-unknown=true",
     "lint:md": "markdownlint \"**/*.md\" --ignore-path .gitignore",
     "lint:sh": "git ls-files -z '*.sh' | xargs -0 docker run --rm --network none --volume \"$PWD:/mnt:ro\" --workdir /mnt koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" --ignore-path .gitignore",
@@ -76,7 +76,7 @@
       "tsx scripts/check-file-token-budget.ts"
     ],
     "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css}": [
-      "biome check --no-errors-on-unmatched --files-ignore-unknown=true"
+      "biome check --error-on-warnings --no-errors-on-unmatched --files-ignore-unknown=true"
     ],
     "*.{md,yaml,yml,html}": [
       "prettier --check",

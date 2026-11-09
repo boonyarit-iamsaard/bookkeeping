@@ -82,18 +82,23 @@ No committed text file exceeds 5,000 tokens, where tokens are estimated as
 bytes divided by four. `scripts/check-file-token-budget.ts` enforces the limit
 on staged files and again over every tracked file in `pnpm run ci`.
 `pnpm-lock.yaml`, `*.gen.ts`, `openapi.json`, everything under
-`packages/database/drizzle/` (migrations and their snapshots), and binary files
-are exempt.
+`packages/database/drizzle/` (migrations and their snapshots), `DESIGN.md`
+and its `.impeccable/design.json` sidecar (one file by its format spec, loaded
+and regenerated whole by the impeccable skill), and binary files are exempt.
 
 The limit is a size budget, not a design verdict. Split a file when it holds
 more than one concept, and let review judge the boundary. Files already over
 the limit are recorded in `scripts/file-token-budget/baseline.json` with their
-current size in bytes. Such a file may shrink but may not grow, and the commit
-that shrinks it lowers its entry to match. Only the owner decides whether it
-stays on the list, so an agent proposes the split and waits for the decision
-before editing. The staged check rejects a new or raised entry unless the owner
-commits it with `FILE_TOKEN_BUDGET_OWNER_APPROVED=1`; lowering or removing an
-entry needs no approval.
+current size in bytes. Such a file may shrink but may not grow. The pre-commit
+hook lowers or removes the entries of staged files that shrank and stages
+`baseline.json`; CI fails on an entry left stale. Only the owner decides
+whether a file stays on the list, so an agent proposes the split and waits for
+the decision before editing. The staged check rejects a new or raised entry
+unless the owner commits it with `FILE_TOKEN_BUDGET_OWNER_APPROVED=1`.
+
+Review treats trimming unrelated text in a budgeted file to make room for an
+addition as a finding: the trim must not drop a rule or change a meaning, and
+a change that needs the room goes to the owner as a split or a raised entry.
 
 ## Rule ownership
 

@@ -17,8 +17,8 @@ By default, agents should run the relevant unit, integration, and Hono contract
 tests. Run one focused SPA spec on one project when a change touches the
 browser boundary. Run the full two-project SPA matrix only on explicit
 request, at a migration checkpoint, or in CI. The local resource limits above
-remain unchanged. `pnpm run ci` is the routine gate and excludes browser tests;
-`pnpm run ci:e2e` is the explicit production-build browser gate.
+remain unchanged. Run `pnpm run ci` before pushing; it excludes browser
+tests. `pnpm run ci:e2e` is the explicit production-build browser gate.
 
 ### Git workflow
 
