@@ -4,13 +4,17 @@ export const TOKEN_LIMIT = 5_000;
 export const BYTES_PER_TOKEN = 4;
 export const MAX_BYTES = TOKEN_LIMIT * BYTES_PER_TOKEN;
 
-// Files the agents did not author. The lockfile and codegen are written by
-// tools, and splitting them by hand would break their regeneration.
+// Files whose shape a tool owns. The lockfile and codegen are written by tools,
+// and DESIGN.md is one file by its format spec, which the impeccable skill
+// loads and regenerates whole along with its design.json sidecar; splitting
+// any of them by hand would break that.
 const EXEMPT_PATH_PATTERNS = [
   /(^|\/)pnpm-lock\.yaml$/,
   /\.gen\.ts$/,
   /(^|\/)openapi\.json$/,
   /^packages\/database\/drizzle\//,
+  /^DESIGN\.md$/,
+  /^\.impeccable\/design\.json$/,
 ];
 
 export interface TrackedFile {
@@ -99,6 +103,47 @@ export function findViolations(
   }
 
   return violations;
+}
+
+export type BaselineCorrection = Extract<
+  Violation,
+  { kind: "shrank" | "within-limit" | "untracked" }
+>;
+
+// A correction only lowers or removes an entry, so it needs no decision and the
+// staged check applies it itself.
+export function isBaselineCorrection(
+  violation: Violation,
+): violation is BaselineCorrection {
+  return (
+    violation.kind === "shrank" ||
+    violation.kind === "within-limit" ||
+    violation.kind === "untracked"
+  );
+}
+
+export function applyBaselineCorrections(
+  baseline: Baseline,
+  corrections: readonly BaselineCorrection[],
+): Baseline {
+  const lowered = new Map<string, number>();
+  const removed = new Set<string>();
+  for (const correction of corrections) {
+    if (correction.kind === "shrank") {
+      lowered.set(correction.path, correction.bytes);
+    } else {
+      removed.add(correction.path);
+    }
+  }
+  return Object.fromEntries(
+    Object.entries(baseline)
+      .filter(([path]) => !removed.has(path))
+      .map(([path, bytes]) => [path, lowered.get(path) ?? bytes]),
+  );
+}
+
+export function formatBaseline(baseline: Baseline): string {
+  return `${JSON.stringify(baseline, null, 2)}\n`;
 }
 
 // Only the owner adds a file to the baseline or raises its entry; anyone may

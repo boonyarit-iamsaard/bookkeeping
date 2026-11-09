@@ -1,15 +1,20 @@
 import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
   Baseline,
+  BaselineCorrection,
   TrackedFile,
   Violation,
 } from "./file-token-budget/token-budget";
 import {
+  applyBaselineCorrections,
   BYTES_PER_TOKEN,
   findBaselineChanges,
   findViolations,
+  formatBaseline,
+  isBaselineCorrection,
   MAX_BYTES,
   parseBaseline,
   TOKEN_LIMIT,
@@ -81,6 +86,42 @@ function toBaseline(content: Buffer | undefined): Baseline {
   return content === undefined ? {} : parseBaseline(content.toString("utf8"));
 }
 
+// Lowers or removes entries in both the working tree and the index. It leaves
+// the file alone when its working copy differs from the staged one, so an
+// unstaged edit is never overwritten; the corrections are then reported.
+function applyStagedCorrections(
+  stagedBaselineFile: Buffer | undefined,
+  corrections: readonly BaselineCorrection[],
+): boolean {
+  const absolutePath = resolve(repositoryDirectory, baselinePath);
+  if (
+    stagedBaselineFile === undefined ||
+    !existsSync(absolutePath) ||
+    !readFileSync(absolutePath).equals(stagedBaselineFile)
+  ) {
+    return false;
+  }
+  const corrected = applyBaselineCorrections(
+    toBaseline(stagedBaselineFile),
+    corrections,
+  );
+  writeFileSync(absolutePath, formatBaseline(corrected));
+  execFileSync("git", ["add", "--", baselinePath], {
+    cwd: repositoryDirectory,
+  });
+  console.error(
+    [
+      `Updated ${baselinePath} and staged it:`,
+      ...corrections.map((correction) =>
+        correction.kind === "shrank"
+          ? `  ${correction.path}: lowered from ${correction.baselineBytes} to ${correction.bytes} bytes`
+          : `  ${correction.path}: removed (${correction.kind})`,
+      ),
+    ].join("\n"),
+  );
+  return true;
+}
+
 function describeViolation(violation: Violation): string {
   switch (violation.kind) {
     case "oversized":
@@ -112,7 +153,7 @@ function formatReport(violations: readonly Violation[]): string {
     "  3. Ask the user to approve that split, choose another, or keep the file in the baseline. Edit only after they decide.",
     "  4. After approval, split the file, check each part with wc -c <path> (at most " +
       `${MAX_BYTES} bytes), stage the new files with the importers, and commit. The commit must still build and pass its tests.`,
-    "For a shrank, within-limit, or untracked entry, lower or remove the entry in baseline.json in the same commit. That needs no decision.",
+    "For a shrank, within-limit, or untracked entry, lower or remove the entry in baseline.json in the same commit. That needs no decision, and the pre-commit hook does it unless baseline.json has unstaged edits.",
   ].join("\n");
 }
 
@@ -133,10 +174,21 @@ function main(): void {
   const stagedBaseline = toBaseline(stagedBaselineFile);
   const committedBaseline = toBaseline(committedBaselineFile);
 
-  const violations = findViolations(readIndexedFiles(checkedPaths), {
+  let violations = findViolations(readIndexedFiles(checkedPaths), {
     trackedPaths,
     baseline: stagedBaseline,
   });
+  // CI reports a stale entry instead, so a commit that skipped the hook fails.
+  const corrections = violations.filter(isBaselineCorrection);
+  if (
+    isStagedCheck &&
+    corrections.length > 0 &&
+    applyStagedCorrections(stagedBaselineFile, corrections)
+  ) {
+    violations = violations.filter(
+      (violation) => !isBaselineCorrection(violation),
+    );
+  }
   // CI leaves baseline changes to pull request review.
   if (isStagedCheck && process.env[ownerApprovalVariable] !== "1") {
     violations.push(...findBaselineChanges(committedBaseline, stagedBaseline));
