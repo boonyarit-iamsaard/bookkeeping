@@ -13,12 +13,19 @@ import {
 import { MAX_WHOLE_DIGITS } from "@bookkeeping/domain/money";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
-import type { WalletSummary, WalletType } from "@bookkeeping/domain/wallets";
+import type {
+  WalletBalance,
+  WalletSummary,
+  WalletType,
+} from "@bookkeeping/domain/wallets";
 import { and, eq, lt, or, sql } from "drizzle-orm";
 import type { IdempotencyConflict } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
-import { selectWalletSummaries } from "./wallet-balance";
+import {
+  selectWalletSummaries,
+  summarizeWalletBalance,
+} from "./wallet-balance";
 import {
   loadWalletForUpdate,
   readWalletSummaryAfterChange,
@@ -58,6 +65,21 @@ export async function listWallets(
   }: Readonly<ListWalletsOptions>,
 ): Promise<readonly WalletSummary[]> {
   return selectWalletSummaries(db, { ownerId, asOf });
+}
+
+/** The listed Wallets and their Total balance split into Spendable and Set aside. */
+export interface WalletsWithBalance {
+  wallets: readonly WalletSummary[];
+  balance: WalletBalance;
+}
+
+/** `listWallets` with the balance split authored over the same Wallets. */
+export async function listWalletsWithBalance(
+  db: Database,
+  options: Readonly<ListWalletsOptions>,
+): Promise<WalletsWithBalance> {
+  const listed = await listWallets(db, options);
+  return { wallets: listed, balance: summarizeWalletBalance(listed) };
 }
 
 /**

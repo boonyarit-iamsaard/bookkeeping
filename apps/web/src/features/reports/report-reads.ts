@@ -164,6 +164,8 @@ export function useReportReads({
     ),
     trend: createTrendSeries(trendReports),
     currentWallets: currentWallets.data.items,
+    currentTotal: currentWallets.data.balance.total,
     datedWallets: datedWallets.data.items,
+    datedTotal: datedWallets.data.balance.total,
   };
 }

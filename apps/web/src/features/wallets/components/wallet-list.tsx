@@ -14,9 +14,11 @@ import { cn } from "@/shared/helpers/cn";
 import { morphProps } from "@/shared/helpers/morph";
 
 type WalletSummary = components["schemas"]["Wallet"];
+type WalletBalance = components["schemas"]["WalletBalance"];
 
 interface WalletListProps {
   wallets: readonly WalletSummary[];
+  balance: Readonly<WalletBalance>;
   /** The wallet just created, if any; it alone arrives with a rise. */
   createdId?: string;
 }
@@ -39,14 +41,18 @@ export function EmptyWallets() {
   );
 }
 
-export function WalletList({ wallets, createdId }: Readonly<WalletListProps>) {
+export function WalletList({
+  wallets,
+  balance,
+  createdId,
+}: Readonly<WalletListProps>) {
   if (wallets.length === 0) {
     return <EmptyWallets />;
   }
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
-      <WalletsTotal wallets={wallets} lead="total" />
+      <WalletsTotal balance={balance} lead="total" />
 
       <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4" aria-label="Wallets">
         {wallets.map((wallet) => (

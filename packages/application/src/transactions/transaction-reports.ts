@@ -19,7 +19,12 @@ import type {
 } from "@bookkeeping/domain/transactions";
 import { and, asc, eq, gte, inArray, isNull, lt, lte, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { movesWallet, walletMovement } from "../wallets/wallet-balance";
+import {
+  movesWallet,
+  summarizeWalletBalance,
+  walletClosingBalance,
+  walletMovement,
+} from "../wallets/wallet-balance";
 
 interface MonthlySummaryOptions {
   ownerId: string;
@@ -255,6 +260,7 @@ export async function getClosingBalances(
         id: wallets.id,
         openingAmount: wallets.openingAmount,
         openingDate: wallets.openingDate,
+        savings: wallets.savings,
         movement: walletMovement,
       })
       .from(wallets)
@@ -293,36 +299,36 @@ export async function getClosingBalances(
     return null;
   }
 
-  const balances = new Map(
-    openings.map((wallet) => [
-      wallet.id,
-      wallet.openingAmount + BigInt(wallet.movement),
-    ]),
+  const movements = new Map(
+    openings.map((wallet) => [wallet.id, BigInt(wallet.movement)]),
   );
+  function closingOn(
+    wallet: Readonly<(typeof openings)[number]>,
+    date: string,
+  ) {
+    return walletClosingBalance(
+      { ...wallet, movement: movements.get(wallet.id) ?? 0n },
+      date,
+    );
+  }
   const movementsByDate = Map.groupBy(dailyMovements, (row) => row.date);
   const entries: ClosingBalanceEntry[] = [];
   for (let date = start; date <= last; date = addDays(date, 1)) {
     for (const row of movementsByDate.get(date) ?? []) {
-      balances.set(row.id, (balances.get(row.id) ?? 0n) + BigInt(row.movement));
+      movements.set(
+        row.id,
+        (movements.get(row.id) ?? 0n) + BigInt(row.movement),
+      );
     }
-    const opened = openings.filter((wallet) => wallet.openingDate <= date);
-    const total =
-      opened.length === 0
-        ? null
-        : opened.reduce(
-            (sum, wallet) => sum + (balances.get(wallet.id) ?? 0n),
-            0n,
-          );
+    const { total } = summarizeWalletBalance(
+      openings.map((wallet) => ({
+        savings: wallet.savings,
+        balance: closingOn(wallet, date),
+      })),
+    );
     entries.push(
       compared
-        ? {
-            date,
-            total,
-            wallet:
-              compared.openingDate <= date
-                ? (balances.get(compared.id) ?? 0n)
-                : null,
-          }
+        ? { date, total, wallet: closingOn(compared, date) }
         : { date, total },
     );
   }

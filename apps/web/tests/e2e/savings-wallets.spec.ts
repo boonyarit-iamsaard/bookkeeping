@@ -33,9 +33,13 @@ test("Savings wallets split Home's spendable balance until their marker is remov
   await expect(page).toHaveURL(/\/wallets(\?.*)?$/);
 
   await page.goto("/");
-  await expect(
-    page.getByRole("region", { name: "Spendable", exact: true }),
-  ).toContainText("Every wallet is a Savings wallet");
+  const allSavings = page.getByRole("region", {
+    name: "Total balance",
+    exact: true,
+  });
+  await expect(allSavings.getByRole("term")).toHaveText(["Set aside"]);
+  await expect(allSavings.getByRole("definition")).toHaveText(["฿800.00"]);
+  await expect(allSavings).toContainText("Across 1 wallet");
 
   await createWalletThroughForm(page, {
     name: "Cash",

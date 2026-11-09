@@ -377,7 +377,7 @@ export interface paths {
         };
         /**
          * List wallets
-         * @description Every wallet the signed-in owner holds, archived ones included, in creation order with an end-of-day balance in Bangkok. The optional `asOf` calendar date reports balances as they stood at the end of that day, counting the opening amount and every transaction dated on or before it; omitting it reports today's. A date before a wallet opened reports zero, and a malformed date or an unknown parameter is a bad request. The collection is small and unpaginated; `nextCursor` is always null.
+         * @description Every wallet the signed-in owner holds, archived ones included, in creation order with an end-of-day balance in Bangkok. The optional `asOf` calendar date reports balances as they stood at the end of that day, counting the opening amount and every transaction dated on or before it; omitting it reports today's. A wallet not yet opened by that date is left out, and `balance` splits the Total balance of the listed wallets into Spendable and Set aside. A malformed date or an unknown parameter is a bad request. The collection is small and unpaginated; `nextCursor` is always null.
          */
         get: operations["listWallets"];
         put?: never;
@@ -826,7 +826,16 @@ export interface components {
             /** @enum {string} */
             type: "cash" | "bank_account" | "e_wallet";
         };
+        WalletBalance: {
+            savingsWalletCount: number;
+            setAside: components["schemas"]["Money"] | null;
+            spendable: components["schemas"]["Money"] | null;
+            spendableWalletCount: number;
+            total: components["schemas"]["Money"] | null;
+            walletCount: number;
+        };
         WalletCollection: {
+            balance: components["schemas"]["WalletBalance"];
             items: components["schemas"]["Wallet"][];
             page: components["schemas"]["Page"];
         };

@@ -170,9 +170,9 @@ test("reviews income, expense, refund, transfer, and wallet balances for chosen 
   await expect(page.locator("[data-wallet-line]")).toHaveCount(0);
   await expect(readout).not.toContainText("Savings");
 
-  const overall = page.locator('[data-balance-row="Overall balance"]');
-  await expect(overall).toContainText("Current฿1,800.00");
-  await expect(overall).toContainText("3 Sep 2026฿1,700.00");
+  const total = page.locator('[data-balance-row="Total balance"]');
+  await expect(total).toContainText("Current฿1,800.00");
+  await expect(total).toContainText("3 Sep 2026฿1,700.00");
   const cash = page.locator('[data-balance-row="Cash"]');
   await expect(cash).toContainText("Current฿1,400.00");
   await expect(cash).toContainText("3 Sep 2026฿1,500.00");

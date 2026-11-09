@@ -130,7 +130,10 @@ export function Home({
         <div className={HOME_COLUMNS_CLASS}>
           <div className="flex flex-col gap-6 sm:gap-8">
             <Arrival order={0} animate={arrive}>
-              <WalletsTotal wallets={wallets} lead="spendable" />
+              <WalletsTotal
+                balance={walletCollection.balance}
+                lead="spendable"
+              />
             </Arrival>
             <Arrival order={1} animate={arrive}>
               <SummaryStrip cards={summaryCards} />

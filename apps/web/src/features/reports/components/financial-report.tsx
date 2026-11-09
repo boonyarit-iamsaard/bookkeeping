@@ -2,7 +2,6 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { Link } from "@tanstack/react-router";
 import type { components } from "@/core/api/openapi.gen";
-import { totalWalletBalance } from "@/features/wallets/wallet-total";
 import { FlowBars } from "@/shared/components/chart/flow-bars";
 import type { WalletShare } from "@/shared/components/chart/wallet-share-chart";
 import { WalletShareChart } from "@/shared/components/chart/wallet-share-chart";
@@ -31,7 +30,12 @@ interface FinancialReportProps {
   comparedWalletId: string | undefined;
   onCompareWallet: (walletId: string | undefined) => void;
   currentWallets: readonly WalletSummary[];
+  /** The Total balance today; none without a wallet. */
+  currentTotal: ApiMoney | null;
+  /** The wallets opened by `asOf`, at their balance then. */
   datedWallets: readonly WalletSummary[];
+  /** The Total balance at `asOf`; none before any wallet opened. */
+  datedTotal: ApiMoney | null;
   asOf: CalendarDate;
   trend: readonly TrendPoint[];
   /** The Balance date control, shown with the balances it dates. */
@@ -57,18 +61,20 @@ export function FinancialReport({
   comparedWalletId,
   onCompareWallet,
   currentWallets,
+  currentTotal,
   datedWallets,
+  datedTotal,
   asOf,
   trend,
   balanceDate,
 }: Readonly<FinancialReportProps>) {
-  const currentTotal = totalWalletBalance(currentWallets);
-  const datedTotal = totalWalletBalance(datedWallets);
-
-  const shares: WalletShare[] = currentWallets.map((wallet) => ({
+  const shares: WalletShare[] = datedWallets.map((wallet) => ({
     wallet,
-    balance: datedBalanceOf(wallet, datedWallets),
+    balance: wallet.balance,
   }));
+  const currentBalances = new Map(
+    currentWallets.map((wallet) => [wallet.id, wallet.balance]),
+  );
   const month = formatReportMonth(summary.month);
 
   return (
@@ -139,9 +145,9 @@ export function FinancialReport({
         {balanceDate}
         <p className="text-muted-foreground text-sm">
           End of day {formatCalendarDate(asOf)} · Bangkok. Archived holdings are
-          included; wallets contribute nothing before opening.
+          included; wallets appear from their opening date.
         </p>
-        {currentWallets.length === 0 ? (
+        {currentTotal === null ? (
           <div className="flex flex-col items-start gap-3">
             <p>Add a wallet to begin tracking balances.</p>
             <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
@@ -150,32 +156,43 @@ export function FinancialReport({
           </div>
         ) : (
           <>
-            <WalletShareChart shares={shares} />
-            <p
-              data-share-total
-              className="flex flex-wrap items-baseline justify-between gap-x-3 border-t pt-4 font-semibold"
-            >
-              Total
-              <Money amount={datedTotal} className="text-lg" />
-            </p>
+            {datedTotal === null ? (
+              <p>No wallet was open on {formatCalendarDate(asOf)}.</p>
+            ) : (
+              <>
+                <WalletShareChart shares={shares} />
+                <p
+                  data-share-total
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 border-t pt-4 font-semibold"
+                >
+                  Total
+                  <Money amount={datedTotal} className="text-lg" />
+                </p>
+              </>
+            )}
             <dl className="divide-border/70 divide-y border-t">
               <BalanceRow
-                name="Overall balance"
+                name="Total balance"
                 current={currentTotal}
                 dated={datedTotal}
                 asOf={asOf}
               />
-              {shares.map(({ wallet, balance }) => (
-                <BalanceRow
-                  key={wallet.id}
-                  name={wallet.name}
-                  walletId={wallet.id}
-                  archived={Boolean(wallet.archivedAt)}
-                  current={wallet.balance}
-                  asOf={asOf}
-                  dated={balance}
-                />
-              ))}
+              {shares.flatMap(({ wallet, balance }) => {
+                const current = currentBalances.get(wallet.id);
+                return current
+                  ? [
+                      <BalanceRow
+                        key={wallet.id}
+                        name={wallet.name}
+                        walletId={wallet.id}
+                        archived={Boolean(wallet.archivedAt)}
+                        current={current}
+                        asOf={asOf}
+                        dated={balance}
+                      />,
+                    ]
+                  : [];
+              })}
             </dl>
           </>
         )}
@@ -198,26 +215,13 @@ export function FinancialReport({
   );
 }
 
-/** A wallet's balance at the report's date; zero when it did not yet exist. */
-function datedBalanceOf(
-  wallet: Readonly<WalletSummary>,
-  datedWallets: readonly WalletSummary[],
-): ApiMoney {
-  return (
-    datedWallets.find((dated) => dated.id === wallet.id)?.balance ?? {
-      value: "0.00",
-      currency: "THB",
-    }
-  );
-}
-
 interface BalanceRowProps {
   name: string;
   walletId?: string;
   archived?: boolean;
   current: ApiMoney;
-  /** The balance at the end of `asOf`. */
-  dated: ApiMoney;
+  /** The balance at the end of `asOf`; none before anything opened. */
+  dated: ApiMoney | null;
   asOf: CalendarDate;
 }
 
@@ -256,7 +260,7 @@ function BalanceRow({
           <Money amount={current} />
         </span>
         {/* The date column says something only when it differs from Current. */}
-        {current.value !== dated.value && (
+        {dated !== null && current.value !== dated.value && (
           <span
             data-balance-total={walletId ? undefined : true}
             className="flex min-w-0 flex-col gap-0.5"

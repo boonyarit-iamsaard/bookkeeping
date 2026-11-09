@@ -6,12 +6,12 @@ import {
   createWallet,
   deleteWallet,
   findWallet,
-  listWallets,
+  listWalletsWithBalance,
   replaceWalletOpening,
 } from "@bookkeeping/application/wallets";
 import { changeWalletState } from "@bookkeeping/application/wallets/state";
 import type { Database } from "@bookkeeping/database/connection";
-import type { WalletSummary } from "@bookkeeping/domain/wallets";
+import type { WalletBalance, WalletSummary } from "@bookkeeping/domain/wallets";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import type { Input } from "hono";
 import { Hono } from "hono";
@@ -75,9 +75,27 @@ export const walletResponseSchema = z
   })
   .meta({ id: "Wallet" });
 
+/**
+ * The Total balance over the listed wallets, archived ones included, split
+ * into Spendable and Set aside. A figure is null when no wallet of its kind
+ * had opened by the date; the counts cover the listed wallets.
+ */
+export const walletBalanceSchema = z
+  .object({
+    total: moneySchema.nullable(),
+    spendable: moneySchema.nullable(),
+    setAside: moneySchema.nullable(),
+    walletCount: z.int().nonnegative(),
+    spendableWalletCount: z.int().nonnegative(),
+    savingsWalletCount: z.int().nonnegative(),
+  })
+  .meta({ id: "WalletBalance" });
+
 export const walletCollectionResponseSchema = createCollectionResponseSchema(
   walletResponseSchema,
-).meta({ id: "WalletCollection" });
+)
+  .extend({ balance: walletBalanceSchema })
+  .meta({ id: "WalletCollection" });
 
 export interface WalletResponse {
   id: string;
@@ -110,6 +128,23 @@ export function presentWallet(wallet: Readonly<WalletSummary>): WalletResponse {
       amountInMinorUnits: wallet.balance,
       currency: wallet.currency,
     }),
+  };
+}
+
+function presentAmount(amountInMinorUnits: bigint | null): Money | null {
+  return amountInMinorUnits === null
+    ? null
+    : presentMoney({ amountInMinorUnits, currency: "THB" });
+}
+
+export function presentWalletBalance(
+  balance: Readonly<WalletBalance>,
+): z.infer<typeof walletBalanceSchema> {
+  return {
+    ...balance,
+    total: presentAmount(balance.total),
+    spendable: presentAmount(balance.spendable),
+    setAside: presentAmount(balance.setAside),
   };
 }
 
@@ -288,9 +323,11 @@ export function createWalletRoutes(db: Database) {
           "optional `asOf` calendar date reports balances as they stood at " +
           "the end of that day, counting the opening amount and every " +
           "transaction dated on or before it; omitting it reports today's. " +
-          "A date before a wallet opened reports zero, and a malformed " +
-          "date or an unknown parameter is a bad request. The collection " +
-          "is small and unpaginated; `nextCursor` is always null.",
+          "A wallet not yet opened by that date is left out, and " +
+          "`balance` splits the Total balance of the listed wallets into " +
+          "Spendable and Set aside. A malformed date or an unknown " +
+          "parameter is a bad request. The collection is small and " +
+          "unpaginated; `nextCursor` is always null.",
         tags: ["Wallets"],
         responses: {
           400: describeProblemResponse(400),
@@ -312,12 +349,16 @@ export function createWalletRoutes(db: Database) {
       >(
         async (c) => {
           const { asOf } = c.req.valid("query");
-          const wallets = await listWallets(db, {
+          const listed = await listWalletsWithBalance(db, {
             ownerId: c.get("session").user.id,
             ...(asOf === undefined ? {} : { asOf }),
           });
           return c.json(
-            { items: wallets.map(presentWallet), page: { nextCursor: null } },
+            {
+              items: listed.wallets.map(presentWallet),
+              page: { nextCursor: null },
+              balance: presentWalletBalance(listed.balance),
+            },
             200,
           );
         },

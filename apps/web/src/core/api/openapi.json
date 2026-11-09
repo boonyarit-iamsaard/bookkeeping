@@ -257,11 +257,15 @@
           },
           "page": {
             "$ref": "#/components/schemas/Page"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/WalletBalance"
           }
         },
         "required": [
           "items",
-          "page"
+          "page",
+          "balance"
         ],
         "additionalProperties": false
       },
@@ -277,6 +281,65 @@
         },
         "required": [
           "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "WalletBalance": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "spendable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "setAside": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "walletCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "spendableWalletCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "savingsWalletCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "total",
+          "spendable",
+          "setAside",
+          "walletCount",
+          "spendableWalletCount",
+          "savingsWalletCount"
         ],
         "additionalProperties": false
       },
@@ -1912,7 +1975,7 @@
           }
         },
         "summary": "List wallets",
-        "description": "Every wallet the signed-in owner holds, archived ones included, in creation order with an end-of-day balance in Bangkok. The optional `asOf` calendar date reports balances as they stood at the end of that day, counting the opening amount and every transaction dated on or before it; omitting it reports today's. A date before a wallet opened reports zero, and a malformed date or an unknown parameter is a bad request. The collection is small and unpaginated; `nextCursor` is always null.",
+        "description": "Every wallet the signed-in owner holds, archived ones included, in creation order with an end-of-day balance in Bangkok. The optional `asOf` calendar date reports balances as they stood at the end of that day, counting the opening amount and every transaction dated on or before it; omitting it reports today's. A wallet not yet opened by that date is left out, and `balance` splits the Total balance of the listed wallets into Spendable and Set aside. A malformed date or an unknown parameter is a bad request. The collection is small and unpaginated; `nextCursor` is always null.",
         "tags": [
           "Wallets"
         ],

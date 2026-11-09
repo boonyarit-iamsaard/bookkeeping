@@ -773,7 +773,7 @@ describe("filtered financial history", () => {
         (
           await listWallets(db, { ownerId: owner.ownerId, asOf: "2026-08-31" })
         ).map((wallet) => wallet.balance),
-      ).toEqual([0n, 0n]);
+      ).toEqual([]);
     });
   });
 });
