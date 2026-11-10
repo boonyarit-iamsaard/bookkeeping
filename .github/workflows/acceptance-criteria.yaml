@@ -1,0 +1,41 @@
+name: Acceptance criteria
+
+# Every issue a pull request closes must have each acceptance criterion
+# ticked before merge, because the merge closes the issue outside any agent
+# run. Drafts are skipped: implement-spec opens one before any work lands.
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+permissions:
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ticked:
+    name: Acceptance criteria
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require ticked criteria on every closing issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          failed=0
+          for issue in $(gh pr view "$PR" --repo "$REPO" --json closingIssuesReferences --jq '.closingIssuesReferences[].number'); do
+            unticked=$(gh issue view "$issue" --repo "$REPO" --json body --jq '.body' | grep -cE '^[[:space:]]*[-*] \[ \]' || true)
+            if [ "$unticked" -gt 0 ]; then
+              echo "::error::#$issue has $unticked unchecked acceptance criteria. Tick each one the Spec review did not report as missing or partial (gh issue edit $issue --body-file <edited body>); if one stays unmet, comment why on the issue and remove its Closes line from this pull request. Then re-run this check."
+              failed=1
+            else
+              echo "#$issue: every acceptance criterion is ticked."
+            fi
+          done
+          exit "$failed"

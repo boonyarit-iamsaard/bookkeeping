@@ -1,0 +1,31 @@
+name: Retire triage state
+
+# A closed issue is done, so it carries no triage state. Pull requests close
+# issues on merge, outside any agent run, so this workflow owns the cleanup.
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  retire:
+    name: Retire triage state
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove state labels from the closed issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+          LABELS: ${{ toJSON(github.event.issue.labels.*.name) }}
+        run: |
+          states=$(jq -r '[.[] | select(IN("needs-triage", "needs-info", "ready-for-agent", "ready-for-human"))] | join(",")' <<< "$LABELS")
+          if [ -z "$states" ]; then
+            echo "#$ISSUE carries no triage state."
+            exit 0
+          fi
+          gh issue edit "$ISSUE" --repo "$REPO" --remove-label "$states"
+          echo "#$ISSUE: removed $states."
