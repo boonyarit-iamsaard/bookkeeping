@@ -241,6 +241,38 @@ describe("createFormWrites", () => {
     expect(journal.refresh).not.toHaveBeenCalled();
   });
 
+  test("a form that maps its own pointers places a nested field's error", async () => {
+    const journal = createJournal();
+    const writes = createFormWrites({
+      fields: ["parent", "parentName"],
+      fieldOf: (pointer) =>
+        pointer === "#/parent/create/name" ? "parentName" : undefined,
+      refresh: journal.refresh,
+      forget: journal.forget,
+      writes: () => ({
+        create: {
+          kind: "create",
+          send: async (_input: TagName) =>
+            rejected(422, {
+              ...invalidCommand,
+              errors: [
+                { pointer: "#/parent/create/name", code: "duplicate-name" },
+              ],
+            }),
+          describeFieldError: ({ code }) => `Described ${code}`,
+          onDone: vi.fn(),
+        },
+      }),
+    });
+
+    await writes.submit.create({ name: "Food" });
+
+    expect(writes.state()).toMatchObject({
+      serverError: undefined,
+      fieldErrors: { parentName: "Described duplicate-name" },
+    });
+  });
+
   test("a rejection reads as the feature describes it", async () => {
     const journal = createJournal();
     const writes = createFormWrites({
