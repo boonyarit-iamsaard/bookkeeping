@@ -129,21 +129,6 @@ export function createFieldOf(fields: readonly string[]): FieldOf {
   };
 }
 
-/** The messages for the fields a form shows, typed by those fields. */
-export function pickFieldErrors<Field extends string>(
-  fieldErrors: Readonly<Record<string, string>>,
-  fields: readonly Field[],
-): Partial<Record<Field, string>> {
-  const picked: Partial<Record<Field, string>> = {};
-  for (const field of fields) {
-    const message = fieldErrors[field];
-    if (message !== undefined) {
-      picked[field] = message;
-    }
-  }
-  return picked;
-}
-
 interface RejectionMapping {
   describeError: DescribeFieldError;
   fieldOf: FieldOf;
