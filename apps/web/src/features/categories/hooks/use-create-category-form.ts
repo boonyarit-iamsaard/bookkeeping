@@ -6,10 +6,8 @@ import { useRef, useState } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryQueries } from "@/core/api/queries";
-import { useApiMutation } from "@/core/api/use-api-mutation";
+import { useFormWrites } from "@/core/api/use-form-writes";
 import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
-import { pickFieldErrors } from "@/core/api/write-submission";
-import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { CategoryFormInput } from "@/features/categories/category-form-schema";
 import {
   categoryFormSchema,
@@ -88,6 +86,9 @@ function fieldFromPointer(pointer: string): CategoryFormField | undefined {
   }
 }
 
+const LIST_NOT_REFRESHED =
+  "Category saved; list could not refresh. Retry the category list to continue.";
+
 const CATEGORY_FORM_FIELDS: readonly CategoryFormField[] = [
   "name",
   "iconId",
@@ -112,26 +113,53 @@ export function useCreateCategoryForm({
   onCreated,
 }: Readonly<UseCreateCategoryFormOptions>) {
   const queryClient = useQueryClient();
-  const [serverError, setServerError] = useState<string | undefined>();
+  // The saved category's recovery: its list read failed after the save.
+  const [recoveryError, setRecoveryError] = useState<string | undefined>();
   const savedCategory = useRef<SavedCategory | undefined>(undefined);
   const [isSaved, setIsSaved] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<CategoryFormField, string>>
-  >({});
   // An icon follows its name's top recommendation until picked by hand.
   const manualIcons = useRef<Record<IconField, boolean>>({
     iconId: false,
     parentIconId: false,
   });
-  const createCategory = useApiMutation<CreateCategoryRequest, Category>({
-    send: (input, attempt) =>
-      apiClient.POST("/v1/categories", {
-        params: { header: attempt.header },
-        body: input,
-      }),
-    describeFieldError: describeCategoryFieldError,
+  const {
+    submit,
+    serverError: writeError,
+    fieldErrors,
+    clearFieldError,
+  } = useFormWrites({
+    fields: CATEGORY_FORM_FIELDS,
     fieldOf: fieldFromPointer,
+    writes: {
+      create: {
+        kind: "create",
+        send: async (input: CreateCategoryRequest, attempt) => {
+          const response = await apiClient.POST("/v1/categories", {
+            params: { header: attempt.header },
+            body: input,
+          });
+          if (response.data) {
+            // Durable from here: the list refresh may fail, the save cannot.
+            savedCategory.current = {
+              category: response.data,
+              includesNewParent: Boolean(
+                input.parent && "create" in input.parent,
+              ),
+            };
+            setIsSaved(true);
+            setIsRefreshing(true);
+          }
+          return response;
+        },
+        describeFieldError: describeCategoryFieldError,
+        describeRejection: describeCategoryRejection,
+        onDone: (_created: Category) => {
+          setIsRefreshing(false);
+          finishFromCatalog();
+        },
+      },
+    },
   });
 
   const defaultValues: CategoryFormInput = {
@@ -162,9 +190,7 @@ export function useCreateCategoryForm({
       !category ||
       (category.parentId && !parent)
     ) {
-      setServerError(
-        "Category saved; list could not refresh. Retry the category list to continue.",
-      );
+      setRecoveryError(LIST_NOT_REFRESHED);
       return;
     }
     onCreated({
@@ -177,7 +203,7 @@ export function useCreateCategoryForm({
     if (!savedCategory.current || isRefreshing) {
       return;
     }
-    setServerError(undefined);
+    setRecoveryError(undefined);
     setIsRefreshing(true);
     try {
       // Re-read only: the category is already durable, and no POST is replayed.
@@ -187,9 +213,7 @@ export function useCreateCategoryForm({
         retry: false,
       });
     } catch {
-      setServerError(
-        "Category saved; list could not refresh. Retry the category list to continue.",
-      );
+      setRecoveryError(LIST_NOT_REFRESHED);
       setIsRefreshing(false);
       return;
     }
@@ -207,45 +231,13 @@ export function useCreateCategoryForm({
       if (savedCategory.current) {
         return;
       }
-      setServerError(undefined);
-      setFieldErrors({});
-
       const parsed = createCategorySubmissionSchema.safeParse(
         toCreateCategorySubmission(kind, value),
       );
       if (!parsed.success) {
         return;
       }
-
-      let result: Awaited<ReturnType<typeof createCategory.submit>>;
-      try {
-        result = await createCategory.submit(parsed.data);
-      } catch {
-        setServerError(
-          "The category could not be saved. Check your connection and try again.",
-        );
-        return;
-      }
-
-      if (!result.ok) {
-        setFieldErrors(
-          pickFieldErrors(result.error.fieldErrors, CATEGORY_FORM_FIELDS),
-        );
-        setServerError(describeCategoryRejection(result.error));
-        return;
-      }
-
-      savedCategory.current = {
-        category: result.value,
-        includesNewParent: Boolean(
-          parsed.data.parent && "create" in parsed.data.parent,
-        ),
-      };
-      setIsSaved(true);
-      setIsRefreshing(true);
-      await refreshAfterWrite(queryClient);
-      setIsRefreshing(false);
-      finishFromCatalog();
+      await submit.create(parsed.data);
     },
   });
 
@@ -260,15 +252,9 @@ export function useCreateCategoryForm({
     }
   }
 
-  function clearFieldError(field: CategoryFormField) {
-    setFieldErrors((current) =>
-      current[field] ? { ...current, [field]: undefined } : current,
-    );
-  }
-
   return {
     form,
-    serverError,
+    serverError: recoveryError ?? writeError,
     fieldErrors,
     clearFieldError,
     chooseIcon,
