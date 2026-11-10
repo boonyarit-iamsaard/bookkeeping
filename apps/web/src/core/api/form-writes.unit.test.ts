@@ -209,6 +209,32 @@ describe("createFormWrites", () => {
     },
   );
 
+  test("a fault in sending is thrown, not reported as a lost response", async () => {
+    const journal = createJournal();
+    const writes = createFormWrites({
+      fields: ["name"],
+      refresh: journal.refresh,
+      forget: journal.forget,
+      writes: () => ({
+        save: {
+          kind: "change",
+          send: async (_input: TagName): Promise<ApiResponse<Tag>> => {
+            throw new RangeError("Malformed request");
+          },
+          onDone: vi.fn(),
+        },
+      }),
+    });
+
+    await expect(writes.submit.save({ name: "Food" })).rejects.toThrow(
+      "Malformed request",
+    );
+    expect(writes.state()).toMatchObject({
+      pending: false,
+      serverError: undefined,
+    });
+  });
+
   test("places field errors by the form's fields and an unclaimed one in the error bar", async () => {
     const journal = createJournal();
     const writes = createFormWrites({

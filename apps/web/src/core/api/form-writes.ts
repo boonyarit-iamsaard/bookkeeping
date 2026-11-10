@@ -6,7 +6,11 @@ import type {
   WriteOptions,
   WriteResult,
 } from "./write-submission";
-import { createFieldOf, createWriteSubmission } from "./write-submission";
+import {
+  createFieldOf,
+  createWriteSubmission,
+  isLostResponse,
+} from "./write-submission";
 
 /**
  * What a write does to its record. It decides the idempotency key (only a
@@ -187,7 +191,10 @@ async function deliver<Input, Output>(
       input,
       options,
     );
-  } catch {
+  } catch (error) {
+    if (!isLostResponse(error)) {
+      throw error;
+    }
     return { outcome: "lost" };
   }
   return result.ok

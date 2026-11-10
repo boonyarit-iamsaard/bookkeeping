@@ -163,8 +163,12 @@ function toApiRejection(
   return { status: problem.status, problem, errors, fieldErrors, message };
 }
 
-/** `fetch` rejects with a `TypeError` when the request never left or its answer never arrived. */
-function isNetworkError(error: unknown): boolean {
+/**
+ * True for a lost response: `fetch` rejects with a `TypeError` when the
+ * request never left or its answer never arrived. A submit throws one when the
+ * loss survives the replay; any other throw is a fault, not a loss.
+ */
+export function isLostResponse(error: unknown): boolean {
   return error instanceof TypeError;
 }
 
@@ -196,7 +200,7 @@ export function createWriteSubmission<Input, Output>({
     try {
       delivered = await send();
     } catch (error) {
-      if (!isNetworkError(error)) {
+      if (!isLostResponse(error)) {
         throw error;
       }
       // The same key, or a write safe to repeat, makes one replay safe; a
