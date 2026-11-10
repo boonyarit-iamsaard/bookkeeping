@@ -275,7 +275,7 @@ export function createFormWrites<
       describeFieldError: write.describeFieldError,
       fieldOf,
       ...(write.kind === "create"
-        ? { send: write.send }
+        ? { keyed: true, send: write.send }
         : { keyed: false, send: (value: unknown) => write.send(value) }),
     });
     const done =

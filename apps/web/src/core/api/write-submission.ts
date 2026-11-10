@@ -59,7 +59,7 @@ interface DeliveryOptions {
 
 /** A creation: every attempt of one submit carries the same key. */
 export interface KeyedWriteOptions<Input, Output> extends DeliveryOptions {
-  keyed?: true;
+  keyed: true;
   /** Performs the request through the generated client with the attempt's header. */
   send: (
     input: Input,
@@ -178,7 +178,7 @@ export function createWriteSubmission<Input, Output>({
     input: Input,
     options: Readonly<WriteOptions<Input, Output>>,
   ): () => Promise<ApiResponse<Output>> {
-    if (options.keyed === false) {
+    if (!options.keyed) {
       return () => options.send(input);
     }
     const attempt: WriteAttempt = {

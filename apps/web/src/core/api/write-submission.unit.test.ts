@@ -48,7 +48,10 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1"),
     });
 
-    const result = await submission.submit({ name: "Cash" }, { send });
+    const result = await submission.submit(
+      { name: "Cash" },
+      { keyed: true, send },
+    );
 
     expect(result).toEqual({ ok: true, value: { id: "w1" } });
     expect(send).toHaveBeenCalledWith({ name: "Cash" }, {
@@ -67,7 +70,7 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1", "key-2"),
     });
 
-    const result = await submission.submit({}, { send });
+    const result = await submission.submit({}, { keyed: true, send });
 
     expect(result).toEqual({ ok: true, value: { id: "w1" } });
     expect(
@@ -83,7 +86,7 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1"),
     });
 
-    await expect(submission.submit({}, { send })).rejects.toThrow(
+    await expect(submission.submit({}, { keyed: true, send })).rejects.toThrow(
       "Failed to fetch",
     );
     expect(send).toHaveBeenCalledTimes(2);
@@ -97,7 +100,7 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1"),
     });
 
-    await expect(submission.submit({}, { send })).rejects.toThrow(
+    await expect(submission.submit({}, { keyed: true, send })).rejects.toThrow(
       "Malformed request",
     );
     expect(send).toHaveBeenCalledTimes(1);
@@ -111,8 +114,8 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1", "key-2"),
     });
 
-    await submission.submit({}, { send });
-    await submission.submit({}, { send });
+    await submission.submit({}, { keyed: true, send });
+    await submission.submit({}, { keyed: true, send });
 
     expect(
       send.mock.calls.map(([, attempt]) => attempt.header["idempotency-key"]),
@@ -143,8 +146,8 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1", "key-2"),
     });
 
-    const first = submission.submit({ name: "first" }, { send });
-    const second = submission.submit({ name: "second" }, { send });
+    const first = submission.submit({ name: "first" }, { keyed: true, send });
+    const second = submission.submit({ name: "second" }, { keyed: true, send });
     release(accepted({ id: "w1" }));
 
     expect(await second).toEqual(await first);
@@ -173,6 +176,7 @@ describe("createWriteSubmission", () => {
     const result = await submission.submit(
       {},
       {
+        keyed: true,
         send,
         describeFieldError: ({ field, code }) => `${field}: ${code}`,
         fieldOf: createFieldOf(["name", "openingAmount"]),
@@ -209,6 +213,7 @@ describe("createWriteSubmission", () => {
     const result = await submission.submit(
       {},
       {
+        keyed: true,
         send,
         describeFieldError: ({ code }) => `described ${code}`,
         fieldOf: (pointer) =>
@@ -242,7 +247,7 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1"),
     });
 
-    const result = await submission.submit({}, { send });
+    const result = await submission.submit({}, { keyed: true, send });
 
     expect(result).toMatchObject({
       ok: false,
@@ -273,6 +278,7 @@ describe("createWriteSubmission", () => {
     const result = await submission.submit(
       {},
       {
+        keyed: true,
         send,
         describeFieldError: ({ code }) => `described ${code}`,
         fieldOf: createFieldOf(["name", "openingAmount"]),
@@ -305,6 +311,7 @@ describe("createWriteSubmission", () => {
     const result = await submission.submit(
       {},
       {
+        keyed: true,
         send,
         describeFieldError: ({ code }) => `described ${code}`,
         fieldOf: createFieldOf(["name"]),
@@ -336,7 +343,11 @@ describe("createWriteSubmission", () => {
 
     const result = await submission.submit(
       {},
-      { send, describeFieldError: ({ code }) => `Described ${code}` },
+      {
+        keyed: true,
+        send,
+        describeFieldError: ({ code }) => `Described ${code}`,
+      },
     );
 
     expect(result).toMatchObject({
@@ -364,7 +375,7 @@ describe("createWriteSubmission", () => {
 
     const result = await submission.submit(
       {},
-      { send, describeFieldError: () => "Check the entry." },
+      { keyed: true, send, describeFieldError: () => "Check the entry." },
     );
 
     expect(result).toMatchObject({
@@ -388,7 +399,7 @@ describe("createWriteSubmission", () => {
 
     const result = await submission.submit(
       {},
-      { send, fieldOf: createFieldOf(["name"]) },
+      { keyed: true, send, fieldOf: createFieldOf(["name"]) },
     );
 
     expect(result).toMatchObject({
@@ -410,7 +421,7 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1"),
     });
 
-    const result = await submission.submit({}, { send });
+    const result = await submission.submit({}, { keyed: true, send });
 
     expect(result).toEqual({
       ok: false,
@@ -432,7 +443,7 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1"),
     });
 
-    const result = await submission.submit({}, { send });
+    const result = await submission.submit({}, { keyed: true, send });
 
     expect(result).toMatchObject({
       ok: false,
@@ -454,7 +465,7 @@ describe("createWriteSubmission", () => {
       generateKey: keySequence("key-1"),
     });
 
-    const result = await submission.submit({}, { send });
+    const result = await submission.submit({}, { keyed: true, send });
 
     expect(result).toMatchObject({
       ok: false,
