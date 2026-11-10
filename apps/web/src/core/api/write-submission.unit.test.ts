@@ -119,6 +119,18 @@ describe("createWriteSubmission", () => {
     ).toEqual(["key-1", "key-2"]);
   });
 
+  test("generates no key for a write the API does not deduplicate", async () => {
+    const send = vi.fn(async (_input: unknown) => accepted({ id: "w1" }));
+    const submission = createWriteSubmission<unknown, Wallet>({
+      generateKey: keySequence(),
+    });
+
+    const result = await submission.submit({}, { keyed: false, send });
+
+    expect(result).toEqual({ ok: true, value: { id: "w1" } });
+    expect(send).toHaveBeenCalledWith({});
+  });
+
   test("ignores a second submit while one is in flight", async () => {
     let release: (response: ApiResponse<Wallet>) => void = () => {};
     const send = vi.fn(

@@ -43,12 +43,7 @@ export type DescribeFieldError = (
   fieldError: Readonly<ApiFieldError>,
 ) => string;
 
-export interface WriteOptions<Input, Output> {
-  /** Performs the request through the generated client with the attempt's header. */
-  send: (
-    input: Input,
-    attempt: Readonly<WriteAttempt>,
-  ) => Promise<ApiResponse<Output>>;
+interface DeliveryOptions {
   /**
    * The message shown beside a rejected field. Features supply their own
    * table; the default falls back to the problem's own prose.
@@ -61,6 +56,26 @@ export interface WriteOptions<Input, Output> {
    */
   fieldOf?: FieldOf;
 }
+
+/** A creation: every attempt of one submit carries the same key. */
+export interface KeyedWriteOptions<Input, Output> extends DeliveryOptions {
+  keyed?: true;
+  /** Performs the request through the generated client with the attempt's header. */
+  send: (
+    input: Input,
+    attempt: Readonly<WriteAttempt>,
+  ) => Promise<ApiResponse<Output>>;
+}
+
+/** A change or deletion: the API does not deduplicate it, so no key is made. */
+export interface KeylessWriteOptions<Input, Output> extends DeliveryOptions {
+  keyed: false;
+  send: (input: Input) => Promise<ApiResponse<Output>>;
+}
+
+export type WriteOptions<Input, Output> =
+  | KeyedWriteOptions<Input, Output>
+  | KeylessWriteOptions<Input, Output>;
 
 export type FieldOf = (pointer: string) => string | undefined;
 
@@ -173,23 +188,35 @@ export function createWriteSubmission<Input, Output>({
 }: Readonly<WriteSubmissionOptions> = {}): WriteSubmission<Input, Output> {
   let inFlight: Promise<WriteResult<Output>> | undefined;
 
+  /** One request of this submit, repeatable as is for the replay. */
+  function attemptOf(
+    input: Input,
+    options: Readonly<WriteOptions<Input, Output>>,
+  ): () => Promise<ApiResponse<Output>> {
+    if (options.keyed === false) {
+      return () => options.send(input);
+    }
+    const attempt: WriteAttempt = {
+      header: { [IDEMPOTENCY_KEY_HEADER]: generateKey() },
+    };
+    return () => options.send(input, attempt);
+  }
+
   async function deliver(
     input: Input,
     options: Readonly<WriteOptions<Input, Output>>,
   ): Promise<WriteResult<Output>> {
-    const attempt: WriteAttempt = {
-      header: { [IDEMPOTENCY_KEY_HEADER]: generateKey() },
-    };
+    const send = attemptOf(input, options);
     let delivered: ApiResponse<Output>;
     try {
-      delivered = await options.send(input, attempt);
+      delivered = await send();
     } catch (error) {
       if (!isNetworkError(error)) {
         throw error;
       }
-      // The same key makes one replay safe; a second loss is the caller's
-      // to report.
-      delivered = await options.send(input, attempt);
+      // The same key, or a write safe to repeat, makes one replay safe; a
+      // second loss is the caller's to report.
+      delivered = await send();
     }
     const outcome = readApiResponse(delivered);
     if (outcome.ok) {
