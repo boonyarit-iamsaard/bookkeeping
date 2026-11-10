@@ -352,6 +352,35 @@ describe("createFormWrites", () => {
     expect(writes.state().serverError).toBe("Nothing to change");
   });
 
+  test("a rejection that re-reads the screen shows its message after the refresh", async () => {
+    const journal = createJournal();
+    const writes = createFormWrites({
+      fields: [],
+      refresh: journal.refresh,
+      forget: journal.forget,
+      onStateChange: ({ pending, serverError }) => {
+        if (pending && serverError !== undefined) {
+          journal.note(`message ${serverError}`);
+        }
+      },
+      writes: () => ({
+        save: {
+          kind: "change",
+          send: async () => rejected(409, refundsExist),
+          refreshOnRejection: () => true,
+          onDone: vi.fn(),
+        },
+      }),
+    });
+
+    await writes.submit.save();
+
+    expect(journal.entries).toEqual([
+      "refresh []",
+      "message Expense has refunds",
+    ]);
+  });
+
   test("starting any write clears what another write left", async () => {
     const journal = createJournal();
     const writes = createFormWrites({
