@@ -24,6 +24,8 @@ import type {
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
+import type { NotFound } from "../shared/not-found";
+import { notFound } from "../shared/not-found";
 import { DEFAULT_CATEGORIES } from "./default-categories";
 
 /** The columns every read and write returns: a `CategorySummary` row. */
@@ -81,7 +83,7 @@ export interface UpdateCategoryInput
     CategoryUpdateCommand {}
 
 export type UpdateCategoryError =
-  | { code: "category-not-found" }
+  | NotFound
   | { code: "blank-name" }
   | { code: "name-too-long" }
   | { code: "unknown-icon" }
@@ -131,7 +133,7 @@ export async function updateCategory(
   }
   const { name, iconId } = validated.value;
   if (!isUuid(input.id)) {
-    return err({ code: "category-not-found" });
+    return err(notFound());
   }
   try {
     return await db.transaction(async (tx) => {
@@ -159,7 +161,7 @@ export async function updateCategory(
           ),
         );
       return err({
-        code: current?.isProtected ? "protected" : "category-not-found",
+        code: current?.isProtected ? "protected" : "not-found",
       });
     });
   } catch (error) {
@@ -256,7 +258,7 @@ function countRows() {
 }
 
 export type RemoveCategoryError =
-  | { code: "category-not-found" }
+  | NotFound
   /** Uncategorized is the fallback; it cannot itself be removed. */
   | { code: "protected" }
   /** Every child, used or not, must go before its parent. */
@@ -276,7 +278,7 @@ const RESTRICT_VIOLATIONS = new Set(["23001", "23503"]);
 const TRANSACTION_CATEGORY_FK = "transactions_category_id_categories_id_fk";
 const CHILD_PARENT_FK = "categories_parent_id_categories_id_fk";
 
-/** Unwinds the removal transaction once the category is found already gone. */
+/** Unwinds the removal once the category is found already gone. */
 class AlreadyRemoved extends Error {}
 
 type RemovalFallback =
@@ -322,16 +324,18 @@ interface FallbackOptions {
 
 /**
  * Removes a category and moves its transactions to the fallback in one
- * transaction; refunds read their expense's category, so they follow by
- * themselves. Its locks follow the global order in
- * `transactions/transaction-judgement.ts`. The restrict foreign
- * keys are the final word: a transaction or child committed meanwhile
- * fails the delete, and nothing is changed.
+ * transaction; refunds follow their expense's category. Its locks follow
+ * the global order in `transactions/transaction-judgement.ts`. The restrict
+ * foreign keys are the final word: a transaction or child committed
+ * meanwhile fails the delete and changes nothing.
  */
 export async function removeCategory(
   db: Database,
   input: Readonly<CategoryRef>,
 ): Promise<Result<RemoveCategoryOutcome, RemoveCategoryError>> {
+  if (!isUuid(input.id)) {
+    return err(notFound());
+  }
   try {
     return await db.transaction(async (tx) => {
       const [category] = await tx
@@ -344,7 +348,7 @@ export async function removeCategory(
           ),
         );
       if (!category) {
-        return err({ code: "category-not-found" });
+        return err(notFound());
       }
       if (category.isProtected) {
         return err({ code: "protected" });
@@ -374,7 +378,7 @@ export async function removeCategory(
     });
   } catch (error) {
     if (error instanceof AlreadyRemoved) {
-      return err({ code: "category-not-found" });
+      return err(notFound());
     }
     const cause = databaseError(error);
     if (cause && RESTRICT_VIOLATIONS.has(cause.code)) {

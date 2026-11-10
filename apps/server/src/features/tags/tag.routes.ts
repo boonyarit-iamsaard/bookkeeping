@@ -27,7 +27,6 @@ import {
   answerRemoval,
   describeCorrection,
   describeCreation,
-  NOT_FOUND,
 } from "../../core/http/resource-answers.js";
 
 export const tagResponseSchema = z
@@ -216,10 +215,7 @@ export function createTagRoutes(db: Database) {
           return answerCorrection(c, {
             result: renamed,
             present: (tag) => ({ ...tag }),
-            toFieldErrors: (error) =>
-              error.code === "tag-not-found"
-                ? NOT_FOUND
-                : toNameFieldErrors(error),
+            toFieldErrors: toNameFieldErrors,
           });
         },
         describeCorrection(
@@ -251,9 +247,10 @@ export function createTagRoutes(db: Database) {
           ownerId: c.get("session").user.id,
           id: c.req.valid("param").tagId,
         });
-        return answerRemoval(c, {
+        return answerRemoval<never>(c, {
           result: deleted,
-          toBlockerProblem: () => NOT_FOUND,
+          // Nothing blocks a tag's removal, so no blocker reaches the mapper.
+          toBlockerProblem: (blocker) => blocker,
         });
       },
     );

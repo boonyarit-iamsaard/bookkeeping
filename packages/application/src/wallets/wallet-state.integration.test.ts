@@ -291,7 +291,7 @@ describe("changeWalletState", () => {
           expect(await changeWalletState(db, { ...attempt, ...state })).toEqual(
             {
               ok: false,
-              error: { code: "wallet-not-found" },
+              error: { code: "not-found" },
             },
           );
         }

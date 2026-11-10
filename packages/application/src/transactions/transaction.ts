@@ -26,6 +26,8 @@ import type {
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
+import type { NotFound } from "../shared/not-found";
+import { notFound } from "../shared/not-found";
 import { carriesAnyTag, replaceTagsOf } from "../tags/tag-links";
 import type { DetailRow } from "./transaction-detail";
 import {
@@ -39,7 +41,6 @@ import {
 import type {
   OwnedCommand,
   TransactionCorrection,
-  TransactionNotFound,
 } from "./transaction-judgement";
 import {
   judgeCorrection,
@@ -291,9 +292,7 @@ export interface UpdateTransactionInput
   extends TransactionRef,
     TransactionCorrection {}
 
-export type UpdateTransactionError =
-  /** Also covers another owner's record and a deleted one. */
-  TransactionNotFound | TransactionRejection;
+export type UpdateTransactionError = NotFound | TransactionRejection;
 
 /**
  * Corrects a transaction in place. The type and its refund link are fixed;
@@ -360,8 +359,7 @@ export async function updateTransaction(
  * returned so a client can remove them first.
  */
 export type DeleteTransactionError =
-  /** Also covers another owner's record and an unknown identifier. */
-  | TransactionNotFound
+  | NotFound
   /** An expense keeps its row while any of these refunds still count. */
   | { code: "refunds-exist"; refunds: readonly RefundSummary[] };
 
@@ -372,7 +370,7 @@ export async function deleteTransaction(
   return db.transaction(async (tx) => {
     const locked = await lockForDeletion(tx, ref);
     if (locked.kind === "not-found") {
-      return err({ code: "transaction-not-found" });
+      return err(notFound());
     }
     if (locked.kind === "already-deleted") {
       return ok({ id: ref.id });

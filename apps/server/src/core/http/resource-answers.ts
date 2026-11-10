@@ -1,4 +1,6 @@
 import type { IdempotencyConflict } from "@bookkeeping/application/idempotency";
+import type { NotFound } from "@bookkeeping/application/shared/not-found";
+import { isNotFound } from "@bookkeeping/application/shared/not-found";
 import type { Result } from "@bookkeeping/domain/result";
 import type { Context } from "hono";
 import { idempotencyConflictProblem } from "./idempotency.js";
@@ -21,13 +23,6 @@ function isIdempotencyConflict(
 ): error is IdempotencyConflict {
   return error.code === "idempotency-conflict";
 }
-
-/**
- * What a caller's rejection mapper answers when the error means the resource
- * is not the owner's current one. The caller compares the concrete code, since
- * a generic error union cannot be narrowed here without an assertion.
- */
-export const NOT_FOUND = Symbol("not-found");
 
 export interface CreationAnswer<
   Outcome,
@@ -92,57 +87,56 @@ export function answerRead<Value, Body>(
   return c.json(present(value), 200);
 }
 
-export interface CorrectionAnswer<Value, Error, Body> {
-  result: Result<Value, Error>;
+export interface CorrectionAnswer<Value, Rejection, Body> {
+  result: Result<Value, NotFound | Rejection>;
   present: (value: Value) => Body;
-  /** Field errors for a rejected command, or `NOT_FOUND`. */
-  toFieldErrors: (
-    error: Error,
-  ) => readonly ProblemFieldError[] | typeof NOT_FOUND;
+  /** Field errors for a rejected command; the shared not-found never reaches it. */
+  toFieldErrors: (rejection: Rejection) => readonly ProblemFieldError[];
 }
 
 /**
- * Answers a correction: 404 when the resource is not found, 422 with field
- * errors for a rejected command, and 200 with the corrected resource.
+ * Answers a correction: 404 for the shared not-found, 422 with field errors
+ * for a rejected command, and 200 with the corrected resource.
  */
-export function answerCorrection<Value, Error, Body>(
+export function answerCorrection<Value, Rejection extends Coded, Body>(
   c: Context,
   {
     result,
     present,
     toFieldErrors,
-  }: Readonly<CorrectionAnswer<Value, Error, Body>>,
+  }: Readonly<CorrectionAnswer<Value, Rejection, Body>>,
 ) {
   if (!result.ok) {
-    const errors = toFieldErrors(result.error);
-    if (errors === NOT_FOUND) {
+    if (isNotFound(result.error)) {
       return createProblemResponse(c, getProblemOptionsForStatus(404));
     }
     return createProblemResponse(c, {
       ...getProblemOptionsForStatus(422),
-      errors,
+      errors: toFieldErrors(result.error),
     });
   }
   return c.json(present(result.value), 200);
 }
 
-export interface RemovalAnswer<Error> {
-  result: Result<unknown, Error>;
-  /** The 409 that names why the resource's own state refuses the removal, or `NOT_FOUND`. */
-  toBlockerProblem: (error: Error) => ProblemOptions<409> | typeof NOT_FOUND;
+export interface RemovalAnswer<Blocker> {
+  result: Result<unknown, NotFound | Blocker>;
+  /** The 409 that names why the resource's own state refuses the removal. */
+  toBlockerProblem: (blocker: Blocker) => ProblemOptions<409>;
 }
 
-/** Answers a removal: 404 when not found, 409 naming the blocker, or an empty 204. */
-export function answerRemoval<Error>(
+/**
+ * Answers a removal: 404 for the shared not-found, 409 naming the blocker,
+ * or an empty 204. A removal nothing can block names `never` as its blocker.
+ */
+export function answerRemoval<Blocker extends Coded = never>(
   c: Context,
-  { result, toBlockerProblem }: Readonly<RemovalAnswer<Error>>,
+  { result, toBlockerProblem }: Readonly<RemovalAnswer<Blocker>>,
 ) {
   if (!result.ok) {
-    const blocker = toBlockerProblem(result.error);
-    if (blocker === NOT_FOUND) {
+    if (isNotFound(result.error)) {
       return createProblemResponse(c, getProblemOptionsForStatus(404));
     }
-    return createProblemResponse(c, blocker);
+    return createProblemResponse(c, toBlockerProblem(result.error));
   }
   return c.body(null, 204);
 }

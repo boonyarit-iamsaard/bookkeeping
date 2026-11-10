@@ -24,6 +24,8 @@ import { normalizeTagIds } from "@bookkeeping/domain/tags";
 import type { RefundSummary } from "@bookkeeping/domain/transactions";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { isUuid } from "../shared/identifier";
+import type { NotFound } from "../shared/not-found";
+import { notFound } from "../shared/not-found";
 import { lockOwnedTagIds, readTagIdsOf } from "../tags/tag-links";
 import { currentRefundsOf, ownedCurrent } from "./transaction-detail";
 import type {
@@ -52,10 +54,6 @@ interface RecordRef extends Owned {
 
 export interface OwnedCommand extends Owned {
   command: Readonly<TransactionCommand>;
-}
-
-export interface TransactionNotFound {
-  code: "transaction-not-found";
 }
 
 /** A locked current record with every field its snapshot freezes. */
@@ -109,12 +107,10 @@ export interface JudgedCorrection {
 export async function judgeCorrection(
   tx: Database,
   { ownerId, id, correction }: Readonly<CorrectionInput>,
-): Promise<
-  Result<JudgedCorrection, TransactionNotFound | TransactionRejection>
-> {
+): Promise<Result<JudgedCorrection, NotFound | TransactionRejection>> {
   const current = await lockRecord(tx, { ownerId, id });
   if (!current || current.deletedAt) {
-    return err({ code: "transaction-not-found" });
+    return err(notFound());
   }
   const command: TransactionCommand = {
     type: current.type,

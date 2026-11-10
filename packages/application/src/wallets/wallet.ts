@@ -22,6 +22,8 @@ import { and, eq, lt, or, sql } from "drizzle-orm";
 import type { IdempotencyConflict } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
+import type { NotFound } from "../shared/not-found";
+import { notFound } from "../shared/not-found";
 import {
   selectWalletSummaries,
   summarizeWalletBalance,
@@ -301,10 +303,6 @@ async function insertWallet(
 
 export interface ReplaceWalletOpeningInput extends WalletRef, WalletOpening {}
 
-export interface WalletNotFound {
-  code: "wallet-not-found";
-}
-
 /** A movement is dated before the proposed opening; history cannot be excluded. */
 export interface MovementBeforeOpening {
   code: "movement-before-opening";
@@ -312,7 +310,7 @@ export interface MovementBeforeOpening {
 
 export type ReplaceWalletOpeningError =
   | InvalidWalletOpening
-  | WalletNotFound
+  | NotFound
   | MovementBeforeOpening;
 
 /**
@@ -334,12 +332,12 @@ export async function replaceWalletOpening(
   }
   const opening = validated.value;
   if (!isUuid(input.id)) {
-    return err({ code: "wallet-not-found" });
+    return err(notFound());
   }
   return db.transaction(async (tx) => {
     const current = await loadWalletForUpdate(tx, input);
     if (!current) {
-      return err({ code: "wallet-not-found" });
+      return err(notFound());
     }
     // Deleted movements are retained history; an opening cannot exclude them.
     const [movement] = await tx
@@ -378,7 +376,7 @@ export interface WalletHistoryRemains {
   code: "history-remains";
 }
 
-export type DeleteWalletError = WalletNotFound | WalletHistoryRemains;
+export type DeleteWalletError = NotFound | WalletHistoryRemains;
 
 /**
  * Permanently removes an owned wallet only when neither its current records
@@ -390,12 +388,12 @@ export async function deleteWallet(
   input: Readonly<WalletRef>,
 ): Promise<Result<{ id: string }, DeleteWalletError>> {
   if (!isUuid(input.id)) {
-    return err({ code: "wallet-not-found" });
+    return err(notFound());
   }
   return db.transaction(async (tx) => {
     const current = await loadWalletForUpdate(tx, input);
     if (!current) {
-      return err({ code: "wallet-not-found" });
+      return err(notFound());
     }
     const [movement] = await tx
       .select({ id: transactions.id })

@@ -3,7 +3,9 @@ import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import type { WalletSummary } from "@bookkeeping/domain/wallets";
 import { isUuid } from "../shared/identifier";
-import type { WalletNotFound, WalletRef } from "./wallet";
+import type { NotFound } from "../shared/not-found";
+import { notFound } from "../shared/not-found";
+import type { WalletRef } from "./wallet";
 import {
   loadWalletForUpdate,
   readWalletSummaryAfterChange,
@@ -18,7 +20,7 @@ export interface ChangeWalletStateInput extends WalletRef {
   savings?: boolean;
 }
 
-export type ChangeWalletStateError = WalletNotFound;
+export type ChangeWalletStateError = NotFound;
 
 /**
  * Applies partial wallet state under one exclusive lock and transaction.
@@ -30,12 +32,12 @@ export async function changeWalletState(
   input: Readonly<ChangeWalletStateInput>,
 ): Promise<Result<WalletSummary, ChangeWalletStateError>> {
   if (!isUuid(input.id)) {
-    return err({ code: "wallet-not-found" });
+    return err(notFound());
   }
   return db.transaction(async (tx) => {
     let current = await loadWalletForUpdate(tx, input);
     if (!current) {
-      return err({ code: "wallet-not-found" });
+      return err(notFound());
     }
     for (const change of requestedStateChanges(current, input)) {
       const updated = await updateWallet(tx, { id: input.id, set: change.set });

@@ -1,3 +1,4 @@
+import type { NotFound } from "@bookkeeping/application/shared/not-found";
 import type {
   ReplaceWalletOpeningError,
   WalletCreationIssue,
@@ -61,7 +62,6 @@ import {
   describeCorrection,
   describeCreation,
   describeRead,
-  NOT_FOUND,
 } from "../../core/http/resource-answers.js";
 
 export const walletResponseSchema = z
@@ -224,7 +224,7 @@ const OPENING_ISSUE_POINTERS = {
  * the date, since choosing an earlier date is the correction.
  */
 function toOpeningFieldErrors(
-  error: Exclude<ReplaceWalletOpeningError, { code: "wallet-not-found" }>,
+  error: Exclude<ReplaceWalletOpeningError, NotFound>,
 ): ProblemFieldError[] {
   if (error.code === "movement-before-opening") {
     return [{ pointer: OPENING_ISSUE_POINTERS.openingDate, code: error.code }];
@@ -447,10 +447,7 @@ export function createWalletRoutes(db: Database) {
           return answerCorrection(c, {
             result: replaced,
             present: presentWallet,
-            toFieldErrors: (error) =>
-              error.code === "wallet-not-found"
-                ? NOT_FOUND
-                : toOpeningFieldErrors(error),
+            toFieldErrors: toOpeningFieldErrors,
           });
         },
         describeCorrection(
@@ -496,10 +493,11 @@ export function createWalletRoutes(db: Database) {
             ...(body.archived === undefined ? {} : { archived: body.archived }),
             ...(body.savings === undefined ? {} : { savings: body.savings }),
           });
-          // Only "not found" can refuse this; the command middleware owns the 422.
-          return answerRead(c, {
-            value: changed.ok ? changed.value : null,
+          // Only not-found can refuse this; the command middleware owns the 422.
+          return answerCorrection(c, {
+            result: changed,
             present: presentWallet,
+            toFieldErrors: () => [],
           });
         },
         describeCorrection(
@@ -537,10 +535,7 @@ export function createWalletRoutes(db: Database) {
         });
         return answerRemoval(c, {
           result: deleted,
-          toBlockerProblem: (error) =>
-            error.code === "wallet-not-found"
-              ? NOT_FOUND
-              : historyRemainsProblem,
+          toBlockerProblem: () => historyRemainsProblem,
         });
       },
     );

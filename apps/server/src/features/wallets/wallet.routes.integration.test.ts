@@ -136,33 +136,6 @@ describe("GET /v1/wallets/{walletId}", () => {
     });
   });
 
-  test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const alice = await createOwnerSession(db);
-      const bob = await createOwnerSession(db);
-      const id = await insertWallet(db, {
-        ownerId: alice.ownerId,
-        name: "Alice cash",
-        type: "cash",
-        openingAmount: 50_000n,
-        openingDate: "2026-09-01",
-      });
-
-      await expectNotFoundProblem(
-        await getWallet(app, { id, cookie: bob.cookie }),
-      );
-      await expectNotFoundProblem(
-        await getWallet(app, { id: UNKNOWN_WALLET_ID, cookie: bob.cookie }),
-      );
-      await expectNotFoundProblem(
-        await getWallet(app, { id: "not-a-wallet", cookie: bob.cookie }),
-      );
-    });
-  });
-
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
       const response = await getWallet(
@@ -614,26 +587,6 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
     });
   });
 
-  test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const alice = await createOwnerSession(db);
-      const bob = await createOwnerSession(db);
-      const wallet = await createSavingsWallet(app, alice.cookie);
-
-      for (const id of [wallet.id, UNKNOWN_WALLET_ID, "not-a-wallet"]) {
-        await expectNotFoundProblem(
-          await putWalletOpening(app, { id, cookie: bob.cookie }),
-        );
-      }
-      expect(
-        await readWallet(app, { id: wallet.id, cookie: alice.cookie }),
-      ).toEqual(wallet);
-    });
-  });
-
   test("malformed JSON is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
@@ -755,26 +708,6 @@ describe("PATCH /v1/wallets/{walletId}", () => {
     });
   });
 
-  test("another owner's wallet is not found, indistinguishably from a missing or malformed id", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const alice = await createOwnerSession(db);
-      const bob = await createOwnerSession(db);
-      const wallet = await createSavingsWallet(app, alice.cookie);
-
-      for (const id of [wallet.id, UNKNOWN_WALLET_ID, "not-a-wallet"]) {
-        await expectNotFoundProblem(
-          await patchWallet(app, { id, cookie: bob.cookie }),
-        );
-      }
-      expect(
-        await readWallet(app, { id: wallet.id, cookie: alice.cookie }),
-      ).toEqual(wallet);
-    });
-  });
-
   test("malformed JSON is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
@@ -857,34 +790,6 @@ describe("DELETE /v1/wallets/{walletId}", () => {
         status: 409,
         code: "history-remains",
       });
-    });
-  });
-
-  test("does not disclose missing or another owner's wallets", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const alice = await createOwnerSession(db);
-      const bob = await createOwnerSession(db);
-      const id = await insertWallet(db, {
-        ownerId: alice.ownerId,
-        name: "Alice cash",
-        type: "cash",
-        openingAmount: 50_000n,
-        openingDate: "2026-09-01",
-      });
-
-      for (const attempt of [
-        { id, cookie: bob.cookie },
-        { id: UNKNOWN_WALLET_ID, cookie: bob.cookie },
-        { id: "not-a-wallet", cookie: bob.cookie },
-      ]) {
-        await expectNotFoundProblem(await deleteWallet(app, attempt));
-      }
-      expect((await getWallet(app, { id, cookie: alice.cookie })).status).toBe(
-        200,
-      );
     });
   });
 

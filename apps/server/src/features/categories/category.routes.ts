@@ -14,6 +14,7 @@ import {
   removeCategory,
   updateCategory,
 } from "@bookkeeping/application/categories";
+import type { NotFound } from "@bookkeeping/application/shared/not-found";
 import type { Database } from "@bookkeeping/database/connection";
 import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";
 import type { Input } from "hono";
@@ -46,7 +47,6 @@ import {
   describeCorrection,
   describeCreation,
   describeRead,
-  NOT_FOUND,
 } from "../../core/http/resource-answers.js";
 
 export const categoryResponseSchema = z
@@ -131,10 +131,7 @@ const categoryParamMiddleware =
   createResourceParamMiddleware(categoryParamsSchema);
 
 /** Every blocker is the category's own state refusing the removal, named by its code. */
-type CategoryRemovalBlocker = Exclude<
-  RemoveCategoryError,
-  { code: "category-not-found" }
->["code"];
+type CategoryRemovalBlocker = Exclude<RemoveCategoryError, NotFound>["code"];
 
 const CATEGORY_REMOVAL_BLOCKERS = [
   "protected",
@@ -213,7 +210,7 @@ function toCategoryFieldError(
 // An update rejects on name or icon alone; Uncategorized's fixed name is a
 // name problem, since choosing its current name is the correction.
 function toCategoryUpdateFieldError(
-  error: Exclude<UpdateCategoryError, { code: "category-not-found" }>,
+  error: Exclude<UpdateCategoryError, NotFound>,
 ): ProblemFieldError {
   switch (error.code) {
     case "blank-name":
@@ -446,10 +443,7 @@ export function createCategoryRoutes(db: Database) {
             return answerCorrection(c, {
               result: updated,
               present: (category) => category,
-              toFieldErrors: (error) =>
-                error.code === "category-not-found"
-                  ? NOT_FOUND
-                  : [toCategoryUpdateFieldError(error)],
+              toFieldErrors: (error) => [toCategoryUpdateFieldError(error)],
             });
           },
           describeCorrection(
@@ -490,10 +484,8 @@ export function createCategoryRoutes(db: Database) {
           });
           return answerRemoval(c, {
             result: removed,
-            toBlockerProblem: (error) =>
-              error.code === "category-not-found"
-                ? NOT_FOUND
-                : categoryRemovalProblems[error.code],
+            toBlockerProblem: (blocker) =>
+              categoryRemovalProblems[blocker.code],
           });
         },
       )

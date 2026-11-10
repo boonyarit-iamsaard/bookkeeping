@@ -621,30 +621,16 @@ describe("updateCategory", () => {
       });
 
       const foreign = stranger.find("expense", "Transport");
-      expect(
-        await updateCategory(db, {
-          ownerId: owner.id,
-          id: foreign.id,
-          name: "Mine",
-          iconId: "bus",
-        }),
-      ).toEqual({ ok: false, error: { code: "category-not-found" } });
-      expect(
-        await updateCategory(db, {
-          ownerId: owner.id,
-          id: "00000000-0000-0000-0000-000000000000",
-          name: "Mine",
-          iconId: "bus",
-        }),
-      ).toEqual({ ok: false, error: { code: "category-not-found" } });
-      expect(
-        await updateCategory(db, {
-          ownerId: owner.id,
-          id: "not-a-uuid",
-          name: "Mine",
-          iconId: "bus",
-        }),
-      ).toEqual({ ok: false, error: { code: "category-not-found" } });
+      for (const id of [foreign.id, crypto.randomUUID(), "not-a-uuid"]) {
+        expect(
+          await updateCategory(db, {
+            ownerId: owner.id,
+            id,
+            name: "Mine",
+            iconId: "bus",
+          }),
+        ).toEqual({ ok: false, error: { code: "not-found" } });
+      }
       expect(
         await findCategory(db, { ownerId: owner.id, id: foreign.id }),
       ).toBeNull();
@@ -1098,7 +1084,11 @@ describe("removeCategory", () => {
       const foreign = stranger.find("income", "Salary");
       expect(await remove(foreign.id)).toEqual({
         ok: false,
-        error: { code: "category-not-found" },
+        error: { code: "not-found" },
+      });
+      expect(await remove("not-a-uuid")).toEqual({
+        ok: false,
+        error: { code: "not-found" },
       });
       expect((await stranger.find("income", "Salary")).id).toBe(foreign.id);
 
@@ -1116,7 +1106,7 @@ describe("removeCategory", () => {
       });
       expect(await remove(investment.id)).toEqual({
         ok: false,
-        error: { code: "category-not-found" },
+        error: { code: "not-found" },
       });
 
       for (const id of [direct, viaChild]) {
@@ -1274,7 +1264,7 @@ describe("removeCategory", () => {
       for (const outcome of outcomes.filter((o) => !o.ok)) {
         expect(outcome).toEqual({
           ok: false,
-          error: { code: "category-not-found" },
+          error: { code: "not-found" },
         });
       }
     }

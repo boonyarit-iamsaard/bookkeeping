@@ -227,7 +227,7 @@ describe("judgeCorrection", () => {
       const expense = await recordExpense(db, owner);
       const deleted = await recordExpense(db, owner);
       await softDelete(db, deleted.id);
-      const notFound = { ok: false, error: { code: "transaction-not-found" } };
+      const notFound = { ok: false, error: { code: "not-found" } };
 
       for (const { ownerId, id } of [
         { ownerId: stranger.id, id: expense.id },

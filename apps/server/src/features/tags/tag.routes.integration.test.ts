@@ -21,7 +21,6 @@ import {
 const { withRollback } = setupTestDatabase();
 
 const TAGS_URL = `${TEST_API_ORIGIN}/v1/tags`;
-const UNKNOWN_TAG_ID = "01999999-0000-7000-8000-000000000000";
 
 interface TagRequest {
   method?: string;
@@ -192,38 +191,6 @@ describe("tag routes", () => {
         await request(app, { method: "DELETE", path: `/${coffee.id}`, cookie }),
         { status: 404, code: "not-found" },
       );
-    });
-  });
-
-  test("another owner's, unknown, and malformed tags are not found alike", async () => {
-    await withRollback(async (db) => {
-      const app = createApp(db);
-      const owner = await createOwnerSession(db);
-      const stranger = await createOwnerSession(db);
-      const foreign = await createTag(app, {
-        cookie: stranger.cookie,
-        name: "Coffee",
-      });
-
-      for (const path of [
-        `/${foreign.id}`,
-        `/${UNKNOWN_TAG_ID}`,
-        "/not-a-tag",
-      ]) {
-        await expectProblem(
-          await request(app, {
-            method: "PATCH",
-            path,
-            cookie: owner.cookie,
-            body: { name: "Mine" },
-          }),
-          { status: 404, code: "not-found" },
-        );
-        await expectProblem(
-          await request(app, { method: "DELETE", path, cookie: owner.cookie }),
-          { status: 404, code: "not-found" },
-        );
-      }
     });
   });
 

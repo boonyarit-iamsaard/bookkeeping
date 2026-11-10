@@ -13,6 +13,8 @@ import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import type { IdempotencyConflict } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
+import type { NotFound } from "../shared/not-found";
+import { notFound } from "../shared/not-found";
 
 const UNIQUE_VIOLATION = "23505";
 const TAG_NAME_INDEX = "tags_user_name_unique";
@@ -150,12 +152,7 @@ export interface RenameTagInput extends TagRef {
   name: string;
 }
 
-export interface TagNotFound {
-  /** Also covers another owner's tag and a malformed identifier. */
-  code: "tag-not-found";
-}
-
-export type RenameTagError = TagNotFound | TagNameRejection;
+export type RenameTagError = NotFound | TagNameRejection;
 
 /**
  * Renames one of the owner's tags. Renaming to the name another of the
@@ -173,7 +170,7 @@ export async function renameTag(
     return name;
   }
   if (!isUuid(input.id)) {
-    return err({ code: "tag-not-found" });
+    return err(notFound());
   }
   try {
     return await renameOrMerge(db, { ...input, name: name.value });
@@ -197,7 +194,7 @@ function renameOrMerge(db: Database, input: Readonly<RenameTagInput>) {
         .where(and(eq(tags.id, input.id), eq(tags.userId, input.ownerId)))
         .for("update");
       if (!renamed) {
-        return err({ code: "tag-not-found" });
+        return err(notFound());
       }
       const [survivor] = await tx
         .select(tagColumns)
@@ -240,7 +237,7 @@ function renameOrMerge(db: Database, input: Readonly<RenameTagInput>) {
   );
 }
 
-export type DeleteTagError = TagNotFound;
+export type DeleteTagError = NotFound;
 
 /**
  * Deletes one of the owner's tags and takes it off every transaction that
@@ -251,11 +248,11 @@ export async function deleteTag(
   { ownerId, id }: Readonly<TagRef>,
 ): Promise<Result<{ id: string }, DeleteTagError>> {
   if (!isUuid(id)) {
-    return err({ code: "tag-not-found" });
+    return err(notFound());
   }
   const [row] = await db
     .delete(tags)
     .where(and(eq(tags.id, id), eq(tags.userId, ownerId)))
     .returning({ id: tags.id });
-  return row ? ok(row) : err({ code: "tag-not-found" });
+  return row ? ok(row) : err(notFound());
 }

@@ -324,7 +324,7 @@ describe("renameTag", () => {
           id: foreign,
           name: "Mine",
         }),
-      ).toEqual({ ok: false, error: { code: "tag-not-found" } });
+      ).toEqual({ ok: false, error: { code: "not-found" } });
       expect(
         await renameTag(db, { ownerId: owner.ownerId, id: own, name: " " }),
       ).toEqual({ ok: false, error: { code: "blank-name" } });
@@ -374,7 +374,7 @@ describe("deleteTag", () => {
 
       expect(
         await deleteTag(db, { ownerId: owner.ownerId, id: foreign }),
-      ).toEqual({ ok: false, error: { code: "tag-not-found" } });
+      ).toEqual({ ok: false, error: { code: "not-found" } });
       expect(await listTags(db, stranger.ownerId)).toHaveLength(1);
     });
   });

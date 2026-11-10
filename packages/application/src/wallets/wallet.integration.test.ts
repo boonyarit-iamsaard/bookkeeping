@@ -667,7 +667,7 @@ describe("replaceWalletOpening", () => {
             openingAmount: 0n,
             openingDate: "2026-09-01",
           }),
-        ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+        ).toEqual({ ok: false, error: { code: "not-found" } });
       }
       expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
         cash,
@@ -689,7 +689,7 @@ describe("deleteWallet", () => {
       ).toBeNull();
       expect(
         await deleteWallet(db, { ownerId: owner.id, id: cash.id }),
-      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      ).toEqual({ ok: false, error: { code: "not-found" } });
     });
   });
 
@@ -765,7 +765,7 @@ describe("deleteWallet", () => {
       ]) {
         expect(await deleteWallet(db, attempt)).toEqual({
           ok: false,
-          error: { code: "wallet-not-found" },
+          error: { code: "not-found" },
         });
       }
       expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(

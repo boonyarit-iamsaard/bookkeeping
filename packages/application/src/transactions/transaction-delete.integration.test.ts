@@ -326,13 +326,13 @@ describe("deleteTransaction", () => {
 
       expect(
         await deleteTransaction(db, { ownerId: bob.ownerId, id: expense.id }),
-      ).toEqual({ ok: false, error: { code: "transaction-not-found" } });
+      ).toEqual({ ok: false, error: { code: "not-found" } });
       expect(
         await deleteTransaction(db, {
           ownerId: bob.ownerId,
           id: "01999999-0000-7000-8000-000000000000",
         }),
-      ).toEqual({ ok: false, error: { code: "transaction-not-found" } });
+      ).toEqual({ ok: false, error: { code: "not-found" } });
       expect(
         await findTransaction(db, { ownerId: alice.ownerId, id: expense.id }),
       ).toEqual(expense);

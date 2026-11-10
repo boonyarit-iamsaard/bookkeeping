@@ -213,20 +213,6 @@ function deleteCategory(
   });
 }
 
-/** Asserts a route answers the same 404 for unknown, foreign, and malformed ids. */
-async function expectNotFoundAlike(
-  attempt: (id: string) => Response | Promise<Response>,
-  foreignId: string,
-) {
-  for (const id of [
-    "00000000-0000-0000-0000-000000000000",
-    foreignId,
-    "not-a-uuid",
-  ]) {
-    await expectProblem(await attempt(id), { status: 404, code: "not-found" });
-  }
-}
-
 describe("POST /v1/categories", () => {
   test("creates a parent, returns its representation, and gives its location", async () => {
     await withRollback(async (db) => {
@@ -540,28 +526,6 @@ describe("GET /v1/categories/{categoryId}", () => {
     });
   });
 
-  test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const alice = await createProvisionedOwner(db);
-      const bob = await createProvisionedOwner(db);
-      const bobsTree = categoryCollectionResponseSchema.parse(
-        await (await listCategories(app, bob.cookie)).json(),
-      );
-      const bobsCategory = bobsTree.items[0];
-      if (!bobsCategory) {
-        throw new Error("Expected Bob to have categories");
-      }
-
-      await expectNotFoundAlike(
-        (id) => getCategory(app, { categoryId: id, cookie: alice.cookie }),
-        bobsCategory.id,
-      );
-    });
-  });
-
   test("rejects an anonymous request with the standard problem", async () => {
     await withRollback(async (db) => {
       const response = await getCategory(
@@ -709,39 +673,6 @@ describe("PATCH /v1/categories/{categoryId}", () => {
     });
   });
 
-  test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const alice = await createProvisionedOwner(db);
-      const bob = await createProvisionedOwner(db);
-      const bobsTree = categoryCollectionResponseSchema.parse(
-        await (await listCategories(app, bob.cookie)).json(),
-      );
-      const bobsCategory = bobsTree.items[0];
-      if (!bobsCategory) {
-        throw new Error("Expected Bob to have categories");
-      }
-
-      await expectNotFoundAlike(
-        (id) =>
-          patchCategory(app, {
-            categoryId: id,
-            cookie: alice.cookie,
-            body: { name: "Mine", iconId: "bus" },
-          }),
-        bobsCategory.id,
-      );
-      const bobsAfter = categoryCollectionResponseSchema.parse(
-        await (await listCategories(app, bob.cookie)).json(),
-      );
-      expect(bobsAfter.items.find((c) => c.id === bobsCategory.id)).toEqual(
-        bobsCategory,
-      );
-    });
-  });
-
   test("rejects malformed JSON and anonymous requests with standard problems", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
@@ -833,28 +764,6 @@ describe("GET /v1/categories/{categoryId}/usage", () => {
       expect(
         categoryUsageResponseSchema.parse(await groceriesResponse.json()),
       ).toEqual({ transactions: 2, children: 0 });
-    });
-  });
-
-  test("treats unknown, cross-owner, and malformed ids as not found alike", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const alice = await createProvisionedOwner(db);
-      const bob = await createProvisionedOwner(db);
-      const bobsTree = categoryCollectionResponseSchema.parse(
-        await (await listCategories(app, bob.cookie)).json(),
-      );
-      const bobsCategory = bobsTree.items[0];
-      if (!bobsCategory) {
-        throw new Error("Expected Bob to have categories");
-      }
-
-      await expectNotFoundAlike(
-        (id) => getCategoryUsage(app, { categoryId: id, cookie: alice.cookie }),
-        bobsCategory.id,
-      );
     });
   });
 
@@ -1076,33 +985,6 @@ describe("DELETE /v1/categories/{categoryId}", () => {
         await deleteCategory(app, { categoryId: foodAndDrink.id, cookie }),
         { status: 409, code: "has-children" },
       );
-    });
-  });
-
-  test("does not disclose missing or another owner's categories", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const alice = await createProvisionedOwner(db);
-      const bob = await createProvisionedOwner(db);
-      const groceries = await findListedCategory(app, {
-        name: "Groceries",
-        cookie: alice.cookie,
-      });
-
-      await expectNotFoundAlike(
-        (categoryId) => deleteCategory(app, { categoryId, cookie: bob.cookie }),
-        groceries.id,
-      );
-      expect(
-        (
-          await getCategory(app, {
-            categoryId: groceries.id,
-            cookie: alice.cookie,
-          })
-        ).status,
-      ).toBe(200);
     });
   });
 

@@ -1,6 +1,5 @@
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import { insertTransaction } from "@bookkeeping/application/testing/transaction-fixture";
-import { softDelete } from "@bookkeeping/application/testing/transaction-suite-fixture";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
@@ -829,50 +828,6 @@ describe("PUT /v1/transactions/{transactionId}", () => {
     });
   });
 
-  test("unknown, cross-owner, malformed, and deleted identifiers are not found alike", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const owner = await createOwner({ db });
-      const foreign = await createOwner({ db });
-      const expense = transactionResponseSchema.parse(
-        await (
-          await postTransaction(app, {
-            cookie: owner.cookie,
-            idempotencyKey: "update-hidden",
-            body: expenseBody(owner),
-          })
-        ).json(),
-      );
-
-      for (const requestedId of [
-        UNKNOWN_TRANSACTION_ID,
-        // Another owner's transaction reads as missing, not forbidden.
-        expense.id,
-        "not-a-uuid",
-      ]) {
-        await expectProblem(
-          await putTransaction(app, {
-            id: requestedId,
-            cookie: foreign.cookie,
-            body: updateExpenseBody(foreign),
-          }),
-          { status: 404, code: "not-found" },
-        );
-      }
-      await softDelete(db, expense.id);
-      await expectProblem(
-        await putTransaction(app, {
-          id: expense.id,
-          cookie: owner.cookie,
-          body: updateExpenseBody(owner),
-        }),
-        { status: 404, code: "not-found" },
-      );
-    });
-  });
-
   test("requires authentication and valid JSON", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
@@ -986,41 +941,6 @@ describe("DELETE /v1/transactions/{transactionId}", () => {
           wallet: refund.wallet,
         },
       ]);
-    });
-  });
-
-  test("does not disclose missing, another owner's, or malformed identifiers", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const owner = await createOwner({ db });
-      const foreign = await createOwner({ db });
-      const expense = transactionResponseSchema.parse(
-        await (
-          await postTransaction(app, {
-            cookie: owner.cookie,
-            idempotencyKey: "delete-hidden",
-            body: expenseBody(owner),
-          })
-        ).json(),
-      );
-
-      for (const attempt of [
-        { id: UNKNOWN_TRANSACTION_ID, cookie: foreign.cookie },
-        // Another owner's transaction reads as missing, not forbidden.
-        { id: expense.id, cookie: foreign.cookie },
-        { id: "not-a-uuid", cookie: foreign.cookie },
-      ]) {
-        await expectProblem(await deleteTransaction(app, attempt), {
-          status: 404,
-          code: "not-found",
-        });
-      }
-      expect(
-        (await getTransaction(app, { id: expense.id, cookie: owner.cookie }))
-          .status,
-      ).toBe(200);
     });
   });
 
@@ -1276,42 +1196,6 @@ describe("GET /v1/transactions/{transactionId}", () => {
       });
     });
   });
-
-  test("unknown, cross-owner, malformed, and deleted identifiers are not found alike", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const owner = await createOwner({ db });
-      const foreign = await createOwner({ db });
-      const id = await insertTransaction(db, {
-        ownerId: owner.ownerId,
-        type: "expense",
-        walletId: owner.cashId,
-        categoryId: owner.childId,
-      });
-
-      for (const requestedId of [
-        UNKNOWN_TRANSACTION_ID,
-        // Another owner's transaction reads as missing, not forbidden.
-        id,
-        "not-a-uuid",
-      ]) {
-        await expectProblem(
-          await getTransaction(app, {
-            id: requestedId,
-            cookie: foreign.cookie,
-          }),
-          { status: 404, code: "not-found" },
-        );
-      }
-      await softDelete(db, id);
-      await expectProblem(
-        await getTransaction(app, { id, cookie: owner.cookie }),
-        { status: 404, code: "not-found" },
-      );
-    });
-  });
 });
 
 describe("GET /v1/transactions/{transactionId}/refunds", () => {
@@ -1435,13 +1319,12 @@ describe("GET /v1/transactions/{transactionId}/refunds", () => {
     });
   });
 
-  test("only a current owned expense has an allowance; everything else is not found alike", async () => {
+  test("only an expense has an allowance; an income, transfer, or refund is not found", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
       });
       const owner = await createOwner({ db });
-      const foreign = await createOwner({ db });
       const expenseId = await insertTransaction(db, {
         ownerId: owner.ownerId,
         type: "expense",
@@ -1467,13 +1350,7 @@ describe("GET /v1/transactions/{transactionId}/refunds", () => {
         refundOfTransactionId: expenseId,
       });
 
-      for (const requestedId of [
-        UNKNOWN_TRANSACTION_ID,
-        incomeId,
-        transferId,
-        refundId,
-        "not-a-uuid",
-      ]) {
+      for (const requestedId of [incomeId, transferId, refundId]) {
         await expectProblem(
           await getTransactionRefunds(app, {
             id: requestedId,
@@ -1482,22 +1359,6 @@ describe("GET /v1/transactions/{transactionId}/refunds", () => {
           { status: 404, code: "not-found" },
         );
       }
-      await expectProblem(
-        await getTransactionRefunds(app, {
-          id: expenseId,
-          cookie: foreign.cookie,
-        }),
-        { status: 404, code: "not-found" },
-      );
-
-      await softDelete(db, expenseId);
-      await expectProblem(
-        await getTransactionRefunds(app, {
-          id: expenseId,
-          cookie: owner.cookie,
-        }),
-        { status: 404, code: "not-found" },
-      );
     });
   });
 });

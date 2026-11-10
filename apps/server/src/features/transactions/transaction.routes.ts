@@ -63,7 +63,6 @@ import {
   describeCorrection,
   describeCreation,
   describeRead,
-  NOT_FOUND,
 } from "../../core/http/resource-answers.js";
 import {
   decodeTransactionCursor,
@@ -662,9 +661,7 @@ export function createTransactionRoutes(db: Database) {
             result: updated,
             present: presentTransaction,
             toFieldErrors: (error) =>
-              error.code === "transaction-not-found"
-                ? NOT_FOUND
-                : toFieldErrors(error, UPDATE_FIELD_POINTERS),
+              toFieldErrors(error, UPDATE_FIELD_POINTERS),
           });
         },
         {
@@ -709,15 +706,12 @@ export function createTransactionRoutes(db: Database) {
         });
         return answerRemoval(c, {
           result: deleted,
-          toBlockerProblem: (error) =>
-            error.code === "transaction-not-found"
-              ? NOT_FOUND
-              : {
-                  ...refundsExistProblem,
-                  extensions: {
-                    refunds: error.refunds.map(presentTransactionRefund),
-                  },
-                },
+          toBlockerProblem: (blocker) => ({
+            ...refundsExistProblem,
+            extensions: {
+              refunds: blocker.refunds.map(presentTransactionRefund),
+            },
+          }),
         });
       },
     )
