@@ -83,7 +83,7 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.remove();
+    await writes.submit("remove");
 
     expect(journal.entries).toEqual([
       'refresh [["/v1/tags/{tagId}","t1"]]',
@@ -108,7 +108,7 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.rename({ name: "Food" });
+    await writes.submit("rename", { name: "Food" });
 
     expect(onDone).toHaveBeenCalledWith({ id: "t2", name: "Food" });
     expect(journal.forget).not.toHaveBeenCalled();
@@ -135,7 +135,7 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.remove();
+    await writes.submit("remove");
 
     expect(journal.entries).toEqual(["refresh []", "done"]);
     expect(writes.state().serverError).toBeUndefined();
@@ -158,7 +158,7 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.rename({ name: "Food" });
+    await writes.submit("rename", { name: "Food" });
 
     expect(writes.state().serverError).toBe("This tag no longer exists.");
     expect(onDone).not.toHaveBeenCalled();
@@ -196,7 +196,7 @@ describe("createFormWrites", () => {
         writes: () => ({ save: { kind, send, onDone } }),
       });
 
-      await writes.submit.save({ name: "Food" });
+      await writes.submit("save", { name: "Food" });
 
       expect(send).toHaveBeenCalledTimes(2);
       expect(writes.state()).toMatchObject({
@@ -226,7 +226,7 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await expect(writes.submit.save({ name: "Food" })).rejects.toThrow(
+    await expect(writes.submit("save", { name: "Food" })).rejects.toThrow(
       "Malformed request",
     );
     expect(writes.state()).toMatchObject({
@@ -258,7 +258,7 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.create({ name: "Food" });
+    await writes.submit("create", { name: "Food" });
 
     expect(writes.state()).toMatchObject({
       serverError: "Described unrecognized-keys",
@@ -291,7 +291,7 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.create({ name: "Food" });
+    await writes.submit("create", { name: "Food" });
 
     expect(writes.state()).toMatchObject({
       serverError: undefined,
@@ -316,7 +316,7 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.remove();
+    await writes.submit("remove");
 
     expect(writes.state().serverError).toBe("Blocked by refunds-exist");
   });
@@ -345,8 +345,8 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.save();
-    await writes.submit.save();
+    await writes.submit("save");
+    await writes.submit("save");
 
     expect(journal.entries).toEqual(["refresh []"]);
     expect(writes.state().serverError).toBe("Nothing to change");
@@ -373,7 +373,7 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.save();
+    await writes.submit("save");
 
     expect(journal.entries).toEqual([
       "refresh []",
@@ -406,12 +406,12 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.rename({ name: "" });
+    await writes.submit("rename", { name: "" });
     expect(writes.state().fieldErrors).toEqual({
       name: "This value was not accepted.",
     });
 
-    await writes.submit.remove();
+    await writes.submit("remove");
 
     expect(writes.state()).toMatchObject({
       serverError: "Expense has refunds",
@@ -441,7 +441,7 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.save();
+    await writes.submit("save");
     writes.clearFieldError("name");
 
     expect(writes.state().fieldErrors).toEqual({ color: "Pick one" });
@@ -474,9 +474,9 @@ describe("createFormWrites", () => {
       }),
     });
 
-    await writes.submit.create({ name: "Food" });
-    await writes.submit.change({ name: "Food" });
-    await writes.submit.remove();
+    await writes.submit("create", { name: "Food" });
+    await writes.submit("change", { name: "Food" });
+    await writes.submit("remove");
 
     expect(attempts).toEqual([
       [{ header: { "idempotency-key": expect.any(String) } }],
@@ -504,8 +504,8 @@ describe("createFormWrites", () => {
       writes: () => ({ create: { kind: "create", send, onDone } }),
     });
 
-    const first = writes.submit.create({ name: "Food" });
-    const second = writes.submit.create({ name: "Food again" });
+    const first = writes.submit("create", { name: "Food" });
+    const second = writes.submit("create", { name: "Food again" });
     expect(writes.state()).toMatchObject({
       pending: true,
       running: ["create"],
@@ -536,7 +536,7 @@ describe("createFormWrites", () => {
     const first = current;
     current = vi.fn();
 
-    await writes.submit.remove();
+    await writes.submit("remove");
 
     expect(first).not.toHaveBeenCalled();
     expect(current).toHaveBeenCalledTimes(1);

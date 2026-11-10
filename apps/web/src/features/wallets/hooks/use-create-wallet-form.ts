@@ -83,7 +83,7 @@ export function useCreateWalletForm({
         return;
       }
 
-      await submit.create({
+      await submit("create", {
         name: parsed.data.name,
         type: parsed.data.type,
         savings: parsed.data.savings,

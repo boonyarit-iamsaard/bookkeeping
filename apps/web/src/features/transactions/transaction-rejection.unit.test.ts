@@ -36,7 +36,7 @@ async function rejectWith(error: Readonly<Record<string, unknown>>) {
       },
     }),
   });
-  await writes.submit.update({});
+  await writes.submit("update", {});
   const { serverError, fieldErrors } = writes.state();
   return { serverError, fieldErrors };
 }

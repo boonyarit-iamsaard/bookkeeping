@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Archive, ArchiveRestore, PiggyBank, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "@/core/api/client";
+import type { DeclaredWrite } from "@/core/api/form-writes";
 import { formatApiMoneyInput } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { walletQueries } from "@/core/api/queries";
@@ -73,6 +74,12 @@ function describeWalletRejection(
   return ERROR_MESSAGES[rejection.problem.code] ?? rejection.message;
 }
 
+/** How every wallet write reads a refusal. */
+const WALLET_REFUSAL_WORDING = {
+  describeFieldError: describeWalletFieldError,
+  describeRejection: describeWalletRejection,
+} satisfies Pick<DeclaredWrite, "describeFieldError" | "describeRejection">;
+
 export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   const navigate = useNavigate();
   const [amount, setAmount] = useState(() =>
@@ -86,12 +93,13 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [changeSource, setChangeSource] = useState<ChangeSource>("other");
 
-  const sendState = (input: WalletStateRequest) =>
-    apiClient.PATCH("/v1/wallets/{walletId}", {
+  function sendState(input: WalletStateRequest) {
+    return apiClient.PATCH("/v1/wallets/{walletId}", {
       params: { path: { walletId: wallet.id } },
       body: input,
     });
-  const { submit, pending, isPending, serverError } = useFormWrites({
+  }
+  const { submit, pending, isRunning, serverError } = useFormWrites({
     fields: [],
     writes: {
       opening: {
@@ -101,15 +109,13 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
             params: { path: { walletId: wallet.id } },
             body: input,
           }),
-        describeFieldError: describeWalletFieldError,
-        describeRejection: describeWalletRejection,
+        ...WALLET_REFUSAL_WORDING,
         onDone: () => setNotice("Opening balance corrected."),
       },
       archive: {
         kind: "change",
         send: sendState,
-        describeFieldError: describeWalletFieldError,
-        describeRejection: describeWalletRejection,
+        ...WALLET_REFUSAL_WORDING,
         onDone: (changed: Wallet) =>
           setNotice(
             changed.archivedAt
@@ -120,8 +126,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       savings: {
         kind: "change",
         send: sendState,
-        describeFieldError: describeWalletFieldError,
-        describeRejection: describeWalletRejection,
+        ...WALLET_REFUSAL_WORDING,
         onDone: (changed: Wallet) =>
           setNotice(
             changed.savings
@@ -135,7 +140,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           apiClient.DELETE("/v1/wallets/{walletId}", {
             params: { path: { walletId: wallet.id } },
           }),
-        describeRejection: describeWalletRejection,
+        ...WALLET_REFUSAL_WORDING,
         retired: [walletQueries.detail(wallet.id).queryKey],
         onDone: () => navigate({ to: "/wallets" }),
       },
@@ -166,7 +171,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       return;
     }
 
-    await submit.opening({
+    await submit("opening", {
       amount: {
         value: formatMoneyInput({
           amountInMinorUnits: parsed.data.openingAmount,
@@ -183,7 +188,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       return;
     }
     beginChange();
-    await submit.archive({ archived: !archived });
+    await submit("archive", { archived: !archived });
   }
 
   async function submitSavingsState() {
@@ -191,12 +196,12 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       return;
     }
     beginChange("savings");
-    await submit.savings({ savings: !wallet.savings });
+    await submit("savings", { savings: !wallet.savings });
   }
 
   async function submitDelete() {
     beginChange();
-    await submit.remove();
+    await submit("remove");
   }
 
   const archived = Boolean(wallet.archivedAt);
@@ -314,7 +319,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           onClick={() => void submitSavingsState()}
         >
           <PiggyBank data-icon="inline-start" strokeWidth={1.75} />
-          {isPending("savings")
+          {isRunning("savings")
             ? "Saving…"
             : wallet.savings
               ? "Unmark as a Savings wallet"

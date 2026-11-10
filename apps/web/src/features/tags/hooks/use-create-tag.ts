@@ -34,9 +34,9 @@ export function useCreateTag({ onCreated }: Readonly<UseCreateTagOptions>) {
   });
 
   return {
-    create: (name: string) => submit.create({ name }),
-    error: serverError,
-    clearError: clearErrors,
-    isPending: pending,
+    create: (name: string) => submit("create", { name }),
+    serverError,
+    clearErrors,
+    pending,
   };
 }

@@ -143,6 +143,20 @@ export function uncategorizedFor(
  * Owns the transaction entry form's client validation and API adapter. The
  * form keeps raw strings until its schema turns the amount into exact satang.
  */
+/** An update names the transaction it replaces beside the new values. */
+interface TransactionUpdate {
+  transactionId: string;
+  request: UpdateTransactionRequest;
+}
+
+/**
+ * A figure or date the rejection names may be newer than the page's, so the
+ * page re-reads and its hints agree with the message.
+ */
+function refreshOnRejection(rejection: Readonly<ApiRejection>): boolean {
+  return rejection.errors.some(carriesFacts);
+}
+
 export function useTransactionForm({
   wallets,
   categories,
@@ -171,11 +185,6 @@ export function useTransactionForm({
     }
   }
 
-  // A figure or date the rejection names may be newer than the page's, so
-  // the page re-reads and its hints agree with the message.
-  const refreshOnRejection = (rejection: Readonly<ApiRejection>) =>
-    rejection.errors.some(carriesFacts);
-
   const { submit, pending, serverError, fieldErrors, clearFieldError } =
     useFormWrites({
       fields: TRANSACTION_FORM_FIELDS,
@@ -193,10 +202,10 @@ export function useTransactionForm({
         },
         update: {
           kind: "change",
-          send: (input: UpdateTransactionRequest) =>
+          send: ({ transactionId, request }: TransactionUpdate) =>
             apiClient.PUT("/v1/transactions/{transactionId}", {
-              params: { path: { transactionId: editing?.id ?? "" } },
-              body: input,
+              params: { path: { transactionId } },
+              body: request,
             }),
           describeFieldError: describeTransactionFieldError,
           refreshOnRejection,
@@ -216,9 +225,12 @@ export function useTransactionForm({
       // only yields the satang amount the request carries.
       const values = schema.parse(value);
       if (editing) {
-        await submit.update(toUpdateTransactionRequest(values));
+        await submit("update", {
+          transactionId: editing.id,
+          request: toUpdateTransactionRequest(values),
+        });
       } else {
-        await submit.create(toCreateTransactionRequest(values));
+        await submit("create", toCreateTransactionRequest(values));
       }
     },
   });
@@ -255,6 +267,6 @@ export function useTransactionForm({
     fieldErrors,
     clearFieldError,
     changeType,
-    isPending: pending,
+    pending,
   };
 }

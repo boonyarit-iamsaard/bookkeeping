@@ -62,34 +62,40 @@ export function useEditCategoryForm({
   reassignedEntries,
   onDone,
 }: Readonly<UseEditCategoryFormOptions>) {
-  const { submit, isPending, serverError, fieldErrors, clearFieldError } =
-    useFormWrites({
-      fields: EDIT_FIELDS,
-      writes: {
-        update: {
-          kind: "change",
-          send: (input: UpdateCategoryRequest) =>
-            apiClient.PATCH("/v1/categories/{categoryId}", {
-              params: { path: { categoryId: category.id } },
-              body: input,
-            }),
-          describeFieldError: describeCategoryFieldError,
-          describeRejection: describeCategoryRejection,
-          onDone: (updated: Category) =>
-            onDone({ operation: "update", category: updated }),
-        },
-        remove: {
-          kind: "delete",
-          send: () =>
-            apiClient.DELETE("/v1/categories/{categoryId}", {
-              params: { path: { categoryId: category.id } },
-            }),
-          describeRejection: describeCategoryRejection,
-          onDone: () =>
-            onDone({ operation: "remove", reassigned: reassignedEntries }),
-        },
+  const {
+    submit,
+    pending,
+    isRunning,
+    serverError,
+    fieldErrors,
+    clearFieldError,
+  } = useFormWrites({
+    fields: EDIT_FIELDS,
+    writes: {
+      update: {
+        kind: "change",
+        send: (input: UpdateCategoryRequest) =>
+          apiClient.PATCH("/v1/categories/{categoryId}", {
+            params: { path: { categoryId: category.id } },
+            body: input,
+          }),
+        describeFieldError: describeCategoryFieldError,
+        describeRejection: describeCategoryRejection,
+        onDone: (updated: Category) =>
+          onDone({ operation: "update", category: updated }),
       },
-    });
+      remove: {
+        kind: "delete",
+        send: () =>
+          apiClient.DELETE("/v1/categories/{categoryId}", {
+            params: { path: { categoryId: category.id } },
+          }),
+        describeRejection: describeCategoryRejection,
+        onDone: () =>
+          onDone({ operation: "remove", reassigned: reassignedEntries }),
+      },
+    },
+  });
 
   const defaultValues: EditCategoryFormInput = {
     name: category.name,
@@ -100,7 +106,7 @@ export function useEditCategoryForm({
     defaultValues,
     validationLogic: revalidateLogic(),
     validators: { onDynamic: editCategoryFormSchema },
-    onSubmit: ({ value }) => submit.update(value),
+    onSubmit: ({ value }) => submit("update", value),
   });
 
   return {
@@ -108,7 +114,8 @@ export function useEditCategoryForm({
     serverError,
     fieldErrors,
     clearFieldError,
-    remove: () => submit.remove(),
-    removing: isPending("remove"),
+    remove: () => submit("remove"),
+    pending,
+    removing: isRunning("remove"),
   };
 }

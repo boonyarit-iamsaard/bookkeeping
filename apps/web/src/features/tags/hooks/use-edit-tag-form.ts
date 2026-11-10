@@ -30,37 +30,43 @@ export function useEditTagForm({
   onDone,
 }: Readonly<UseEditTagFormOptions>) {
   const [name, setName] = useState(tag.name);
-  const { submit, isPending, serverError, fieldErrors, clearFieldError } =
-    useFormWrites({
-      fields: ["name"],
-      writes: {
-        rename: {
-          kind: "change",
-          send: (input: TagNameRequest) =>
-            apiClient.PATCH("/v1/tags/{tagId}", {
-              params: { path: { tagId: tag.id } },
-              body: input,
-            }),
-          describeFieldError: describeTagNameError,
-          describeRejection: describeTagRejection,
-          onDone: (renamed: Tag) =>
-            onDone({
-              operation: "rename",
-              tag: renamed,
-              merged: renamed.id !== tag.id,
-            }),
-        },
-        remove: {
-          kind: "delete",
-          send: () =>
-            apiClient.DELETE("/v1/tags/{tagId}", {
-              params: { path: { tagId: tag.id } },
-            }),
-          describeRejection: describeTagRejection,
-          onDone: () => onDone({ operation: "delete" }),
-        },
+  const {
+    submit,
+    pending,
+    isRunning,
+    serverError,
+    fieldErrors,
+    clearFieldError,
+  } = useFormWrites({
+    fields: ["name"],
+    writes: {
+      rename: {
+        kind: "change",
+        send: (input: TagNameRequest) =>
+          apiClient.PATCH("/v1/tags/{tagId}", {
+            params: { path: { tagId: tag.id } },
+            body: input,
+          }),
+        describeFieldError: describeTagNameError,
+        describeRejection: describeTagRejection,
+        onDone: (renamed: Tag) =>
+          onDone({
+            operation: "rename",
+            tag: renamed,
+            merged: renamed.id !== tag.id,
+          }),
       },
-    });
+      remove: {
+        kind: "delete",
+        send: () =>
+          apiClient.DELETE("/v1/tags/{tagId}", {
+            params: { path: { tagId: tag.id } },
+          }),
+        describeRejection: describeTagRejection,
+        onDone: () => onDone({ operation: "delete" }),
+      },
+    },
+  });
 
   return {
     name,
@@ -70,9 +76,10 @@ export function useEditTagForm({
     },
     nameError: fieldErrors.name,
     serverError,
-    save: () => submit.rename({ name }),
-    saving: isPending("rename"),
-    remove: () => submit.remove(),
-    deleting: isPending("remove"),
+    save: () => submit("rename", { name }),
+    pending,
+    saving: isRunning("rename"),
+    remove: () => submit("remove"),
+    deleting: isRunning("remove"),
   };
 }

@@ -237,7 +237,7 @@ export function useCreateCategoryForm({
       if (!parsed.success) {
         return;
       }
-      await submit.create(parsed.data);
+      await submit("create", parsed.data);
     },
   });
 

@@ -74,9 +74,7 @@ type InputOf<Write> = Write extends {
 type OutputOf<Write> = Write extends {
   send: (...args: never[]) => Promise<infer Response>;
 }
-  ? Response extends { data: infer Output }
-    ? Output
-    : never
+  ? Extract<Response, { data: unknown }>["data"]
   : never;
 
 /** A form's named writes, each checked against its own input and output. */
@@ -88,28 +86,28 @@ export type FormWriteMap<Writes> = {
 };
 
 /** A `send` that takes nothing makes a submit that takes nothing. */
-export type FormSubmits<Writes> = {
-  [Name in keyof Writes]: Writes[Name] extends { send: () => unknown }
-    ? () => Promise<void>
-    : (input: InputOf<Writes[Name]>) => Promise<void>;
-};
+type SubmitArgs<Write> = Write extends { send: () => unknown }
+  ? []
+  : [input: InputOf<Write>];
+
+/** Settles a named write; a submit while it is in flight joins it. */
+export type FormSubmit<Writes> = <Name extends keyof Writes>(
+  name: Name,
+  ...args: SubmitArgs<Writes[Name]>
+) => Promise<void>;
 
 /**
  * A write as a form declares it, before its own input and output are known:
- * it types the callbacks a form writes inline. `FormWriteMap` then checks
- * each write against its own input and output; the method signatures here
- * accept any.
+ * it types the callbacks a form writes inline. Its `never` input and value
+ * accept any `send` and `onDone`; `FormWriteMap` then checks each write
+ * against its own input and output.
  */
-export interface DeclaredWrite {
+export interface DeclaredWrite extends FormWriteCommon<never> {
   kind: WriteKind;
-  send(
-    input: unknown,
+  send: (
+    input: never,
     attempt: Readonly<WriteAttempt>,
-  ): Promise<ApiResponse<unknown>>;
-  describeFieldError?: DescribeFieldError;
-  describeRejection?: (rejection: Readonly<ApiRejection>) => string | undefined;
-  refreshOnRejection?: (rejection: Readonly<ApiRejection>) => boolean;
-  onDone(value: unknown): unknown;
+  ) => Promise<ApiResponse<unknown>>;
   retired?: readonly ReadKey[];
 }
 
@@ -117,12 +115,18 @@ export interface DeclaredWrite {
 export type FormWriteSet<Writes> = Record<string, DeclaredWrite> &
   FormWriteMap<Writes>;
 
-/** A write as the core runs it: only a creation is handed an attempt. */
-interface RunnableWrite extends Omit<DeclaredWrite, "send"> {
+/**
+ * A write as the core runs it: only a creation is handed an attempt. The
+ * submit's input was checked against this write's `send` where the form
+ * called it, so the core passes it on as it came; the method signatures are
+ * where that checked input meets the write.
+ */
+interface RunnableWrite extends Omit<DeclaredWrite, "send" | "onDone"> {
   send(
     input: unknown,
     attempt?: Readonly<WriteAttempt>,
   ): Promise<ApiResponse<unknown>>;
+  onDone(value: unknown): unknown;
 }
 
 export interface FormWritesState<Field extends string, Name> {
@@ -155,8 +159,7 @@ export interface FormWritesOptions<Field extends string, Writes> {
 }
 
 export interface FormWrites<Field extends string, Writes> {
-  /** Settles a named write; a submit while it is in flight joins it. */
-  submit: FormSubmits<Writes>;
+  submit: FormSubmit<Writes>;
   state: () => Readonly<FormWritesState<Field, keyof Writes>>;
   /** Clears one field's server error, as editing that field does. */
   clearFieldError: (field: Field) => void;
@@ -164,7 +167,8 @@ export interface FormWrites<Field extends string, Writes> {
   clearErrors: () => void;
 }
 
-const CHANGE_LOST_MESSAGE =
+/** A creation or change whose response was lost twice. */
+const SAVE_LOST_MESSAGE =
   "The change could not be confirmed. Your values are kept; check your connection and try again.";
 
 const DELETE_LOST_MESSAGE =
@@ -258,7 +262,7 @@ export function createFormWrites<
     if (undelivered.outcome === "lost") {
       update({
         serverError:
-          write.kind === "delete" ? DELETE_LOST_MESSAGE : CHANGE_LOST_MESSAGE,
+          write.kind === "delete" ? DELETE_LOST_MESSAGE : SAVE_LOST_MESSAGE,
       });
       return;
     }
@@ -322,14 +326,8 @@ export function createFormWrites<
     return settling;
   }
 
-  const submit: Partial<Record<Name, (input?: unknown) => Promise<void>>> = {};
-  for (const name in options.writes()) {
-    submit[name] = (input) => start(name, input);
-  }
-
   return {
-    // biome-ignore lint/nursery/noUnsafeTypeAssertion: the loop above fills a submit for every name the writes declare, each typed by `FormWriteMap` at the form.
-    submit: submit as FormSubmits<Writes>,
+    submit: (name, ...args) => start(name, args[0]),
     state: () => state,
     clearFieldError(field) {
       const fieldErrors = { ...state.fieldErrors };

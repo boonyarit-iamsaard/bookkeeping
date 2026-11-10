@@ -4,7 +4,7 @@ import {
   forgetReads,
   refreshAfterWrite,
 } from "@/core/query/refresh-after-write";
-import type { FormSubmits, FormWriteSet, FormWritesState } from "./form-writes";
+import type { FormSubmit, FormWriteSet, FormWritesState } from "./form-writes";
 import { createFormWrites } from "./form-writes";
 
 interface UseFormWritesOptions<Field extends string, Writes> {
@@ -18,11 +18,11 @@ interface UseFormWritesOptions<Field extends string, Writes> {
 
 export interface UseFormWritesResult<Field extends string, Writes> {
   /** Settles a named write; a submit while it is in flight joins it. */
-  submit: FormSubmits<Writes>;
+  submit: FormSubmit<Writes>;
   /** True from any submit until its outcome, including the replay. */
   pending: boolean;
   /** True while the named write is in flight, to label its own button. */
-  isPending: (name: keyof Writes) => boolean;
+  isRunning: (name: keyof Writes) => boolean;
   serverError: string | undefined;
   fieldErrors: Partial<Record<Field, string>>;
   clearFieldError: (field: Field) => void;
@@ -68,7 +68,7 @@ export function useFormWrites<
   return {
     submit: core.submit,
     pending: state.pending,
-    isPending: (name) => state.running.includes(name),
+    isRunning: (name) => state.running.includes(name),
     serverError: state.serverError,
     fieldErrors: state.fieldErrors,
     clearFieldError: core.clearFieldError,

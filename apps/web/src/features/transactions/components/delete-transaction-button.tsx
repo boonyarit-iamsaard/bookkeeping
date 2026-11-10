@@ -125,13 +125,11 @@ export function DeleteTransactionButton({
     : undefined;
   const noun = TRANSACTION_TYPE_LABELS[transaction.type].toLowerCase();
 
-  const deleting = pending;
-
   return (
     <AlertDialog.Root
       open={open}
       onOpenChange={(next) => {
-        if (deleting) {
+        if (pending) {
           return;
         }
         setOpen(next);
@@ -185,14 +183,14 @@ export function DeleteTransactionButton({
             type="button"
             variant="destructive"
             size="lg"
-            disabled={deleting}
-            onClick={() => submit.remove()}
+            disabled={pending}
+            onClick={() => submit("remove")}
             className="h-12 w-full text-base sm:h-11 sm:w-auto sm:text-sm"
           >
-            {deleting ? "Deleting…" : "Delete"}
+            {pending ? "Deleting…" : "Delete"}
           </Button>
           <AlertDialog.Close
-            disabled={deleting}
+            disabled={pending}
             render={
               <Button
                 type="button"
