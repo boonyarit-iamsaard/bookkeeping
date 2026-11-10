@@ -6,7 +6,6 @@ import * as z from "zod";
 import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import type { ApiFieldError } from "@/core/api/write-submission";
-import { createFieldOf } from "@/core/api/write-submission";
 
 /** A rule rejection as the API publishes it, keyed by code. */
 type RuleFieldError = components["schemas"]["TransactionRuleFieldError"];
@@ -49,6 +48,7 @@ export type TransactionFormField =
   | "note"
   | "tagIds";
 
+/** The fields the form shows; a rejection addressed to any other input, such as the type or the refunded expense, goes to the error bar. */
 export const TRANSACTION_FORM_FIELDS: readonly TransactionFormField[] = [
   "amount",
   "walletId",
@@ -58,9 +58,6 @@ export const TRANSACTION_FORM_FIELDS: readonly TransactionFormField[] = [
   "note",
   "tagIds",
 ];
-
-/** A rejection addressed to any other input, such as the type or the refunded expense, goes to the error bar. */
-export const transactionFieldOf = createFieldOf(TRANSACTION_FORM_FIELDS);
 
 function formatBaht(amountInMinorUnits: bigint): string {
   return formatMoney({ amountInMinorUnits, currency: "THB" });

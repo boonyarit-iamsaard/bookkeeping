@@ -1,12 +1,45 @@
 import { MAX_TAGS_PER_TRANSACTION } from "@bookkeeping/domain/tags";
 import { describe, expect, test } from "vitest";
+import { createFormWrites } from "@/core/api/form-writes";
 import type { ApiFieldError } from "@/core/api/write-submission";
 import type { TransactionRejectionCode } from "@/features/transactions/transaction-rejection";
 import {
   carriesFacts,
   describeTransactionFieldError,
-  transactionFieldOf,
+  TRANSACTION_FORM_FIELDS,
 } from "@/features/transactions/transaction-rejection";
+
+/** The transaction form's errors after the API rejects a write with one field error. */
+async function rejectWith(error: Readonly<Record<string, unknown>>) {
+  const writes = createFormWrites({
+    fields: TRANSACTION_FORM_FIELDS,
+    refresh: async () => {},
+    forget: () => {},
+    writes: () => ({
+      update: {
+        kind: "change",
+        send: async (_input: object) => ({
+          error: {
+            type: "urn:bookkeeping:problem:invalid-command",
+            title: "Command is invalid",
+            status: 422,
+            code: "invalid-command",
+            errors: [error],
+          },
+          response: new Response(null, {
+            status: 422,
+            headers: { "content-type": "application/problem+json" },
+          }),
+        }),
+        describeFieldError: describeTransactionFieldError,
+        onDone: () => {},
+      },
+    }),
+  });
+  await writes.submit.update({});
+  const { serverError, fieldErrors } = writes.state();
+  return { serverError, fieldErrors };
+}
 
 function fieldError(
   error: Readonly<Omit<ApiFieldError, "field">> & Record<string, unknown>,
@@ -148,11 +181,12 @@ describe("transaction rejections", () => {
     })),
   )(
     "$code shows in $field with its own message",
-    ({ code, pointer, facts, field, message }) => {
-      expect(transactionFieldOf(pointer)).toBe(field);
-      expect(
-        describeTransactionFieldError(fieldError({ pointer, code, ...facts })),
-      ).toBe(message);
+    async ({ code, pointer, facts, field, message }) => {
+      expect(await rejectWith({ pointer, code, ...facts })).toEqual(
+        field === undefined
+          ? { serverError: message, fieldErrors: {} }
+          : { serverError: undefined, fieldErrors: { [field]: message } },
+      );
     },
   );
 
