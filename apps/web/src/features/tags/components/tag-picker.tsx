@@ -191,7 +191,13 @@ function TagSheet({
   onDone,
 }: Readonly<TagSheetProps>) {
   const { listRef, searchId, optionKeyDown, searchKeyDown } = useSheetOptions();
-  const { create, error, clearError, isPending } = useCreateTag();
+  const { create, error, clearError, isPending } = useCreateTag({
+    onCreated(created) {
+      onChange(toggled(value, created.id));
+      onQueryChange("");
+      document.getElementById(searchId)?.focus();
+    },
+  });
   const typed = normalizeTagName(query);
   const { matches, exactMatch } = searchTags(tags, query);
   const full = value.length >= MAX_TAGS_PER_TRANSACTION;
@@ -202,12 +208,7 @@ function TagSheet({
     if (!offerCreate || full || tooLong || isPending) {
       return;
     }
-    const created = await create(typed);
-    if (created) {
-      onChange(toggled(value, created.id));
-      onQueryChange("");
-      document.getElementById(searchId)?.focus();
-    }
+    await create(typed);
   }
 
   function toggle(tagId: string) {
