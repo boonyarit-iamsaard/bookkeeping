@@ -1,4 +1,4 @@
-import { formatMoney, formatMoneyInput } from "@bookkeeping/domain/money";
+import { formatMoney } from "@bookkeeping/domain/money";
 import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryLabel } from "@/features/categories/category-search";
@@ -13,12 +13,11 @@ interface LinkedExpenseViewOptions {
   refunds: ApiTransactionRefunds;
 }
 
-/** Formats an API expense and its server-provided allowance for the refund form. */
+/** Reads an API expense and its server-provided allowance for the refund form. */
 export function linkedExpenseView({
   expense,
   refunds,
 }: Readonly<LinkedExpenseViewOptions>): LinkedExpenseView {
-  const refundAllowance = parseApiMoney(refunds.refundAllowance);
   return {
     id: expense.id,
     amountLabel: formatMoney({
@@ -37,13 +36,16 @@ export function linkedExpenseView({
       name: expense.wallet.name,
       archived: expense.wallet.archived,
     },
-    refundAllowanceText: formatMoneyInput({
-      amountInMinorUnits: refundAllowance,
-      currency: refunds.refundAllowance.currency,
-    }),
-    refundAllowanceLabel: formatMoney({
-      amountInMinorUnits: refundAllowance,
-      currency: refunds.refundAllowance.currency,
-    }),
+    refundAllowance: parseApiMoney(refunds.refundAllowance),
   };
+}
+
+/** The allowance for reading: "฿300.00". */
+export function refundAllowanceLabel(
+  expense: Readonly<Pick<LinkedExpenseView, "refundAllowance">>,
+): string {
+  return formatMoney({
+    amountInMinorUnits: expense.refundAllowance,
+    currency: "THB",
+  });
 }

@@ -15,10 +15,12 @@ import { HistoryErrorBoundary } from "@/features/transactions/components/history
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { editableTransaction } from "@/features/transactions/editable-transaction";
-import type { WalletOption } from "@/features/transactions/hooks/use-transaction-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
 import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
-import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
+import type {
+  LinkedExpenseView,
+  WalletOption,
+} from "@/features/transactions/transaction.types";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { toWalletOptions } from "@/features/transactions/wallet-options";
 import { buttonVariants } from "@/shared/components/ui/button";
@@ -181,7 +183,7 @@ function EditForm({
       wallets={wallets}
       today={todayIn({ timeZone: APP_TIME_ZONE })}
       mode={{
-        kind: "edit",
+        kind: "correct",
         transaction: editableTransaction({ transaction, refundOf, refunds }),
       }}
     />

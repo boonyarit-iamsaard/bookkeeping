@@ -24,6 +24,38 @@ export const CREATABLE_TRANSACTION_TYPES = [
   "transfer",
 ] as const;
 
+/** The types that name their own category and tags. */
+export type SelfDescribedTransactionType = "income" | "expense";
+
+interface Typed {
+  type: TransactionType;
+}
+
+type SelfDescribed<T extends Typed> = T & {
+  type: SelfDescribedTransactionType;
+};
+
+function isSelfDescribed(type: TransactionType): boolean {
+  return type === "income" || type === "expense";
+}
+
+/**
+ * Only income and expense name a category: a refund's is its expense's and a
+ * transfer has none. Narrows a request union to its self-described members.
+ */
+export function carriesOwnCategory<T extends Typed>(
+  transaction: T,
+): transaction is SelfDescribed<T> {
+  return isSelfDescribed(transaction.type);
+}
+
+/** Only income and expense name tags: a refund's are its expense's and a transfer has none. */
+export function carriesOwnTags<T extends Typed>(
+  transaction: T,
+): transaction is SelfDescribed<T> {
+  return isSelfDescribed(transaction.type);
+}
+
 export interface TransactionWalletReference {
   id: string;
   name: string;

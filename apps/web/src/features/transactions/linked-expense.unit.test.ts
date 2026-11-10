@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 import type { components } from "@/core/api/openapi.gen";
-import { linkedExpenseView } from "@/features/transactions/linked-expense";
+import {
+  linkedExpenseView,
+  refundAllowanceLabel,
+} from "@/features/transactions/linked-expense";
 
 const expense: components["schemas"]["Transaction"] = {
   id: "expense-1",
@@ -45,8 +48,11 @@ describe("linkedExpenseView", () => {
       categoryIconId: "shopping-cart",
       tags: [],
       wallet: { id: "wallet-1", name: "Cash", archived: false },
-      refundAllowanceText: "400.00",
-      refundAllowanceLabel: "฿400.00",
+      refundAllowance: 40_000n,
     });
+  });
+
+  test("reads the allowance for display", () => {
+    expect(refundAllowanceLabel({ refundAllowance: 40_000n })).toBe("฿400.00");
   });
 });

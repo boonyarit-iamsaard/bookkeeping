@@ -1,10 +1,25 @@
+import type { CategorySummary } from "@bookkeeping/domain/categories";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { TransactionTag } from "@bookkeeping/domain/tags";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
+import type { components } from "@/core/api/openapi.gen";
+
+/** A wallet an entry may pick. */
+export interface WalletOption {
+  id: string;
+  name: string;
+  type: components["schemas"]["Wallet"]["type"];
+  openingDate: CalendarDate;
+  archived?: boolean;
+  /** Pre-formatted on the route; bigint does not cross the API. */
+  balanceLabel: string;
+}
+
+export type CategoryOption = CategorySummary;
 
 /**
- * The expense a refund is linked to, as the form shows it. Figures arrive
- * pre-formatted; bigint does not cross into the client.
+ * The expense a refund is linked to, as the form shows it. The allowance is
+ * parsed once from the API; bigint does not cross the API.
  */
 export interface LinkedExpenseView {
   id: string;
@@ -18,10 +33,8 @@ export interface LinkedExpenseView {
   /** The expense's tags, which a refund reports as its own. */
   tags: readonly TransactionTag[];
   wallet: { id: string; name: string; archived: boolean };
-  /** What is left to refund, excluding the refund being edited: "300.00". */
-  refundAllowanceText: string;
-  /** The same figure for reading: "฿300.00". */
-  refundAllowanceLabel: string;
+  /** What is left to refund, in satang, excluding the refund being edited. */
+  refundAllowance: bigint;
 }
 
 /** A saved transaction as the edit form loads it. */
@@ -35,7 +48,7 @@ export interface EditableTransaction {
   amountText: string;
   transactionDate: CalendarDate;
   note: string;
-  /** The tags it carries itself; a refund's are its expense's and stay empty here. */
+  /** Its tags as read; a refund's are its expense's and are never sent back. */
   tagIds: string[];
   /** "13 Sep 2026, 14:32", already in Bangkok time. */
   recordedLabel: string;

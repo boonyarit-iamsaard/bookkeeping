@@ -14,7 +14,11 @@ import type {
   RefundSummary,
   TransactionDetail,
 } from "@bookkeeping/domain/transactions";
-import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
+import {
+  carriesOwnCategory,
+  carriesOwnTags,
+  TRANSACTION_TYPES,
+} from "@bookkeeping/domain/transactions";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import type { Input } from "hono";
 import { Hono } from "hono";
@@ -423,20 +427,14 @@ export function createTransactionRoutes(db: Database) {
             type: body.type,
             amount: body.amount.amountInMinorUnits,
             walletId: body.walletId,
-            categoryId:
-              body.type === "transfer" || body.type === "refund"
-                ? null
-                : body.categoryId,
+            categoryId: carriesOwnCategory(body) ? body.categoryId : null,
             destinationWalletId:
               body.type === "transfer" ? body.destinationWalletId : null,
             refundOfTransactionId:
               body.type === "refund" ? body.refundOfTransactionId : null,
             transactionDate: body.transactionDate,
             note: body.note,
-            tagIds:
-              body.type === "income" || body.type === "expense"
-                ? body.tagIds
-                : [],
+            tagIds: carriesOwnTags(body) ? body.tagIds : [],
           });
           return answerCreation(c, {
             result: created,
