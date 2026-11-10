@@ -134,6 +134,11 @@ export interface FormWritesState<Field extends string, Name> {
 export interface FormWritesOptions<Field extends string, Writes> {
   /** The fields the form shows; an error for any other joins the error bar. */
   fields: readonly Field[];
+  /**
+   * The field a pointer addresses, for a form whose fields nest; defaults to
+   * the pointer's first segment when the form shows that field.
+   */
+  fieldOf?: (pointer: string) => Field | undefined;
   /** The latest write options, read once per submit. */
   writes: () => Writes;
   /** Re-reads after a write, leaving out the retired reads. */
@@ -211,7 +216,7 @@ export function createFormWrites<
   options: Readonly<FormWritesOptions<Field, Writes>>,
 ): FormWrites<Field, Writes> {
   type Name = keyof Writes;
-  const fieldOf = createFieldOf(options.fields);
+  const fieldOf = options.fieldOf ?? createFieldOf(options.fields);
   const inFlight = new Map<Name, Promise<void>>();
   let state: FormWritesState<Field, Name> = {
     pending: false,

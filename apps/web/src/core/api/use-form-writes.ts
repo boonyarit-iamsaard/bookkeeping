@@ -10,6 +10,8 @@ import { createFormWrites } from "./form-writes";
 interface UseFormWritesOptions<Field extends string, Writes> {
   /** The fields the form shows; an error for any other joins the error bar. */
   fields: readonly Field[];
+  /** The field a pointer addresses, for a form whose fields nest. */
+  fieldOf?: (pointer: string) => Field | undefined;
   /** The form's named writes, a fixed set; their options are read per submit. */
   writes: Writes;
 }
@@ -37,6 +39,7 @@ export function useFormWrites<
   Writes extends FormWriteSet<Writes>,
 >({
   fields,
+  fieldOf,
   writes,
 }: Readonly<UseFormWritesOptions<Field, Writes>>): UseFormWritesResult<
   Field,
@@ -54,6 +57,7 @@ export function useFormWrites<
   const [core] = useState(() =>
     createFormWrites<Field, Writes>({
       fields,
+      fieldOf,
       writes: () => latest.current,
       refresh: (retired) => refreshAfterWrite(queryClient, { retired }),
       forget: (retired) => forgetReads(queryClient, retired),
