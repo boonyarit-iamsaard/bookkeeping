@@ -1,13 +1,9 @@
 import type { CategorySummary } from "@bookkeeping/domain/categories";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
-import { useQueryClient } from "@tanstack/react-query";
-import { useState, useTransition } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
-import { useApiMutation } from "@/core/api/use-api-mutation";
+import { useFormWrites } from "@/core/api/use-form-writes";
 import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
-import { createFieldOf, pickFieldErrors } from "@/core/api/write-submission";
-import { refreshAfterWrite } from "@/core/query/refresh-after-write";
 import type { EditCategoryFormInput } from "@/features/categories/category-form-schema";
 import { editCategoryFormSchema } from "@/features/categories/category-form-schema";
 import type { ManageCategoryOutcome } from "@/features/categories/category-mutations";
@@ -25,9 +21,6 @@ interface UseEditCategoryFormOptions {
 type EditField = keyof EditCategoryFormInput;
 
 const EDIT_FIELDS: readonly EditField[] = ["name", "iconId"];
-
-const CONNECTION_MESSAGE =
-  "The change could not be confirmed. Your values are kept; try again.";
 
 const FIELD_ERROR_MESSAGES: Record<string, string> = {
   "blank-name": CATEGORY_MESSAGES.blankName,
@@ -69,26 +62,39 @@ export function useEditCategoryForm({
   reassignedEntries,
   onDone,
 }: Readonly<UseEditCategoryFormOptions>) {
-  const queryClient = useQueryClient();
-  const [serverError, setServerError] = useState<string | undefined>();
-  const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<EditField, string>>
-  >({});
-  const [removing, startRemoval] = useTransition();
-  const updateCategory = useApiMutation<UpdateCategoryRequest, Category>({
-    send: (input) =>
-      apiClient.PATCH("/v1/categories/{categoryId}", {
-        params: { path: { categoryId: category.id } },
-        body: input,
-      }),
-    describeFieldError: describeCategoryFieldError,
-    fieldOf: createFieldOf(EDIT_FIELDS),
-  });
-  const removeCategory = useApiMutation<undefined, unknown>({
-    send: () =>
-      apiClient.DELETE("/v1/categories/{categoryId}", {
-        params: { path: { categoryId: category.id } },
-      }),
+  const {
+    submit,
+    pending,
+    isRunning,
+    serverError,
+    fieldErrors,
+    clearFieldError,
+  } = useFormWrites({
+    fields: EDIT_FIELDS,
+    writes: {
+      update: {
+        kind: "change",
+        send: (input: UpdateCategoryRequest) =>
+          apiClient.PATCH("/v1/categories/{categoryId}", {
+            params: { path: { categoryId: category.id } },
+            body: input,
+          }),
+        describeFieldError: describeCategoryFieldError,
+        describeRejection: describeCategoryRejection,
+        onDone: (updated: Category) =>
+          onDone({ operation: "update", category: updated }),
+      },
+      remove: {
+        kind: "delete",
+        send: () =>
+          apiClient.DELETE("/v1/categories/{categoryId}", {
+            params: { path: { categoryId: category.id } },
+          }),
+        describeRejection: describeCategoryRejection,
+        onDone: () =>
+          onDone({ operation: "remove", reassigned: reassignedEntries }),
+      },
+    },
   });
 
   const defaultValues: EditCategoryFormInput = {
@@ -100,56 +106,16 @@ export function useEditCategoryForm({
     defaultValues,
     validationLogic: revalidateLogic(),
     validators: { onDynamic: editCategoryFormSchema },
-    onSubmit: ({ value }) => save(value),
+    onSubmit: ({ value }) => submit("update", value),
   });
-
-  async function save(value: Readonly<EditCategoryFormInput>) {
-    setServerError(undefined);
-    setFieldErrors({});
-    let result: Awaited<ReturnType<typeof updateCategory.submit>>;
-    try {
-      result = await updateCategory.submit(value);
-    } catch {
-      setServerError(CONNECTION_MESSAGE);
-      return;
-    }
-    if (!result.ok) {
-      setFieldErrors(pickFieldErrors(result.error.fieldErrors, EDIT_FIELDS));
-      setServerError(describeCategoryRejection(result.error));
-      return;
-    }
-    await refreshAfterWrite(queryClient);
-    onDone({ operation: "update", category: result.value });
-  }
-
-  function remove() {
-    startRemoval(() => {
-      void removeCategory
-        .submit(undefined)
-        .then(async (result) => {
-          if (!result.ok) {
-            setServerError(describeCategoryRejection(result.error));
-            return;
-          }
-          await refreshAfterWrite(queryClient);
-          onDone({ operation: "remove", reassigned: reassignedEntries });
-        })
-        .catch(() => setServerError(CONNECTION_MESSAGE));
-    });
-  }
-
-  function clearFieldError(field: EditField) {
-    setFieldErrors((current) =>
-      current[field] ? { ...current, [field]: undefined } : current,
-    );
-  }
 
   return {
     form,
     serverError,
     fieldErrors,
     clearFieldError,
-    remove,
-    removing: removing || removeCategory.isPending,
+    remove: () => submit("remove"),
+    pending,
+    removing: isRunning("remove"),
   };
 }

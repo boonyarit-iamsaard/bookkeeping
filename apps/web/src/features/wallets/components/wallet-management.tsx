@@ -1,19 +1,15 @@
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { formatMoneyInput } from "@bookkeeping/domain/money";
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Archive, ArchiveRestore, PiggyBank, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "@/core/api/client";
+import type { DeclaredWrite } from "@/core/api/form-writes";
 import { formatApiMoneyInput } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { walletQueries } from "@/core/api/queries";
-import { useApiMutation } from "@/core/api/use-api-mutation";
+import { useFormWrites } from "@/core/api/use-form-writes";
 import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
-import {
-  forgetReads,
-  refreshAfterWrite,
-} from "@/core/query/refresh-after-write";
 import { WalletTile } from "@/features/wallets/components/wallet-tile";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
 import { ConfirmPanel } from "@/shared/components/confirm-panel";
@@ -72,67 +68,95 @@ function describeWalletFieldError({
 }
 
 // These writes show no fields, so a field error arrives as the message.
-function describeWalletRejection(rejection: Readonly<ApiRejection>): string {
-  return (
-    ERROR_MESSAGES[rejection.problem.code] ??
-    rejection.message ??
-    "The change could not be confirmed. Your values are kept; try again."
-  );
+function describeWalletRejection(
+  rejection: Readonly<ApiRejection>,
+): string | undefined {
+  return ERROR_MESSAGES[rejection.problem.code] ?? rejection.message;
 }
+
+/** How every wallet write reads a refusal. */
+const WALLET_REFUSAL_WORDING = {
+  describeFieldError: describeWalletFieldError,
+  describeRejection: describeWalletRejection,
+} satisfies Pick<DeclaredWrite, "describeFieldError" | "describeRejection">;
 
 export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [amount, setAmount] = useState(() =>
     formatApiMoneyInput(wallet.openingAmount),
   );
   const [date, setDate] = useState(wallet.openingDate);
   const today = todayIn({ timeZone: APP_TIME_ZONE });
-  const [error, setError] = useState("");
+  // The opening card checks its values before any write starts.
+  const [invalidOpening, setInvalidOpening] = useState("");
   const [notice, setNotice] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [changeSource, setChangeSource] = useState<ChangeSource>("other");
+
+  function sendState(input: WalletStateRequest) {
+    return apiClient.PATCH("/v1/wallets/{walletId}", {
+      params: { path: { walletId: wallet.id } },
+      body: input,
+    });
+  }
+  const { submit, pending, isRunning, serverError } = useFormWrites({
+    fields: [],
+    writes: {
+      opening: {
+        kind: "change",
+        send: (input: WalletOpeningRequest) =>
+          apiClient.PUT("/v1/wallets/{walletId}/opening", {
+            params: { path: { walletId: wallet.id } },
+            body: input,
+          }),
+        ...WALLET_REFUSAL_WORDING,
+        onDone: () => setNotice("Opening balance corrected."),
+      },
+      archive: {
+        kind: "change",
+        send: sendState,
+        ...WALLET_REFUSAL_WORDING,
+        onDone: (changed: Wallet) =>
+          setNotice(
+            changed.archivedAt
+              ? "Wallet archived. Its balance remains in your totals."
+              : "Wallet unarchived. You can use it for new entries.",
+          ),
+      },
+      savings: {
+        kind: "change",
+        send: sendState,
+        ...WALLET_REFUSAL_WORDING,
+        onDone: (changed: Wallet) =>
+          setNotice(
+            changed.savings
+              ? "Marked as a Savings wallet. Its balance now counts in Set aside."
+              : "No longer a Savings wallet. Its balance now counts in Spendable.",
+          ),
+      },
+      remove: {
+        kind: "delete",
+        send: () =>
+          apiClient.DELETE("/v1/wallets/{walletId}", {
+            params: { path: { walletId: wallet.id } },
+          }),
+        ...WALLET_REFUSAL_WORDING,
+        retired: [walletQueries.detail(wallet.id).queryKey],
+        onDone: () => navigate({ to: "/wallets" }),
+      },
+    },
+  });
+
+  const error = invalidOpening || serverError || "";
   // A change reads back in the card that made it, not in both.
   const pageOutcome = changeSource === "other" ? { error, notice } : NO_OUTCOME;
   const savingsOutcome =
     changeSource === "savings" ? { error, notice } : NO_OUTCOME;
 
-  const openingMutation = useApiMutation<WalletOpeningRequest, Wallet>({
-    send: (input) =>
-      apiClient.PUT("/v1/wallets/{walletId}/opening", {
-        params: { path: { walletId: wallet.id } },
-        body: input,
-      }),
-    describeFieldError: describeWalletFieldError,
-  });
-  const stateMutation = useApiMutation<WalletStateRequest, Wallet>({
-    send: (input) =>
-      apiClient.PATCH("/v1/wallets/{walletId}", {
-        params: { path: { walletId: wallet.id } },
-        body: input,
-      }),
-    describeFieldError: describeWalletFieldError,
-  });
-  const deleteMutation = useApiMutation<undefined, unknown>({
-    send: () =>
-      apiClient.DELETE("/v1/wallets/{walletId}", {
-        params: { path: { walletId: wallet.id } },
-      }),
-  });
-  const pending =
-    openingMutation.isPending ||
-    stateMutation.isPending ||
-    deleteMutation.isPending;
-
   function beginChange(source: ChangeSource = "other") {
     setChangeSource(source);
-    setError("");
+    setInvalidOpening("");
     setNotice("");
-  }
-
-  async function refreshAfterChange(message: string) {
-    await refreshAfterWrite(queryClient);
-    setNotice(message);
   }
 
   async function submitOpening() {
@@ -141,51 +165,22 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       .pick({ openingAmount: true, openingDate: true })
       .safeParse({ openingAmount: amount, openingDate: date });
     if (!parsed.success) {
-      setError(parsed.error.issues.map((issue) => issue.message).join(". "));
-      return;
-    }
-
-    let result: Awaited<ReturnType<typeof openingMutation.submit>>;
-    try {
-      result = await openingMutation.submit({
-        amount: {
-          value: formatMoneyInput({
-            amountInMinorUnits: parsed.data.openingAmount,
-            currency: "THB",
-          }),
-          currency: "THB",
-        },
-        date: parsed.data.openingDate,
-      });
-    } catch {
-      setError(
-        "The change could not be confirmed. Your values are kept; try again.",
+      setInvalidOpening(
+        parsed.error.issues.map((issue) => issue.message).join(". "),
       );
       return;
     }
-    if (!result.ok) {
-      setError(describeWalletRejection(result.error));
-      return;
-    }
-    await refreshAfterChange("Opening balance corrected.");
-  }
 
-  async function submitState(
-    change: Readonly<WalletStateRequest>,
-    successNotice: string,
-  ) {
-    let result: Awaited<ReturnType<typeof stateMutation.submit>>;
-    try {
-      result = await stateMutation.submit(change);
-    } catch {
-      setError("The change could not be confirmed. Try again.");
-      return;
-    }
-    if (!result.ok) {
-      setError(describeWalletRejection(result.error));
-      return;
-    }
-    await refreshAfterChange(successNotice);
+    await submit("opening", {
+      amount: {
+        value: formatMoneyInput({
+          amountInMinorUnits: parsed.data.openingAmount,
+          currency: "THB",
+        }),
+        currency: "THB",
+      },
+      date: parsed.data.openingDate,
+    });
   }
 
   async function submitArchiveState() {
@@ -193,13 +188,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       return;
     }
     beginChange();
-    const nextArchived = !archived;
-    await submitState(
-      { archived: nextArchived },
-      nextArchived
-        ? "Wallet archived. Its balance remains in your totals."
-        : "Wallet unarchived. You can use it for new entries.",
-    );
+    await submit("archive", { archived: !archived });
   }
 
   async function submitSavingsState() {
@@ -207,34 +196,12 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       return;
     }
     beginChange("savings");
-    const savings = !wallet.savings;
-    await submitState(
-      { savings },
-      savings
-        ? "Marked as a Savings wallet. Its balance now counts in Set aside."
-        : "No longer a Savings wallet. Its balance now counts in Spendable.",
-    );
+    await submit("savings", { savings: !wallet.savings });
   }
 
   async function submitDelete() {
     beginChange();
-    let result: Awaited<ReturnType<typeof deleteMutation.submit>>;
-    try {
-      result = await deleteMutation.submit(undefined);
-    } catch {
-      setError(
-        "The change could not be confirmed. Your values are kept; try again.",
-      );
-      return;
-    }
-    if (!result.ok) {
-      setError(describeWalletRejection(result.error));
-      return;
-    }
-    const retired = [walletQueries.detail(wallet.id).queryKey];
-    await refreshAfterWrite(queryClient, { retired });
-    await navigate({ to: "/wallets" });
-    forgetReads(queryClient, retired);
+    await submit("remove");
   }
 
   const archived = Boolean(wallet.archivedAt);
@@ -352,7 +319,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           onClick={() => void submitSavingsState()}
         >
           <PiggyBank data-icon="inline-start" strokeWidth={1.75} />
-          {stateMutation.isPending && changeSource === "savings"
+          {isRunning("savings")
             ? "Saving…"
             : wallet.savings
               ? "Unmark as a Savings wallet"

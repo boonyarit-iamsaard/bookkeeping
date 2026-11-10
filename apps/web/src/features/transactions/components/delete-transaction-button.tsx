@@ -3,7 +3,6 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoney, parseMoneyInput } from "@bookkeeping/domain/money";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -11,12 +10,8 @@ import * as z from "zod";
 import { apiClient } from "@/core/api/client";
 import { parseApiMoney } from "@/core/api/money";
 import { transactionQueries } from "@/core/api/queries";
-import { useApiMutation } from "@/core/api/use-api-mutation";
+import { useFormWrites } from "@/core/api/use-form-writes";
 import type { ApiRejection } from "@/core/api/write-submission";
-import {
-  forgetReads,
-  refreshAfterWrite,
-} from "@/core/query/refresh-after-write";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
@@ -37,16 +32,7 @@ interface DeleteTransactionButtonProps {
   disabled?: boolean;
 }
 
-type State =
-  | { name: "idle" }
-  | { name: "deleting" }
-  | { name: "failed"; message: string };
-
-const LOST_RESPONSE =
-  "The deletion could not be confirmed. Check your connection and try again; deleting twice is harmless.";
-
 const BLOCKED_STATUS = 409;
-const NOT_FOUND_STATUS = 404;
 
 /** The refunds a `refunds-exist` problem lists, as its extension carries them. */
 const refundsExistProblemSchema = z.object({
@@ -88,6 +74,14 @@ function describeBlocked(rejection: Readonly<ApiRejection>): string {
   return `This expense has linked refunds: ${refunds}. Delete each refund first, then delete the expense.`;
 }
 
+function describeDeleteRejection(
+  rejection: Readonly<ApiRejection>,
+): string | undefined {
+  return rejection.status === BLOCKED_STATUS
+    ? describeBlocked(rejection)
+    : rejection.message;
+}
+
 /**
  * The destructive action of the edit screen: a button that opens a
  * confirmation reading the line back, then deletes and returns to the list
@@ -100,14 +94,24 @@ export function DeleteTransactionButton({
   disabled,
 }: Readonly<DeleteTransactionButtonProps>) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [state, setState] = useState<State>({ name: "idle" });
-  const deleteTransaction = useApiMutation<undefined, unknown>({
-    send: () =>
-      apiClient.DELETE("/v1/transactions/{transactionId}", {
-        params: { path: { transactionId: transaction.id } },
-      }),
+  const { submit, pending, serverError, clearErrors } = useFormWrites({
+    fields: [],
+    writes: {
+      remove: {
+        kind: "delete",
+        send: () =>
+          apiClient.DELETE("/v1/transactions/{transactionId}", {
+            params: { path: { transactionId: transaction.id } },
+          }),
+        describeRejection: describeDeleteRejection,
+        retired: [
+          transactionQueries.detail(transaction.id).queryKey,
+          transactionQueries.refunds(transaction.id).queryKey,
+        ],
+        onDone: () => navigate({ to: "/transactions", search: { deleted: 1 } }),
+      },
+    },
   });
   const parsed = parseMoneyInput({
     text: transaction.amountText,
@@ -121,47 +125,16 @@ export function DeleteTransactionButton({
     : undefined;
   const noun = TRANSACTION_TYPE_LABELS[transaction.type].toLowerCase();
 
-  async function confirm() {
-    setState({ name: "deleting" });
-    let result: Awaited<ReturnType<typeof deleteTransaction.submit>>;
-    try {
-      result = await deleteTransaction.submit(undefined);
-    } catch {
-      setState({ name: "failed", message: LOST_RESPONSE });
-      return;
-    }
-    // Not found is already gone: the goal state holds, so report it as done.
-    if (!result.ok && result.error.status !== NOT_FOUND_STATUS) {
-      setState({
-        name: "failed",
-        message:
-          result.error.status === BLOCKED_STATUS
-            ? describeBlocked(result.error)
-            : (result.error.message ?? LOST_RESPONSE),
-      });
-      return;
-    }
-    const retired = [
-      transactionQueries.detail(transaction.id).queryKey,
-      transactionQueries.refunds(transaction.id).queryKey,
-    ];
-    await refreshAfterWrite(queryClient, { retired });
-    await navigate({ to: "/transactions", search: { deleted: 1 } });
-    forgetReads(queryClient, retired);
-  }
-
-  const deleting = state.name === "deleting";
-
   return (
     <AlertDialog.Root
       open={open}
       onOpenChange={(next) => {
-        if (deleting) {
+        if (pending) {
           return;
         }
         setOpen(next);
         if (next) {
-          setState({ name: "idle" });
+          clearErrors();
         }
       }}
     >
@@ -203,23 +176,21 @@ export function DeleteTransactionButton({
               {deletionEffect(transaction.type)} This can't be undone.
             </AlertDialog.Description>
           </div>
-          {state.name === "failed" && (
-            <ErrorNotice>{state.message}</ErrorNotice>
-          )}
+          {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
         </div>
         <div className="flex shrink-0 flex-col gap-3 px-5 pt-4 pb-6 sm:flex-row-reverse sm:px-6">
           <Button
             type="button"
             variant="destructive"
             size="lg"
-            disabled={deleting}
-            onClick={confirm}
+            disabled={pending}
+            onClick={() => submit("remove")}
             className="h-12 w-full text-base sm:h-11 sm:w-auto sm:text-sm"
           >
-            {deleting ? "Deleting…" : "Delete"}
+            {pending ? "Deleting…" : "Delete"}
           </Button>
           <AlertDialog.Close
-            disabled={deleting}
+            disabled={pending}
             render={
               <Button
                 type="button"

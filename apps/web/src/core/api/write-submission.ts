@@ -43,12 +43,7 @@ export type DescribeFieldError = (
   fieldError: Readonly<ApiFieldError>,
 ) => string;
 
-export interface WriteOptions<Input, Output> {
-  /** Performs the request through the generated client with the attempt's header. */
-  send: (
-    input: Input,
-    attempt: Readonly<WriteAttempt>,
-  ) => Promise<ApiResponse<Output>>;
+interface DeliveryOptions {
   /**
    * The message shown beside a rejected field. Features supply their own
    * table; the default falls back to the problem's own prose.
@@ -61,6 +56,26 @@ export interface WriteOptions<Input, Output> {
    */
   fieldOf?: FieldOf;
 }
+
+/** A creation: every attempt of one submit carries the same key. */
+export interface KeyedWriteOptions<Input, Output> extends DeliveryOptions {
+  keyed: true;
+  /** Performs the request through the generated client with the attempt's header. */
+  send: (
+    input: Input,
+    attempt: Readonly<WriteAttempt>,
+  ) => Promise<ApiResponse<Output>>;
+}
+
+/** A change or deletion: the API does not deduplicate it, so no key is made. */
+export interface KeylessWriteOptions<Input, Output> extends DeliveryOptions {
+  keyed: false;
+  send: (input: Input) => Promise<ApiResponse<Output>>;
+}
+
+export type WriteOptions<Input, Output> =
+  | KeyedWriteOptions<Input, Output>
+  | KeylessWriteOptions<Input, Output>;
 
 export type FieldOf = (pointer: string) => string | undefined;
 
@@ -114,21 +129,6 @@ export function createFieldOf(fields: readonly string[]): FieldOf {
   };
 }
 
-/** The messages for the fields a form shows, typed by those fields. */
-export function pickFieldErrors<Field extends string>(
-  fieldErrors: Readonly<Record<string, string>>,
-  fields: readonly Field[],
-): Partial<Record<Field, string>> {
-  const picked: Partial<Record<Field, string>> = {};
-  for (const field of fields) {
-    const message = fieldErrors[field];
-    if (message !== undefined) {
-      picked[field] = message;
-    }
-  }
-  return picked;
-}
-
 interface RejectionMapping {
   describeError: DescribeFieldError;
   fieldOf: FieldOf;
@@ -163,8 +163,12 @@ function toApiRejection(
   return { status: problem.status, problem, errors, fieldErrors, message };
 }
 
-/** `fetch` rejects with a `TypeError` when the request never left or its answer never arrived. */
-function isNetworkError(error: unknown): boolean {
+/**
+ * True for a lost response: `fetch` rejects with a `TypeError` when the
+ * request never left or its answer never arrived. A submit throws one when the
+ * loss survives the replay; any other throw is a fault, not a loss.
+ */
+export function isLostResponse(error: unknown): boolean {
   return error instanceof TypeError;
 }
 
@@ -173,23 +177,35 @@ export function createWriteSubmission<Input, Output>({
 }: Readonly<WriteSubmissionOptions> = {}): WriteSubmission<Input, Output> {
   let inFlight: Promise<WriteResult<Output>> | undefined;
 
+  /** One request of this submit, repeatable as is for the replay. */
+  function attemptOf(
+    input: Input,
+    options: Readonly<WriteOptions<Input, Output>>,
+  ): () => Promise<ApiResponse<Output>> {
+    if (!options.keyed) {
+      return () => options.send(input);
+    }
+    const attempt: WriteAttempt = {
+      header: { [IDEMPOTENCY_KEY_HEADER]: generateKey() },
+    };
+    return () => options.send(input, attempt);
+  }
+
   async function deliver(
     input: Input,
     options: Readonly<WriteOptions<Input, Output>>,
   ): Promise<WriteResult<Output>> {
-    const attempt: WriteAttempt = {
-      header: { [IDEMPOTENCY_KEY_HEADER]: generateKey() },
-    };
+    const send = attemptOf(input, options);
     let delivered: ApiResponse<Output>;
     try {
-      delivered = await options.send(input, attempt);
+      delivered = await send();
     } catch (error) {
-      if (!isNetworkError(error)) {
+      if (!isLostResponse(error)) {
         throw error;
       }
-      // The same key makes one replay safe; a second loss is the caller's
-      // to report.
-      delivered = await options.send(input, attempt);
+      // The same key, or a write safe to repeat, makes one replay safe; a
+      // second loss is the caller's to report.
+      delivered = await send();
     }
     const outcome = readApiResponse(delivered);
     if (outcome.ok) {

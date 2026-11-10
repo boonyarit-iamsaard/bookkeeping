@@ -254,7 +254,7 @@ export function TransactionForm({
     fieldErrors,
     clearFieldError,
     changeType,
-    isPending,
+    pending,
   } = useTransactionForm({
     wallets,
     categories,
@@ -297,7 +297,7 @@ export function TransactionForm({
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
-          <fieldset disabled={isPending || isSubmitting} className="contents">
+          <fieldset disabled={pending || isSubmitting} className="contents">
             <FormCard>
               <form.Field name="amount">
                 {(field) => {
@@ -564,7 +564,7 @@ export function TransactionForm({
                                 invalid ? `${field.name}-error` : undefined
                               }
                               invalid={invalid}
-                              disabled={isPending || isSubmitting}
+                              disabled={pending || isSubmitting}
                             />
                             <FieldErrors
                               id={`${field.name}-error`}
@@ -592,7 +592,7 @@ export function TransactionForm({
                           field.handleChange(next);
                         }}
                         serverError={fieldErrors.tagIds}
-                        disabled={isPending || isSubmitting}
+                        disabled={pending || isSubmitting}
                       />
                     )}
                   </form.Field>
@@ -624,7 +624,7 @@ export function TransactionForm({
                         aria-describedby={
                           invalid ? `${field.name}-error` : undefined
                         }
-                        disabled={isPending || isSubmitting}
+                        disabled={pending || isSubmitting}
                       />
                       <div className="flex gap-2">
                         <DateChip
@@ -737,7 +737,7 @@ export function TransactionForm({
                   type="submit"
                   size="lg"
                   disabled={
-                    isPending ||
+                    pending ||
                     isSubmitting ||
                     (type === "transfer" && wallets.length < 2) ||
                     (type === "refund" && !walletId)
@@ -747,7 +747,7 @@ export function TransactionForm({
                     type === "transfer" ? "h-auto" : "h-12",
                   )}
                 >
-                  {isSubmitting || isPending ? "Saving…" : label}
+                  {isSubmitting || pending ? "Saving…" : label}
                 </Button>
               </div>
             </div>
@@ -781,7 +781,7 @@ export function TransactionForm({
                 (wallet) => wallet.id === editing.destinationWalletId,
               )?.name
             }
-            disabled={isPending}
+            disabled={pending}
           />
         </footer>
       )}

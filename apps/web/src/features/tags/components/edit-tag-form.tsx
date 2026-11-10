@@ -48,6 +48,7 @@ export function EditTagForm({
     nameError,
     serverError,
     save,
+    pending,
     saving,
     remove,
     deleting,
@@ -122,7 +123,7 @@ export function EditTagForm({
         <Button
           type="submit"
           size="lg"
-          disabled={saving || deleting || unchanged}
+          disabled={pending || unchanged}
           className="w-full"
         >
           {saving ? "Saving…" : survivor ? "Merge tags" : "Save name"}
@@ -147,7 +148,7 @@ export function EditTagForm({
                     type="button"
                     variant="destructive"
                     size="lg"
-                    disabled={deleting}
+                    disabled={pending}
                     onClick={remove}
                     className="h-auto min-h-11 py-2 wrap-break-word whitespace-normal sm:min-h-10"
                   >
@@ -158,7 +159,7 @@ export function EditTagForm({
                     type="button"
                     variant="ghost"
                     size="lg"
-                    disabled={deleting}
+                    disabled={pending}
                     onClick={() => setConfirming(false)}
                   >
                     Keep it

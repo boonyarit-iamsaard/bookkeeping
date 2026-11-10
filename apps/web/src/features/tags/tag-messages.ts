@@ -7,9 +7,6 @@ const NAME_MESSAGES: Record<string, string> = {
   "duplicate-name": "A tag with this name already exists.",
 };
 
-export const TAG_CONNECTION_MESSAGE =
-  "The change could not be confirmed. Check your connection and try again.";
-
 export const TAG_GONE_MESSAGE =
   "This tag no longer exists. It may have been merged or deleted elsewhere.";
 

@@ -191,7 +191,13 @@ function TagSheet({
   onDone,
 }: Readonly<TagSheetProps>) {
   const { listRef, searchId, optionKeyDown, searchKeyDown } = useSheetOptions();
-  const { create, error, clearError, isPending } = useCreateTag();
+  const { create, serverError, clearErrors, pending } = useCreateTag({
+    onCreated(created) {
+      onChange(toggled(value, created.id));
+      onQueryChange("");
+      document.getElementById(searchId)?.focus();
+    },
+  });
   const typed = normalizeTagName(query);
   const { matches, exactMatch } = searchTags(tags, query);
   const full = value.length >= MAX_TAGS_PER_TRANSACTION;
@@ -199,15 +205,10 @@ function TagSheet({
   const tooLong = typed.length > MAX_TAG_NAME_LENGTH;
 
   async function createTyped() {
-    if (!offerCreate || full || tooLong || isPending) {
+    if (!offerCreate || full || tooLong || pending) {
       return;
     }
-    const created = await create(typed);
-    if (created) {
-      onChange(toggled(value, created.id));
-      onQueryChange("");
-      document.getElementById(searchId)?.focus();
-    }
+    await create(typed);
   }
 
   function toggle(tagId: string) {
@@ -217,7 +218,7 @@ function TagSheet({
   let createCaption = "New tag";
   if (tooLong) {
     createCaption = `Names can be at most ${MAX_TAG_NAME_LENGTH} characters`;
-  } else if (isPending) {
+  } else if (pending) {
     createCaption = "Creating…";
   }
 
@@ -225,7 +226,7 @@ function TagSheet({
     <SheetOption
       onKeyDown={optionKeyDown}
       onClick={() => void createTyped()}
-      disabled={full || tooLong || isPending}
+      disabled={full || tooLong || pending}
       className="min-h-15 py-2.5"
     >
       <CreateTile />
@@ -261,7 +262,7 @@ function TagSheet({
             aria-label="Search tags"
             value={query}
             onChange={(event) => {
-              clearError();
+              clearErrors();
               onQueryChange(event.target.value);
             }}
             onKeyDown={(event) =>
@@ -277,7 +278,7 @@ function TagSheet({
             className="pl-11 [&::-webkit-search-cancel-button]:hidden"
           />
         </div>
-        {error && <ErrorNotice>{error}</ErrorNotice>}
+        {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
         {full && (
           <p role="status" className="text-muted-foreground text-sm">
             A transaction carries at most {MAX_TAGS_PER_TRANSACTION} tags.

@@ -66,12 +66,19 @@ export function EditCategoryForm({
   const iconId = `${prefix}-icon`;
   const removeHeadingId = `${prefix}-remove`;
   const [confirming, setConfirming] = useState(false);
-  const { form, serverError, fieldErrors, clearFieldError, remove, removing } =
-    useEditCategoryForm({
-      category,
-      reassignedEntries: removal.entries,
-      onDone,
-    });
+  const {
+    form,
+    serverError,
+    fieldErrors,
+    clearFieldError,
+    remove,
+    pending,
+    removing,
+  } = useEditCategoryForm({
+    category,
+    reassignedEntries: removal.entries,
+    onDone,
+  });
   const blocked = removal.childCount > 0;
   const removalControls = confirming ? (
     <ConfirmPanel
@@ -81,7 +88,7 @@ export function EditCategoryForm({
             type="button"
             variant="destructive"
             size="lg"
-            disabled={removing}
+            disabled={pending}
             onClick={remove}
             className="h-auto min-h-11 py-2 wrap-break-word whitespace-normal sm:min-h-10"
           >
@@ -92,7 +99,7 @@ export function EditCategoryForm({
             type="button"
             variant="ghost"
             size="lg"
-            disabled={removing}
+            disabled={pending}
             onClick={() => setConfirming(false)}
           >
             Keep it
@@ -222,7 +229,7 @@ export function EditCategoryForm({
             <Button
               type="submit"
               size="lg"
-              disabled={isSubmitting || removing}
+              disabled={isSubmitting || pending}
               className="w-full"
             >
               {isSubmitting ? "Saving…" : "Save changes"}
