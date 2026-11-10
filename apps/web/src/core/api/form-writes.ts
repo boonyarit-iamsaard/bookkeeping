@@ -66,10 +66,13 @@ type InputOf<Write> = Write extends {
   ? Input
   : never;
 
+/** The success body; a generated client's failure branch has no `data`. */
 type OutputOf<Write> = Write extends {
-  send: (...args: never[]) => Promise<ApiResponse<infer Output>>;
+  send: (...args: never[]) => Promise<infer Response>;
 }
-  ? Output
+  ? Response extends { data: infer Output }
+    ? Output
+    : never
   : never;
 
 /** A form's named writes, each checked against its own input and output. */
@@ -88,20 +91,34 @@ export type FormSubmits<Writes> = {
 };
 
 /**
- * A write as the core runs it. `FormWriteMap` checks each write's input and
- * output where the form declares it; the method signatures here accept any.
+ * A write as a form declares it, before its own input and output are known:
+ * it types the callbacks a form writes inline. `FormWriteMap` then checks
+ * each write against its own input and output; the method signatures here
+ * accept any.
  */
-interface RunnableWrite {
+export interface DeclaredWrite {
   kind: WriteKind;
   send(
     input: unknown,
-    attempt?: Readonly<WriteAttempt>,
+    attempt: Readonly<WriteAttempt>,
   ): Promise<ApiResponse<unknown>>;
   describeFieldError?: DescribeFieldError;
   describeRejection?: (rejection: Readonly<ApiRejection>) => string | undefined;
   refreshOnRejection?: (rejection: Readonly<ApiRejection>) => boolean;
   onDone(value: unknown): unknown;
   retired?: readonly ReadKey[];
+}
+
+/** A form's writes: each declared, and each checked against itself. */
+export type FormWriteSet<Writes> = Record<string, DeclaredWrite> &
+  FormWriteMap<Writes>;
+
+/** A write as the core runs it: only a creation is handed an attempt. */
+interface RunnableWrite extends Omit<DeclaredWrite, "send"> {
+  send(
+    input: unknown,
+    attempt?: Readonly<WriteAttempt>,
+  ): Promise<ApiResponse<unknown>>;
 }
 
 export interface FormWritesState<Field extends string, Name> {
@@ -189,7 +206,7 @@ function isGone(delivered: Readonly<Delivered<unknown>>): boolean {
  */
 export function createFormWrites<
   Field extends string,
-  Writes extends Record<string, RunnableWrite> & FormWriteMap<Writes>,
+  Writes extends FormWriteSet<Writes>,
 >(
   options: Readonly<FormWritesOptions<Field, Writes>>,
 ): FormWrites<Field, Writes> {
