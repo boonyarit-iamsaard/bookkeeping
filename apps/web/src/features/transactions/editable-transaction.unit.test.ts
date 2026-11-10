@@ -65,7 +65,7 @@ describe("editableTransaction", () => {
     });
   });
 
-  test("leaves a refund's category and tags empty and carries its expense", () => {
+  test("reads a refund's category and tags as its expense's and carries the expense", () => {
     const refundOf = {
       id: "expense-1",
       amountLabel: "฿500.00",
@@ -75,8 +75,7 @@ describe("editableTransaction", () => {
       categoryIconId: "shopping-cart",
       tags: [{ id: "tag-1", name: "Coffee" }],
       wallet: { id: "wallet-1", name: "Cash", archived: false },
-      refundAllowanceText: "450.00",
-      refundAllowanceLabel: "฿450.00",
+      refundAllowance: 45_000n,
     };
     const editable = editableTransaction({
       transaction: {
@@ -92,8 +91,8 @@ describe("editableTransaction", () => {
       },
       refundOf,
     });
-    expect(editable.categoryId).toBe("");
-    expect(editable.tagIds).toEqual([]);
+    expect(editable.categoryId).toBe("category-1");
+    expect(editable.tagIds).toEqual(["tag-1"]);
     expect(editable.refundOf).toBe(refundOf);
     expect(editable.refundedLabel).toBeUndefined();
   });

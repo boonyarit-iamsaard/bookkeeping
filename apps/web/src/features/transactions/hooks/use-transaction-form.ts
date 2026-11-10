@@ -1,6 +1,3 @@
-import type { CategorySummary } from "@bookkeeping/domain/categories";
-import type { CalendarDate } from "@bookkeeping/domain/dates";
-import { formatMoneyInput } from "@bookkeeping/domain/money";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
@@ -9,14 +6,19 @@ import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useFormWrites } from "@/core/api/use-form-writes";
 import type { ApiRejection } from "@/core/api/write-submission";
-import type { CaptureOrigin } from "@/features/transactions/capture-origin";
 import { captureReturnHref } from "@/features/transactions/capture-origin";
-import type { EditableTransaction } from "@/features/transactions/transaction.types";
 import type {
-  LinkedExpenseLimits,
-  TransactionFormInput,
-  TransactionFormValues,
-} from "@/features/transactions/transaction-form-schema";
+  CategoryOption,
+  WalletOption,
+} from "@/features/transactions/transaction.types";
+import type {
+  EntryRequest,
+  TransactionEntry,
+} from "@/features/transactions/transaction-entry";
+import {
+  entryRequest,
+  valuesForType,
+} from "@/features/transactions/transaction-entry";
 import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
 import {
   carriesFacts,
@@ -24,130 +26,21 @@ import {
   TRANSACTION_FORM_FIELDS,
 } from "@/features/transactions/transaction-rejection";
 
-export interface WalletOption {
-  id: string;
-  name: string;
-  type: components["schemas"]["Wallet"]["type"];
-  openingDate: CalendarDate;
-  archived?: boolean;
-  /** Pre-formatted on the server or route; bigint does not cross the API. */
-  balanceLabel: string;
-}
-
-export type CategoryOption = CategorySummary;
-
 interface UseTransactionFormOptions {
+  entry: TransactionEntry;
   wallets: readonly WalletOption[];
   categories: readonly CategoryOption[];
-  initialValues: TransactionFormInput;
-  /** Set when the form records or corrects a refund of one expense. */
-  linkedExpense?: LinkedExpenseLimits;
-  /** Set when the form corrects an existing transaction instead of recording one. */
-  editing?: Pick<EditableTransaction, "id">;
-  /** Set only for a new entry that returns to its opening screen. */
-  captureOrigin?: CaptureOrigin;
 }
 
 type CreateTransactionRequest =
   components["schemas"]["CreateTransactionRequest"];
-type UpdateTransactionRequest =
-  components["schemas"]["UpdateTransactionRequest"];
 type Transaction = components["schemas"]["Transaction"];
 
-function toCreateTransactionRequest(
-  values: Readonly<TransactionFormValues>,
-): CreateTransactionRequest {
-  const amount = {
-    value: formatMoneyInput({
-      amountInMinorUnits: values.amount,
-      currency: values.currency,
-    }),
-    currency: values.currency,
-  };
-  const common = {
-    amount,
-    walletId: values.walletId,
-    transactionDate: values.transactionDate,
-    note: values.note,
-  };
-
-  switch (values.type) {
-    case "income":
-    case "expense":
-      return {
-        ...common,
-        type: values.type,
-        categoryId: values.categoryId,
-        // Untagged entries send exactly what they sent before tags existed.
-        ...(values.tagIds.length > 0 ? { tagIds: [...values.tagIds] } : {}),
-      };
-    case "transfer":
-      return {
-        ...common,
-        type: values.type,
-        destinationWalletId: values.destinationWalletId,
-      };
-    case "refund":
-      return {
-        ...common,
-        type: values.type,
-        refundOfTransactionId: values.refundOfTransactionId,
-      };
-  }
-}
-
-/**
- * An edit carries every field but the type and the expense link, which are
- * fixed. Only income and expense carry tags of their own; the rest send none.
- */
-function toUpdateTransactionRequest(
-  values: Readonly<TransactionFormValues>,
-): UpdateTransactionRequest {
-  const ownTags = values.type === "income" || values.type === "expense";
-  const request: UpdateTransactionRequest = {
-    amount: {
-      value: formatMoneyInput({
-        amountInMinorUnits: values.amount,
-        currency: values.currency,
-      }),
-      currency: values.currency,
-    },
-    walletId: values.walletId,
-    transactionDate: values.transactionDate,
-    note: values.note,
-    tagIds: ownTags ? [...values.tagIds] : [],
-  };
-  if (values.type === "transfer") {
-    return { ...request, destinationWalletId: values.destinationWalletId };
-  }
-  if (values.type === "refund") {
-    return request;
-  }
-  return { ...request, categoryId: values.categoryId };
-}
-
-export function uncategorizedFor(
-  categories: readonly CategoryOption[],
-  type: TransactionType,
-): string {
-  return (
-    categories.find(
-      (category) => category.kind === type && category.isProtected,
-    )?.id ??
-    categories.find((category) => category.kind === type)?.id ??
-    ""
-  );
-}
-
-/**
- * Owns the transaction entry form's client validation and API adapter. The
- * form keeps raw strings until its schema turns the amount into exact satang.
- */
 /** An update names the transaction it replaces beside the new values. */
-interface TransactionUpdate {
-  transactionId: string;
-  request: UpdateTransactionRequest;
-}
+type TransactionUpdate = Omit<
+  Extract<EntryRequest, { kind: "update" }>,
+  "kind"
+>;
 
 /**
  * A figure or date the rejection names may be newer than the page's, so the
@@ -157,14 +50,16 @@ function refreshOnRejection(rejection: Readonly<ApiRejection>): boolean {
   return rejection.errors.some(carriesFacts);
 }
 
+/**
+ * Glue between the entry and the form state: the schema checks the entry's
+ * limits, and a submit sends the request the entry builds.
+ */
 export function useTransactionForm({
+  entry,
   wallets,
   categories,
-  initialValues,
-  linkedExpense,
-  editing,
-  captureOrigin,
 }: Readonly<UseTransactionFormOptions>) {
+  const { captureOrigin, limits } = entry;
   const navigate = useNavigate();
   const schema = useMemo(
     () =>
@@ -172,9 +67,9 @@ export function useTransactionForm({
         walletOpeningDates: Object.fromEntries(
           wallets.map((wallet) => [wallet.id, wallet.openingDate]),
         ),
-        linkedExpense,
+        linkedExpense: limits,
       }),
-    [wallets, linkedExpense],
+    [wallets, limits],
   );
 
   async function returnFrom(saved: Readonly<Transaction>) {
@@ -215,7 +110,7 @@ export function useTransactionForm({
     });
 
   const form = useForm({
-    defaultValues: initialValues,
+    defaultValues: entry.initialValues,
     validationLogic: revalidateLogic(),
     validators: {
       onDynamic: schema,
@@ -223,41 +118,34 @@ export function useTransactionForm({
     onSubmit: async ({ value }) => {
       // The validator has passed but keeps the input values; this parse
       // only yields the satang amount the request carries.
-      const values = schema.parse(value);
-      if (editing) {
-        await submit("update", {
-          transactionId: editing.id,
-          request: toUpdateTransactionRequest(values),
-        });
+      const outcome = entryRequest(entry, schema.parse(value));
+      if (outcome.kind === "update") {
+        await submit("update", outcome);
       } else {
-        await submit("create", toCreateTransactionRequest(values));
+        await submit("create", outcome.request);
       }
     },
   });
 
   function changeType(type: TransactionType) {
-    form.setFieldValue("type", type);
+    const patch = valuesForType({
+      values: form.state.values,
+      type,
+      wallets,
+      categories,
+    });
+    form.setFieldValue("type", patch.type);
+    if (patch.categoryId !== undefined) {
+      form.setFieldValue("categoryId", patch.categoryId);
+    }
+    if (patch.tagIds !== undefined) {
+      form.setFieldValue("tagIds", patch.tagIds);
+    }
+    if (patch.destinationWalletId !== undefined) {
+      form.setFieldValue("destinationWalletId", patch.destinationWalletId);
+    }
     for (const field of TRANSACTION_FORM_FIELDS) {
       clearFieldError(field);
-    }
-    if (type === "transfer") {
-      form.setFieldValue("categoryId", "");
-      form.setFieldValue("tagIds", []);
-      if (!form.getFieldValue("destinationWalletId")) {
-        form.setFieldValue(
-          "destinationWalletId",
-          wallets.find((wallet) => wallet.id !== form.getFieldValue("walletId"))
-            ?.id ?? "",
-        );
-      }
-      return;
-    }
-    form.setFieldValue("destinationWalletId", "");
-    const current = categories.find(
-      (category) => category.id === form.getFieldValue("categoryId"),
-    );
-    if (current?.kind !== type) {
-      form.setFieldValue("categoryId", uncategorizedFor(categories, type));
     }
   }
 

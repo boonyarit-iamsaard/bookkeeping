@@ -2,7 +2,6 @@
 
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { addDays } from "@bookkeeping/domain/dates";
-import { parseMoneyInput } from "@bookkeeping/domain/money";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
 import {
   CREATABLE_TRANSACTION_TYPES,
@@ -13,8 +12,6 @@ import { ArrowDownUp, CircleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
 import { useCategoryCatalog } from "@/features/categories/hooks/use-category-catalog";
-import type { CaptureOrigin } from "@/features/transactions/capture-origin";
-import { captureOriginHref } from "@/features/transactions/capture-origin";
 import { DeleteTransactionButton } from "@/features/transactions/components/delete-transaction-button";
 import {
   DateChip,
@@ -27,22 +24,15 @@ import {
 } from "@/features/transactions/components/transaction-form-fields";
 import { TransactionTagsField } from "@/features/transactions/components/transaction-tags-field";
 import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
-import type {
-  CategoryOption,
-  WalletOption,
-} from "@/features/transactions/hooks/use-transaction-form";
-import {
-  uncategorizedFor,
-  useTransactionForm,
-} from "@/features/transactions/hooks/use-transaction-form";
+import { useTransactionForm } from "@/features/transactions/hooks/use-transaction-form";
+import { refundAllowanceLabel } from "@/features/transactions/linked-expense";
 import type {
   EditableTransaction,
   LinkedExpenseView,
+  WalletOption,
 } from "@/features/transactions/transaction.types";
-import type {
-  LinkedExpenseLimits,
-  TransactionFormInput,
-} from "@/features/transactions/transaction-form-schema";
+import type { EntryMode } from "@/features/transactions/transaction-entry";
+import { openEntry } from "@/features/transactions/transaction-entry";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { AmountInput } from "@/shared/components/form/amount-input";
@@ -62,102 +52,11 @@ const TYPE_OPTIONS = CREATABLE_TRANSACTION_TYPES.map((value) => ({
   label: TRANSACTION_TYPE_LABELS[value],
 }));
 
-export type TransactionFormMode =
-  | {
-      kind: "create";
-      defaultWalletId: string;
-      captureOrigin: CaptureOrigin;
-    }
-  /** A new refund of one expense; the wallet is unset when the original is archived. */
-  | { kind: "refund"; expense: LinkedExpenseView; defaultWalletId: string }
-  | { kind: "edit"; transaction: EditableTransaction };
-
 interface TransactionFormProps {
   wallets: readonly WalletOption[];
   /** Today in Asia/Bangkok, computed by the route. */
   today: CalendarDate;
-  mode: TransactionFormMode;
-}
-
-interface InitialValuesOptions {
-  mode: TransactionFormMode;
-  categories: readonly CategoryOption[];
-  today: CalendarDate;
-}
-
-function initialValuesFor({
-  mode,
-  categories,
-  today,
-}: Readonly<InitialValuesOptions>): TransactionFormInput {
-  if (mode.kind === "edit") {
-    const { transaction } = mode;
-    return {
-      type: transaction.type,
-      currency: "THB",
-      destinationWalletId: transaction.destinationWalletId,
-      refundOfTransactionId: transaction.refundOf?.id ?? "",
-      walletId: transaction.walletId,
-      categoryId: transaction.categoryId,
-      amount: transaction.amountText,
-      transactionDate: transaction.transactionDate,
-      note: transaction.note,
-      tagIds: transaction.tagIds,
-    };
-  }
-  if (mode.kind === "refund") {
-    return {
-      type: "refund",
-      currency: "THB",
-      destinationWalletId: "",
-      refundOfTransactionId: mode.expense.id,
-      walletId: mode.defaultWalletId,
-      categoryId: "",
-      amount: mode.expense.refundAllowanceText,
-      transactionDate: today,
-      note: "",
-      tagIds: [],
-    };
-  }
-  return {
-    type: "expense",
-    currency: "THB",
-    destinationWalletId: "",
-    refundOfTransactionId: "",
-    walletId: mode.defaultWalletId,
-    categoryId: uncategorizedFor(categories, "expense"),
-    amount: "",
-    transactionDate: today,
-    note: "",
-    tagIds: [],
-  };
-}
-
-/** The limits the schema checks inline for a linked refund. */
-function limitsOf(
-  linked: Readonly<LinkedExpenseView> | undefined,
-): LinkedExpenseLimits | undefined {
-  if (!linked) {
-    return undefined;
-  }
-  const refundAllowance = parseMoneyInput({
-    text: linked.refundAllowanceText,
-    currency: "THB",
-  });
-  return {
-    transactionDate: linked.transactionDate,
-    refundAllowance: refundAllowance.ok ? refundAllowance.value : 0n,
-  };
-}
-
-function cancelHrefFor(mode: Readonly<TransactionFormMode>) {
-  if (mode.kind === "edit") {
-    return `/transactions/${mode.transaction.id}`;
-  }
-  if (mode.kind === "refund") {
-    return `/transactions/${mode.expense.id}`;
-  }
-  return captureOriginHref(mode.captureOrigin);
+  mode: EntryMode;
 }
 
 function walletLabelFor(type: TransactionType) {
@@ -171,12 +70,14 @@ function walletLabelFor(type: TransactionType) {
 }
 
 interface TransactionTypeFieldProps {
+  fixedType: TransactionType | undefined;
   linked: LinkedExpenseView | undefined;
   editing: EditableTransaction | undefined;
   children: React.ReactNode;
 }
 
 function TransactionTypeField({
+  fixedType,
   linked,
   editing,
   children,
@@ -195,12 +96,12 @@ function TransactionTypeField({
       </Field>
     );
   }
-  if (editing) {
+  if (fixedType) {
     return (
       <Field>
         <FixedLabel>Type</FixedLabel>
         <p className="flex min-h-6 items-center font-semibold">
-          {TRANSACTION_TYPE_LABELS[editing.type]}
+          {TRANSACTION_TYPE_LABELS[fixedType]}
         </p>
         <FieldDescription>
           The type is fixed once saved. To change it, delete this transaction
@@ -220,10 +121,11 @@ export function TransactionForm({
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
   const { categories } = useCategoryCatalog();
-  const editing = mode.kind === "edit" ? mode.transaction : undefined;
-  const linked = mode.kind === "refund" ? mode.expense : editing?.refundOf;
-  const linkedExpense = useMemo(() => limitsOf(linked), [linked]);
-  const cancelHref = cancelHrefFor(mode);
+  const entry = useMemo(
+    () => openEntry({ mode, categories, today: initialToday }),
+    [mode, categories, initialToday],
+  );
+  const { correcting: editing, linkedExpense: linked, cancelHref } = entry;
   const originalArchived =
     mode.kind === "refund" && mode.expense.wallet.archived;
 
@@ -255,18 +157,7 @@ export function TransactionForm({
     clearFieldError,
     changeType,
     pending,
-  } = useTransactionForm({
-    wallets,
-    categories,
-    initialValues: initialValuesFor({
-      mode,
-      categories,
-      today: initialToday,
-    }),
-    linkedExpense,
-    editing,
-    captureOrigin: mode.kind === "create" ? mode.captureOrigin : undefined,
-  });
+  } = useTransactionForm({ entry, wallets, categories });
   const today = useBangkokToday(initialToday);
   const yesterday = addDays(today, -1);
 
@@ -335,7 +226,7 @@ export function TransactionForm({
                           <>
                             Up to{" "}
                             <span className="money" translate="no">
-                              {linked.refundAllowanceLabel}
+                              {refundAllowanceLabel(linked)}
                             </span>{" "}
                             left to refund on this expense.
                           </>
@@ -353,7 +244,11 @@ export function TransactionForm({
                 }}
               </form.Field>
 
-              <TransactionTypeField linked={linked} editing={editing}>
+              <TransactionTypeField
+                fixedType={entry.fixedType}
+                linked={linked}
+                editing={editing}
+              >
                 <form.Field name="type">
                   {(field) => (
                     <Field>

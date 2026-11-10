@@ -28,14 +28,12 @@ export function editableTransaction({
     id: transaction.id,
     type: transaction.type,
     walletId: transaction.wallet.id,
-    // A refund's category is read from its expense, never sent back.
-    categoryId: refundOf ? "" : (transaction.category?.id ?? ""),
+    categoryId: transaction.category?.id ?? "",
     destinationWalletId: transaction.destinationWallet?.id ?? "",
     amountText: formatApiMoneyInput(transaction.amount),
     transactionDate: transaction.transactionDate,
     note: transaction.note,
-    // A refund shows its expense's tags and never sends them back.
-    tagIds: refundOf ? [] : transaction.tags.map((tag) => tag.id),
+    tagIds: transaction.tags.map((tag) => tag.id),
     recordedLabel: formatInstant({
       instant: new Date(transaction.recordedAt),
       timeZone: APP_TIME_ZONE,

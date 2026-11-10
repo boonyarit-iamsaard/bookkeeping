@@ -8,8 +8,11 @@ import {
   CategoryTile,
 } from "@/features/categories/components/category-icon";
 import { useCategoryColors } from "@/features/categories/hooks/use-category-colors";
-import type { WalletOption } from "@/features/transactions/hooks/use-transaction-form";
-import type { LinkedExpenseView } from "@/features/transactions/transaction.types";
+import { refundAllowanceLabel } from "@/features/transactions/linked-expense";
+import type {
+  LinkedExpenseView,
+  WalletOption,
+} from "@/features/transactions/transaction.types";
 import { TRANSACTION_TYPE_SIGNS } from "@/features/transactions/transaction-labels";
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
@@ -155,7 +158,7 @@ export function LinkedExpenseChip({
     <Link
       to="/transactions/$transactionId"
       params={{ transactionId: expense.id }}
-      aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${expense.refundAllowanceLabel} left to refund. Open the expense.`}
+      aria-label={`Refund of ${expense.categoryLabel}, ${expense.amountLabel} on ${formatCalendarDate(expense.transactionDate)}, ${refundAllowanceLabel(expense)} left to refund. Open the expense.`}
       className="bg-muted hover:bg-accent focus-visible:ring-ring/45 flex min-h-16 min-w-0 items-center gap-3.5 rounded-xl px-3 py-2.5 transition-colors duration-150 outline-none focus-visible:ring-[3px] motion-reduce:transition-none"
     >
       <CategoryTile
@@ -179,7 +182,7 @@ export function LinkedExpenseChip({
         </span>
         <span className="text-secondary-foreground block text-sm font-semibold">
           <span className="money" translate="no">
-            {expense.refundAllowanceLabel}
+            {refundAllowanceLabel(expense)}
           </span>{" "}
           left to refund
         </span>

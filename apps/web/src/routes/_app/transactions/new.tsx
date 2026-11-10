@@ -95,7 +95,7 @@ function NewTransactionPage() {
         <TransactionForm
           wallets={wallets}
           today={todayIn({ timeZone: APP_TIME_ZONE })}
-          mode={{ kind: "create", defaultWalletId, captureOrigin }}
+          mode={{ kind: "record", defaultWalletId, captureOrigin }}
         />
       ) : (
         <NoWallet />

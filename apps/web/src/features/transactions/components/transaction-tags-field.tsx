@@ -1,4 +1,5 @@
 import type { TransactionType } from "@bookkeeping/domain/transactions";
+import { carriesOwnTags } from "@bookkeeping/domain/transactions";
 import { TagChipList } from "@/features/tags/components/tag-chip";
 import { TagPicker } from "@/features/tags/components/tag-picker";
 import { FixedLabel } from "@/features/transactions/components/transaction-form-fields";
@@ -47,7 +48,7 @@ export function TransactionTagsField({
       </Field>
     );
   }
-  if (type !== "income" && type !== "expense") {
+  if (!carriesOwnTags({ type })) {
     return null;
   }
   return (
