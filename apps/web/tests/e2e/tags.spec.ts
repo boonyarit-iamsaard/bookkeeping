@@ -87,7 +87,7 @@ test.afterEach(async ({ page }) => {
   ).toEqual([]);
 });
 
-test("creates a tag inline on an expense, filters history, and merges it from Tags", async ({
+test("creates a tag inline on an expense, filters history, merges it, and deletes it from Tags", async ({
   page,
   baseURL,
 }) => {
@@ -207,4 +207,20 @@ test("creates a tag inline on an expense, filters history, and merges it from Ta
   await expect(
     page.getByRole("link", { name: "Transactions tagged Coffee", exact: true }),
   ).toBeVisible();
+
+  await page.goto("/tags");
+  await catalog.getByRole("button", { name: /^Coffee/ }).click();
+  await expect(editor).toBeVisible();
+  await editor.getByRole("button", { name: "Delete…", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Delete Coffee", exact: true })
+    .click();
+  await expect(editor).toBeHidden(ROUND_TRIP);
+  await expect(notice).toHaveText(/^Coffee deleted/);
+  await expect(notice).toBeFocused();
+  await expect(catalog.getByRole("button")).toHaveCount(0);
+
+  await nav.getByRole("link", { name: "Transactions", exact: true }).click();
+  await expect(coffee).toBeVisible();
+  await expect(coffee.getByRole("list", { name: "Tags" })).toHaveCount(0);
 });
