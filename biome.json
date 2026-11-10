@@ -24,7 +24,8 @@
       "!apps/web/src/core/api/openapi.json",
       "!**/*.html",
       "!**/*.md",
-      "!pnpm-lock.yaml"
+      "!pnpm-lock.yaml",
+      "!!**/.claude/worktrees"
     ]
   },
   "formatter": {
