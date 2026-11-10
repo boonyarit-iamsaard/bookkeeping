@@ -3,14 +3,12 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { formatMoneyInput } from "@bookkeeping/domain/money";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
-import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
-import { useApiMutation } from "@/core/api/use-api-mutation";
-import { pickFieldErrors } from "@/core/api/write-submission";
-import { refreshAfterWrite } from "@/core/query/refresh-after-write";
+import { useFormWrites } from "@/core/api/use-form-writes";
+import type { ApiRejection } from "@/core/api/write-submission";
 import type { CaptureOrigin } from "@/features/transactions/capture-origin";
 import { captureReturnHref } from "@/features/transactions/capture-origin";
 import type { EditableTransaction } from "@/features/transactions/transaction.types";
@@ -20,12 +18,10 @@ import type {
   TransactionFormValues,
 } from "@/features/transactions/transaction-form-schema";
 import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
-import type { TransactionFormField } from "@/features/transactions/transaction-rejection";
 import {
   carriesFacts,
   describeTransactionFieldError,
   TRANSACTION_FORM_FIELDS,
-  transactionFieldOf,
 } from "@/features/transactions/transaction-rejection";
 
 export interface WalletOption {
@@ -156,11 +152,6 @@ export function useTransactionForm({
   captureOrigin,
 }: Readonly<UseTransactionFormOptions>) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [serverError, setServerError] = useState<string | undefined>();
-  const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<TransactionFormField, string>>
-  >({});
   const schema = useMemo(
     () =>
       createTransactionFormSchema({
@@ -171,32 +162,48 @@ export function useTransactionForm({
       }),
     [wallets, linkedExpense],
   );
-  const createTransaction = useApiMutation<
-    CreateTransactionRequest,
-    Transaction
-  >({
-    send: (input, attempt) =>
-      apiClient.POST("/v1/transactions", {
-        params: { header: attempt.header },
-        body: input,
-      }),
-    describeFieldError: describeTransactionFieldError,
-    fieldOf: transactionFieldOf,
-  });
-  // An update that changes nothing succeeds without effect, so the helper's
-  // same-request replay is safe here without the creation key.
-  const updateTransaction = useApiMutation<
-    UpdateTransactionRequest,
-    Transaction
-  >({
-    send: (input) =>
-      apiClient.PUT("/v1/transactions/{transactionId}", {
-        params: { path: { transactionId: editing?.id ?? "" } },
-        body: input,
-      }),
-    describeFieldError: describeTransactionFieldError,
-    fieldOf: transactionFieldOf,
-  });
+
+  async function returnFrom(saved: Readonly<Transaction>) {
+    if (captureOrigin) {
+      await navigate({ href: captureReturnHref(captureOrigin, saved.id) });
+    } else {
+      await navigate({ to: "/transactions", search: { created: saved.id } });
+    }
+  }
+
+  // A figure or date the rejection names may be newer than the page's, so
+  // the page re-reads and its hints agree with the message.
+  const refreshOnRejection = (rejection: Readonly<ApiRejection>) =>
+    rejection.errors.some(carriesFacts);
+
+  const { submit, pending, serverError, fieldErrors, clearFieldError } =
+    useFormWrites({
+      fields: TRANSACTION_FORM_FIELDS,
+      writes: {
+        create: {
+          kind: "create",
+          send: (input: CreateTransactionRequest, attempt) =>
+            apiClient.POST("/v1/transactions", {
+              params: { header: attempt.header },
+              body: input,
+            }),
+          describeFieldError: describeTransactionFieldError,
+          refreshOnRejection,
+          onDone: (created: Transaction) => returnFrom(created),
+        },
+        update: {
+          kind: "change",
+          send: (input: UpdateTransactionRequest) =>
+            apiClient.PUT("/v1/transactions/{transactionId}", {
+              params: { path: { transactionId: editing?.id ?? "" } },
+              body: input,
+            }),
+          describeFieldError: describeTransactionFieldError,
+          refreshOnRejection,
+          onDone: (updated: Transaction) => returnFrom(updated),
+        },
+      },
+    });
 
   const form = useForm({
     defaultValues: initialValues,
@@ -205,60 +212,22 @@ export function useTransactionForm({
       onDynamic: schema,
     },
     onSubmit: async ({ value }) => {
-      setServerError(undefined);
-      setFieldErrors({});
-
-      const parsed = schema.safeParse(value);
-      if (!parsed.success) {
-        return;
-      }
-
-      let result: Awaited<ReturnType<typeof createTransaction.submit>>;
-      try {
-        result = editing
-          ? await updateTransaction.submit(
-              toUpdateTransactionRequest(parsed.data),
-            )
-          : await createTransaction.submit(
-              toCreateTransactionRequest(parsed.data),
-            );
-      } catch {
-        setServerError(
-          "The transaction could not be saved. Check your connection and try again.",
-        );
-        return;
-      }
-
-      if (!result.ok) {
-        setFieldErrors(
-          pickFieldErrors(result.error.fieldErrors, TRANSACTION_FORM_FIELDS),
-        );
-        setServerError(result.error.message);
-        // A figure or date the rejection names may be newer than the page's,
-        // so the page re-reads and its hints agree with the message.
-        if (result.error.errors.some(carriesFacts)) {
-          await refreshAfterWrite(queryClient);
-        }
-        return;
-      }
-
-      await refreshAfterWrite(queryClient);
-      if (captureOrigin) {
-        await navigate({
-          href: captureReturnHref(captureOrigin, result.value.id),
-        });
+      // The validator has passed but keeps the input values; this parse
+      // only yields the satang amount the request carries.
+      const values = schema.parse(value);
+      if (editing) {
+        await submit.update(toUpdateTransactionRequest(values));
       } else {
-        await navigate({
-          to: "/transactions",
-          search: { created: result.value.id },
-        });
+        await submit.create(toCreateTransactionRequest(values));
       }
     },
   });
 
   function changeType(type: TransactionType) {
     form.setFieldValue("type", type);
-    setFieldErrors({});
+    for (const field of TRANSACTION_FORM_FIELDS) {
+      clearFieldError(field);
+    }
     if (type === "transfer") {
       form.setFieldValue("categoryId", "");
       form.setFieldValue("tagIds", []);
@@ -280,18 +249,12 @@ export function useTransactionForm({
     }
   }
 
-  function clearFieldError(field: TransactionFormField) {
-    setFieldErrors((current) =>
-      current[field] ? { ...current, [field]: undefined } : current,
-    );
-  }
-
   return {
     form,
     serverError,
     fieldErrors,
     clearFieldError,
     changeType,
-    isPending: createTransaction.isPending || updateTransaction.isPending,
+    isPending: pending,
   };
 }
