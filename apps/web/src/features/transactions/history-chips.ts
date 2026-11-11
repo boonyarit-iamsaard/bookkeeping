@@ -1,16 +1,14 @@
-import { formatCalendarDate } from "@bookkeeping/domain/dates";
+import { formatCalendarDate, isCalendarDate } from "@bookkeeping/domain/dates";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import type {
   HistoryFilterKey,
   HistoryFilterValues,
-  HistorySearch,
 } from "@/features/transactions/history-schema";
-import {
-  calendarDate,
-  HISTORY_FILTER_KEYS,
-  historyFilters,
-  transactionFiltersSchema,
-} from "@/features/transactions/history-schema";
+import { HISTORY_FILTER_KEYS } from "@/features/transactions/history-schema";
+import type {
+  HistoryValueKey,
+  HistoryView,
+} from "@/features/transactions/history-view";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 
 interface Named {
@@ -26,7 +24,7 @@ interface HistoryFilterNames {
 
 export interface HistoryFilterChip {
   /** Unique per chip: the filter's key, or `tagId:<id>` for each tag. */
-  key: HistoryFilterKey | `tagId:${string}`;
+  key: HistoryValueKey;
   label: string;
   /** The value is not one the history accepts, so it filters nothing. */
   invalid: boolean;
@@ -35,8 +33,7 @@ export interface HistoryFilterChip {
 }
 
 function dateLabel(value: string): string {
-  const parsed = calendarDate.safeParse(value);
-  return parsed.success ? formatCalendarDate(parsed.data) : value;
+  return isCalendarDate(value) ? formatCalendarDate(value) : value;
 }
 
 function nameOf(items: readonly Named[], id: string): string {
@@ -48,19 +45,27 @@ function typeLabel(value: string): string {
   return type ? TRANSACTION_TYPE_LABELS[type] : value;
 }
 
+interface TagChipsOptions {
+  filters: Readonly<HistoryFilterValues>;
+  tags: readonly Named[];
+  invalidKeys: ReadonlySet<HistoryValueKey>;
+}
+
 /** One chip per chosen tag, each lifting only its own tag. */
-function tagChips(
-  filters: Readonly<HistoryFilterValues>,
-  tags: readonly Named[],
-): HistoryFilterChip[] {
+function tagChips({
+  filters,
+  tags,
+  invalidKeys,
+}: Readonly<TagChipsOptions>): HistoryFilterChip[] {
   const chosen = filters.tagId ?? [];
   return chosen.map((tagId) => {
     const rest = chosen.filter((other) => other !== tagId);
     const { tagId: _removed, ...others } = filters;
+    const key = `tagId:${tagId}` as const;
     return {
-      key: `tagId:${tagId}`,
+      key,
       label: `# ${nameOf(tags, tagId)}`,
-      invalid: !transactionFiltersSchema.safeParse({ tagId: [tagId] }).success,
+      invalid: invalidKeys.has(key),
       without: rest.length > 0 ? { ...others, tagId: rest } : others,
     };
   });
@@ -71,10 +76,12 @@ function tagChips(
  * the app cannot name (an invalid date, a wallet since deleted) shows as typed.
  */
 export function historyFilterChips(
-  search: Readonly<HistorySearch>,
+  view: Readonly<HistoryView>,
   names: Readonly<HistoryFilterNames>,
 ): HistoryFilterChip[] {
-  const filters = historyFilters(search);
+  const filters = view.values;
+  const invalidKeys: ReadonlySet<HistoryValueKey> =
+    view.state === "invalid" ? view.invalidKeys : new Set();
   const labels: Record<HistoryFilterKey, (value: string) => string> = {
     from: (value) => `From ${dateLabel(value)}`,
     to: (value) => `To ${dateLabel(value)}`,
@@ -88,9 +95,8 @@ export function historyFilterChips(
       return [];
     }
     const { [key]: _removed, ...without } = filters;
-    const invalid = !transactionFiltersSchema.safeParse({ [key]: value })
-      .success;
+    const invalid = invalidKeys.has(key);
     return [{ key, label: labels[key](value), invalid, without }];
   });
-  return [...single, ...tagChips(filters, names.tags)];
+  return [...single, ...tagChips({ filters, tags: names.tags, invalidKeys })];
 }

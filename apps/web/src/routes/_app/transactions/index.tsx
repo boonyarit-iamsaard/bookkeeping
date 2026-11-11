@@ -15,37 +15,20 @@ import {
 } from "@/features/transactions/components/history-filters";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
-import type { ParsedHistoryFilters } from "@/features/transactions/history-schema";
-import {
-  hasHistoryFilters,
-  historyFilters,
-  historySearchSchema,
-  parseHistoryFilters,
-} from "@/features/transactions/history-schema";
+import { historySearchSchema } from "@/features/transactions/history-schema";
+import { buildHistoryView } from "@/features/transactions/history-view";
 import { SavedNotice } from "@/shared/components/saved-notice";
 import { buttonVariants } from "@/shared/components/ui/button";
-
-/** The page the address names, or null while its filters are invalid. */
-function historyListQuery(
-  filters: Readonly<ParsedHistoryFilters>,
-  cursor: string | undefined,
-) {
-  return filters.ok
-    ? transactionQueries.list({ ...filters.filters, cursor })
-    : null;
-}
 
 export const Route = createFileRoute("/_app/transactions/")({
   head: () => ({ meta: [{ title: "Transactions" }] }),
   validateSearch: historySearchSchema,
   loaderDeps: ({ search }) => ({ search }),
   loader: async ({ context, deps }) => {
-    const listQuery = historyListQuery(
-      parseHistoryFilters(deps.search),
-      deps.search.cursor,
-    );
+    const view = buildHistoryView(deps.search);
     await Promise.all([
-      listQuery && context.queryClient.ensureQueryData(listQuery),
+      view.state === "valid" &&
+        context.queryClient.ensureQueryData(transactionQueries.list(view.list)),
       context.queryClient.ensureQueryData(walletQueries.list()),
       context.queryClient.ensureQueryData(categoryQueries.list()),
       context.queryClient.ensureQueryData(tagQueries.list()),
@@ -58,8 +41,9 @@ export const Route = createFileRoute("/_app/transactions/")({
 
 function TransactionsPage() {
   const search = Route.useSearch();
-  const filters = parseHistoryFilters(search);
-  const listQuery = historyListQuery(filters, search.cursor);
+  const view = buildHistoryView(search);
+  const listQuery =
+    view.state === "valid" ? transactionQueries.list(view.list) : null;
   // Invalid filters read nothing; a failed re-read shows the error screen.
   const { data: page } = useQuery({
     ...(listQuery ?? transactionQueries.list()),
@@ -75,7 +59,7 @@ function TransactionsPage() {
   const transactions = listQuery && page ? page.items : [];
   const nextCursor = listQuery && page ? page.page.nextCursor : null;
   const justDeleted = search.deleted === 1;
-  const filtered = hasHistoryFilters(search);
+  const filterErrors = view.state === "invalid" ? view.errors : [];
 
   return (
     <Page layout="wide">
@@ -86,7 +70,8 @@ function TransactionsPage() {
             wallets={walletCollection.items}
             categories={categoryCollection.items}
             tags={tagCollection.items}
-            values={search}
+            values={view.values}
+            errors={filterErrors}
           />
         }
       />
@@ -94,7 +79,7 @@ function TransactionsPage() {
         wallets={walletCollection.items}
         categories={categoryCollection.items}
         tags={tagCollection.items}
-        values={search}
+        view={view}
       />
       {justDeleted && (
         <SavedNotice>
@@ -104,14 +89,14 @@ function TransactionsPage() {
       )}
       <TransactionHistory
         transactions={transactions}
-        filterErrors={filters.ok ? [] : filters.errors}
-        filtered={filtered}
+        filterErrors={filterErrors}
+        filtered={view.hasFilters}
         savedId={search.created}
       />
       {nextCursor && (
         <Link
           to="/transactions"
-          search={{ ...historyFilters(search), cursor: nextCursor }}
+          search={{ ...view.values, cursor: nextCursor }}
           className={buttonVariants({
             variant: "outline",
             size: "lg",

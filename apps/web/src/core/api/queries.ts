@@ -42,7 +42,7 @@ function createReadQuery<Path extends ReadPath, Output>({
 }
 
 type WalletListQuery = NonNullable<ReadParams<"/v1/wallets">["query"]>;
-type TransactionListQuery = NonNullable<
+export type TransactionListQuery = NonNullable<
   ReadParams<"/v1/transactions">["query"]
 >;
 

@@ -1,45 +1,5 @@
-import { parseCalendarDate } from "@bookkeeping/domain/dates";
-import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { z } from "zod";
-
-export const calendarDate = z
-  .string()
-  .refine(
-    (value) => value >= "0001-01-01" && parseCalendarDate(value).ok,
-    "Choose a valid date.",
-  );
-
-export const transactionFiltersSchema = z
-  .object({
-    from: calendarDate.optional(),
-    to: calendarDate.optional(),
-    walletId: z.uuid().optional(),
-    categoryId: z.uuid().optional(),
-    type: z.enum(TRANSACTION_TYPES).optional(),
-    // Repeated: a transaction carrying any of them matches.
-    tagId: z.array(z.uuid()).min(1).optional(),
-  })
-  .refine(
-    (value) => !value.from || !value.to || value.from <= value.to,
-    "From date must be on or before To date.",
-  );
-
-export type TransactionFilters = z.infer<typeof transactionFiltersSchema>;
-
-/**
- * Empty GET controls mean all records. Repeated parameters stay invalid. The
- * router reads `?type=7` as a number; the control still shows that text, so
- * the filter validation rejects it rather than filtering by it.
- */
-const searchValue = z.preprocess((value) => {
-  if (typeof value === "string") {
-    return value === "" ? undefined : value;
-  }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  return undefined;
-}, z.string().optional());
+import { searchValue } from "@/shared/helpers/search-value";
 
 /**
  * Every chosen tag's raw text. One value arrives as a string and several as
@@ -51,6 +11,17 @@ const searchValues = z.preprocess((value) => {
   );
   return values.length > 0 ? values : undefined;
 }, z.array(z.string()).optional());
+
+/**
+ * The page cursor or the saved id. These are not filters, so a repeated one
+ * drops to the first page with no highlight rather than reading an invalid page.
+ */
+const navigationValue = z.preprocess((value) => {
+  if (typeof value === "string") {
+    return value === "" ? undefined : value;
+  }
+  return typeof value === "number" ? String(value) : undefined;
+}, z.string().optional());
 
 /**
  * `?deleted=1` after a deletion. The router writes validated search back to
@@ -73,8 +44,8 @@ export const historySearchSchema = z.object({
   categoryId: searchValue,
   type: searchValue,
   tagId: searchValues,
-  cursor: searchValue,
-  created: searchValue,
+  cursor: navigationValue,
+  created: navigationValue,
   deleted: deletedFlag,
 });
 
@@ -94,72 +65,4 @@ export type HistoryFilterKey = (typeof HISTORY_FILTER_KEYS)[number];
 export interface HistoryFilterValues
   extends Partial<Record<HistoryFilterKey, string>> {
   tagId?: string[];
-}
-
-/** The filter controls' raw values alone; the cursor and saved id are not filters. */
-export function historyFilters(
-  search: Readonly<HistorySearch>,
-): HistoryFilterValues {
-  const filters: HistoryFilterValues = Object.fromEntries(
-    HISTORY_FILTER_KEYS.flatMap((key) =>
-      search[key] === undefined ? [] : [[key, search[key]]],
-    ),
-  );
-  return search.tagId?.length
-    ? { ...filters, tagId: [...search.tagId] }
-    : filters;
-}
-
-/** Whether the address narrows the history at all. */
-export function hasHistoryFilters(search: Readonly<HistorySearch>): boolean {
-  return (
-    HISTORY_FILTER_KEYS.some((key) => Boolean(search[key])) ||
-    Boolean(search.tagId?.length)
-  );
-}
-
-const FILTER_ERROR_MESSAGES = {
-  from: "Choose a valid From date.",
-  to: "Choose a valid To date.",
-  walletId: "Choose a valid wallet.",
-  categoryId: "Choose a valid category.",
-  type: "Choose a valid type.",
-  tagId: "Choose tags from the list.",
-} as const;
-
-export type ParsedHistoryFilters =
-  | { ok: true; filters: TransactionFilters }
-  | { ok: false; errors: readonly string[] };
-
-/** The address's filters, or what is wrong with them: one message per field. */
-export function parseHistoryFilters(
-  search: Readonly<HistorySearch>,
-): ParsedHistoryFilters {
-  const result = transactionFiltersSchema.safeParse(historyFilters(search));
-  if (result.success) {
-    return { ok: true, filters: result.data };
-  }
-  const errors = [
-    ...new Set(
-      result.error.issues.map((issue) => {
-        switch (issue.path[0]) {
-          case "from":
-            return FILTER_ERROR_MESSAGES.from;
-          case "to":
-            return FILTER_ERROR_MESSAGES.to;
-          case "walletId":
-            return FILTER_ERROR_MESSAGES.walletId;
-          case "categoryId":
-            return FILTER_ERROR_MESSAGES.categoryId;
-          case "type":
-            return FILTER_ERROR_MESSAGES.type;
-          case "tagId":
-            return FILTER_ERROR_MESSAGES.tagId;
-          default:
-            return issue.message;
-        }
-      }),
-    ),
-  ];
-  return { ok: false, errors };
 }

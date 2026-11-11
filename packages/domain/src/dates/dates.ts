@@ -23,6 +23,11 @@ export function parseCalendarDate(
   return ok(value);
 }
 
+/** Whether a value is a calendar date: a real one, no earlier than 0001-01-01. */
+export function isCalendarDate(value: string): boolean {
+  return value >= "0001-01-01" && parseCalendarDate(value).ok;
+}
+
 /** The grammar of a report month, YYYY-MM; `isReportMonth` is the full rule. */
 export const REPORT_MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
