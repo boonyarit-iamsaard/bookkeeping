@@ -4,10 +4,8 @@ import {
 } from "@bookkeeping/application/categories";
 import { createTagForTest } from "@bookkeeping/application/testing/tag-fixture";
 import { insertTransaction } from "@bookkeeping/application/testing/transaction-fixture";
-import {
-  insertWallet,
-  softDelete,
-} from "@bookkeeping/application/testing/transaction-suite-fixture";
+import { softDelete } from "@bookkeeping/application/testing/transaction-suite-fixture";
+import { createWalletForTest } from "@bookkeeping/application/testing/wallet-fixture";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import type { Hono } from "hono";
@@ -46,19 +44,29 @@ async function createCategorizedOwnerFixture(db: Database, ownerId: string) {
     throw new Error("Missing default categories");
   }
   return {
-    walletId: await insertWallet(db, {
-      ownerId,
-      name: "Cash",
-      type: "cash",
-    }),
+    walletId: (
+      await createWalletForTest(db, {
+        ownerId,
+        name: "Cash",
+        type: "cash",
+        openingAmount: 0n,
+      })
+    ).id,
     categoryId: groceries.id,
   };
 }
 
 const RESOURCES = {
   wallet: {
-    create: (db, ownerId) =>
-      insertWallet(db, { ownerId, name: "Cash", type: "cash" }),
+    create: async (db, ownerId) =>
+      (
+        await createWalletForTest(db, {
+          ownerId,
+          name: "Cash",
+          type: "cash",
+          openingAmount: 0n,
+        })
+      ).id,
   },
   tag: {
     create: (db, ownerId) => createTagForTest(db, { ownerId, name: "Coffee" }),

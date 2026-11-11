@@ -1,72 +1,43 @@
-import type { Database } from "@bookkeeping/database/connection";
 import {
   createTestUser,
   setupTestDatabase,
 } from "@bookkeeping/database/testing";
-import { wallets } from "@bookkeeping/database/wallets";
 import { describe, expect, test } from "vitest";
 import { insertTransaction } from "../testing/transaction-fixture";
 import { withClock } from "../testing/transaction-suite-fixture";
+import { archiveForTest, createWalletForTest } from "../testing/wallet-fixture";
 import { getClosingBalances } from "../transactions/transaction-reports";
 import { listWalletsWithBalance } from "./wallet";
 
 const { withRollback } = setupTestDatabase();
 
-interface BalanceWalletFixture {
-  ownerId: string;
-  name: string;
-  openingAmount: bigint;
-  openingDate: string;
-  savings?: boolean;
-  archived?: boolean;
-}
-
-async function insertBalanceWallet(
-  db: Database,
-  fixture: Readonly<BalanceWalletFixture>,
-): Promise<string> {
-  const [row] = await db
-    .insert(wallets)
-    .values({
-      userId: fixture.ownerId,
-      name: fixture.name,
-      type: "bank_account",
-      openingAmount: fixture.openingAmount,
-      openingDate: fixture.openingDate,
-      savings: fixture.savings ?? false,
-      archivedAt: fixture.archived ? new Date("2026-09-20T00:00:00Z") : null,
-    })
-    .returning({ id: wallets.id });
-  if (!row) {
-    throw new Error("Wallet insert returned no row");
-  }
-  return row.id;
-}
-
 describe("listWalletsWithBalance", () => {
   test("splits the signed Total balance over every Wallet, archived ones included", async () => {
     await withRollback(async (db) => {
       const { id: ownerId } = await createTestUser(db);
-      const cashId = await insertBalanceWallet(db, {
+      const { id: cashId } = await createWalletForTest(db, {
         ownerId,
         name: "Cash",
+        type: "bank_account",
         openingAmount: 5_000n,
         openingDate: "2026-09-01",
       });
-      await insertBalanceWallet(db, {
+      await createWalletForTest(db, {
         ownerId,
         name: "Overdraft",
+        type: "bank_account",
         openingAmount: -20_000n,
         openingDate: "2026-09-01",
       });
-      const savingsId = await insertBalanceWallet(db, {
+      const { id: savingsId } = await createWalletForTest(db, {
         ownerId,
         name: "Rainy day",
+        type: "bank_account",
         openingAmount: 100_000n,
         openingDate: "2026-09-01",
         savings: true,
-        archived: true,
       });
+      await archiveForTest(db, { ownerId, id: savingsId });
       await insertTransaction(db, {
         ownerId,
         type: "transfer",
@@ -102,15 +73,17 @@ describe("listWalletsWithBalance", () => {
   test("a date before a Wallet's opening leaves that Wallet out, and no Savings wallet leaves no Set aside", async () => {
     await withRollback(async (db) => {
       const { id: ownerId } = await createTestUser(db);
-      await insertBalanceWallet(db, {
+      await createWalletForTest(db, {
         ownerId,
         name: "Cash",
+        type: "bank_account",
         openingAmount: 5_000n,
         openingDate: "2026-09-01",
       });
-      await insertBalanceWallet(db, {
+      await createWalletForTest(db, {
         ownerId,
         name: "Rainy day",
+        type: "bank_account",
         openingAmount: 100_000n,
         openingDate: "2026-09-10",
         savings: true,
@@ -136,9 +109,10 @@ describe("listWalletsWithBalance", () => {
   test("a date before any opening lists no Wallet and has no Total balance", async () => {
     await withRollback(async (db) => {
       const { id: ownerId } = await createTestUser(db);
-      await insertBalanceWallet(db, {
+      await createWalletForTest(db, {
         ownerId,
         name: "Cash",
+        type: "bank_account",
         openingAmount: 5_000n,
         openingDate: "2026-09-01",
       });
@@ -163,20 +137,22 @@ describe("listWalletsWithBalance", () => {
     await withClock("2026-09-30T05:00:00Z", async () => {
       await withRollback(async (db) => {
         const { id: ownerId } = await createTestUser(db);
-        const cashId = await insertBalanceWallet(db, {
+        const { id: cashId } = await createWalletForTest(db, {
           ownerId,
           name: "Cash",
+          type: "bank_account",
           openingAmount: 5_000n,
           openingDate: "2026-09-05",
         });
-        const savingsId = await insertBalanceWallet(db, {
+        const { id: savingsId } = await createWalletForTest(db, {
           ownerId,
           name: "Rainy day",
+          type: "bank_account",
           openingAmount: -1_000n,
           openingDate: "2026-09-15",
           savings: true,
-          archived: true,
         });
+        await archiveForTest(db, { ownerId, id: savingsId });
         await insertTransaction(db, {
           ownerId,
           type: "transfer",

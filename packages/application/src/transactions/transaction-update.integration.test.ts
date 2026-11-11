@@ -8,11 +8,10 @@ import { rejected } from "../shared/rejection";
 import {
   balanceOf,
   expenseUpdateInput,
-  insertWallet,
   recordExpense,
   setupOwner,
 } from "../testing/transaction-suite-fixture";
-import { archiveForTest } from "../testing/wallet-fixture";
+import { archiveForTest, createWalletForTest } from "../testing/wallet-fixture";
 import { listWallets } from "../wallets/wallet";
 import type { CreateTransactionInput } from "./transaction";
 import {
@@ -31,10 +30,11 @@ describe("updateTransaction", () => {
   test("an edit replaces every financial effect, keeps the recording time, and leaves one history entry", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
-      const savingsId = await insertWallet(db, {
+      const { id: savingsId } = await createWalletForTest(db, {
         ownerId: owner.ownerId,
         name: "Savings",
         type: "bank_account",
+        openingAmount: 0n,
         openingDate: "2026-09-03",
       });
       const uncategorized = (await listCategories(db, owner.ownerId)).find(
@@ -300,10 +300,11 @@ describe("updateTransaction", () => {
       await withRollback(async (db) => {
         const context = await setupExpense(db);
         const { ownerId, cashId, expense } = context;
-        const bank = await insertWallet(db, {
+        const { id: bank } = await createWalletForTest(db, {
           ownerId,
           name: "Bank",
           type: "bank_account",
+          openingAmount: 0n,
         });
         const first = await createTransaction(
           db,
@@ -411,10 +412,11 @@ describe("updateTransaction", () => {
         const db = committed();
         const context = await setupExpense(db);
         const { ownerId, cashId, expense } = context;
-        const receiver = await insertWallet(db, {
+        const { id: receiver } = await createWalletForTest(db, {
           ownerId,
           name: "Refund receiver",
           type: "bank_account",
+          openingAmount: 0n,
         });
         const existing =
           operation === "edit"
@@ -753,10 +755,11 @@ describe("updateTransaction", () => {
   test("editing a transfer replaces both wallets and deletion removes both effects and retains history", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
-      const travel = await insertWallet(db, {
+      const { id: travel } = await createWalletForTest(db, {
         ownerId: owner.ownerId,
         name: "Travel",
         type: "cash",
+        openingAmount: 0n,
       });
       const input = {
         ownerId: owner.ownerId,

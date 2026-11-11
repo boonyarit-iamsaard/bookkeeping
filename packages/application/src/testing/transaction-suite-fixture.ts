@@ -1,8 +1,6 @@
 import type { Database } from "@bookkeeping/database/connection";
 import { createTestUser } from "@bookkeeping/database/testing";
 import { transactions } from "@bookkeeping/database/transactions";
-import { wallets } from "@bookkeeping/database/wallets";
-import type { WalletType } from "@bookkeeping/domain/wallets";
 import { eq } from "drizzle-orm";
 import { vi } from "vitest";
 import {
@@ -11,35 +9,7 @@ import {
 } from "../categories/category";
 import { createTransaction } from "../transactions/transaction";
 import { listWallets } from "../wallets/wallet";
-
-export interface WalletFixture {
-  ownerId: string;
-  name: string;
-  type: WalletType;
-  openingAmount?: bigint;
-  openingDate?: string;
-}
-
-/** Persists a wallet row directly; creation moves here with its own ticket. */
-export async function insertWallet(
-  db: Database,
-  fixture: Readonly<WalletFixture>,
-): Promise<string> {
-  const [row] = await db
-    .insert(wallets)
-    .values({
-      userId: fixture.ownerId,
-      name: fixture.name,
-      type: fixture.type,
-      openingAmount: fixture.openingAmount ?? 0n,
-      openingDate: fixture.openingDate ?? "2026-09-01",
-    })
-    .returning({ id: wallets.id });
-  if (!row) {
-    throw new Error("Wallet insert returned no row");
-  }
-  return row.id;
-}
+import { createWalletForTest } from "./wallet-fixture";
 
 export interface OwnerFixture {
   ownerId: string;
@@ -54,16 +24,17 @@ export interface OwnerFixture {
 export async function setupOwner(db: Database): Promise<OwnerFixture> {
   const owner = await createTestUser(db);
   await initializeDefaultCategories(db, owner.id);
-  const cashId = await insertWallet(db, {
+  const { id: cashId } = await createWalletForTest(db, {
     ownerId: owner.id,
     name: "Cash",
     type: "cash",
     openingAmount: 1_000_000n,
   });
-  const bankId = await insertWallet(db, {
+  const { id: bankId } = await createWalletForTest(db, {
     ownerId: owner.id,
     name: "Bank",
     type: "bank_account",
+    openingAmount: 0n,
   });
   const tree = await listCategories(db, owner.id);
   const parent = tree.find(

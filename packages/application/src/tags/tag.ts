@@ -1,6 +1,10 @@
 import type { Database } from "@bookkeeping/database/connection";
-import { databaseError } from "@bookkeeping/database/errors";
-import { tags, transactionTags } from "@bookkeeping/database/tags";
+import { databaseError, UNIQUE_VIOLATION } from "@bookkeeping/database/errors";
+import {
+  TAG_NAME_INDEX,
+  tags,
+  transactionTags,
+} from "@bookkeeping/database/tags";
 import { transactions } from "@bookkeeping/database/transactions";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
@@ -17,9 +21,6 @@ import type { NotFound } from "../shared/not-found";
 import { notFound } from "../shared/not-found";
 import type { Rejected } from "../shared/rejection";
 import { rejected } from "../shared/rejection";
-
-const UNIQUE_VIOLATION = "23505";
-const TAG_NAME_INDEX = "tags_user_name_unique";
 
 const tagColumns = { id: tags.id, name: tags.name };
 

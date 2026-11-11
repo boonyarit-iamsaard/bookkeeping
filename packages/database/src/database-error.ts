@@ -1,3 +1,7 @@
+export const UNIQUE_VIOLATION = "23505";
+export const FOREIGN_KEY_VIOLATION = "23503";
+export const RESTRICT_VIOLATION = "23001";
+
 export interface DatabaseError {
   /** The PostgreSQL SQLSTATE, such as `23505` for a unique violation. */
   code: string;

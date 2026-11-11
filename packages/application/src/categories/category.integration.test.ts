@@ -1,6 +1,9 @@
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
-import { databaseError } from "@bookkeeping/database/errors";
+import {
+  databaseError,
+  FOREIGN_KEY_VIOLATION,
+} from "@bookkeeping/database/errors";
 import {
   createTestUser,
   setupTestDatabase,
@@ -1163,7 +1166,9 @@ describe("removeCategory", () => {
         }
       } else {
         // The category vanished under the insert; its restrict FK refused it.
-        expect(databaseError(inserted.rejected)?.code).toBe("23503");
+        expect(databaseError(inserted.rejected)?.code).toBe(
+          FOREIGN_KEY_VIOLATION,
+        );
         expect(removed).toEqual({
           ok: true,
           value: { fallbackId: foodAndDrink.id, reassigned: 0 },

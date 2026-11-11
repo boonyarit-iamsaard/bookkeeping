@@ -1,7 +1,20 @@
-import { categories } from "@bookkeeping/database/categories";
+import {
+  CATEGORY_CHILD_NAME_INDEX,
+  CATEGORY_PARENT_ID_FK,
+  CATEGORY_PARENT_NAME_INDEX,
+  categories,
+} from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
-import { databaseError } from "@bookkeeping/database/errors";
-import { transactions } from "@bookkeeping/database/transactions";
+import {
+  databaseError,
+  FOREIGN_KEY_VIOLATION,
+  RESTRICT_VIOLATION,
+  UNIQUE_VIOLATION,
+} from "@bookkeeping/database/errors";
+import {
+  TRANSACTION_CATEGORY_FK,
+  transactions,
+} from "@bookkeeping/database/transactions";
 import type {
   CategoryKind,
   CategorySummary,
@@ -270,11 +283,6 @@ export interface RemoveCategoryOutcome {
   reassigned: number;
 }
 
-/** A restrict foreign key refusing the delete; 23503 for a deferred one. */
-const RESTRICT_VIOLATIONS = new Set(["23001", "23503"]);
-const TRANSACTION_CATEGORY_FK = "transactions_category_id_categories_id_fk";
-const CHILD_PARENT_FK = "categories_parent_id_categories_id_fk";
-
 /** Unwinds the removal once the category is found already gone. */
 class AlreadyRemoved extends Error {}
 
@@ -378,8 +386,13 @@ export async function removeCategory(
       return err(notFound());
     }
     const cause = databaseError(error);
-    if (cause && RESTRICT_VIOLATIONS.has(cause.code)) {
-      if (cause.constraint === CHILD_PARENT_FK) {
+    // A restrict foreign key refuses the delete; a deferred one reports a foreign key violation.
+    if (
+      cause &&
+      (cause.code === RESTRICT_VIOLATION ||
+        cause.code === FOREIGN_KEY_VIOLATION)
+    ) {
+      if (cause.constraint === CATEGORY_PARENT_ID_FK) {
         return err({ code: "has-children" });
       }
       if (cause.constraint === TRANSACTION_CATEGORY_FK) {
@@ -670,17 +683,13 @@ async function insertCategory(
   return row;
 }
 
-const UNIQUE_VIOLATION = "23505";
-const PARENT_NAME_INDEX = "categories_parent_name_unique";
-const CHILD_NAME_INDEX = "categories_child_name_unique";
-
 /** Whether a write tripped either scoped name index: tree-level or per-parent. */
 function isScopedNameViolation(error: unknown): boolean {
   const cause = databaseError(error);
   return (
     cause?.code === UNIQUE_VIOLATION &&
-    (cause.constraint === PARENT_NAME_INDEX ||
-      cause.constraint === CHILD_NAME_INDEX)
+    (cause.constraint === CATEGORY_PARENT_NAME_INDEX ||
+      cause.constraint === CATEGORY_CHILD_NAME_INDEX)
   );
 }
 

@@ -1,10 +1,9 @@
 import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import { insertTransaction } from "@bookkeeping/application/testing/transaction-fixture";
+import { createWalletForTest } from "@bookkeeping/application/testing/wallet-fixture";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
-import { wallets } from "@bookkeeping/database/wallets";
-import type { WalletType } from "@bookkeeping/domain/wallets";
 import { eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { describe, expect, test } from "vitest";
@@ -40,32 +39,6 @@ const { withRollback } = setupTestDatabase();
 const TRANSACTIONS_URL = `${TEST_API_ORIGIN}/v1/transactions`;
 const UNKNOWN_TRANSACTION_ID = "01999999-0000-7000-8000-000000000000";
 
-interface WalletFixture {
-  ownerId: string;
-  name: string;
-  type: WalletType;
-  openingAmount?: bigint;
-}
-
-/** Persists a wallet row directly; creation over HTTP has its own ticket. */
-async function insertWallet(
-  db: Database,
-  fixture: Readonly<WalletFixture>,
-): Promise<string> {
-  const [row] = await db
-    .insert(wallets)
-    .values({
-      userId: fixture.ownerId,
-      name: fixture.name,
-      type: fixture.type,
-      currency: "THB",
-      openingAmount: fixture.openingAmount ?? 0n,
-      openingDate: "2026-09-01",
-    })
-    .returning({ id: wallets.id });
-  return row.id;
-}
-
 interface OwnerFixture {
   cookie: string;
   ownerId: string;
@@ -86,16 +59,17 @@ async function createOwner({
 }: Readonly<OwnerRequest>): Promise<OwnerFixture> {
   const { cookie, ownerId } = await createOwnerSession(db);
   await initializeDefaultCategories(db, ownerId);
-  const cashId = await insertWallet(db, {
+  const { id: cashId } = await createWalletForTest(db, {
     ownerId,
     name: "Cash",
     type: "cash",
     openingAmount: 1_000_000n,
   });
-  const bankId = await insertWallet(db, {
+  const { id: bankId } = await createWalletForTest(db, {
     ownerId,
     name: "Bank",
     type: "bank_account",
+    openingAmount: 0n,
   });
   const tree = await db
     .select({ id: categories.id, kind: categories.kind, name: categories.name })

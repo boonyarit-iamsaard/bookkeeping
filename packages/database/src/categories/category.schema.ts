@@ -1,8 +1,8 @@
 import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";
 import { relations, sql } from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   boolean,
+  foreignKey,
   index,
   integer,
   pgEnum,
@@ -13,6 +13,10 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "../auth/auth.schema";
+
+export const CATEGORY_PARENT_NAME_INDEX = "categories_parent_name_unique";
+export const CATEGORY_CHILD_NAME_INDEX = "categories_child_name_unique";
+export const CATEGORY_PARENT_ID_FK = "categories_parent_id_categories_id_fk";
 
 export const categoryKindEnum = pgEnum("category_kind", CATEGORY_KINDS);
 
@@ -28,9 +32,7 @@ export const categories = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     kind: categoryKindEnum("kind").notNull(),
-    parentId: uuid("parent_id").references((): AnyPgColumn => categories.id, {
-      onDelete: "restrict",
-    }),
+    parentId: uuid("parent_id"),
     name: text("name").notNull(),
     // A stable catalog identifier, never a glyph name; unknown ids render the
     // generic icon.
@@ -45,14 +47,21 @@ export const categories = pgTable(
       .notNull(),
   },
   (table) => [
+    foreignKey({
+      name: CATEGORY_PARENT_ID_FK,
+      columns: [table.parentId],
+      foreignColumns: [table.id],
+    })
+      .onDelete("restrict")
+      .onUpdate("no action"),
     index("categories_user_id_kind_idx").on(table.userId, table.kind),
     uniqueIndex("categories_one_protected_per_tree")
       .on(table.userId, table.kind)
       .where(sql`${table.isProtected}`),
-    uniqueIndex("categories_parent_name_unique")
+    uniqueIndex(CATEGORY_PARENT_NAME_INDEX)
       .on(table.userId, table.kind, sql`lower(${table.name})`)
       .where(sql`${table.parentId} is null`),
-    uniqueIndex("categories_child_name_unique")
+    uniqueIndex(CATEGORY_CHILD_NAME_INDEX)
       .on(table.parentId, sql`lower(${table.name})`)
       .where(sql`${table.parentId} is not null`),
   ],

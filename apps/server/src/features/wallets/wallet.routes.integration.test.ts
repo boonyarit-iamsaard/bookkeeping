@@ -1,9 +1,9 @@
+import { createWalletForTest } from "@bookkeeping/application/testing/wallet-fixture";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { transactions } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import type { WalletType } from "@bookkeeping/domain/wallets";
 import { eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { describe, expect, test } from "vitest";
@@ -28,30 +28,6 @@ const { withRollback } = setupTestDatabase();
 
 const WALLETS_URL = `${TEST_API_ORIGIN}/v1/wallets`;
 const UNKNOWN_WALLET_ID = "01999999-0000-7000-8000-000000000000";
-
-interface WalletFixture {
-  ownerId: string;
-  name: string;
-  type: WalletType;
-  openingAmount: bigint;
-  openingDate: CalendarDate;
-}
-
-/** Persists a wallet row directly; creation over HTTP has its own ticket. */
-async function insertWallet(db: Database, fixture: Readonly<WalletFixture>) {
-  const [row] = await db
-    .insert(wallets)
-    .values({
-      userId: fixture.ownerId,
-      name: fixture.name,
-      type: fixture.type,
-      currency: "THB",
-      openingAmount: fixture.openingAmount,
-      openingDate: fixture.openingDate,
-    })
-    .returning({ id: wallets.id });
-  return row.id;
-}
 
 function getWallets(app: Hono<AppEnv>, cookie?: string) {
   return app.request(WALLETS_URL, {
@@ -105,7 +81,7 @@ describe("GET /v1/wallets/{walletId}", () => {
         auth: createTestAuthGateway(db),
       });
       const { cookie, ownerId } = await createOwnerSession(db);
-      const id = await insertWallet(db, {
+      const { id } = await createWalletForTest(db, {
         ownerId,
         name: "Old cash",
         type: "cash",
@@ -730,7 +706,7 @@ describe("DELETE /v1/wallets/{walletId}", () => {
         auth: createTestAuthGateway(db),
       });
       const { cookie, ownerId } = await createOwnerSession(db);
-      const id = await insertWallet(db, {
+      const { id } = await createWalletForTest(db, {
         ownerId,
         name: "Disposable cash",
         type: "cash",
@@ -753,14 +729,14 @@ describe("DELETE /v1/wallets/{walletId}", () => {
         auth: createTestAuthGateway(db),
       });
       const { cookie, ownerId } = await createOwnerSession(db);
-      const currentId = await insertWallet(db, {
+      const { id: currentId } = await createWalletForTest(db, {
         ownerId,
         name: "Current movement",
         type: "cash",
         openingAmount: 250n,
         openingDate: "2026-09-01",
       });
-      const destinationId = await insertWallet(db, {
+      const { id: destinationId } = await createWalletForTest(db, {
         ownerId,
         name: "Destination",
         type: "bank_account",
