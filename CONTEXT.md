@@ -80,6 +80,10 @@ _Avoid_: Profit, savings
 A month's net expenses for one expense category, with an expense and its refunds counted under the expense's current category.
 _Avoid_: Category expenses, budget usage
 
+**Category share base**:
+A month's positive Category spending summed across expense parent categories; each parent's share of the month's spending is measured against it. Parents whose refunds outran their spending are left out, so it may exceed Net expenses, and it is zero when no parent has positive spending.
+_Avoid_: Positive spending, gross category spending
+
 **Transfer**:
 Movement of money between two holdings owned by the same user.
 
