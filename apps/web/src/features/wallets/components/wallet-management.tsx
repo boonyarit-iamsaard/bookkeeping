@@ -9,9 +9,12 @@ import { formatApiMoneyInput } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { walletQueries } from "@/core/api/queries";
 import { useFormWrites } from "@/core/api/use-form-writes";
-import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
 import { WalletTile } from "@/features/wallets/components/wallet-tile";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
+import {
+  describeWalletFieldError,
+  describeWalletRejection,
+} from "@/features/wallets/wallet-rejection";
 import { ConfirmPanel } from "@/shared/components/confirm-panel";
 import { DatePicker } from "@/shared/components/date-picker";
 import { ErrorNotice } from "@/shared/components/error-notice";
@@ -37,44 +40,7 @@ const NO_OUTCOME = { error: "", notice: "" };
 const manageCardClass =
   "flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-card sm:p-7";
 
-const ERROR_MESSAGES: Record<string, string> = {
-  "wallet-not-found": "This wallet is no longer available. Return to Wallets.",
-  "not-found": "This wallet is no longer available. Return to Wallets.",
-  "invalid-opening":
-    "Enter a valid opening amount and a date on or before today.",
-  "movement-before-opening":
-    "Opening date cannot be after an existing movement, including retained deleted entries. Choose an earlier date.",
-  "history-remains":
-    "This wallet has retained transaction or change history and cannot be deleted. Archive it to remove it from entry pickers.",
-  unauthenticated: "Sign in again to manage this wallet.",
-};
-
-const FIELD_ERROR_MESSAGES: Record<string, string> = {
-  "invalid-format": "Check the amount and date and try again.",
-  "in-future": "Opening date cannot be in the future.",
-  "movement-before-opening":
-    "Opening date cannot be after an existing movement, including retained deleted entries. Choose an earlier date.",
-};
-
-function describeWalletFieldError({
-  code,
-  detail,
-}: Readonly<ApiFieldError>): string {
-  return (
-    detail ??
-    FIELD_ERROR_MESSAGES[code] ??
-    "Check the amount and date and try again."
-  );
-}
-
-// These writes show no fields, so a field error arrives as the message.
-function describeWalletRejection(
-  rejection: Readonly<ApiRejection>,
-): string | undefined {
-  return ERROR_MESSAGES[rejection.problem.code] ?? rejection.message;
-}
-
-/** How every wallet write reads a refusal. */
+/** How every wallet write reads a refusal. These writes show no fields, so a field error arrives as the message. */
 const WALLET_REFUSAL_WORDING = {
   describeFieldError: describeWalletFieldError,
   describeRejection: describeWalletRejection,

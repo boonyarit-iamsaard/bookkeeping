@@ -7,7 +7,6 @@ import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryQueries } from "@/core/api/queries";
 import { useFormWrites } from "@/core/api/use-form-writes";
-import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
 import type { CategoryFormInput } from "@/features/categories/category-form-schema";
 import {
   categoryFormSchema,
@@ -16,13 +15,17 @@ import {
   toCreateCategorySubmission,
 } from "@/features/categories/category-form-schema";
 import type { CreateCategoryOutcome } from "@/features/categories/category-mutations";
-import { CATEGORY_MESSAGES } from "@/features/categories/category-name";
+import {
+  CATEGORY_FORM_FIELDS,
+  categoryFieldOf,
+  describeCategoryFieldError,
+  describeCategoryRejection,
+} from "@/features/categories/category-rejection";
 import { suggestIcons } from "@/features/categories/icon-suggestions";
 
 type CreateCategoryRequest = components["schemas"]["CreateCategoryRequest"];
 type Category = components["schemas"]["Category"];
 type CategoryCollection = components["schemas"]["CategoryCollection"];
-type CategoryFormField = keyof CategoryFormInput;
 
 interface SavedCategory {
   category: Category;
@@ -40,71 +43,13 @@ interface UseCreateCategoryFormOptions {
 
 type IconField = "iconId" | "parentIconId";
 
-const FIELD_ERROR_MESSAGES: Record<string, string> = {
-  "blank-name": CATEGORY_MESSAGES.blankName,
-  "name-too-long": CATEGORY_MESSAGES.nameTooLong,
-  "unknown-icon": CATEGORY_MESSAGES.unknownIcon,
-  "duplicate-name": "A category with this name already exists here.",
-  "parent-not-found":
-    "That parent is not available. Choose another or create one.",
-  "parent-is-child":
-    "A child category cannot hold children. Choose a parent category.",
-  "parent-protected":
-    "Uncategorized cannot hold children. Choose another parent.",
-};
-
 /** The top local recommendation, or the generic icon when nothing matches. */
 function recommendedIconId(name: string): string {
   return suggestIcons(name)[0]?.id ?? GENERIC_ICON_ID;
 }
 
-function describeCategoryFieldError({
-  code,
-  detail,
-  pointer,
-}: Readonly<ApiFieldError>): string {
-  if (code === "duplicate-name" && pointer.startsWith("#/parent")) {
-    return "A category with this name already exists in this tree. Pick it as the parent instead.";
-  }
-  return detail ?? FIELD_ERROR_MESSAGES[code] ?? "This value was not accepted.";
-}
-
-function fieldFromPointer(pointer: string): CategoryFormField | undefined {
-  switch (pointer) {
-    case "#/parent/create/name":
-      return "parentName";
-    case "#/parent/create/iconId":
-      return "parentIconId";
-    case "#/parent":
-      return "parent";
-    case "#/name":
-      return "name";
-    case "#/iconId":
-      return "iconId";
-    default:
-      return undefined;
-  }
-}
-
 const LIST_NOT_REFRESHED =
   "Category saved; list could not refresh. Retry the category list to continue.";
-
-const CATEGORY_FORM_FIELDS: readonly CategoryFormField[] = [
-  "name",
-  "iconId",
-  "parent",
-  "parentName",
-  "parentIconId",
-];
-
-function describeCategoryRejection(
-  rejection: Readonly<ApiRejection>,
-): string | undefined {
-  if (rejection.problem.code === "unauthenticated") {
-    return "Sign in again to create a category.";
-  }
-  return rejection.message;
-}
 
 export function useCreateCategoryForm({
   kind,
@@ -130,7 +75,7 @@ export function useCreateCategoryForm({
     clearFieldError,
   } = useFormWrites({
     fields: CATEGORY_FORM_FIELDS,
-    fieldOf: fieldFromPointer,
+    fieldOf: categoryFieldOf,
     writes: {
       create: {
         kind: "create",

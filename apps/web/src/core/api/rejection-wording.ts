@@ -44,3 +44,19 @@ export function createFieldErrorDescriber<Code extends string>(
   return ({ code }) =>
     isPublished(code) ? messages[code] : FALLBACK_FIELD_MESSAGE;
 }
+
+/**
+ * A feature's error-bar describer for the blockers it publishes, from a table
+ * keyed by every blocker code. A shared code reads its shared wording; any
+ * other problem reads its own message.
+ */
+export function createBlockerDescriber<Code extends string>(
+  messages: Readonly<Record<Code, string>>,
+): (rejection: Readonly<ApiRejection>) => string | undefined {
+  const isPublished = (code: string): code is Code =>
+    Object.hasOwn(messages, code);
+  return (rejection) => {
+    const { code } = rejection.problem;
+    return isPublished(code) ? messages[code] : describeRejection(rejection);
+  };
+}

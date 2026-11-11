@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { SharedRejectionCode } from "./rejection-wording";
 import {
+  createBlockerDescriber,
   createFieldErrorDescriber,
   describeRejection,
   describeSharedRejection,
@@ -84,5 +85,28 @@ describe("createFieldErrorDescriber", () => {
     expect(describeFieldError(fieldError("toString"))).toBe(
       FALLBACK_FIELD_MESSAGE,
     );
+  });
+});
+
+describe("createBlockerDescriber", () => {
+  const describeBlocker = createBlockerDescriber({
+    "in-use": "Still in use.",
+    "has-children": "Has children.",
+  });
+
+  test("words each blocker the feature publishes", () => {
+    expect(describeBlocker(rejection("in-use"))).toBe("Still in use.");
+    expect(describeBlocker(rejection("has-children"))).toBe("Has children.");
+  });
+
+  test("words the shared codes in the shared voice", () => {
+    expect(describeBlocker(rejection("not-found"))).toBe(
+      "This item no longer exists. It may have been deleted elsewhere.",
+    );
+  });
+
+  test("leaves any other problem to its own message, never an inherited property", () => {
+    expect(describeBlocker(rejection("conflict"))).toBe(OWN_MESSAGE);
+    expect(describeBlocker(rejection("toString"))).toBe(OWN_MESSAGE);
   });
 });
