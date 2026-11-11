@@ -42,11 +42,11 @@ const invalidCommand = {
   code: "invalid-command",
 };
 
-const refundsExist = {
-  type: "urn:bookkeeping:problem:refunds-exist",
-  title: "Expense has refunds",
+const conflict = {
+  type: "urn:bookkeeping:problem:conflict-a",
+  title: "Write conflicts",
   status: 409,
-  code: "refunds-exist",
+  code: "conflict-a",
 };
 
 /** Records the order the collaborators were reached in. */
@@ -248,7 +248,7 @@ describe("createFormWrites", () => {
             rejected(422, {
               ...invalidCommand,
               errors: [
-                { pointer: "#/name", code: "duplicate-name" },
+                { pointer: "#/name", code: "code-a" },
                 { pointer: "#/", code: "unrecognized-keys" },
               ],
             }),
@@ -262,7 +262,7 @@ describe("createFormWrites", () => {
 
     expect(writes.state()).toMatchObject({
       serverError: "Described unrecognized-keys",
-      fieldErrors: { name: "Described duplicate-name" },
+      fieldErrors: { name: "Described code-a" },
     });
     expect(journal.refresh).not.toHaveBeenCalled();
   });
@@ -281,9 +281,7 @@ describe("createFormWrites", () => {
           send: async (_input: TagName) =>
             rejected(422, {
               ...invalidCommand,
-              errors: [
-                { pointer: "#/parent/create/name", code: "duplicate-name" },
-              ],
+              errors: [{ pointer: "#/parent/create/name", code: "code-a" }],
             }),
           describeFieldError: ({ code }) => `Described ${code}`,
           onDone: vi.fn(),
@@ -295,7 +293,7 @@ describe("createFormWrites", () => {
 
     expect(writes.state()).toMatchObject({
       serverError: undefined,
-      fieldErrors: { parentName: "Described duplicate-name" },
+      fieldErrors: { parentName: "Described code-a" },
     });
   });
 
@@ -308,7 +306,7 @@ describe("createFormWrites", () => {
       writes: () => ({
         remove: {
           kind: "delete",
-          send: async () => rejected(409, refundsExist),
+          send: async () => rejected(409, conflict),
           describeRejection: (rejection) =>
             `Blocked by ${rejection.problem.code}`,
           onDone: vi.fn(),
@@ -318,17 +316,17 @@ describe("createFormWrites", () => {
 
     await writes.submit("remove");
 
-    expect(writes.state().serverError).toBe("Blocked by refunds-exist");
+    expect(writes.state().serverError).toBe("Blocked by conflict-a");
   });
 
   test("a rejection re-reads the screen only when the feature asks", async () => {
     const journal = createJournal();
     const refreshOnRejection = vi.fn(
       (rejection: Readonly<ApiRejection>) =>
-        rejection.problem.code === "refunds-exist",
+        rejection.problem.code === "conflict-a",
     );
     const responses = [
-      rejected(409, refundsExist),
+      rejected(409, conflict),
       rejected(422, { ...invalidCommand, detail: "Nothing to change" }),
     ];
     const writes = createFormWrites({
@@ -366,7 +364,7 @@ describe("createFormWrites", () => {
       writes: () => ({
         save: {
           kind: "change",
-          send: async () => rejected(409, refundsExist),
+          send: async () => rejected(409, conflict),
           refreshOnRejection: () => true,
           onDone: vi.fn(),
         },
@@ -375,10 +373,7 @@ describe("createFormWrites", () => {
 
     await writes.submit("save");
 
-    expect(journal.entries).toEqual([
-      "refresh []",
-      "message Expense has refunds",
-    ]);
+    expect(journal.entries).toEqual(["refresh []", "message Write conflicts"]);
   });
 
   test("starting any write clears what another write left", async () => {
@@ -393,14 +388,14 @@ describe("createFormWrites", () => {
           send: async (_input: TagName) =>
             rejected(422, {
               ...invalidCommand,
-              errors: [{ pointer: "#/name", code: "blank-name" }],
-              detail: "Check the name",
+              errors: [{ pointer: "#/name", code: "code-b" }],
+              detail: "Check the entry",
             }),
           onDone: vi.fn(),
         },
         remove: {
           kind: "delete",
-          send: async () => rejected(409, refundsExist),
+          send: async () => rejected(409, conflict),
           onDone: vi.fn(),
         },
       }),
@@ -414,7 +409,7 @@ describe("createFormWrites", () => {
     await writes.submit("remove");
 
     expect(writes.state()).toMatchObject({
-      serverError: "Expense has refunds",
+      serverError: "Write conflicts",
       fieldErrors: {},
     });
   });
@@ -432,7 +427,7 @@ describe("createFormWrites", () => {
             rejected(422, {
               ...invalidCommand,
               errors: [
-                { pointer: "#/name", code: "blank-name" },
+                { pointer: "#/name", code: "code-b" },
                 { pointer: "#/color", code: "invalid" },
               ],
             }),
