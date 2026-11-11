@@ -24,9 +24,6 @@ export const Route = createFileRoute("/_app/wallets/")({
 function WalletsPage() {
   const { data } = useSuspenseQuery(walletQueries.list());
   const { created } = Route.useSearch();
-  if (!data) {
-    throw new Error("The wallets query returned no data");
-  }
 
   return (
     <Page layout="wide">

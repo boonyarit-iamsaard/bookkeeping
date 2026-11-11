@@ -12,17 +12,22 @@ type ReadParams<Path extends ReadPath> = paths[Path]["get"]["parameters"];
 interface ReadQueryOptions<Path extends ReadPath, Output> {
   path: Path;
   params: ReadParams<Path>;
-  /** The concrete client call; the generic one cannot be typed for every path. */
+  /**
+   * The concrete client call; the generic one cannot be typed for every path.
+   * openapi-fetch types a failure's `data` as absent, so `undefined` is kept
+   * apart from `Output` here and the read's data never includes it.
+   */
   read: (
     params: ReadParams<Path>,
     signal: AbortSignal,
-  ) => Promise<ApiResponse<Output>>;
+  ) => Promise<ApiResponse<Output | undefined>>;
 }
 
 /**
  * Query options for one documented read. The key is the OpenAPI path and the
  * parameters, so cached reads are addressed exactly as the API is, and the
- * data keeps the server's response shape.
+ * data keeps the server's response shape. A documented read always answers
+ * with a body, so the data is never `undefined`.
  */
 function createReadQuery<Path extends ReadPath, Output>({
   path,
@@ -36,7 +41,11 @@ function createReadQuery<Path extends ReadPath, Output>({
       if (!outcome.ok) {
         throw new ApiProblemError(outcome.error);
       }
-      return outcome.value;
+      const { value } = outcome;
+      if (value === undefined) {
+        throw new Error(`The read ${path} answered with no body`);
+      }
+      return value;
     },
   });
 }

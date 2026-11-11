@@ -35,7 +35,7 @@ export const Route = createFileRoute("/_app/wallets/$walletId")({
       // Rows take their category color from this read.
       context.queryClient.ensureQueryData(categoryQueries.list()),
     ]);
-    return { walletName: wallet?.name };
+    return { walletName: wallet.name };
   },
   // After the loader, so its data is typed here.
   head: ({ loaderData }) => ({
@@ -51,9 +51,6 @@ function WalletPage() {
   const { cursor, created } = Route.useSearch();
   const { data: wallet } = useSuspenseQuery(walletQueries.detail(walletId));
   const { data: page } = useSuspenseQuery(walletHistoryQuery(walletId, cursor));
-  if (!wallet || !page) {
-    throw new Error("The wallet queries returned no data");
-  }
   const nextCursor = page.page.nextCursor;
 
   return (

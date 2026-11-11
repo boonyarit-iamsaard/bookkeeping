@@ -17,9 +17,6 @@ export const Route = createFileRoute("/_app/wallets/$walletId_/manage")({
 function ManageWalletPage() {
   const { walletId } = Route.useParams();
   const { data: wallet } = useSuspenseQuery(walletQueries.detail(walletId));
-  if (!wallet) {
-    throw new Error("The wallet query returned no data");
-  }
 
   return (
     <Page layout="narrow">
