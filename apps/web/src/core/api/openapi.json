@@ -1984,6 +1984,9 @@
           "netExpenses": {
             "$ref": "#/components/schemas/Money"
           },
+          "shareBase": {
+            "$ref": "#/components/schemas/Money"
+          },
           "parents": {
             "type": "array",
             "items": {
@@ -1994,6 +1997,7 @@
         "required": [
           "month",
           "netExpenses",
+          "shareBase",
           "parents"
         ],
         "additionalProperties": false

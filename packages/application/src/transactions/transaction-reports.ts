@@ -230,6 +230,11 @@ export async function getCategorySpending(
       (total, parent) => total + parent.spending,
       0n,
     ),
+    shareBase: parentSpending.reduce(
+      (total, parent) =>
+        parent.spending > 0n ? total + parent.spending : total,
+      0n,
+    ),
     parents: parentSpending,
   };
 }

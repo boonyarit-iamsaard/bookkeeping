@@ -140,19 +140,15 @@ export function createCategoryBreakdown(
     .toSorted(inCategoryOrder)
     .map((parent) => ({ parent, amount: parseApiMoney(parent.spending) }));
   const hasBar = parseApiMoney(spending.netExpenses) > 0n;
-  const positiveSpending = parents.reduce(
-    (total, { amount }) => (amount > 0n ? total + amount : total),
-    0n,
-  );
+  const shareBase = parseApiMoney(spending.shareBase);
 
   const segments = parents
     .filter(({ amount }) => amount >= 0n)
     .toSorted(largestFirst)
     .map(({ parent, amount }) => {
       const share =
-        positiveSpending > 0n
-          ? Number((amount * SHARE_SCALE) / positiveSpending) /
-            Number(SHARE_SCALE)
+        shareBase > 0n
+          ? Number((amount * SHARE_SCALE) / shareBase) / Number(SHARE_SCALE)
           : 0;
       return {
         amount,

@@ -123,6 +123,7 @@ export const categorySpendingResponseSchema = z
   .object({
     month: z.string().regex(/^\d{4}-\d{2}$/),
     netExpenses: moneySchema,
+    shareBase: moneySchema,
     parents: z.array(
       z
         .object({
@@ -159,6 +160,7 @@ export function presentCategorySpending(
   return {
     month: spending.month,
     netExpenses: presentThb(spending.netExpenses),
+    shareBase: presentThb(spending.shareBase),
     parents: spending.parents.map((parent) => ({
       id: parent.id,
       name: parent.name,

@@ -468,6 +468,7 @@ describe("GET /v1/reports/category-spending", () => {
       expect(spending).toEqual({
         month: "2026-09",
         netExpenses: { value: "1600.00", currency: "THB" },
+        shareBase: { value: "1600.00", currency: "THB" },
         parents: [
           {
             id: tree.food,
@@ -662,6 +663,8 @@ describe("GET /v1/reports/category-spending", () => {
       );
       expect(september.netExpenses).toEqual(monthly.netExpenses);
       expect(september.netExpenses.value).toBe("200.00");
+      // Food is left out of the share base, so it exceeds Net expenses.
+      expect(september.shareBase).toEqual({ value: "300.00", currency: "THB" });
     });
   });
 
@@ -749,6 +752,7 @@ describe("GET /v1/reports/category-spending", () => {
       expect(spending).toEqual({
         month: "2026-09",
         netExpenses: { value: "0.00", currency: "THB" },
+        shareBase: { value: "0.00", currency: "THB" },
         parents: [],
       });
     });
