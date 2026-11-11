@@ -18,14 +18,14 @@ import type {
   WalletSummary,
   WalletType,
 } from "@bookkeeping/domain/wallets";
-import { and, eq, lt, or, sql } from "drizzle-orm";
+import { asc, eq, or, sql } from "drizzle-orm";
 import type { IdempotentCreator } from "../idempotency/idempotency";
 import { defineIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
 import { notFound } from "../shared/not-found";
 import type { Rejected } from "../shared/rejection";
-import { rejected, rejectedOrNone } from "../shared/rejection";
+import { rejectedOrNone } from "../shared/rejection";
 import {
   selectWalletSummaries,
   summarizeWalletBalance,
@@ -150,15 +150,26 @@ export type WalletOpeningRejected = Rejected<WalletOpeningRejection>;
 const MAX_OPENING_AMOUNT = 10n ** BigInt(MAX_WHOLE_DIGITS) * 100n - 1n;
 
 /**
- * Accepts an opening independently of how it arrived: the amount must fit
- * the stored range and the date must be a real calendar date no later than
- * today in Bangkok. Every rejection is reported, so a client can correct
- * them all at once.
+ * The operation supplies today and, for an existing wallet, loads the earliest
+ * movement under the wallet lock before accepting an opening.
  */
-export function validateWalletOpening(
+export interface WalletOpeningFacts {
+  today: CalendarDate;
+  /** Earliest cash movement date, deleted transactions included; null without movements. */
+  earliestMovementDate: CalendarDate | null;
+}
+
+/**
+ * Accepts an opening independently of how it arrived: the amount must fit
+ * the stored range and the date must be real, no later than the supplied
+ * today and no later than the earliest movement. Each field reports at most
+ * one rejection, so a client can correct all refused fields at once.
+ */
+export function acceptWalletOpening(
   opening: Readonly<WalletOpening>,
+  facts: Readonly<WalletOpeningFacts>,
 ): Result<WalletOpening, WalletOpeningRejected> {
-  const rejections = collectOpeningRejections(opening);
+  const rejections = collectOpeningRejections(opening, facts);
   const refused = rejectedOrNone(rejections);
   if (refused) {
     return err(refused);
@@ -171,6 +182,7 @@ export function validateWalletOpening(
 
 function collectOpeningRejections(
   opening: Readonly<WalletOpening>,
+  facts: Readonly<WalletOpeningFacts>,
 ): WalletOpeningRejection[] {
   const rejections: WalletOpeningRejection[] = [];
   if (
@@ -182,8 +194,13 @@ function collectOpeningRejections(
   const openingDate = parseCalendarDate(opening.openingDate);
   if (!openingDate.ok) {
     rejections.push({ code: "invalid", field: "openingDate" });
-  } else if (openingDate.value > todayIn({ timeZone: APP_TIME_ZONE })) {
+  } else if (openingDate.value > facts.today) {
     rejections.push({ code: "in-future", field: "openingDate" });
+  } else if (
+    facts.earliestMovementDate !== null &&
+    openingDate.value > facts.earliestMovementDate
+  ) {
+    rejections.push({ code: "movement-before-opening", field: "openingDate" });
   }
   return rejections;
 }
@@ -197,18 +214,19 @@ export interface WalletCreationCommand extends WalletOpening {
 
 /**
  * Accepts a wallet command: the name must have visible characters and the
- * opening must satisfy `validateWalletOpening`. Every rejection is
+ * opening must satisfy `acceptWalletOpening`. Every rejection is
  * reported, so a client can correct them all at once.
  */
-export function validateWalletCreation(
+export function acceptWalletCreation(
   command: Readonly<WalletCreationCommand>,
+  facts: Readonly<WalletOpeningFacts>,
 ): Result<WalletCreationCommand, WalletRejected> {
   const name = command.name.trim();
   const rejections: WalletRejection[] = [];
   if (name === "") {
     rejections.push({ code: "empty", field: "name" });
   }
-  rejections.push(...collectOpeningRejections(command));
+  rejections.push(...collectOpeningRejections(command, facts));
   const refused = rejectedOrNone(rejections);
   if (refused) {
     return err(refused);
@@ -241,9 +259,12 @@ export const createWallet: IdempotentCreator<
 > = defineIdempotentCreation({
   operation: "wallets.create",
   prepare: (input: Readonly<CreateWalletInput>) =>
-    validateWalletCreation(input),
+    acceptWalletCreation(input, {
+      today: todayIn({ timeZone: APP_TIME_ZONE }),
+      earliestMovementDate: null,
+    }),
   // The insert has no expected failure of its own; every rejection happens
-  // during validation.
+  // during acceptance.
   insert: async (tx, { ownerId, command }) =>
     ok(await insertWallet(tx, { ownerId, ...command })),
 });
@@ -280,7 +301,7 @@ async function insertWallet(
     openingDate: row.openingDate,
     archivedAt: row.archivedAt,
     savings: row.savings,
-    // Validation rejects future openings, so the opening is already in effect.
+    // Acceptance rejects future openings, so the opening is already in effect.
     balance: row.openingAmount,
   };
 }
@@ -291,22 +312,19 @@ export type ReplaceWalletOpeningError = WalletOpeningRejected | NotFound;
 
 /**
  * Replaces the opening balance as one value: amount and date change together
- * or not at all. An opening that predates no movement, deleted ones included,
+ * or not at all. An opening no later than any movement, deleted ones included,
  * is applied atomically with its change-history row under an exclusive
  * wallet lock, which serializes it with transaction share locks. Replacing
  * an opening with itself is a no-op that records nothing. Ownership is
  * checked with the lock, so an unowned, unknown, or malformed id is not
  * found alike.
+ * Not-found is decided before judging the opening, which needs the locked
+ * wallet's movements.
  */
 export async function replaceWalletOpening(
   db: Database,
   input: Readonly<ReplaceWalletOpeningInput>,
 ): Promise<Result<WalletSummary, ReplaceWalletOpeningError>> {
-  const validated = validateWalletOpening(input);
-  if (!validated.ok) {
-    return validated;
-  }
-  const opening = validated.value;
   if (!isUuid(input.id)) {
     return err(notFound());
   }
@@ -317,23 +335,24 @@ export async function replaceWalletOpening(
     }
     // Deleted movements are retained history; an opening cannot exclude them.
     const [movement] = await tx
-      .select({ id: transactions.id })
+      .select({ transactionDate: transactions.transactionDate })
       .from(transactions)
       .where(
-        and(
-          or(
-            eq(transactions.walletId, input.id),
-            eq(transactions.destinationWalletId, input.id),
-          ),
-          lt(transactions.transactionDate, opening.openingDate),
+        or(
+          eq(transactions.walletId, input.id),
+          eq(transactions.destinationWalletId, input.id),
         ),
       )
+      .orderBy(asc(transactions.transactionDate))
       .limit(1);
-    if (movement) {
-      return err(
-        rejected({ code: "movement-before-opening", field: "openingDate" }),
-      );
+    const accepted = acceptWalletOpening(input, {
+      today: todayIn({ timeZone: APP_TIME_ZONE }),
+      earliestMovementDate: movement?.transactionDate ?? null,
+    });
+    if (!accepted.ok) {
+      return accepted;
     }
+    const opening = accepted.value;
     if (
       current.openingAmount !== opening.openingAmount ||
       current.openingDate !== opening.openingDate

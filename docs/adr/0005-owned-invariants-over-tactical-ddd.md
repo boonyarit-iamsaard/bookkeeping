@@ -24,6 +24,14 @@ aggregate classes, repositories, domain events, or bounded contexts.
 
 ## Consequences
 
+- A rule that is a single existence check on records the operation has
+  locked, or that a database constraint enforces (wallet deletion's history
+  check, category removal's protected and child checks, the category guarded
+  update, the tag merge), may stay inline in its operation. A pure step over
+  one boolean would add a layer without adding locality, and moving the
+  constraint-backed checks would weaken their concurrency guarantees. A pure
+  step is required once a rule combines several facts or reads the clock, as
+  the wallet opening rule does. Decided in the #273 review.
 - Revisit when a term acquires a second meaning (for example a planned versus
   recorded expense in budgeting) or when an invariant spans operations that
   cannot share one lock.

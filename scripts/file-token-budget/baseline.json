@@ -18,5 +18,5 @@
   "packages/application/src/transactions/transaction-create.integration.test.ts": 22107,
   "packages/application/src/transactions/transaction-reads.integration.test.ts": 28549,
   "packages/application/src/transactions/transaction-update.integration.test.ts": 29300,
-  "packages/application/src/wallets/wallet.integration.test.ts": 25728
+  "packages/application/src/wallets/wallet.integration.test.ts": 24847
 }

@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { WalletCreationCommand, WalletOpening } from "./wallet";
-import { validateWalletCreation, validateWalletOpening } from "./wallet";
+import { acceptWalletCreation, acceptWalletOpening } from "./wallet";
 
 const command: WalletCreationCommand = {
   name: "Cash",
@@ -10,18 +10,19 @@ const command: WalletCreationCommand = {
   openingDate: "2026-09-01",
 };
 
-describe("validateWalletCreation", () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+const facts = { today: "2026-09-14", earliestMovementDate: null };
 
+describe("acceptWalletCreation", () => {
   test("accepts a command and normalizes the name", () => {
     expect(
-      validateWalletCreation({
-        ...command,
-        name: "  Kasikorn savings ",
-        openingAmount: -999_999_999_999_999_99n,
-      }),
+      acceptWalletCreation(
+        {
+          ...command,
+          name: "  Kasikorn savings ",
+          openingAmount: -999_999_999_999_999_99n,
+        },
+        facts,
+      ),
     ).toEqual({
       ok: true,
       value: {
@@ -33,7 +34,7 @@ describe("validateWalletCreation", () => {
   });
 
   test("rejects a blank name", () => {
-    expect(validateWalletCreation({ ...command, name: " \t" })).toEqual({
+    expect(acceptWalletCreation({ ...command, name: " \t" }, facts)).toEqual({
       ok: false,
       error: {
         code: "rejected",
@@ -47,7 +48,9 @@ describe("validateWalletCreation", () => {
       1_000_000_000_000_000_00n,
       -1_000_000_000_000_000_00n,
     ]) {
-      expect(validateWalletCreation({ ...command, openingAmount })).toEqual({
+      expect(
+        acceptWalletCreation({ ...command, openingAmount }, facts),
+      ).toEqual({
         ok: false,
         error: {
           code: "rejected",
@@ -59,7 +62,7 @@ describe("validateWalletCreation", () => {
 
   test("rejects a date that does not exist on the calendar", () => {
     expect(
-      validateWalletCreation({ ...command, openingDate: "2026-02-30" }),
+      acceptWalletCreation({ ...command, openingDate: "2026-02-30" }, facts),
     ).toEqual({
       ok: false,
       error: {
@@ -69,16 +72,12 @@ describe("validateWalletCreation", () => {
     });
   });
 
-  test("rejects an opening date after today in Bangkok, not after today in UTC", () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    // 17:30 UTC on the 13th is already the 14th in Bangkok.
-    vi.setSystemTime(new Date("2026-09-13T17:30:00Z"));
-
+  test("judges future opening dates against the supplied today", () => {
     expect(
-      validateWalletCreation({ ...command, openingDate: "2026-09-14" }).ok,
+      acceptWalletCreation({ ...command, openingDate: "2026-09-14" }, facts).ok,
     ).toBe(true);
     expect(
-      validateWalletCreation({ ...command, openingDate: "2026-09-15" }),
+      acceptWalletCreation({ ...command, openingDate: "2026-09-15" }, facts),
     ).toEqual({
       ok: false,
       error: {
@@ -89,13 +88,16 @@ describe("validateWalletCreation", () => {
   });
 
   test("reports every issue at once", () => {
-    const result = validateWalletCreation({
-      name: "",
-      type: "cash",
-      savings: false,
-      openingAmount: 10n ** 20n,
-      openingDate: "tomorrow",
-    });
+    const result = acceptWalletCreation(
+      {
+        name: "",
+        type: "cash",
+        savings: false,
+        openingAmount: 10n ** 20n,
+        openingDate: "tomorrow",
+      },
+      facts,
+    );
 
     expect(result.ok).toBe(false);
     if (result.ok) {
@@ -107,18 +109,14 @@ describe("validateWalletCreation", () => {
   });
 });
 
-describe("validateWalletOpening", () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  test("accepts an exact opening within the stored range", () => {
+describe("acceptWalletOpening", () => {
+  test("accepts an exact opening within the stored range without movements", () => {
     const opening: WalletOpening = {
       openingAmount: -999_999_999_999_999_99n,
       openingDate: "2026-09-01",
     };
 
-    expect(validateWalletOpening(opening)).toEqual({
+    expect(acceptWalletOpening(opening, facts)).toEqual({
       ok: true,
       value: opening,
     });
@@ -126,10 +124,13 @@ describe("validateWalletOpening", () => {
 
   test("reports an out-of-range amount and an impossible date together", () => {
     expect(
-      validateWalletOpening({
-        openingAmount: 1_000_000_000_000_000_00n,
-        openingDate: "2026-02-30",
-      }),
+      acceptWalletOpening(
+        {
+          openingAmount: 1_000_000_000_000_000_00n,
+          openingDate: "2026-02-30",
+        },
+        facts,
+      ),
     ).toEqual({
       ok: false,
       error: {
@@ -142,16 +143,18 @@ describe("validateWalletOpening", () => {
     });
   });
 
-  test("rejects an opening date after today in Bangkok", () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-09-13T17:30:00Z"));
-
+  test("judges future opening dates against the supplied today", () => {
     expect(
-      validateWalletOpening({ openingAmount: 0n, openingDate: "2026-09-14" })
-        .ok,
+      acceptWalletOpening(
+        { openingAmount: 0n, openingDate: "2026-09-14" },
+        facts,
+      ).ok,
     ).toBe(true);
     expect(
-      validateWalletOpening({ openingAmount: 0n, openingDate: "2026-09-15" }),
+      acceptWalletOpening(
+        { openingAmount: 0n, openingDate: "2026-09-15" },
+        facts,
+      ),
     ).toEqual({
       ok: false,
       error: {
@@ -160,4 +163,49 @@ describe("validateWalletOpening", () => {
       },
     });
   });
+
+  test.each([
+    { openingDate: "2999-02-30", code: "invalid" },
+    { openingDate: "2026-09-15", code: "in-future" },
+    { openingDate: "2026-09-03", code: "movement-before-opening" },
+  ])(
+    "reports only $code for openingDate alongside an out-of-range amount",
+    ({ openingDate, code }) => {
+      expect(
+        acceptWalletOpening(
+          {
+            openingAmount: 1_000_000_000_000_000_00n,
+            openingDate,
+          },
+          { today: "2026-09-14", earliestMovementDate: "2026-09-02" },
+        ),
+      ).toEqual({
+        ok: false,
+        error: {
+          code: "rejected",
+          rejections: [
+            { code: "out-of-range", field: "openingAmount" },
+            { code, field: "openingDate" },
+          ],
+        },
+      });
+    },
+  );
+
+  test.each([
+    { openingDate: "2026-09-01", earliestMovementDate: "2026-09-02" },
+    { openingDate: "2026-09-02", earliestMovementDate: "2026-09-02" },
+    { openingDate: "2026-09-03", earliestMovementDate: null },
+  ])(
+    "accepts $openingDate with earliest movement $earliestMovementDate",
+    ({ openingDate, earliestMovementDate }) => {
+      const opening = { openingAmount: 0n, openingDate };
+      expect(
+        acceptWalletOpening(opening, {
+          today: "2026-09-14",
+          earliestMovementDate,
+        }),
+      ).toEqual({ ok: true, value: opening });
+    },
+  );
 });

@@ -105,7 +105,11 @@ a change that needs the room goes to the owner as a split or a raised entry.
 Every business rule has exactly one author module in `@bookkeeping/application`,
 evaluated as a pure acceptance step over facts the operation has already loaded
 and locked, such as `acceptTransaction` in
-`packages/application/src/transactions/transaction-rules.ts`. A rejection names
+`packages/application/src/transactions/transaction-rules.ts`. A rule that is
+a single existence check on records the operation has locked, or that a
+database constraint enforces, may stay in its operation, because a pure step
+over one boolean would add a layer without adding locality; a pure step is
+required once a rule combines several facts or reads the clock. A rejection names
 the input field it addresses, so adapters map fields with a table rather than
 re-deciding them. Adapters validate shape at their own interface: request and
 form schemas check types, formats, and required fields. A client may mirror a

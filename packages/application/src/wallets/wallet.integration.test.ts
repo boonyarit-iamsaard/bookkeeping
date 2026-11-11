@@ -527,9 +527,15 @@ describe("replaceWalletOpening", () => {
     });
   });
 
-  test("a movement before the proposed opening on either transfer side is rejected, even once deleted", async () => {
+  test("refuses openings after a deleted transfer on either side; accepts the transfer date", async () => {
     await withRollback(async (db) => {
       const { owner, cash, bank } = await openCashPair(db);
+      await insertTransfer(db, {
+        ownerId: owner.id,
+        walletId: cash.id,
+        destinationWalletId: bank.id,
+        transactionDate: "2026-09-04",
+      });
       await insertTransfer(db, {
         ownerId: owner.id,
         walletId: cash.id,
@@ -560,30 +566,6 @@ describe("replaceWalletOpening", () => {
           ).ok,
         ).toBe(true);
       }
-    });
-  });
-
-  test("an invalid opening is rejected before the wallet is touched", async () => {
-    await withRollback(async (db) => {
-      const { owner, cash } = await openCashPair(db);
-
-      const rejected = await replaceWalletOpening(db, {
-        ownerId: owner.id,
-        id: cash.id,
-        openingAmount: 1_000_000_000_000_000_00n,
-        openingDate: "2999-01-01",
-      });
-
-      expect(rejected).toEqual(
-        refused(
-          { code: "out-of-range", field: "openingAmount" },
-          { code: "in-future", field: "openingDate" },
-        ),
-      );
-      expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
-        cash,
-      );
-      expect(await listChanges(db, cash.id)).toEqual([]);
     });
   });
 
@@ -739,7 +721,7 @@ async function openCashPairWithExpense(db: Database) {
 }
 
 describe("wallet lifecycle", () => {
-  test("a deleted transfer still guards deletion and opening dates for both wallets", async () => {
+  test("a deleted transfer still guards deletion for both wallets", async () => {
     await withRollback(async (db) => {
       const { owned, movement, other } = await openCashPairWithExpense(db);
       const created = await createTransaction(db, {
@@ -760,16 +742,6 @@ describe("wallet lifecycle", () => {
           ok: false,
           error: { code: "history-remains" },
         });
-        expect(
-          await replaceWalletOpening(db, {
-            ...owned,
-            id,
-            openingAmount: 0n,
-            openingDate: "2026-09-03",
-          }),
-        ).toEqual(
-          refused({ code: "movement-before-opening", field: "openingDate" }),
-        );
       }
     });
   });
