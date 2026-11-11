@@ -19,6 +19,7 @@ import type {
   WalletType,
 } from "@bookkeeping/domain/wallets";
 import { and, eq, lt, or, sql } from "drizzle-orm";
+import type { IdempotentCreator } from "../idempotency/idempotency";
 import { defineIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
@@ -233,7 +234,11 @@ export interface CreateWalletInput extends WalletCreationCommand {
  * before the key is touched, so a corrected retry may reuse it; a retry with
  * the same accepted command replays the wallet as it was created.
  */
-export const createWallet = defineIdempotentCreation({
+export const createWallet: IdempotentCreator<
+  CreateWalletInput,
+  WalletSummary,
+  WalletRejected
+> = defineIdempotentCreation({
   operation: "wallets.create",
   prepare: (input: Readonly<CreateWalletInput>) =>
     validateWalletCreation(input),

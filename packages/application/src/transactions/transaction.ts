@@ -20,7 +20,7 @@ import type {
   TransactionType,
 } from "@bookkeeping/domain/transactions";
 import { and, asc, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
-import type {} from "../idempotency/idempotency";
+import type { IdempotentCreator } from "../idempotency/idempotency";
 import { defineIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
@@ -114,7 +114,11 @@ export type TransactionRejected = Rejected<TransactionRejection>;
  * Every rule is judged inside the same transaction as the financial insert,
  * with the records it names locked; a refused command never consumes the key.
  */
-export const createTransaction = defineIdempotentCreation({
+export const createTransaction: IdempotentCreator<
+  CreateTransactionInput,
+  TransactionDetail,
+  TransactionRejected
+> = defineIdempotentCreation({
   operation: "transactions.create",
   prepare: (input: Readonly<CreateTransactionInput>) =>
     ok(toTransactionCommand(input)),

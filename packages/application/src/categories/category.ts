@@ -18,7 +18,10 @@ import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import type {} from "../idempotency/idempotency";
+import type {
+  IdempotentCreationRequest,
+  IdempotentCreator,
+} from "../idempotency/idempotency";
 import { defineIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
@@ -405,12 +408,9 @@ export interface CategoryCreationCommand {
   parent: ParentChoice | null;
 }
 
-export interface CreateCategoryInput extends CategoryCreationCommand {
-  /** Always the session user; never a client-supplied identifier. */
-  ownerId: string;
-  /** Client-generated; one key names one logical creation for this owner. */
-  idempotencyKey: string;
-}
+export interface CreateCategoryInput
+  extends CategoryCreationCommand,
+    IdempotentCreationRequest {}
 
 export interface CreateCategoryData {
   category: CategorySummary;
@@ -473,7 +473,8 @@ export function validateCategoryCreation(
     kind: input.kind,
     name,
     iconId: input.iconId,
-    parent: input.parent && { existingId: input.parent.existingId },
+    parent:
+      input.parent === null ? null : { existingId: input.parent.existingId },
   });
 }
 
@@ -481,7 +482,11 @@ export function validateCategoryCreation(
  * Creates a parent, a child under an existing parent, or a child together
  * with its missing parent, once per idempotency key.
  */
-export const createCategory = defineIdempotentCreation({
+export const createCategory: IdempotentCreator<
+  CreateCategoryInput,
+  CreateCategoryData,
+  CategoryRejected
+> = defineIdempotentCreation({
   operation: "categories.create",
   prepare: (input: Readonly<CreateCategoryInput>) =>
     validateCategoryCreation(input),

@@ -10,6 +10,7 @@ import {
   normalizeTagName,
 } from "@bookkeeping/domain/tags";
 import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
+import type { IdempotentCreator } from "../idempotency/idempotency";
 import { defineIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
@@ -99,7 +100,11 @@ export interface CreateTagInput {
 }
 
 /** Creates one tag per idempotency key; a refused name never consumes the key. */
-export const createTag = defineIdempotentCreation({
+export const createTag: IdempotentCreator<
+  CreateTagInput,
+  TransactionTag,
+  TagRejected
+> = defineIdempotentCreation({
   operation: "tags.create",
   prepare: (input: Readonly<CreateTagInput>) => {
     const name = validateTagName(input.name);
