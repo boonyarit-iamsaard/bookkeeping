@@ -30,6 +30,8 @@ export interface DocumentedPaths {
 export interface DocumentedSchema {
   $ref?: string;
   const?: string;
+  enum?: string[];
+  type?: string;
   required?: string[];
   additionalProperties?: boolean;
   properties?: { [name: string]: DocumentedSchema };

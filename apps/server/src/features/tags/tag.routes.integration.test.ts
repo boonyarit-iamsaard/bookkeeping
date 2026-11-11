@@ -17,6 +17,7 @@ import {
   tagCollectionResponseSchema,
   tagResponseSchema,
 } from "./tag.routes.js";
+import { tagRejectionProblemSchema } from "./tag-rejection.js";
 
 const { withRollback } = setupTestDatabase();
 
@@ -127,16 +128,24 @@ describe("tag routes", () => {
         cookie,
         body: { name: " " },
       });
+      const overlong = await request(app, {
+        method: "POST",
+        cookie,
+        idempotencyKey: "tag-overlong",
+        body: { name: "x".repeat(41) },
+      });
 
       for (const [response, code] of [
         [duplicate, "duplicate-name"],
         [blank, "blank-name"],
+        [overlong, "name-too-long"],
       ] as const) {
         const problem = await expectProblem(response, {
           status: 422,
           code: "invalid-command",
         });
         expect(problem.errors).toEqual([{ pointer: "#/name", code }]);
+        expect(tagRejectionProblemSchema.safeParse(problem).success).toBe(true);
       }
     });
   });

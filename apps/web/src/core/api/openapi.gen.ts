@@ -709,9 +709,29 @@ export interface components {
             items: components["schemas"]["TagSummary"][];
             page: components["schemas"]["Page"];
         };
+        TagFieldError: components["schemas"]["TagRuleFieldError"] | components["schemas"]["TagValidationFieldError"];
         TagNameRequest: {
             name: string;
         };
+        TagPlainRuleFieldError: {
+            /** @enum {string} */
+            code: "blank-name" | "name-too-long" | "duplicate-name";
+            detail?: string;
+            pointer: string;
+        };
+        TagRejectionProblem: {
+            /** @enum {string} */
+            code: "bad-request" | "conflict" | "forbidden" | "has-children" | "history-remains" | "idempotency-conflict" | "idempotency-key-required" | "in-use" | "internal-error" | "invalid-command" | "method-not-allowed" | "not-found" | "protected" | "rate-limited" | "refunds-exist" | "service-unavailable" | "unauthenticated";
+            detail?: string;
+            errors?: components["schemas"]["TagFieldError"][];
+            instance?: string;
+            status: number;
+            title: string;
+            type: string;
+        } & {
+            [key: string]: unknown;
+        };
+        TagRuleFieldError: components["schemas"]["TagPlainRuleFieldError"];
         TagSummary: {
             /** Format: uuid */
             id: string;
@@ -719,6 +739,7 @@ export interface components {
             name: string;
             transactionCount: number;
         };
+        TagValidationFieldError: components["schemas"]["ProblemFieldError"];
         TotalBalanceSplit: {
             savingsWalletCount: number;
             setAside: components["schemas"]["Money"] | null;
@@ -1632,7 +1653,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/problem+json": components["schemas"]["TagRejectionProblem"];
                 };
             };
             /** @description Internal server error */
@@ -1750,7 +1771,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/problem+json": components["schemas"]["TagRejectionProblem"];
                 };
             };
             /** @description Internal server error */

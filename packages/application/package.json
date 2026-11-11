@@ -8,6 +8,7 @@
     "./categories/defaults": "./src/categories/default-categories.ts",
     "./idempotency": "./src/idempotency/idempotency.ts",
     "./shared/not-found": "./src/shared/not-found.ts",
+    "./shared/rejection": "./src/shared/rejection.ts",
     "./tags": "./src/tags/tag.ts",
     "./testing/category-fixture": "./src/testing/category-fixture.ts",
     "./testing/tag-fixture": "./src/testing/tag-fixture.ts",

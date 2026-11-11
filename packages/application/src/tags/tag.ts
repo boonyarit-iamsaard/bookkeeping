@@ -15,24 +15,35 @@ import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
 import { notFound } from "../shared/not-found";
+import type { Rejected } from "../shared/rejection";
+import { rejected } from "../shared/rejection";
 
 const UNIQUE_VIOLATION = "23505";
 const TAG_NAME_INDEX = "tags_user_name_unique";
 
 const tagColumns = { id: tags.id, name: tags.name };
 
-export type TagNameRejection =
-  | { code: "blank-name" }
-  | { code: "name-too-long" };
+/** The inputs a tag command can refuse: a create and a rename carry only the name. */
+export type TagField = "name";
+
+/** Every rule rejection a tag command reports; each names the input it refuses. */
+export type TagRejection =
+  | { code: "blank-name"; field: "name" }
+  | { code: "name-too-long"; field: "name" }
+  /** The owner already has a tag of this name, ignoring case. */
+  | { code: "duplicate-name"; field: "name" };
+
+/** The refused inputs of a tag command, in the shared envelope. */
+export type TagRejected = Rejected<TagRejection>;
 
 /** The trimmed name, or why no tag may carry it. */
-function validateTagName(raw: string): Result<string, TagNameRejection> {
+function validateTagName(raw: string): Result<string, TagRejected> {
   const name = normalizeTagName(raw);
   if (name.length === 0) {
-    return err({ code: "blank-name" });
+    return err(rejected({ code: "blank-name", field: "name" }));
   }
   if (name.length > MAX_TAG_NAME_LENGTH) {
-    return err({ code: "name-too-long" });
+    return err(rejected({ code: "name-too-long", field: "name" }));
   }
   return ok(name);
 }
@@ -94,12 +105,7 @@ export interface CreateTagOutcome {
   replayed: boolean;
 }
 
-export type CreateTagRejection =
-  | TagNameRejection
-  /** The owner already has a tag of this name, ignoring case. */
-  | { code: "duplicate-name" };
-
-export type CreateTagError = CreateTagRejection | IdempotencyConflict;
+export type CreateTagError = TagRejected | IdempotencyConflict;
 
 /** Creates one tag per idempotency key; a refused name never consumes the key. */
 export async function createTag(
@@ -110,32 +116,32 @@ export async function createTag(
   if (!name.ok) {
     return name;
   }
-  const outcome = await executeIdempotentCreation<
-    TransactionTag,
-    CreateTagRejection
-  >(db, {
-    ownerId: input.ownerId,
-    operation: "tags.create",
-    key: input.idempotencyKey,
-    payload: { name: name.value },
-    create: async (tx) => {
-      try {
-        const [row] = await tx
-          .insert(tags)
-          .values({ userId: input.ownerId, name: name.value })
-          .returning(tagColumns);
-        if (!row) {
-          throw new Error("Tag insert returned no row");
+  const outcome = await executeIdempotentCreation<TransactionTag, TagRejected>(
+    db,
+    {
+      ownerId: input.ownerId,
+      operation: "tags.create",
+      key: input.idempotencyKey,
+      payload: { name: name.value },
+      create: async (tx) => {
+        try {
+          const [row] = await tx
+            .insert(tags)
+            .values({ userId: input.ownerId, name: name.value })
+            .returning(tagColumns);
+          if (!row) {
+            throw new Error("Tag insert returned no row");
+          }
+          return ok(row);
+        } catch (error) {
+          if (isTagNameViolation(error)) {
+            return err(rejected({ code: "duplicate-name", field: "name" }));
+          }
+          throw error;
         }
-        return ok(row);
-      } catch (error) {
-        if (isTagNameViolation(error)) {
-          return err({ code: "duplicate-name" });
-        }
-        throw error;
-      }
+      },
     },
-  });
+  );
   if (!outcome.ok) {
     return outcome;
   }
@@ -152,7 +158,7 @@ export interface RenameTagInput extends TagRef {
   name: string;
 }
 
-export type RenameTagError = NotFound | TagNameRejection;
+export type RenameTagError = NotFound | TagRejected;
 
 /**
  * Renames one of the owner's tags. Renaming to the name another of the

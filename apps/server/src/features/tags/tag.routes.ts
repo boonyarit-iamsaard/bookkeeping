@@ -12,6 +12,7 @@ import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
+import { toFieldErrors } from "../../core/http/field-rejections.js";
 import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
 import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
 import { describeProblemResponse } from "../../core/http/openapi.js";
@@ -28,6 +29,8 @@ import {
   describeCorrection,
   describeCreation,
 } from "../../core/http/resource-answers.js";
+import type { tagRejectionProblemSchema } from "./tag-rejection.js";
+import { TAG_FIELD_POINTERS, tagCodes } from "./tag-rejection.js";
 
 export const tagResponseSchema = z
   .object({ id: z.uuid(), name: z.string() })
@@ -79,11 +82,6 @@ interface CreateTagValidatedInput {
   };
 }
 
-/** Every refused name addresses the name. */
-function toNameFieldErrors(error: Readonly<{ code: string }>) {
-  return [{ pointer: "#/name", code: error.code }];
-}
-
 export function createTagRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>()
     .post(
@@ -113,7 +111,7 @@ export function createTagRoutes(db: Database) {
         {
           201: typeof tagResponseSchema;
           409: typeof problemDetailsSchema;
-          422: typeof problemDetailsSchema;
+          422: typeof tagRejectionProblemSchema;
         }
       >(
         async (c) => {
@@ -125,10 +123,17 @@ export function createTagRoutes(db: Database) {
           return answerCreation(c, {
             result: created,
             present: (outcome) => ({ ...outcome.tag }),
-            toFieldErrors: toNameFieldErrors,
+            toFieldErrors: (rejected) =>
+              toFieldErrors(rejected, {
+                pointers: TAG_FIELD_POINTERS,
+                codes: tagCodes,
+              }),
           });
         },
-        describeCreation("tag", tagResponseSchema),
+        {
+          ...describeCreation("tag", tagResponseSchema),
+          422: tagCodes.describeRejection(),
+        },
       ),
     )
     .get(
@@ -203,7 +208,7 @@ export function createTagRoutes(db: Database) {
         {
           200: typeof tagResponseSchema;
           404: typeof problemDetailsSchema;
-          422: typeof problemDetailsSchema;
+          422: typeof tagRejectionProblemSchema;
         }
       >(
         async (c) => {
@@ -215,13 +220,20 @@ export function createTagRoutes(db: Database) {
           return answerCorrection(c, {
             result: renamed,
             present: (tag) => ({ ...tag }),
-            toFieldErrors: toNameFieldErrors,
+            toFieldErrors: (rejected) =>
+              toFieldErrors(rejected, {
+                pointers: TAG_FIELD_POINTERS,
+                codes: tagCodes,
+              }),
           });
         },
-        describeCorrection(
-          "The renamed tag, or the tag it merged into",
-          tagResponseSchema,
-        ),
+        {
+          ...describeCorrection(
+            "The renamed tag, or the tag it merged into",
+            tagResponseSchema,
+          ),
+          422: tagCodes.describeRejection(),
+        },
       ),
     )
     .delete(
