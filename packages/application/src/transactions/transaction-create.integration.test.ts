@@ -2,6 +2,7 @@ import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { transactions } from "@bookkeeping/database/transactions";
 import { eq, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
+import { rejected } from "../shared/rejection";
 import {
   insertWallet,
   recordExpense,
@@ -93,7 +94,7 @@ describe("createTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { field: "transactionDate", code: "invalid-date" },
+        error: rejected({ field: "transactionDate", code: "invalid-date" }),
       });
       expect(await listTransactions(db, { ownerId: owner.ownerId })).toEqual(
         [],
@@ -495,8 +496,13 @@ describe("createTransaction", () => {
     expect(
       outcomes.filter((outcome) => !outcome.ok).map((outcome) => outcome.error),
     ).toEqual([
-      { field: "amount", code: "exceeds-refundable", refundAllowance: 0n },
-      { field: "amount", code: "exceeds-refundable", refundAllowance: 0n },
+      ...Array.from({ length: 2 }, () =>
+        rejected({
+          field: "amount",
+          code: "exceeds-refundable",
+          refundAllowance: 0n,
+        }),
+      ),
     ]);
     expect(
       (await listTransactions(db, { ownerId: owner.ownerId })).filter(
@@ -675,11 +681,7 @@ describe("createTransaction", () => {
       await withClock("2026-09-13T17:30:00Z", async () => {
         expect(await attemptOn("2026-09-15")).toEqual({
           ok: false,
-          error: {
-            field: "transactionDate",
-            code: "future-date",
-            today: "2026-09-14",
-          },
+          error: rejected({ field: "transactionDate", code: "future-date" }),
         });
         expect((await attemptOn("2026-09-14")).ok).toBe(true);
       });
@@ -687,11 +689,7 @@ describe("createTransaction", () => {
       await withClock("2026-09-13T16:30:00Z", async () => {
         expect(await attemptOn("2026-09-14")).toEqual({
           ok: false,
-          error: {
-            field: "transactionDate",
-            code: "future-date",
-            today: "2026-09-13",
-          },
+          error: rejected({ field: "transactionDate", code: "future-date" }),
         });
       });
     });

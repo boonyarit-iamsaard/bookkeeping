@@ -70,10 +70,9 @@ import {
 } from "./transaction-cursor.js";
 import type { transactionRejectionProblemSchema } from "./transaction-rejection.js";
 import {
-  CREATE_FIELD_POINTERS,
-  describeTransactionRejection,
-  toFieldErrors,
-  UPDATE_FIELD_POINTERS,
+  toCreateFieldErrors,
+  toUpdateFieldErrors,
+  transactionCodes,
 } from "./transaction-rejection.js";
 
 export const transactionWalletSchema = z
@@ -438,13 +437,12 @@ export function createTransactionRoutes(db: Database) {
           return answerCreation(c, {
             result: created,
             present: (outcome) => presentTransaction(outcome.transaction),
-            toFieldErrors: (rejection) =>
-              toFieldErrors(rejection, CREATE_FIELD_POINTERS),
+            toFieldErrors: toCreateFieldErrors,
           });
         },
         {
           ...describeCreation("transaction", transactionResponseSchema),
-          422: describeTransactionRejection(),
+          422: transactionCodes.describeRejection(),
         },
       ),
     )
@@ -660,8 +658,7 @@ export function createTransactionRoutes(db: Database) {
           return answerCorrection(c, {
             result: updated,
             present: presentTransaction,
-            toFieldErrors: (error) =>
-              toFieldErrors(error, UPDATE_FIELD_POINTERS),
+            toFieldErrors: toUpdateFieldErrors,
           });
         },
         {
@@ -669,7 +666,7 @@ export function createTransactionRoutes(db: Database) {
             "The updated transaction",
             transactionResponseSchema,
           ),
-          422: describeTransactionRejection(),
+          422: transactionCodes.describeRejection(),
         },
       ),
     )

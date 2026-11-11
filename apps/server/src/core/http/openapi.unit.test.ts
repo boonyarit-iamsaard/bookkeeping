@@ -541,20 +541,6 @@ describe("OpenAPI document", () => {
       status: "422",
       schemaId: "TransactionRejectionProblem",
     });
-    expect(documentedSchema(document, "RefundAllowanceFieldError")).toEqual(
-      expect.objectContaining({
-        required: expect.arrayContaining(["code", "refundAllowance"]),
-      }),
-    );
-    // Rule rejections are keyed by code, so each code's facts are exact.
-    const ruleBranches = documentedSchema(
-      document,
-      "TransactionRuleFieldError",
-    ).oneOf?.map((branch) => JSON.stringify(branch));
-    expect(ruleBranches).toContain(
-      '{"$ref":"#/components/schemas/RefundAllowanceFieldError"}',
-    );
-
     const requestSchema = documentedSchema(
       document,
       "CreateTransactionRequest",

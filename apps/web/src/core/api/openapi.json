@@ -1269,26 +1269,26 @@
       "TransactionRuleFieldError": {
         "oneOf": [
           {
-            "$ref": "#/components/schemas/RefundAllowanceFieldError"
+            "$ref": "#/components/schemas/TransactionExceedsRefundableFieldError"
           },
           {
-            "$ref": "#/components/schemas/RefundedTotalFieldError"
+            "$ref": "#/components/schemas/TransactionBelowRefundedFieldError"
           },
           {
-            "$ref": "#/components/schemas/RefundDateFieldError"
+            "$ref": "#/components/schemas/TransactionAfterRefundFieldError"
           },
           {
-            "$ref": "#/components/schemas/ExpenseDateFieldError"
+            "$ref": "#/components/schemas/TransactionBeforeExpenseFieldError"
           },
           {
-            "$ref": "#/components/schemas/OpeningDateFieldError"
+            "$ref": "#/components/schemas/TransactionBeforeOpeningFieldError"
           },
           {
-            "$ref": "#/components/schemas/PlainRuleFieldError"
+            "$ref": "#/components/schemas/TransactionPlainRuleFieldError"
           }
         ]
       },
-      "RefundAllowanceFieldError": {
+      "TransactionExceedsRefundableFieldError": {
         "type": "object",
         "properties": {
           "pointer": {
@@ -1312,7 +1312,7 @@
         ],
         "additionalProperties": false
       },
-      "RefundedTotalFieldError": {
+      "TransactionBelowRefundedFieldError": {
         "type": "object",
         "properties": {
           "pointer": {
@@ -1336,7 +1336,7 @@
         ],
         "additionalProperties": false
       },
-      "RefundDateFieldError": {
+      "TransactionAfterRefundFieldError": {
         "type": "object",
         "properties": {
           "pointer": {
@@ -1362,7 +1362,7 @@
         ],
         "additionalProperties": false
       },
-      "ExpenseDateFieldError": {
+      "TransactionBeforeExpenseFieldError": {
         "type": "object",
         "properties": {
           "pointer": {
@@ -1388,7 +1388,7 @@
         ],
         "additionalProperties": false
       },
-      "OpeningDateFieldError": {
+      "TransactionBeforeOpeningFieldError": {
         "type": "object",
         "properties": {
           "pointer": {
@@ -1414,7 +1414,7 @@
         ],
         "additionalProperties": false
       },
-      "PlainRuleFieldError": {
+      "TransactionPlainRuleFieldError": {
         "type": "object",
         "properties": {
           "pointer": {

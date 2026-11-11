@@ -92,7 +92,6 @@ describe("judgeNewTransaction", () => {
         error: {
           field: "walletId",
           code: "wallet-archived",
-          walletId: owner.cashId,
         },
       });
     });
@@ -301,7 +300,6 @@ describe("judgeCorrection", () => {
         error: {
           field: "walletId",
           code: "wallet-archived",
-          walletId: owner.bankId,
         },
       });
     });

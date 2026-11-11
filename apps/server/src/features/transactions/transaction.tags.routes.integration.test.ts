@@ -18,8 +18,10 @@ import {
   createTestAuthGateway,
 } from "../../testing/create-test-auth-gateway.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
-import { expectProblem } from "../../testing/expect-problem.js";
-import { expectRejection } from "../../testing/expect-transaction-rejection.js";
+import {
+  expectFieldErrors,
+  expectProblem,
+} from "../../testing/expect-problem.js";
 import {
   transactionCollectionResponseSchema,
   transactionResponseSchema,
@@ -165,7 +167,7 @@ describe("transaction tags over HTTP", () => {
         body: { ...correction, tagIds: [] },
       });
 
-      expect(await expectRejection(unnamed)).toEqual([
+      expect(await expectFieldErrors(unnamed)).toEqual([
         { pointer: "#/tagIds", code: "invalid-type" },
       ]);
       expect(cleared.status).toBe(200);
@@ -195,10 +197,10 @@ describe("transaction tags over HTTP", () => {
         body: expenseBody(owner, ["not-a-tag"]),
       });
 
-      expect(await expectRejection(unknown)).toEqual([
+      expect(await expectFieldErrors(unknown)).toEqual([
         { pointer: "#/tagIds", code: "tag-not-found" },
       ]);
-      expect(await expectRejection(malformed)).toEqual([
+      expect(await expectFieldErrors(malformed)).toEqual([
         expect.objectContaining({ pointer: "#/tagIds/0" }),
       ]);
     });

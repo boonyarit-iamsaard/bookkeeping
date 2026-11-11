@@ -13,6 +13,7 @@ import {
   initializeDefaultCategories,
   listCategories,
 } from "../categories/category";
+import { rejected } from "../shared/rejection";
 import { insertRetainedTransferSnapshot } from "../testing/transaction-fixture";
 import {
   createTransaction,
@@ -858,11 +859,7 @@ describe("wallet lifecycle", () => {
         }),
       ).toEqual({
         ok: false,
-        error: {
-          field: "walletId",
-          code: "wallet-archived",
-          walletId: owned.id,
-        },
+        error: rejected({ field: "walletId", code: "wallet-archived" }),
       });
       await changeWalletState(db, { ...owned, archived: false });
       expect(
@@ -903,7 +900,7 @@ describe("wallet lifecycle", () => {
     await archive;
     expect(await create).toEqual({
       ok: false,
-      error: { field: "walletId", code: "wallet-archived", walletId: owned.id },
+      error: rejected({ field: "walletId", code: "wallet-archived" }),
     });
     const [{ count } = { count: "0" }] = await db
       .select({ count: sql<string>`count(*)` })

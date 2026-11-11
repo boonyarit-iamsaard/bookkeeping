@@ -537,7 +537,12 @@ describe("deleteTransaction", () => {
     if (deleted.ok) {
       expect(refunded).toEqual({
         ok: false,
-        error: { field: "refundOfTransactionId", code: "expense-not-found" },
+        error: {
+          code: "rejected",
+          rejections: [
+            { field: "refundOfTransactionId", code: "expense-not-found" },
+          ],
+        },
       });
       expect(await listTransactions(db, { ownerId: owner.ownerId })).toEqual(
         [],

@@ -19,8 +19,10 @@ import {
   createTestAuthGateway,
 } from "../../testing/create-test-auth-gateway.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
-import { expectProblem } from "../../testing/expect-problem.js";
-import { expectRejection } from "../../testing/expect-transaction-rejection.js";
+import {
+  expectFieldErrors,
+  expectProblem,
+} from "../../testing/expect-problem.js";
 import type {
   createTransactionRequestSchema,
   updateTransactionRequestSchema,
@@ -528,7 +530,7 @@ describe("POST /v1/transactions", () => {
       });
       const owner = await createOwner({ db });
       const base = expenseBody(owner);
-      const invalidDate = await expectRejection(
+      const invalidDate = await expectFieldErrors(
         await postTransaction(app, {
           cookie: owner.cookie,
           idempotencyKey: "correct-date",
@@ -804,7 +806,7 @@ describe("PUT /v1/transactions/{transactionId}", () => {
       );
       const base = updateExpenseBody(owner);
       // The update document names no type, so a type rejection addresses its root.
-      const invalidTransfer = await expectRejection(
+      const invalidTransfer = await expectFieldErrors(
         await putTransaction(app, {
           id: expense.id,
           cookie: owner.cookie,

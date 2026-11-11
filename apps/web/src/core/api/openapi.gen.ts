@@ -573,14 +573,6 @@ export interface components {
             refunds: components["schemas"]["Money"];
             transactionCount: number;
         };
-        ExpenseDateFieldError: {
-            /** @constant */
-            code: "before-expense";
-            detail?: string;
-            /** Format: date */
-            expenseDate: string;
-            pointer: string;
-        };
         HealthResponse: {
             /** @constant */
             status: "ok";
@@ -614,14 +606,6 @@ export interface components {
             refunds: components["schemas"]["Money"];
             transactionCount: number;
         };
-        OpeningDateFieldError: {
-            /** @constant */
-            code: "before-opening";
-            detail?: string;
-            /** Format: date */
-            openingDate: string;
-            pointer: string;
-        };
         Page: {
             nextCursor: string | null;
         };
@@ -634,12 +618,6 @@ export interface components {
             name: string;
             sortOrder: number;
             spending: components["schemas"]["Money"];
-        };
-        PlainRuleFieldError: {
-            /** @enum {string} */
-            code: "wallet-not-found" | "destination-wallet-not-found" | "same-wallet" | "wallet-archived" | "invalid-transfer" | "category-not-found" | "category-kind-mismatch" | "amount-out-of-range" | "note-too-long" | "too-many-tags" | "tag-not-found" | "invalid-date" | "future-date" | "invalid-refund" | "expense-not-found";
-            detail?: string;
-            pointer: string;
         };
         ProblemDetails: {
             /** @enum {string} */
@@ -660,28 +638,6 @@ export interface components {
         };
         ProvisioningOutcome: {
             seededKinds: ("income" | "expense")[];
-        };
-        RefundAllowanceFieldError: {
-            /** @constant */
-            code: "exceeds-refundable";
-            detail?: string;
-            pointer: string;
-            refundAllowance: components["schemas"]["Money"];
-        };
-        RefundDateFieldError: {
-            /** @constant */
-            code: "after-refund";
-            detail?: string;
-            pointer: string;
-            /** Format: date */
-            refundDate: string;
-        };
-        RefundedTotalFieldError: {
-            /** @constant */
-            code: "below-refunded";
-            detail?: string;
-            pointer: string;
-            refundedTotal: components["schemas"]["Money"];
         };
         RefundsExistProblem: {
             /** @constant */
@@ -777,6 +733,37 @@ export interface components {
             type: "income" | "expense" | "transfer" | "refund";
             wallet: components["schemas"]["TransactionWallet"];
         };
+        TransactionAfterRefundFieldError: {
+            /** @constant */
+            code: "after-refund";
+            detail?: string;
+            pointer: string;
+            /** Format: date */
+            refundDate: string;
+        };
+        TransactionBeforeExpenseFieldError: {
+            /** @constant */
+            code: "before-expense";
+            detail?: string;
+            /** Format: date */
+            expenseDate: string;
+            pointer: string;
+        };
+        TransactionBeforeOpeningFieldError: {
+            /** @constant */
+            code: "before-opening";
+            detail?: string;
+            /** Format: date */
+            openingDate: string;
+            pointer: string;
+        };
+        TransactionBelowRefundedFieldError: {
+            /** @constant */
+            code: "below-refunded";
+            detail?: string;
+            pointer: string;
+            refundedTotal: components["schemas"]["Money"];
+        };
         TransactionCollection: {
             items: components["schemas"]["Transaction"][];
             page: components["schemas"]["Page"];
@@ -784,7 +771,20 @@ export interface components {
         TransactionEntryDefaults: {
             lastUsedWalletId: string | null;
         };
+        TransactionExceedsRefundableFieldError: {
+            /** @constant */
+            code: "exceeds-refundable";
+            detail?: string;
+            pointer: string;
+            refundAllowance: components["schemas"]["Money"];
+        };
         TransactionFieldError: components["schemas"]["TransactionRuleFieldError"] | components["schemas"]["TransactionValidationFieldError"];
+        TransactionPlainRuleFieldError: {
+            /** @enum {string} */
+            code: "wallet-not-found" | "destination-wallet-not-found" | "same-wallet" | "wallet-archived" | "invalid-transfer" | "category-not-found" | "category-kind-mismatch" | "amount-out-of-range" | "note-too-long" | "too-many-tags" | "tag-not-found" | "invalid-date" | "future-date" | "invalid-refund" | "expense-not-found";
+            detail?: string;
+            pointer: string;
+        };
         TransactionRefund: {
             amount: components["schemas"]["Money"];
             /** Format: uuid */
@@ -810,7 +810,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        TransactionRuleFieldError: components["schemas"]["RefundAllowanceFieldError"] | components["schemas"]["RefundedTotalFieldError"] | components["schemas"]["RefundDateFieldError"] | components["schemas"]["ExpenseDateFieldError"] | components["schemas"]["OpeningDateFieldError"] | components["schemas"]["PlainRuleFieldError"];
+        TransactionRuleFieldError: components["schemas"]["TransactionExceedsRefundableFieldError"] | components["schemas"]["TransactionBelowRefundedFieldError"] | components["schemas"]["TransactionAfterRefundFieldError"] | components["schemas"]["TransactionBeforeExpenseFieldError"] | components["schemas"]["TransactionBeforeOpeningFieldError"] | components["schemas"]["TransactionPlainRuleFieldError"];
         TransactionTag: {
             /** Format: uuid */
             id: string;
