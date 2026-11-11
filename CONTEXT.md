@@ -78,7 +78,7 @@ _Avoid_: Profit, savings
 
 **Report month**:
 The calendar month a report covers, written `YYYY-MM`, from `0001-01` onward. Each report month's figures cover the Transaction dates inside it.
-_Avoid_: Period, reporting period
+_Avoid_: Reporting period
 
 **Category spending**:
 A month's net expenses for one expense category, with an expense and its refunds counted under the expense's current category.
