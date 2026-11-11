@@ -1,4 +1,3 @@
-import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
@@ -29,9 +28,7 @@ function NewWalletPage() {
           </Link>
         }
       />
-      <CreateWalletForm
-        defaultOpeningDate={todayIn({ timeZone: APP_TIME_ZONE })}
-      />
+      <CreateWalletForm />
     </Page>
   );
 }

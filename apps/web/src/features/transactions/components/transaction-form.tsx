@@ -9,7 +9,7 @@ import {
 } from "@bookkeeping/domain/transactions";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowDownUp, CircleAlert } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CategoryPicker } from "@/features/categories/components/category-picker";
 import { useCategoryCatalog } from "@/features/categories/hooks/use-category-catalog";
 import { DeleteTransactionButton } from "@/features/transactions/components/delete-transaction-button";
@@ -23,7 +23,6 @@ import {
   WalletSelect,
 } from "@/features/transactions/components/transaction-form-fields";
 import { TransactionTagsField } from "@/features/transactions/components/transaction-tags-field";
-import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import { useTransactionForm } from "@/features/transactions/hooks/use-transaction-form";
 import { refundAllowanceLabel } from "@/features/transactions/linked-expense";
 import type {
@@ -46,6 +45,7 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { SegmentedControl } from "@/shared/components/ui/segmented-control";
 import { cn } from "@/shared/helpers/cn";
+import { useToday } from "@/shared/hooks/use-today";
 
 const TYPE_OPTIONS = CREATABLE_TRANSACTION_TYPES.map((value) => ({
   value,
@@ -54,8 +54,6 @@ const TYPE_OPTIONS = CREATABLE_TRANSACTION_TYPES.map((value) => ({
 
 interface TransactionFormProps {
   wallets: readonly WalletOption[];
-  /** Today in Asia/Bangkok, computed by the route. */
-  today: CalendarDate;
   mode: EntryMode;
 }
 
@@ -115,15 +113,16 @@ function TransactionTypeField({
 
 export function TransactionForm({
   wallets,
-  today: initialToday,
   mode,
 }: Readonly<TransactionFormProps>) {
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
   const { categories } = useCategoryCatalog();
+  const today = useToday();
+  const [openedOn] = useState(today);
   const entry = useMemo(
-    () => openEntry({ mode, categories, today: initialToday }),
-    [mode, categories, initialToday],
+    () => openEntry({ mode, categories, today: openedOn }),
+    [mode, categories, openedOn],
   );
   const { correcting: editing, linkedExpense: linked, cancelHref } = entry;
   const originalArchived =
@@ -157,8 +156,7 @@ export function TransactionForm({
     clearFieldError,
     changeType,
     pending,
-  } = useTransactionForm({ entry, wallets, categories });
-  const today = useBangkokToday(initialToday);
+  } = useTransactionForm({ entry, wallets, categories, today });
   const yesterday = addDays(today, -1);
 
   return (

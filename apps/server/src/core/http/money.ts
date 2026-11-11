@@ -1,4 +1,4 @@
-import type { Currency } from "@bookkeeping/domain/money";
+import type { MoneyAmount } from "@bookkeeping/domain/money";
 import {
   formatMoneyInput,
   MAX_WHOLE_DIGITS,
@@ -39,11 +39,6 @@ export function presentMoney({
 const MONEY_INPUT_PATTERN = new RegExp(
   String.raw`^-?\d{1,${MAX_WHOLE_DIGITS}}(?:\.\d{1,2})?$`,
 );
-
-export interface MoneyAmount {
-  amountInMinorUnits: bigint;
-  currency: Currency;
-}
 
 /**
  * The wire form of an amount a client sends. The decimal string is parsed to

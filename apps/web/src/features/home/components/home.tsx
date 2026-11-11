@@ -10,9 +10,9 @@ import type { SummaryStripCard } from "@/features/home/components/summary-strip"
 import { SummaryStrip } from "@/features/home/components/summary-strip";
 import { WalletBalances } from "@/features/home/components/wallet-balances";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
-import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import { EmptyWallets } from "@/features/wallets/components/wallet-list";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
+import { useToday } from "@/shared/hooks/use-today";
 
 /** From 1024px the figures hold the left column and the rows the right. */
 export const HOME_COLUMNS_CLASS =
@@ -68,7 +68,7 @@ export function Home({
   initialToday,
   savedId,
 }: Readonly<HomeProps>) {
-  const today = useBangkokToday(initialToday);
+  const today = useToday(initialToday);
   const plan = createHomeQueryPlan(today);
   const { data: walletCollection } = useSuspenseQuery(plan.wallets);
   const { data: daily } = useSuspenseQuery(plan.daily);

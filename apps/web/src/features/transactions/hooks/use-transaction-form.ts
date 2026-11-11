@@ -1,3 +1,4 @@
+import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { TransactionType } from "@bookkeeping/domain/transactions";
 import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
@@ -31,6 +32,7 @@ interface UseTransactionFormOptions {
   entry: TransactionEntry;
   wallets: readonly WalletOption[];
   categories: readonly CategoryOption[];
+  today: CalendarDate;
 }
 
 type CreateTransactionRequest =
@@ -59,18 +61,20 @@ export function useTransactionForm({
   entry,
   wallets,
   categories,
+  today,
 }: Readonly<UseTransactionFormOptions>) {
   const { captureOrigin, limits } = entry;
   const navigate = useNavigate();
   const schema = useMemo(
     () =>
       createTransactionFormSchema({
+        today,
         walletOpeningDates: Object.fromEntries(
           wallets.map((wallet) => [wallet.id, wallet.openingDate]),
         ),
         linkedExpense: limits,
       }),
-    [wallets, limits],
+    [wallets, limits, today],
   );
 
   async function returnFrom(saved: Readonly<Transaction>) {

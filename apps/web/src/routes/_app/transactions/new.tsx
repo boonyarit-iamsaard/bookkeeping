@@ -1,4 +1,3 @@
-import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { Wallet as WalletIcon } from "lucide-react";
@@ -94,7 +93,6 @@ function NewTransactionPage() {
       {defaultWalletId ? (
         <TransactionForm
           wallets={wallets}
-          today={todayIn({ timeZone: APP_TIME_ZONE })}
           mode={{ kind: "record", defaultWalletId, captureOrigin }}
         />
       ) : (

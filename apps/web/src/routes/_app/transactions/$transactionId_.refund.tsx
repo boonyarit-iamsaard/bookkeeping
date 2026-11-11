@@ -1,5 +1,4 @@
 // biome-ignore lint/style/useFilenamingConvention: TanStack Router dynamic params must be valid JavaScript identifiers.
-import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Wallet as WalletIcon } from "lucide-react";
@@ -95,7 +94,6 @@ function RefundPage() {
       {wallets.length > 0 ? (
         <TransactionForm
           wallets={wallets}
-          today={todayIn({ timeZone: APP_TIME_ZONE })}
           mode={{ kind: "refund", expense: linked, defaultWalletId }}
         />
       ) : (

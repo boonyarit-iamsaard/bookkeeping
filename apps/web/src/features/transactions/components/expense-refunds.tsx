@@ -1,10 +1,10 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { Link } from "@tanstack/react-router";
 import { Undo2 } from "lucide-react";
-import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import type { CategoryColor } from "@/features/categories/category-color";
 import { CategoryTile } from "@/features/categories/components/category-icon";
+import { canRecordRefund } from "@/features/transactions/linked-expense";
 import { ListSection, listCardClass } from "@/shared/components/list-section";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
@@ -24,13 +24,12 @@ export function ExpenseRefundsView({
   refunds,
   color,
 }: Readonly<ExpenseRefundsViewProps>) {
-  const canRecordRefund = parseApiMoney(refunds.refundAllowance) > 0n;
   return (
     <ListSection
       headingId="expense-refunds-heading"
       heading="Refunds"
       action={
-        canRecordRefund ? (
+        canRecordRefund(refunds) ? (
           <Link
             to="/transactions/$transactionId/refund"
             params={{ transactionId: expense.id }}

@@ -2,9 +2,18 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { APP_TIME_ZONE, addDays, todayIn } from "@bookkeeping/domain/dates";
 import { useEffect, useState } from "react";
 
-/** Refresh shortcuts at Bangkok midnight and when a sleeping page resumes. */
-export function useBangkokToday(initialToday: CalendarDate) {
-  const [today, setToday] = useState(initialToday);
+function readToday(now?: Date): CalendarDate {
+  return todayIn({ timeZone: APP_TIME_ZONE, now });
+}
+
+/**
+ * Today in the app's time zone, the one reader views and form hints share.
+ * `initial` keeps a loader's date so its prefetched reads still match;
+ * without it, the clock is read on first render. The value refreshes at
+ * Bangkok midnight and when a sleeping page resumes.
+ */
+export function useToday(initial?: CalendarDate): CalendarDate {
+  const [today, setToday] = useState(() => initial ?? readToday());
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -12,7 +21,7 @@ export function useBangkokToday(initialToday: CalendarDate) {
     function refresh() {
       clearTimeout(timer);
       const now = new Date();
-      const current = todayIn({ timeZone: APP_TIME_ZONE, now });
+      const current = readToday(now);
       setToday(current);
       // Bangkok has a fixed UTC+07 offset and no daylight-saving transitions.
       const midnight = new Date(`${addDays(current, 1)}T00:00:00+07:00`);

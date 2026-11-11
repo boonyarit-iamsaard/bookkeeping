@@ -1,15 +1,13 @@
-import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
-import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { useNavigate } from "@tanstack/react-router";
 import { Archive, ArchiveRestore, PiggyBank, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { apiClient } from "@/core/api/client";
-import { formatApiMoneyInput } from "@/core/api/money";
+import { formatApiMoneyInput, presentApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { walletQueries } from "@/core/api/queries";
 import { useFormWrites } from "@/core/api/use-form-writes";
 import { WalletTile } from "@/features/wallets/components/wallet-tile";
-import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
+import { createWalletFormSchema } from "@/features/wallets/wallet-form-schema";
 import { WALLET_REFUSAL_WORDING } from "@/features/wallets/wallet-rejection";
 import { ConfirmPanel } from "@/shared/components/confirm-panel";
 import { DatePicker } from "@/shared/components/date-picker";
@@ -20,6 +18,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { cn } from "@/shared/helpers/cn";
+import { useToday } from "@/shared/hooks/use-today";
 
 type Wallet = components["schemas"]["Wallet"];
 type WalletOpeningRequest = components["schemas"]["WalletOpeningRequest"];
@@ -42,7 +41,15 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
     formatApiMoneyInput(wallet.openingAmount),
   );
   const [date, setDate] = useState(wallet.openingDate);
-  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  const today = useToday();
+  const openingSchema = useMemo(
+    () =>
+      createWalletFormSchema({ today }).pick({
+        openingAmount: true,
+        openingDate: true,
+      }),
+    [today],
+  );
   // The opening card checks its values before any write starts.
   const [invalidOpening, setInvalidOpening] = useState("");
   const [notice, setNotice] = useState("");
@@ -117,9 +124,10 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
 
   async function submitOpening() {
     beginChange();
-    const parsed = walletFormSchema
-      .pick({ openingAmount: true, openingDate: true })
-      .safeParse({ openingAmount: amount, openingDate: date });
+    const parsed = openingSchema.safeParse({
+      openingAmount: amount,
+      openingDate: date,
+    });
     if (!parsed.success) {
       setInvalidOpening(
         parsed.error.issues.map((issue) => issue.message).join(". "),
@@ -128,13 +136,10 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
     }
 
     await submit("opening", {
-      amount: {
-        value: formatMoneyInput({
-          amountInMinorUnits: parsed.data.openingAmount,
-          currency: "THB",
-        }),
+      amount: presentApiMoney({
+        amountInMinorUnits: parsed.data.openingAmount,
         currency: "THB",
-      },
+      }),
       date: parsed.data.openingDate,
     });
   }
