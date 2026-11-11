@@ -29,8 +29,10 @@ unrelated changes. Agents run Git writes through the
 
 Merge changes through pull requests with the required `CI`, `SPA browser suite`,
 `Dependency Review` and `Acceptance criteria` checks passing; `main` rejects direct pushes. See
-[ADR 0010](../adr/0010-protected-main-and-gated-deploys.md). Delete the remote branch on merge:
-`gh pr merge --delete-branch`, or `git push origin --delete <branch>`.
+[ADR 0010](../adr/0010-protected-main-and-gated-deploys.md). Squash-merge and delete the
+remote branch with `gh pr merge --squash --delete-branch`. The squash commit's subject
+is the pull request title, and its body stays empty or holds one trailer, passed with
+`--body`, such as `--body "Co-Authored-By: …"`.
 
 Use the [commit-message rules](../../AGENTS.md#commit-messages);
 `commitlint.config.ts` is authoritative and the commit-msg hook enforces it.
