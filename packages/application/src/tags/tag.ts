@@ -13,7 +13,7 @@ import {
   MAX_TAG_NAME_LENGTH,
   normalizeTagName,
 } from "@bookkeeping/domain/tags";
-import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { IdempotentCreator } from "../idempotency/idempotency";
 import { defineIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
@@ -179,26 +179,28 @@ export async function renameTag(
 function renameOrMerge(db: Database, input: Readonly<RenameTagInput>) {
   return db.transaction(
     async (tx): Promise<Result<TransactionTag, RenameTagError>> => {
-      const [renamed] = await tx
-        .select(tagColumns)
-        .from(tags)
-        .where(and(eq(tags.id, input.id), eq(tags.userId, input.ownerId)))
-        .for("update");
-      if (!renamed) {
-        return err(notFound());
-      }
-      const [survivor] = await tx
+      // The tag and the one it merges into, locked in one statement in id
+      // order so two renames swapping names cannot wait on each other.
+      const locked = await tx
         .select(tagColumns)
         .from(tags)
         .where(
           and(
             eq(tags.userId, input.ownerId),
-            // The unique index's own comparison, whatever the collation.
-            sql`lower(${tags.name}) = lower(${input.name})`,
-            ne(tags.id, renamed.id),
+            or(
+              eq(tags.id, input.id),
+              // The unique index's own comparison, whatever the collation.
+              sql`lower(${tags.name}) = lower(${input.name})`,
+            ),
           ),
         )
+        .orderBy(asc(tags.id))
         .for("update");
+      const renamed = locked.find((tag) => tag.id === input.id);
+      if (!renamed) {
+        return err(notFound());
+      }
+      const survivor = locked.find((tag) => tag.id !== renamed.id);
       if (survivor) {
         await tx
           .insert(transactionTags)

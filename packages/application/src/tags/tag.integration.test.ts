@@ -12,7 +12,7 @@ import {
 } from "../transactions/transaction";
 import { createTag, deleteTag, listTags, renameTag } from "./tag";
 
-const { withRollback } = setupTestDatabase();
+const { withRollback, committed } = setupTestDatabase();
 
 /** Records a groceries expense carrying these tags and returns its id. */
 interface TaggedExpense {
@@ -338,6 +338,42 @@ describe("renameTag", () => {
         value: { id: coffee, name: "Coffee" },
       });
     });
+  });
+
+  test("two tags swapping names concurrently merge instead of deadlocking", async () => {
+    const db = committed();
+    const owner = await setupOwner(db);
+    const rounds = 3;
+
+    for (let round = 0; round < rounds; round += 1) {
+      const first = await createTagForTest(db, {
+        ownerId: owner.ownerId,
+        name: `first-${round}`,
+      });
+      const second = await createTagForTest(db, {
+        ownerId: owner.ownerId,
+        name: `second-${round}`,
+      });
+
+      const outcomes = await Promise.all([
+        renameTag(db, {
+          ownerId: owner.ownerId,
+          id: first,
+          name: `Second-${round}`,
+        }),
+        renameTag(db, {
+          ownerId: owner.ownerId,
+          id: second,
+          name: `First-${round}`,
+        }),
+      ]);
+
+      expect(outcomes).toEqual([
+        expect.objectContaining({ ok: true }),
+        expect.objectContaining({ ok: true }),
+      ]);
+    }
+    expect(await listTags(db, owner.ownerId)).toHaveLength(rounds);
   });
 
   test("another owner's tag is not found, and a blank name is refused", async () => {
