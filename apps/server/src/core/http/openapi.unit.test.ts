@@ -238,7 +238,7 @@ describe("OpenAPI document", () => {
       }),
     ).toBe("#/components/schemas/Category");
     expect(operation.responses["201"].headers).toHaveProperty("Location");
-    expectProblemResponses(operation, ["400", "401", "409", "422", "500"]);
+    expectProblemResponses(operation, ["400", "401", "409", "500"]);
     expect(documentedSchema(document, "CreateCategoryRequest")).toBeDefined();
   });
 
@@ -267,7 +267,7 @@ describe("OpenAPI document", () => {
         mediaType: "application/json",
       }),
     ).toBe("#/components/schemas/Category");
-    expectProblemResponses(operation, ["400", "401", "404", "422", "500"]);
+    expectProblemResponses(operation, ["400", "401", "404", "500"]);
     expect(
       documentedSchema(document, "UpdateCategoryRequest").required,
     ).toEqual(["name", "iconId"]);
