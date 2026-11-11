@@ -121,7 +121,7 @@ export function createTagRoutes(db: Database) {
           });
           return answerCreation(c, {
             result: created,
-            present: (outcome) => ({ ...outcome.tag }),
+            present: (tag) => ({ ...tag }),
             toFieldErrors: toTagFieldErrors,
           });
         },

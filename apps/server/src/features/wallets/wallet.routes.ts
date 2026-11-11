@@ -270,7 +270,7 @@ export function createWalletRoutes(db: Database) {
           });
           return answerCreation(c, {
             result: created,
-            present: (outcome) => presentWallet(outcome.wallet),
+            present: presentWallet,
             toFieldErrors: toCreationFieldErrors,
           });
         },

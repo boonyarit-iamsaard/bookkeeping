@@ -74,7 +74,7 @@ async function recordRefund(
   if (!created.ok) {
     throw new Error("Expected the refund to save");
   }
-  return created.value.transaction;
+  return created.value;
 }
 
 describe("judgeNewTransaction", () => {
@@ -194,7 +194,7 @@ describe("judgeNewTransaction", () => {
       for (const refundOfTransactionId of [
         foreignExpense.id,
         deletedExpense.id,
-        income.value.transaction.id,
+        income.value.id,
         crypto.randomUUID(),
         "not-a-uuid",
       ]) {

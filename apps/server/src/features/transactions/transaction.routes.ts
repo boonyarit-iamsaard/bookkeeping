@@ -436,7 +436,7 @@ export function createTransactionRoutes(db: Database) {
           });
           return answerCreation(c, {
             result: created,
-            present: (outcome) => presentTransaction(outcome.transaction),
+            present: presentTransaction,
             toFieldErrors: toCreateFieldErrors,
           });
         },

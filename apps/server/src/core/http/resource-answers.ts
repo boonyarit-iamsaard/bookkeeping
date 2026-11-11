@@ -29,7 +29,7 @@ export interface CreationAnswer<
   Rejection,
   Body extends { id: string },
 > {
-  /** The application's verdict: the created or replayed outcome, a rejection, or a key conflict. */
+  /** The application's verdict: the created or replayed value, a rejection, or a key conflict. */
   result: Result<Outcome, Rejection | IdempotencyConflict>;
   /** The created resource as the wire presents it. */
   present: (outcome: Outcome) => Body;

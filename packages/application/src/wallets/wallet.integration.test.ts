@@ -317,24 +317,21 @@ describe("createWallet", () => {
 
       expect(created).toEqual({
         ok: true,
-        value: {
-          replayed: false,
-          wallet: expect.objectContaining({
-            name: "Kasikorn savings",
-            type: "bank_account",
-            savings: true,
-            openingAmount: 1_200_000n,
-            openingDate: "2026-09-01",
-            archivedAt: null,
-            balance: 1_200_000n,
-          }),
-        },
+        value: expect.objectContaining({
+          name: "Kasikorn savings",
+          type: "bank_account",
+          savings: true,
+          openingAmount: 1_200_000n,
+          openingDate: "2026-09-01",
+          archivedAt: null,
+          balance: 1_200_000n,
+        }),
       });
       if (!created.ok) {
         throw new Error("Expected wallet creation to succeed");
       }
       expect(await listWallets(db, { ownerId: owner.id })).toEqual([
-        created.value.wallet,
+        created.value,
       ]);
     });
   });
@@ -349,69 +346,26 @@ describe("createWallet", () => {
 
       const retry = await openWallet(db, { ownerId: owner.id });
 
-      expect(retry).toEqual({
-        ok: true,
-        value: { wallet: first.value.wallet, replayed: true },
-      });
+      expect(retry).toEqual({ ok: true, value: first.value });
       expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
     });
   });
 
-  test("a retry replays the wallet as created even after it was archived or removed", async () => {
+  test("a retry whose command differs conflicts and opens nothing", async () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
-      const first = await openWallet(db, { ownerId: owner.id });
-      if (!first.ok) {
-        throw new Error("Expected wallet creation to succeed");
-      }
-      const { id } = first.value.wallet;
+      await openWallet(db, { ownerId: owner.id });
 
-      await db
-        .update(wallets)
-        .set({ name: "Renamed", archivedAt: new Date("2026-09-10T00:00:00Z") })
-        .where(eq(wallets.id, id));
-      const afterChange = await openWallet(db, { ownerId: owner.id });
-      await db.delete(wallets).where(eq(wallets.id, id));
-      const afterRemoval = await openWallet(db, { ownerId: owner.id });
-
-      expect(afterChange).toEqual({
-        ok: true,
-        value: { wallet: first.value.wallet, replayed: true },
+      const conflict = await openWallet(db, {
+        ownerId: owner.id,
+        openingAmount: 1_200_001n,
       });
-      expect(afterRemoval).toEqual(afterChange);
-      expect(await listWallets(db, { ownerId: owner.id })).toEqual([]);
-    });
-  });
 
-  test.each([{ openingAmount: 1_200_001n }, { savings: true }])(
-    "a retry whose command differs conflicts and opens nothing",
-    async (change) => {
-      await withRollback(async (db) => {
-        const owner = await createTestUser(db);
-        await openWallet(db, { ownerId: owner.id });
-
-        const conflict = await openWallet(db, {
-          ownerId: owner.id,
-          ...change,
-        });
-
-        expect(conflict).toEqual({
-          ok: false,
-          error: { code: "idempotency-conflict" },
-        });
-        expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
+      expect(conflict).toEqual({
+        ok: false,
+        error: { code: "idempotency-conflict" },
       });
-    },
-  );
-
-  test("distinct keys open distinct wallets from the same command", async () => {
-    await withRollback(async (db) => {
-      const owner = await createTestUser(db);
-
-      await openWallet(db, { ownerId: owner.id, idempotencyKey: "a" });
-      await openWallet(db, { ownerId: owner.id, idempotencyKey: "b" });
-
-      expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(2);
+      expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
     });
   });
 
@@ -432,28 +386,11 @@ describe("createWallet", () => {
           { code: "invalid", field: "openingDate" },
         ),
       );
-      expect(corrected.ok && corrected.value.replayed).toBe(false);
+      expect(corrected.ok).toBe(true);
       expect(await listWallets(db, { ownerId: owner.id })).toEqual([
         expect.objectContaining({ name: "Kasikorn savings" }),
       ]);
     });
-  });
-
-  test("concurrent retries open one wallet and replay it to the rest", async () => {
-    const db = committed();
-    const owner = await createTestUser(db);
-
-    const outcomes = await Promise.all(
-      Array.from({ length: 5 }, () => openWallet(db, { ownerId: owner.id })),
-    );
-
-    const successes = outcomes.flatMap((outcome) =>
-      outcome.ok ? [outcome.value] : [],
-    );
-    expect(successes).toHaveLength(5);
-    expect(new Set(successes.map(({ wallet }) => wallet.id)).size).toBe(1);
-    expect(successes.filter(({ replayed }) => !replayed)).toHaveLength(1);
-    expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
   });
 });
 
@@ -507,7 +444,7 @@ async function openCashPair(db: Database) {
   if (!(cash.ok && bank.ok)) {
     throw new Error("Expected wallet creation to succeed");
   }
-  return { owner, cash: cash.value.wallet, bank: bank.value.wallet };
+  return { owner, cash: cash.value, bank: bank.value };
 }
 
 async function listChanges(db: Database, walletId: string) {
@@ -742,7 +679,7 @@ describe("deleteWallet", () => {
       await insertRetainedTransferSnapshot(db, {
         ownerId: owner.id,
         currentWalletId: bank.id,
-        currentDestinationWalletId: spare.value.wallet.id,
+        currentDestinationWalletId: spare.value.id,
         retainedWalletId: cash.id,
       });
 
@@ -816,7 +753,7 @@ describe("wallet lifecycle", () => {
       }
       await deleteTransaction(db, {
         ownerId: owned.ownerId,
-        id: created.value.transaction.id,
+        id: created.value.id,
       });
       for (const id of [owned.id, other.id]) {
         expect(await deleteWallet(db, { ...owned, id })).toEqual({

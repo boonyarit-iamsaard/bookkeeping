@@ -27,7 +27,7 @@ async function record(
       `Expected the transaction to save, got ${created.error.code}`,
     );
   }
-  return created.value.transaction;
+  return created.value;
 }
 
 function expenseInput(
@@ -72,10 +72,10 @@ describe("tagging on creation", () => {
         { id: shop, name: "7-Eleven" },
         { id: coffee, name: "coffee" },
       ];
-      expect(created.value.transaction.tags).toEqual(expected);
+      expect(created.value.tags).toEqual(expected);
       const found = await findTransaction(db, {
         ownerId: owner.ownerId,
-        id: created.value.transaction.id,
+        id: created.value.id,
       });
       expect(found?.tags).toEqual(expected);
     });
@@ -87,7 +87,7 @@ describe("tagging on creation", () => {
 
       const created = await createTransaction(db, expenseInput(owner));
 
-      expect(created.ok && created.value.transaction.tags).toEqual([]);
+      expect(created.ok && created.value.tags).toEqual([]);
     });
   });
 

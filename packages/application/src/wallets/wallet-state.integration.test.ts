@@ -41,7 +41,7 @@ async function openWallet(
   if (!created.ok) {
     throw new Error("Wallet creation failed");
   }
-  return { owner, wallet: created.value.wallet };
+  return { owner, wallet: created.value };
 }
 
 async function listChanges(db: Database, walletId: string) {

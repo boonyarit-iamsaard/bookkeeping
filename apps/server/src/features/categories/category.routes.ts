@@ -236,7 +236,7 @@ export function createCategoryRoutes(db: Database) {
             });
             return answerCreation(c, {
               result: created,
-              present: (outcome) => outcome.category,
+              present: (created) => created.category,
               toFieldErrors: toCategoryFieldErrors,
             });
           },

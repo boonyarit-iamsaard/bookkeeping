@@ -18,11 +18,8 @@ import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
 import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import type {
-  IdempotencyConflict,
-  ValidatedPayload,
-} from "../idempotency/idempotency";
-import { executeIdempotentCreation } from "../idempotency/idempotency";
+import type {} from "../idempotency/idempotency";
+import { defineIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
 import { notFound } from "../shared/not-found";
@@ -415,17 +412,10 @@ export interface CreateCategoryInput extends CategoryCreationCommand {
   idempotencyKey: string;
 }
 
-export type CreateCategoryError = CategoryRejected | IdempotencyConflict;
-
 export interface CreateCategoryData {
   category: CategorySummary;
   /** Present when a missing parent was created in the same save. */
   createdParent?: CategorySummary;
-}
-
-export interface CreateCategoryOutcome extends CreateCategoryData {
-  /** True when an earlier request with the same key already created it. */
-  replayed: boolean;
 }
 
 /** The two shape rules every category name obeys, on creation or rename. */
@@ -470,73 +460,34 @@ export function validateCategoryCreation(
       return err(rejected({ code: "unknown-icon", field: "parentIconId" }));
     }
     return ok({
-      ...input,
+      kind: input.kind,
       name,
+      iconId: input.iconId,
       parent: {
         create: { name: parentName, iconId: input.parent.create.iconId },
       },
     });
   }
 
-  return ok({ ...input, name });
+  return ok({
+    kind: input.kind,
+    name,
+    iconId: input.iconId,
+    parent: input.parent && { existingId: input.parent.existingId },
+  });
 }
-
-const CATEGORY_CREATION_OPERATION = "categories.create";
 
 /**
  * Creates a parent, a child under an existing parent, or a child together
  * with its missing parent, once per idempotency key.
  */
-export async function createCategory(
-  db: Database,
-  input: Readonly<CreateCategoryInput>,
-): Promise<Result<CreateCategoryOutcome, CreateCategoryError>> {
-  const validated = validateCategoryCreation(input);
-  if (!validated.ok) {
-    return validated;
-  }
-  const command = validated.value;
-  const outcome = await executeIdempotentCreation<
-    CreateCategoryData,
-    CreateCategoryError
-  >(db, {
-    ownerId: input.ownerId,
-    operation: CATEGORY_CREATION_OPERATION,
-    key: input.idempotencyKey,
-    payload: categoryCreationPayload(command),
-    create: (tx) =>
-      createCategoryRows({ db: tx, ownerId: input.ownerId, command }),
-  });
-  if (!outcome.ok) {
-    return err(outcome.error);
-  }
-  return ok({ ...outcome.value.result, replayed: outcome.value.replayed });
-}
-
-function categoryCreationPayload(
-  command: Readonly<CategoryCreationCommand>,
-): ValidatedPayload {
-  const base = {
-    kind: command.kind,
-    name: command.name,
-    iconId: command.iconId,
-  };
-  if (command.parent === null) {
-    return { ...base, parent: null };
-  }
-  if ("existingId" in command.parent) {
-    return { ...base, parent: { existingId: command.parent.existingId } };
-  }
-  return {
-    ...base,
-    parent: {
-      create: {
-        name: command.parent.create.name,
-        iconId: command.parent.create.iconId,
-      },
-    },
-  };
-}
+export const createCategory = defineIdempotentCreation({
+  operation: "categories.create",
+  prepare: (input: Readonly<CreateCategoryInput>) =>
+    validateCategoryCreation(input),
+  insert: (tx, { ownerId, command }) =>
+    createCategoryRows({ db: tx, ownerId, command }),
+});
 
 interface CreateCategoryRowsOptions {
   db: Database;
@@ -549,7 +500,7 @@ async function createCategoryRows({
   ownerId,
   command,
 }: Readonly<CreateCategoryRowsOptions>): Promise<
-  Result<CreateCategoryData, CreateCategoryError>
+  Result<CreateCategoryData, CategoryRejected>
 > {
   const resolved = await resolveParent({ db, ownerId, command });
   if (!resolved.ok) {

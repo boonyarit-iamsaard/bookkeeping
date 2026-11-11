@@ -20,5 +20,5 @@ export async function createTagForTest(
   if (!created.ok) {
     throw new Error(`Expected the tag to save, got ${created.error.code}`);
   }
-  return created.value.tag.id;
+  return created.value.id;
 }

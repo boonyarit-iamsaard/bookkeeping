@@ -117,7 +117,7 @@ export async function recordExpense(db: Database, owner: OwnerFixture) {
   if (!created.ok) {
     throw new Error(`Expected the expense to save, got ${created.error.code}`);
   }
-  return created.value.transaction;
+  return created.value;
 }
 
 export interface UpdateExpenseInputOptions {

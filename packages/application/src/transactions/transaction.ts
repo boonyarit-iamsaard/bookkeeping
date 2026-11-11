@@ -8,7 +8,7 @@ import { wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
-import { normalizeTagIds, optionalTagIds } from "@bookkeeping/domain/tags";
+import { normalizeTagIds } from "@bookkeeping/domain/tags";
 import type {
   ExpenseRefunds,
   RefundSummary,
@@ -20,11 +20,8 @@ import type {
   TransactionType,
 } from "@bookkeeping/domain/transactions";
 import { and, asc, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
-import type {
-  IdempotencyConflict,
-  ValidatedPayload,
-} from "../idempotency/idempotency";
-import { executeIdempotentCreation } from "../idempotency/idempotency";
+import type {} from "../idempotency/idempotency";
+import { defineIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
 import { isNotFound, notFound } from "../shared/not-found";
@@ -109,51 +106,20 @@ export interface CreateTransactionInput {
   tagIds?: readonly string[];
 }
 
-export interface CreateTransactionOutcome {
-  transaction: TransactionDetail;
-  /** True when an earlier request with the same key already created it. */
-  replayed: boolean;
-}
-
 /** The refused inputs of a transaction command, in the shared envelope. */
 export type TransactionRejected = Rejected<TransactionRejection>;
-
-export type CreateTransactionError = TransactionRejected | IdempotencyConflict;
-
-const TRANSACTION_CREATION_OPERATION = "transactions.create";
 
 /**
  * Creates one transaction and its durable result snapshot per idempotency key.
  * Every rule is judged inside the same transaction as the financial insert,
  * with the records it names locked; a refused command never consumes the key.
  */
-export async function createTransaction(
-  db: Database,
-  input: Readonly<CreateTransactionInput>,
-): Promise<Result<CreateTransactionOutcome, CreateTransactionError>> {
-  const command = toTransactionCommand(input);
-  const outcome = await executeIdempotentCreation<
-    TransactionDetail,
-    TransactionRejected
-  >(db, {
-    ownerId: input.ownerId,
-    operation: TRANSACTION_CREATION_OPERATION,
-    key: input.idempotencyKey,
-    payload: transactionCreationPayload(command),
-    create: (tx) => insertTransaction(tx, { ownerId: input.ownerId, command }),
-  });
-  if (!outcome.ok) {
-    return err(outcome.error);
-  }
-  return ok({
-    // A receipt stored before tags existed holds a detail without them.
-    transaction: {
-      ...outcome.value.result,
-      tags: outcome.value.result.tags ?? [],
-    },
-    replayed: outcome.value.replayed,
-  });
-}
+export const createTransaction = defineIdempotentCreation({
+  operation: "transactions.create",
+  prepare: (input: Readonly<CreateTransactionInput>) =>
+    ok(toTransactionCommand(input)),
+  insert: insertTransaction,
+});
 
 function toTransactionCommand(
   input: Readonly<
@@ -181,23 +147,6 @@ function toTransactionCommand(
     transactionDate: input.transactionDate,
     note: input.note,
     tagIds: normalizeTagIds(input.tagIds ?? []),
-  };
-}
-
-function transactionCreationPayload(
-  command: Readonly<TransactionCommand>,
-): ValidatedPayload {
-  return {
-    type: command.type,
-    walletId: command.walletId,
-    categoryId: command.categoryId,
-    destinationWalletId: command.destinationWalletId,
-    refundOfTransactionId: command.refundOfTransactionId,
-    amount: command.amount,
-    transactionDate: command.transactionDate,
-    note: command.note,
-    // So receipts from before tags existed still match.
-    ...optionalTagIds(command.tagIds),
   };
 }
 

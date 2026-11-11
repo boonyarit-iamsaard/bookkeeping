@@ -10,8 +10,7 @@ import {
   normalizeTagName,
 } from "@bookkeeping/domain/tags";
 import { and, asc, desc, eq, isNull, ne, sql } from "drizzle-orm";
-import type { IdempotencyConflict } from "../idempotency/idempotency";
-import { executeIdempotentCreation } from "../idempotency/idempotency";
+import { defineIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
 import { notFound } from "../shared/not-found";
@@ -99,54 +98,34 @@ export interface CreateTagInput {
   name: string;
 }
 
-export interface CreateTagOutcome {
-  tag: TransactionTag;
-  /** True when an earlier request with the same key already created it. */
-  replayed: boolean;
-}
-
-export type CreateTagError = TagRejected | IdempotencyConflict;
-
 /** Creates one tag per idempotency key; a refused name never consumes the key. */
-export async function createTag(
-  db: Database,
-  input: Readonly<CreateTagInput>,
-): Promise<Result<CreateTagOutcome, CreateTagError>> {
-  const name = validateTagName(input.name);
-  if (!name.ok) {
-    return name;
-  }
-  const outcome = await executeIdempotentCreation<TransactionTag, TagRejected>(
-    db,
-    {
-      ownerId: input.ownerId,
-      operation: "tags.create",
-      key: input.idempotencyKey,
-      payload: { name: name.value },
-      create: async (tx) => {
-        try {
-          const [row] = await tx
-            .insert(tags)
-            .values({ userId: input.ownerId, name: name.value })
-            .returning(tagColumns);
-          if (!row) {
-            throw new Error("Tag insert returned no row");
-          }
-          return ok(row);
-        } catch (error) {
-          if (isTagNameViolation(error)) {
-            return err(rejected({ code: "duplicate-name", field: "name" }));
-          }
-          throw error;
-        }
-      },
-    },
-  );
-  if (!outcome.ok) {
-    return outcome;
-  }
-  return ok({ tag: outcome.value.result, replayed: outcome.value.replayed });
-}
+export const createTag = defineIdempotentCreation({
+  operation: "tags.create",
+  prepare: (input: Readonly<CreateTagInput>) => {
+    const name = validateTagName(input.name);
+    return name.ok ? ok({ name: name.value }) : name;
+  },
+  insert: async (
+    tx,
+    { ownerId, command },
+  ): Promise<Result<TransactionTag, TagRejected>> => {
+    try {
+      const [row] = await tx
+        .insert(tags)
+        .values({ userId: ownerId, name: command.name })
+        .returning(tagColumns);
+      if (!row) {
+        throw new Error("Tag insert returned no row");
+      }
+      return ok(row);
+    } catch (error) {
+      if (isTagNameViolation(error)) {
+        return err(rejected({ code: "duplicate-name", field: "name" }));
+      }
+      throw error;
+    }
+  },
+});
 
 export interface TagRef {
   /** Always the session user; never a client-supplied identifier. */

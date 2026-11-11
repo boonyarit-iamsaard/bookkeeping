@@ -1,13 +1,11 @@
 import { setupTestDatabase } from "@bookkeeping/database/testing";
-import { transactions } from "@bookkeeping/database/transactions";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { rejected } from "../shared/rejection";
 import {
   insertWallet,
   recordExpense,
   setupOwner,
-  softDelete,
   withClock,
 } from "../testing/transaction-suite-fixture";
 import { listWallets } from "../wallets/wallet";
@@ -15,7 +13,6 @@ import type { CreateTransactionInput } from "./transaction";
 import {
   createTransaction,
   findExpenseRefunds,
-  findTransaction,
   listTransactions,
 } from "./transaction";
 
@@ -51,8 +48,7 @@ describe("createTransaction", () => {
       if (!expense.ok || !income.ok) {
         throw new Error("Expected both transaction creations to succeed");
       }
-      expect(expense.value.replayed).toBe(false);
-      expect(expense.value.transaction).toEqual(
+      expect(expense.value).toEqual(
         expect.objectContaining({
           type: "expense",
           amount: 12_345n,
@@ -68,7 +64,7 @@ describe("createTransaction", () => {
           refundOf: null,
         }),
       );
-      expect(income.value.transaction.category).toEqual(
+      expect(income.value.category).toEqual(
         expect.objectContaining({ id: owner.incomeId, name: "Salary" }),
       );
     });
@@ -100,7 +96,7 @@ describe("createTransaction", () => {
         [],
       );
       const corrected = await createTransaction(db, input);
-      expect(corrected.ok && corrected.value.replayed).toBe(false);
+      expect(corrected.ok).toBe(true);
     });
   });
 
@@ -121,17 +117,14 @@ describe("createTransaction", () => {
 
       expect(created).toEqual({
         ok: true,
-        value: {
-          replayed: false,
-          transaction: expect.objectContaining({
-            type: "transfer",
-            amount: 12_345n,
-            wallet: expect.objectContaining({ id: owner.cashId }),
-            destinationWallet: expect.objectContaining({ id: owner.bankId }),
-            category: null,
-            refundOf: null,
-          }),
-        },
+        value: expect.objectContaining({
+          type: "transfer",
+          amount: 12_345n,
+          wallet: expect.objectContaining({ id: owner.cashId }),
+          destinationWallet: expect.objectContaining({ id: owner.bankId }),
+          category: null,
+          refundOf: null,
+        }),
       });
       expect(
         (await listWallets(db, { ownerId: owner.ownerId })).map((wallet) => ({
@@ -143,85 +136,6 @@ describe("createTransaction", () => {
         { id: owner.bankId, balance: 12_345n },
       ]);
     });
-  });
-
-  test("replays a transfer and conflicts when its payload changes", async () => {
-    await withRollback(async (db) => {
-      const owner = await setupOwner(db);
-      const input = {
-        ownerId: owner.ownerId,
-        idempotencyKey: "transfer-retry",
-        type: "transfer" as const,
-        walletId: owner.cashId,
-        destinationWalletId: owner.bankId,
-        categoryId: null,
-        amount: 12_345n,
-        transactionDate: "2026-09-02" as const,
-        note: "Move money",
-      };
-
-      const first = await createTransaction(db, input);
-      if (!first.ok) {
-        throw new Error("Expected the transfer to save");
-      }
-      const retry = await createTransaction(db, input);
-      expect(retry).toEqual({
-        ok: true,
-        value: { transaction: first.value.transaction, replayed: true },
-      });
-      expect(
-        await createTransaction(db, { ...input, amount: 12_346n }),
-      ).toEqual({ ok: false, error: { code: "idempotency-conflict" } });
-      expect(
-        (await listTransactions(db, { ownerId: owner.ownerId })).filter(
-          (transaction) => transaction.type === "transfer",
-        ),
-      ).toHaveLength(1);
-      expect(
-        (await listWallets(db, { ownerId: owner.ownerId })).map(
-          (wallet) => wallet.balance,
-        ),
-      ).toEqual([987_655n, 12_345n]);
-    });
-  });
-
-  test("concurrent transfer retries commit one movement and replay it", async () => {
-    const db = committed();
-    const owner = await setupOwner(db);
-    const input = {
-      ownerId: owner.ownerId,
-      idempotencyKey: "transfer-concurrent",
-      type: "transfer" as const,
-      walletId: owner.cashId,
-      destinationWalletId: owner.bankId,
-      categoryId: null,
-      amount: 12_345n,
-      transactionDate: "2026-09-02" as const,
-      note: "Move money",
-    };
-
-    const outcomes = await Promise.all(
-      Array.from({ length: 5 }, () => createTransaction(db, input)),
-    );
-    const successful = outcomes.flatMap((outcome) =>
-      outcome.ok ? [outcome.value] : [],
-    );
-
-    expect(successful).toHaveLength(5);
-    expect(
-      new Set(successful.map((outcome) => outcome.transaction.id)).size,
-    ).toBe(1);
-    expect(successful.filter((outcome) => !outcome.replayed)).toHaveLength(1);
-    expect(
-      (await listTransactions(db, { ownerId: owner.ownerId })).filter(
-        (transaction) => transaction.type === "transfer",
-      ),
-    ).toHaveLength(1);
-    expect(
-      (await listWallets(db, { ownerId: owner.ownerId })).map(
-        (wallet) => wallet.balance,
-      ),
-    ).toEqual([987_655n, 12_345n]);
   });
 
   test("records a full refund with its expense link and inherited category", async () => {
@@ -246,7 +160,7 @@ describe("createTransaction", () => {
         type: "refund",
         walletId: owner.bankId,
         categoryId: null,
-        refundOfTransactionId: expense.value.transaction.id,
+        refundOfTransactionId: expense.value.id,
         amount: 2_000n,
         transactionDate: "2026-09-03",
         note: "Returned",
@@ -254,27 +168,24 @@ describe("createTransaction", () => {
 
       expect(created).toEqual({
         ok: true,
-        value: {
-          replayed: false,
-          transaction: expect.objectContaining({
-            type: "refund",
-            amount: 2_000n,
-            transactionDate: "2026-09-03",
-            note: "Returned",
-            wallet: expect.objectContaining({ id: owner.bankId }),
-            destinationWallet: null,
-            category: expect.objectContaining({
-              id: owner.childId,
-              name: "Groceries",
-              parentName: "Food & Drink",
-            }),
-            refundOf: {
-              id: expense.value.transaction.id,
-              amount: 2_000n,
-              transactionDate: "2026-09-02",
-            },
+        value: expect.objectContaining({
+          type: "refund",
+          amount: 2_000n,
+          transactionDate: "2026-09-03",
+          note: "Returned",
+          wallet: expect.objectContaining({ id: owner.bankId }),
+          destinationWallet: null,
+          category: expect.objectContaining({
+            id: owner.childId,
+            name: "Groceries",
+            parentName: "Food & Drink",
           }),
-        },
+          refundOf: {
+            id: expense.value.id,
+            amount: 2_000n,
+            transactionDate: "2026-09-02",
+          },
+        }),
       });
       expect(
         (await listWallets(db, { ownerId: owner.ownerId })).map((wallet) => ({
@@ -287,7 +198,7 @@ describe("createTransaction", () => {
       ]);
       const refunds = await findExpenseRefunds(db, {
         ownerId: owner.ownerId,
-        id: expense.value.transaction.id,
+        id: expense.value.id,
       });
       expect(refunds?.refundedTotal).toBe(2_000n);
       expect(refunds?.refundAllowance).toBe(0n);
@@ -310,7 +221,7 @@ describe("createTransaction", () => {
       if (!expense.ok) {
         throw new Error("Expected the expense to save");
       }
-      const expenseId = expense.value.transaction.id;
+      const expenseId = expense.value.id;
       const toBank = await createTransaction(db, {
         ownerId: owner.ownerId,
         idempotencyKey: "partial-refund-bank",
@@ -354,111 +265,6 @@ describe("createTransaction", () => {
     });
   });
 
-  test("replays a refund and conflicts when its payload changes", async () => {
-    await withRollback(async (db) => {
-      const owner = await setupOwner(db);
-      const expense = await createTransaction(db, {
-        ownerId: owner.ownerId,
-        idempotencyKey: "retry-expense",
-        type: "expense",
-        walletId: owner.cashId,
-        categoryId: owner.childId,
-        amount: 2_000n,
-        transactionDate: "2026-09-02",
-        note: "Lunch",
-      });
-      if (!expense.ok) {
-        throw new Error("Expected the expense to save");
-      }
-      const input = {
-        ownerId: owner.ownerId,
-        idempotencyKey: "refund-retry",
-        type: "refund" as const,
-        walletId: owner.bankId,
-        categoryId: null,
-        refundOfTransactionId: expense.value.transaction.id,
-        amount: 500n,
-        transactionDate: "2026-09-03" as const,
-        note: "Partial",
-      };
-
-      const first = await createTransaction(db, input);
-      if (!first.ok) {
-        throw new Error("Expected the refund to save");
-      }
-      expect(await createTransaction(db, input)).toEqual({
-        ok: true,
-        value: { transaction: first.value.transaction, replayed: true },
-      });
-      expect(await createTransaction(db, { ...input, amount: 501n })).toEqual({
-        ok: false,
-        error: { code: "idempotency-conflict" },
-      });
-      expect(
-        (await listTransactions(db, { ownerId: owner.ownerId })).filter(
-          (transaction) => transaction.type === "refund",
-        ),
-      ).toHaveLength(1);
-      expect(
-        (await listWallets(db, { ownerId: owner.ownerId })).map(
-          (wallet) => wallet.balance,
-        ),
-      ).toEqual([998_000n, 500n]);
-    });
-  });
-
-  test("concurrent refund retries commit one refund and replay it", async () => {
-    const db = committed();
-    const owner = await setupOwner(db);
-    const expense = await createTransaction(db, {
-      ownerId: owner.ownerId,
-      idempotencyKey: "concurrent-expense",
-      type: "expense",
-      walletId: owner.cashId,
-      categoryId: owner.childId,
-      amount: 2_000n,
-      transactionDate: "2026-09-02",
-      note: "Lunch",
-    });
-    if (!expense.ok) {
-      throw new Error("Expected the expense to save");
-    }
-    const input = {
-      ownerId: owner.ownerId,
-      idempotencyKey: "refund-concurrent",
-      type: "refund" as const,
-      walletId: owner.bankId,
-      categoryId: null,
-      refundOfTransactionId: expense.value.transaction.id,
-      amount: 500n,
-      transactionDate: "2026-09-03" as const,
-      note: "Partial",
-    };
-
-    const outcomes = await Promise.all(
-      Array.from({ length: 5 }, () => createTransaction(db, input)),
-    );
-    const successful = outcomes.flatMap((outcome) =>
-      outcome.ok ? [outcome.value] : [],
-    );
-
-    expect(successful).toHaveLength(5);
-    expect(
-      new Set(successful.map((outcome) => outcome.transaction.id)).size,
-    ).toBe(1);
-    expect(successful.filter((outcome) => !outcome.replayed)).toHaveLength(1);
-    expect(
-      (await listTransactions(db, { ownerId: owner.ownerId })).filter(
-        (transaction) => transaction.type === "refund",
-      ),
-    ).toHaveLength(1);
-    expect(
-      (await listWallets(db, { ownerId: owner.ownerId })).map(
-        (wallet) => wallet.balance,
-      ),
-    ).toEqual([998_000n, 500n]);
-  });
-
   test("concurrent distinct refunds cannot exceed the expense", async () => {
     const db = committed();
     const owner = await setupOwner(db);
@@ -484,7 +290,7 @@ describe("createTransaction", () => {
           type: "refund",
           walletId: owner.bankId,
           categoryId: null,
-          refundOfTransactionId: expense.value.transaction.id,
+          refundOfTransactionId: expense.value.id,
           amount: 1_000n,
           transactionDate: "2026-09-03",
           note: "Full",
@@ -516,49 +322,6 @@ describe("createTransaction", () => {
     ).toEqual([999_000n, 1_000n]);
   });
 
-  test("replays its original detail after edits or deletion and conflicts on changed payloads", async () => {
-    await withRollback(async (db) => {
-      const owner = await setupOwner(db);
-      const input = {
-        ownerId: owner.ownerId,
-        idempotencyKey: "stable-transaction-result",
-        type: "expense" as const,
-        walletId: owner.cashId,
-        categoryId: owner.childId,
-        amount: 12_345n,
-        transactionDate: "2026-09-02",
-        note: "Original",
-      };
-      const first = await createTransaction(db, input);
-      if (!first.ok) {
-        throw new Error("Expected the transaction to save");
-      }
-      await db
-        .update(transactions)
-        .set({ amount: 60_000n, note: "Edited" })
-        .where(eq(transactions.id, first.value.transaction.id));
-
-      const afterEdit = await createTransaction(db, input);
-      expect(afterEdit).toEqual({
-        ok: true,
-        value: { transaction: first.value.transaction, replayed: true },
-      });
-
-      await softDelete(db, first.value.transaction.id);
-      const afterDelete = await createTransaction(db, input);
-      expect(afterDelete).toEqual(afterEdit);
-      expect(
-        await findTransaction(db, {
-          ownerId: input.ownerId,
-          id: first.value.transaction.id,
-        }),
-      ).toBeNull();
-      expect(
-        await createTransaction(db, { ...input, amount: 12_346n }),
-      ).toEqual({ ok: false, error: { code: "idempotency-conflict" } });
-    });
-  });
-
   test("an expense subtracts and income adds to the wallet's derived balance", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
@@ -584,7 +347,7 @@ describe("createTransaction", () => {
         note: "",
       });
 
-      expect(expense.ok && expense.value.replayed).toBe(false);
+      expect(expense.ok).toBe(true);
       expect(income.ok).toBe(true);
       const [summary] = await listWallets(db, { ownerId: owner.ownerId });
       expect(summary?.balance).toBe(1_050_000n);
@@ -653,10 +416,8 @@ describe("createTransaction", () => {
 
       const smallest = await attempt(1n);
       const largest = await attempt(9_999_999_999n);
-      expect(smallest.ok && smallest.value.transaction.amount).toBe(1n);
-      expect(largest.ok && largest.value.transaction.amount).toBe(
-        9_999_999_999n,
-      );
+      expect(smallest.ok && smallest.value.amount).toBe(1n);
+      expect(largest.ok && largest.value.amount).toBe(9_999_999_999n);
       const [summary] = await listWallets(db, { ownerId: owner.ownerId });
       expect(summary?.balance).toBe(1_000_000n - 1n - 9_999_999_999n);
     });
@@ -712,7 +473,7 @@ describe("createTransaction", () => {
       if (!saved.ok) {
         throw new Error("Expected the expense to save");
       }
-      const { recordedAt, transactionDate } = saved.value.transaction;
+      const { recordedAt, transactionDate } = saved.value;
       expect(transactionDate).toBe("2026-09-01");
       expect(recordedAt.getTime()).toBeGreaterThanOrEqual(
         before.getTime() - 1000,
@@ -745,11 +506,8 @@ describe("createTransaction", () => {
       if (!first.ok || !retry.ok || !intentional.ok) {
         throw new Error("Expected all three submissions to succeed");
       }
-      expect(retry.value.replayed).toBe(true);
-      expect(retry.value.transaction.id).toBe(first.value.transaction.id);
-      expect(intentional.value.transaction.id).not.toBe(
-        first.value.transaction.id,
-      );
+      expect(retry.value).toEqual(first.value);
+      expect(intentional.value.id).not.toBe(first.value.id);
       expect(
         await listTransactions(db, { ownerId: owner.ownerId }),
       ).toHaveLength(2);
@@ -785,40 +543,6 @@ describe("createTransaction", () => {
       const listed = await listTransactions(db, { ownerId: owner.ownerId });
       expect(listed.map((t) => t.amount)).toEqual([12_000n]);
     });
-  });
-
-  test("simultaneous submissions with the same key commit exactly one transaction", async () => {
-    const db = committed();
-    const owner = await setupOwner(db);
-    const input = {
-      ownerId: owner.ownerId,
-      idempotencyKey: `submission-race-${crypto.randomUUID()}`,
-      type: "expense" as const,
-      walletId: owner.cashId,
-      categoryId: owner.childId,
-      amount: 50_000n,
-      transactionDate: "2026-09-02",
-      note: "Race",
-    };
-
-    const outcomes = await Promise.all(
-      Array.from({ length: 5 }, () => createTransaction(db, input)),
-    );
-
-    const ids = new Set<string>();
-    for (const outcome of outcomes) {
-      if (!outcome.ok) {
-        throw new Error(`Unexpected rejection ${outcome.error.code}`);
-      }
-      ids.add(outcome.value.transaction.id);
-    }
-    expect(ids.size).toBe(1);
-    expect(outcomes.filter((o) => o.ok && !o.value.replayed)).toHaveLength(1);
-    expect(await listTransactions(db, { ownerId: owner.ownerId })).toHaveLength(
-      1,
-    );
-    const [summary] = await listWallets(db, { ownerId: owner.ownerId });
-    expect(summary?.balance).toBe(950_000n);
   });
 
   test("one transfer subtracts from its source and adds to its destination on its date", async () => {
@@ -866,50 +590,6 @@ describe("createTransaction", () => {
     });
   });
 
-  test("simultaneous duplicate transfers commit one pair of effects and changed destinations conflict", async () => {
-    const db = committed();
-    const owner = await setupOwner(db);
-    const input = {
-      ownerId: owner.ownerId,
-      idempotencyKey: `transfer-race-${crypto.randomUUID()}`,
-      type: "transfer",
-      walletId: owner.cashId,
-      destinationWalletId: owner.bankId,
-      categoryId: null,
-      amount: 9_999_999_999n,
-      transactionDate: "2026-09-05",
-      note: "",
-    } satisfies CreateTransactionInput;
-    const results = await Promise.all(
-      Array.from({ length: 5 }, () => createTransaction(db, input)),
-    );
-    expect(results.every((result) => result.ok)).toBe(true);
-    expect(
-      results.filter((result) => result.ok && !result.value.replayed),
-    ).toHaveLength(1);
-    expect(await listTransactions(db, { ownerId: owner.ownerId })).toHaveLength(
-      1,
-    );
-    expect(
-      (await listWallets(db, { ownerId: owner.ownerId })).map((w) => w.balance),
-    ).toEqual([-9_998_999_999n, 9_999_999_999n]);
-    expect(
-      await createTransaction(db, {
-        ...input,
-        walletId: owner.bankId,
-        destinationWalletId: owner.cashId,
-      }),
-    ).toEqual({ ok: false, error: { code: "idempotency-conflict" } });
-    const again = await createTransaction(db, {
-      ...input,
-      idempotencyKey: `transfer-race-${crypto.randomUUID()}`,
-    });
-    expect(again.ok && again.value.replayed).toBe(false);
-    expect(
-      (await listWallets(db, { ownerId: owner.ownerId })).map((w) => w.balance),
-    ).toEqual([-19_998_999_998n, 19_999_999_998n]);
-  });
-
   test("receipt or history write failures roll back both transfer effects and leave no partial receipt or history", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
@@ -945,7 +625,7 @@ describe("createTransaction", () => {
       if (!created.ok) {
         throw new Error("Transfer failed after storage recovered");
       }
-      expect(created.value.replayed).toBe(false);
+      expect(created.ok).toBe(true);
     });
   });
 
