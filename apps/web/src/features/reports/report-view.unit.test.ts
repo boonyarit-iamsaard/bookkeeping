@@ -89,6 +89,7 @@ function monthlyReport(month: string): MonthlyReport {
 const emptyCategorySpending: CategorySpending = {
   month: "2026-09",
   netExpenses: THB_ZERO,
+  shareBase: THB_ZERO,
   parents: [],
 };
 
