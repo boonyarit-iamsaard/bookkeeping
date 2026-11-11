@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { SharedRejectionCode } from "./rejection-wording";
 import {
   createBlockerDescriber,
+  createFactualFieldErrorDescriber,
   createFieldErrorDescriber,
   describeRejection,
   describeSharedRejection,
@@ -108,5 +109,38 @@ describe("createBlockerDescriber", () => {
   test("leaves any other problem to its own message, never an inherited property", () => {
     expect(describeBlocker(rejection("conflict"))).toBe(OWN_MESSAGE);
     expect(describeBlocker(rejection("toString"))).toBe(OWN_MESSAGE);
+  });
+});
+
+describe("createFactualFieldErrorDescriber", () => {
+  interface Facts {
+    "over-limit": { limit: number };
+  }
+  type Code = "blank-name" | "over-limit";
+
+  const describeFieldError = createFactualFieldErrorDescriber<Code, Facts>({
+    plain: { "blank-name": "Enter a name." },
+    factual: { "over-limit": ({ limit }) => `At most ${limit}.` },
+    readFacts: (_code, { detail }) =>
+      detail === undefined ? undefined : { limit: Number(detail) },
+  });
+
+  test("words a plain code as the plain builder does", () => {
+    expect(describeFieldError(fieldError("blank-name"))).toBe("Enter a name.");
+  });
+
+  test("words a factual code from the facts read off the field error", () => {
+    expect(
+      describeFieldError({ ...fieldError("over-limit"), detail: "5" }),
+    ).toBe("At most 5.");
+  });
+
+  test("reads the shared fallback for facts that did not arrive or a code it does not publish", () => {
+    expect(describeFieldError(fieldError("over-limit"))).toBe(
+      FALLBACK_FIELD_MESSAGE,
+    );
+    expect(describeFieldError(fieldError("toString"))).toBe(
+      FALLBACK_FIELD_MESSAGE,
+    );
   });
 });

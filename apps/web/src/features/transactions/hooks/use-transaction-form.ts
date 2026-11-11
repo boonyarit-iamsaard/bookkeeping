@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
+import { describeRejection } from "@/core/api/rejection-wording";
 import { useFormWrites } from "@/core/api/use-form-writes";
 import type { ApiRejection } from "@/core/api/write-submission";
 import { captureReturnHref } from "@/features/transactions/capture-origin";
@@ -92,6 +93,7 @@ export function useTransactionForm({
               body: input,
             }),
           describeFieldError: describeTransactionFieldError,
+          describeRejection,
           refreshOnRejection,
           onDone: (created: Transaction) => returnFrom(created),
         },
@@ -103,6 +105,7 @@ export function useTransactionForm({
               body: request,
             }),
           describeFieldError: describeTransactionFieldError,
+          describeRejection,
           refreshOnRejection,
           onDone: (updated: Transaction) => returnFrom(updated),
         },

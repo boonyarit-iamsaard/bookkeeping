@@ -10,6 +10,7 @@ import * as z from "zod";
 import { apiClient } from "@/core/api/client";
 import { parseApiMoney } from "@/core/api/money";
 import { transactionQueries } from "@/core/api/queries";
+import { describeRejection } from "@/core/api/rejection-wording";
 import { useFormWrites } from "@/core/api/use-form-writes";
 import type { ApiRejection } from "@/core/api/write-submission";
 import {
@@ -79,7 +80,7 @@ function describeDeleteRejection(
 ): string | undefined {
   return rejection.status === BLOCKED_STATUS
     ? describeBlocked(rejection)
-    : rejection.message;
+    : describeRejection(rejection);
 }
 
 /**
