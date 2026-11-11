@@ -527,7 +527,7 @@ describe("replaceWalletOpening", () => {
     });
   });
 
-  test("loads the earliest movement on either transfer side, including deleted transactions", async () => {
+  test("refuses openings after a deleted transfer on either side; accepts the transfer date", async () => {
     await withRollback(async (db) => {
       const { owner, cash, bank } = await openCashPair(db);
       await insertTransfer(db, {

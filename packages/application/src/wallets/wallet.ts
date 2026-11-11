@@ -149,7 +149,10 @@ export type WalletOpeningRejected = Rejected<WalletOpeningRejection>;
 // The largest opening the domain lets an amount reach, in satang.
 const MAX_OPENING_AMOUNT = 10n ** BigInt(MAX_WHOLE_DIGITS) * 100n - 1n;
 
-/** Facts loaded by the operation before accepting an opening. */
+/**
+ * The operation supplies today and, for an existing wallet, loads the earliest
+ * movement under the wallet lock before accepting an opening.
+ */
 export interface WalletOpeningFacts {
   today: CalendarDate;
   /** Earliest cash movement date, deleted transactions included; null without movements. */
@@ -315,6 +318,8 @@ export type ReplaceWalletOpeningError = WalletOpeningRejected | NotFound;
  * an opening with itself is a no-op that records nothing. Ownership is
  * checked with the lock, so an unowned, unknown, or malformed id is not
  * found alike.
+ * Not-found is decided before judging the opening, which needs the locked
+ * wallet's movements.
  */
 export async function replaceWalletOpening(
   db: Database,
