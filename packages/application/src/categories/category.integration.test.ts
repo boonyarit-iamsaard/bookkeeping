@@ -332,12 +332,7 @@ describe("createCategory", () => {
       });
 
       expect(first.ok).toBe(true);
-      expect(retry).toEqual({
-        ok: true,
-        value: first.ok
-          ? { ...first.value, replayed: true }
-          : expect.anything(),
-      });
+      expect(retry).toEqual(first);
       expect(
         (await listCategories(db, owner.id)).filter(
           (category) => category.name === "Subscriptions",
@@ -396,39 +391,9 @@ describe("createCategory", () => {
       expect(rejected).toEqual(refused("blank-name", "name"));
       expect(corrected).toMatchObject({
         ok: true,
-        value: { replayed: false },
+        value: { category: { name: "Coffee" } },
       });
     });
-  });
-
-  test("concurrent retries with one key create one category and replay it", async () => {
-    const db = committed();
-    const owner = await createTestUser(db);
-
-    const outcomes = await Promise.all(
-      Array.from({ length: 5 }, () =>
-        createCategory(db, {
-          ownerId: owner.id,
-          kind: "expense",
-          name: "Subscriptions",
-          iconId: "tv",
-          parent: null,
-          idempotencyKey: "category-concurrent",
-        }),
-      ),
-    );
-
-    const successes = outcomes.flatMap((outcome) =>
-      outcome.ok ? [outcome.value] : [],
-    );
-    expect(successes).toHaveLength(5);
-    expect(new Set(successes.map(({ category }) => category.id)).size).toBe(1);
-    expect(successes.filter(({ replayed }) => !replayed)).toHaveLength(1);
-    expect(
-      (await listCategories(db, owner.id)).filter(
-        (category) => category.name === "Subscriptions",
-      ),
-    ).toHaveLength(1);
   });
 });
 

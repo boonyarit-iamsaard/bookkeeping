@@ -22,17 +22,20 @@ import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
 import { toFieldErrors } from "../../core/http/field-rejections.js";
-import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
-import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
+import { readIdempotencyKey } from "../../core/http/idempotency.js";
 import {
   describeProblemResponse,
   describeProblemVariant,
 } from "../../core/http/openapi.js";
 import type { ProblemOptions } from "../../core/http/problem-details.js";
 import { problemDetailsSchema } from "../../core/http/problem-details.js";
-import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
+import type {
+  CreationValidatedInput,
+  ResourceCommandValidatedInput,
+} from "../../core/http/request-validation.js";
 import {
   createCommandMiddleware,
+  createCreationMiddleware,
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
 import {
@@ -168,17 +171,6 @@ export const categoryRemovalProblems: Record<
 const categoryRemovalProblem: ProblemOptions<409> =
   categoryRemovalProblems.protected;
 
-interface CreateCategoryValidatedInput {
-  in: {
-    json: z.input<typeof createCategoryRequestSchema>;
-    header: z.input<typeof idempotencyKeyHeaderSchema>;
-  };
-  out: {
-    json: z.output<typeof createCategoryRequestSchema>;
-    header: z.output<typeof idempotencyKeyHeaderSchema>;
-  };
-}
-
 type CategoryCommandValidatedInput<Schema extends z.ZodType> =
   ResourceCommandValidatedInput<typeof categoryParamsSchema, Schema>;
 
@@ -189,10 +181,6 @@ function toCategoryFieldErrors(rejected: CategoryRejected) {
     codes: categoryCodes,
   });
 }
-
-const categoryCommandMiddleware = createCommandMiddleware(
-  createCategoryRequestSchema,
-);
 
 export function createCategoryRoutes(db: Database) {
   return (
@@ -205,22 +193,19 @@ export function createCategoryRoutes(db: Database) {
           description:
             "Creates a parent or a child in the signed-in owner's income or " +
             "expense tree. Names are trimmed and unique within their parent " +
-            "scope. The request must carry a client-generated Idempotency-Key: " +
-            "repeating it with the same normalized payload replays the original " +
-            "creation, while a different payload is a conflict. A rejected " +
-            "request never consumes its key.",
+            "scope. The request must carry a client-generated Idempotency-Key, " +
+            "and a rejected request never consumes it.",
           tags: ["Categories"],
           responses: {
             400: describeProblemResponse(400),
             401: describeProblemResponse(401),
           },
         }),
-        idempotencyKeyMiddleware,
-        categoryCommandMiddleware,
+        ...createCreationMiddleware(createCategoryRequestSchema),
         describeResponse<
           AuthenticatedEnv,
           typeof COLLECTION_PATH,
-          CreateCategoryValidatedInput,
+          CreationValidatedInput<typeof createCategoryRequestSchema>,
           {
             201: typeof categoryResponseSchema;
             409: typeof problemDetailsSchema;
@@ -232,11 +217,11 @@ export function createCategoryRoutes(db: Database) {
             const created = await createCategory(db, {
               ...body,
               ownerId: c.get("session").user.id,
-              idempotencyKey: c.req.valid("header")["idempotency-key"],
+              idempotencyKey: readIdempotencyKey(c),
             });
             return answerCreation(c, {
               result: created,
-              present: (outcome) => outcome.category,
+              present: (created) => created.category,
               toFieldErrors: toCategoryFieldErrors,
             });
           },

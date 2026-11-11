@@ -51,7 +51,7 @@ export interface paths {
         put?: never;
         /**
          * Create a category
-         * @description Creates a parent or a child in the signed-in owner's income or expense tree. Names are trimmed and unique within their parent scope. The request must carry a client-generated Idempotency-Key: repeating it with the same normalized payload replays the original creation, while a different payload is a conflict. A rejected request never consumes its key.
+         * @description Creates a parent or a child in the signed-in owner's income or expense tree. Names are trimmed and unique within their parent scope. The request must carry a client-generated Idempotency-Key, and a rejected request never consumes it.
          */
         post: operations["createCategory"];
         delete?: never;
@@ -243,7 +243,7 @@ export interface paths {
         put?: never;
         /**
          * Create a tag
-         * @description Creates a tag the signed-in owner can put on income and expense transactions. Names are trimmed and unique per owner, ignoring case. The request must carry a client-generated Idempotency-Key: repeating it with the same normalized payload replays the original creation, while a different payload is a conflict. A rejected request never consumes its key.
+         * @description Creates a tag the signed-in owner can put on income and expense transactions. Names are trimmed and unique per owner, ignoring case. The request must carry a client-generated Idempotency-Key, and a rejected request never consumes it.
          */
         post: operations["createTag"];
         delete?: never;
@@ -291,7 +291,7 @@ export interface paths {
         put?: never;
         /**
          * Create an income, expense, transfer, or refund
-         * @description Records income, expense, a wallet transfer, or a refund for the signed-in owner using an exact THB amount and a real calendar date. Income and expense requests name a matching category and active owned wallet and may carry the owner's tags; transfers name distinct active owned source and destination wallets; refunds name an active owned receiving wallet and one of the owner's own expenses, follow the expense's category and tags, and cannot exceed what remains of it. The request must carry a client-generated Idempotency-Key: repeating it with the same normalized payload replays the original detail, while a different payload is a conflict. A rejected request never consumes its key.
+         * @description Records income, expense, a wallet transfer, or a refund for the signed-in owner using an exact THB amount and a real calendar date. Income and expense requests name a matching category and active owned wallet and may carry the owner's tags; transfers name distinct active owned source and destination wallets; refunds name an active owned receiving wallet and one of the owner's own expenses, follow the expense's category and tags, and cannot exceed what remains of it. The request must carry a client-generated Idempotency-Key, and a rejected request never consumes it.
          */
         post: operations["createTransaction"];
         delete?: never;
@@ -383,7 +383,7 @@ export interface paths {
         put?: never;
         /**
          * Create a wallet
-         * @description Opens a wallet for the signed-in owner with an exact opening balance on a calendar date no later than today in Bangkok. The request must carry a client-generated Idempotency-Key: repeating it with the same payload replays the original creation, while a different payload under the same key is a conflict. A rejected request never consumes its key.
+         * @description Opens a wallet for the signed-in owner with an exact opening balance on a calendar date no later than today in Bangkok. The request must carry a client-generated Idempotency-Key, and a rejected request never consumes it.
          */
         post: operations["createWallet"];
         delete?: never;
@@ -1032,7 +1032,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created category, or the original on a replay */
+            /** @description The created category, or the original on a replay: a key replays the original creation for 24 hours, and after that it names a new creation */
             201: {
                 headers: {
                     /** @description Where the created category can be retrieved */
@@ -1651,7 +1651,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created tag, or the original on a replay */
+            /** @description The created tag, or the original on a replay: a key replays the original creation for 24 hours, and after that it names a new creation */
             201: {
                 headers: {
                     /** @description Where the created tag can be retrieved */
@@ -1899,7 +1899,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created transaction, or the original on a replay */
+            /** @description The created transaction, or the original on a replay: a key replays the original creation for 24 hours, and after that it names a new creation */
             201: {
                 headers: {
                     /** @description Where the created transaction can be retrieved */
@@ -2297,7 +2297,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The created wallet, or the original on a replay */
+            /** @description The created wallet, or the original on a replay: a key replays the original creation for 24 hours, and after that it names a new creation */
             201: {
                 headers: {
                     /** @description Where the created wallet can be retrieved */

@@ -603,7 +603,7 @@ describe("monthly wallet balances", () => {
           type: "refund",
           walletId: owner.cashId,
           categoryId: null,
-          refundOfTransactionId: expense.value.transaction.id,
+          refundOfTransactionId: expense.value.id,
           amount: 10_000n,
           transactionDate: "2026-09-30",
           note: "",
@@ -691,7 +691,7 @@ describe("filtered financial history", () => {
         type: "refund",
         walletId: owner.bankId,
         categoryId: null,
-        refundOfTransactionId: expense.value.transaction.id,
+        refundOfTransactionId: expense.value.id,
         amount: 10_000n,
         transactionDate: "2026-09-04",
         note: "Refund",
@@ -721,9 +721,7 @@ describe("filtered financial history", () => {
         categoryId: owner.parentId,
         type: "expense",
       });
-      expect(combined.map((row) => row.id)).toEqual([
-        expense.value.transaction.id,
-      ]);
+      expect(combined.map((row) => row.id)).toEqual([expense.value.id]);
       expect(
         (
           await listTransactions(db, {
@@ -731,11 +729,7 @@ describe("filtered financial history", () => {
             categoryId: owner.parentId,
           })
         ).map((row) => row.id),
-      ).toEqual([
-        refund.value.transaction.id,
-        direct.value.transaction.id,
-        expense.value.transaction.id,
-      ]);
+      ).toEqual([refund.value.id, direct.value.id, expense.value.id]);
       expect(
         (
           await listTransactions(db, {
@@ -744,7 +738,7 @@ describe("filtered financial history", () => {
             type: "refund",
           })
         )[0]?.refundOf?.id,
-      ).toBe(expense.value.transaction.id);
+      ).toBe(expense.value.id);
       for (const wallet of [owner.cashId, owner.bankId]) {
         expect(
           (
@@ -754,7 +748,7 @@ describe("filtered financial history", () => {
               type: "transfer",
             })
           ).map((row) => row.id),
-        ).toEqual([transfer.value.transaction.id]);
+        ).toEqual([transfer.value.id]);
       }
       const foreign = await setupOwner(db);
       expect(
@@ -899,7 +893,7 @@ test("corrections, archiving and category fallbacks replace effects in history a
       (
         await deleteTransaction(db, {
           ownerId: owner.ownerId,
-          id: refund.value.transaction.id,
+          id: refund.value.id,
         })
       ).ok,
     ).toBe(true);
@@ -925,7 +919,7 @@ test("corrections, archiving and category fallbacks replace effects in history a
     expect(
       await findTransaction(db, {
         ownerId: foreign.ownerId,
-        id: refund.value.transaction.id,
+        id: refund.value.id,
       }),
     ).toBeNull();
   });

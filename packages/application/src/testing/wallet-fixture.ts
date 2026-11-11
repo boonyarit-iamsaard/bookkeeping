@@ -27,7 +27,7 @@ export async function createWalletForTest(
   if (!created.ok) {
     throw new Error(`Wallet fixture rejected: ${created.error.code}`);
   }
-  return created.value.wallet;
+  return created.value;
 }
 
 /**

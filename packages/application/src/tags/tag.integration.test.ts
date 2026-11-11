@@ -38,7 +38,7 @@ async function recordTagged(
   if (!created.ok) {
     throw new Error(`Expected the expense to save, got ${created.error.code}`);
   }
-  return created.value.transaction.id;
+  return created.value.id;
 }
 
 describe("createTag", () => {
@@ -55,13 +55,13 @@ describe("createTag", () => {
       if (!created.ok) {
         throw new Error(`Expected the tag to save, got ${created.error.code}`);
       }
-      expect(created.value.tag).toEqual({
+      expect(created.value).toEqual({
         id: expect.any(String),
         name: "7-Eleven",
       });
       expect(await listTags(db, owner.ownerId)).toEqual([
         {
-          id: created.value.tag.id,
+          id: created.value.id,
           name: "7-Eleven",
           transactionCount: 0,
           lastUsedAt: null,
@@ -157,13 +157,33 @@ describe("createTag", () => {
       const first = await createTag(db, input);
       const replay = await createTag(db, input);
 
-      expect(replay).toEqual({
-        ok: true,
-        value: {
-          tag: first.ok ? first.value.tag : undefined,
-          replayed: true,
-        },
+      expect(first.ok).toBe(true);
+      expect(replay).toEqual(first);
+      expect(await listTags(db, owner.ownerId)).toHaveLength(1);
+    });
+  });
+
+  test("a changed name under a used key conflicts without another tag", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const idempotencyKey = randomUUID();
+
+      await createTag(db, {
+        ownerId: owner.ownerId,
+        idempotencyKey,
+        name: "Coffee",
       });
+      const conflict = await createTag(db, {
+        ownerId: owner.ownerId,
+        idempotencyKey,
+        name: "Tea",
+      });
+
+      expect(conflict).toEqual({
+        ok: false,
+        error: { code: "idempotency-conflict" },
+      });
+      expect(await listTags(db, owner.ownerId)).toHaveLength(1);
     });
   });
 });

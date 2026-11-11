@@ -1,4 +1,5 @@
 import type { IdempotencyConflict } from "@bookkeeping/application/idempotency";
+import { CREATION_REPLAY_WINDOW_HOURS } from "@bookkeeping/application/idempotency";
 import type { NotFound } from "@bookkeeping/application/shared/not-found";
 import { isNotFound } from "@bookkeeping/application/shared/not-found";
 import type { Result } from "@bookkeeping/domain/result";
@@ -29,7 +30,7 @@ export interface CreationAnswer<
   Rejection,
   Body extends { id: string },
 > {
-  /** The application's verdict: the created or replayed outcome, a rejection, or a key conflict. */
+  /** The application's verdict: the created or replayed value, a rejection, or a key conflict. */
   result: Result<Outcome, Rejection | IdempotencyConflict>;
   /** The created resource as the wire presents it. */
   present: (outcome: Outcome) => Body;
@@ -159,7 +160,10 @@ function refuseNothing(blocker: never): never {
 export function describeCreation<Schema>(resource: string, schema: Schema) {
   return {
     201: {
-      description: `The created ${resource}, or the original on a replay`,
+      description:
+        `The created ${resource}, or the original on a replay: a key ` +
+        `replays the original creation for ${CREATION_REPLAY_WINDOW_HOURS} hours, and after that it ` +
+        "names a new creation",
       headers: {
         [LOCATION_HEADER]: {
           description: `Where the created ${resource} can be retrieved`,

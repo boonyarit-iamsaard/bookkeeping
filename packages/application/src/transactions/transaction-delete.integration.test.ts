@@ -38,7 +38,7 @@ describe("deleteTransaction", () => {
       if (!income.ok) {
         throw new Error("Expected the income to save");
       }
-      const incomeId = income.value.transaction.id;
+      const incomeId = income.value.id;
       expect(
         await balanceOf({ db, ownerId: owner.ownerId, walletId: owner.cashId }),
       ).toBe(950_000n);
@@ -123,14 +123,11 @@ describe("deleteTransaction", () => {
       }
       await deleteTransaction(db, {
         ownerId: owner.ownerId,
-        id: created.value.transaction.id,
+        id: created.value.id,
       });
 
       const retry = await createTransaction(db, input);
-      expect(retry).toEqual({
-        ok: true,
-        value: { transaction: created.value.transaction, replayed: true },
-      });
+      expect(retry).toEqual({ ok: true, value: created.value });
       expect(await listTransactions(db, { ownerId: owner.ownerId })).toEqual(
         [],
       );
@@ -157,7 +154,7 @@ describe("deleteTransaction", () => {
       if (!created.ok) {
         throw new Error("Expected the transfer to save");
       }
-      const id = created.value.transaction.id;
+      const id = created.value.id;
 
       expect(
         await deleteTransaction(db, { ownerId: owner.ownerId, id }),
@@ -201,7 +198,7 @@ describe("deleteTransaction", () => {
       if (!refund.ok) {
         throw new Error("Expected the refund to save");
       }
-      const refundId = refund.value.transaction.id;
+      const refundId = refund.value.id;
 
       expect(
         await deleteTransaction(db, { ownerId: owner.ownerId, id: refundId }),
@@ -266,10 +263,7 @@ describe("deleteTransaction", () => {
       if (!first.ok || !second.ok) {
         throw new Error("Expected both refunds to save");
       }
-      const refundIds = [
-        first.value.transaction.id,
-        second.value.transaction.id,
-      ];
+      const refundIds = [first.value.id, second.value.id];
 
       expect(
         await deleteTransaction(db, { ownerId: owner.ownerId, id: expense.id }),
@@ -389,7 +383,7 @@ describe("deleteTransaction", () => {
       if (!created.ok) {
         throw new Error("Transfer failed");
       }
-      const id = created.value.transaction.id;
+      const id = created.value.id;
       await db.execute(
         sql`alter table transaction_changes add constraint fail_transfer_delete_history check (transaction_id is null) not valid`,
       );
@@ -397,7 +391,7 @@ describe("deleteTransaction", () => {
         deleteTransaction(db, { ownerId: owner.ownerId, id }),
       ).rejects.toThrow();
       expect(await findTransaction(db, { ownerId: owner.ownerId, id })).toEqual(
-        created.value.transaction,
+        created.value,
       );
       expect(
         await listTransactionChanges(db, { ownerId: owner.ownerId, id }),
@@ -428,7 +422,7 @@ describe("deleteTransaction", () => {
       if (!refund.ok) {
         throw new Error("Refund failed");
       }
-      const id = refund.value.transaction.id;
+      const id = refund.value.id;
       await db.execute(
         sql`alter table transaction_changes add constraint fail_refund_delete_history check (transaction_id is null) not valid`,
       );
@@ -436,7 +430,7 @@ describe("deleteTransaction", () => {
         deleteTransaction(db, { ownerId: owner.ownerId, id }),
       ).rejects.toThrow();
       expect(await findTransaction(db, { ownerId: owner.ownerId, id })).toEqual(
-        refund.value.transaction,
+        refund.value,
       );
       expect(
         await findExpenseRefunds(db, {
@@ -479,7 +473,7 @@ describe("deleteTransaction", () => {
     const [deleted, reduced] = await Promise.all([
       deleteTransaction(db, {
         ownerId: owner.ownerId,
-        id: refund.value.transaction.id,
+        id: refund.value.id,
       }),
       updateTransaction(db, {
         ownerId: owner.ownerId,
@@ -556,9 +550,7 @@ describe("deleteTransaction", () => {
         ok: false,
         error: {
           code: "refunds-exist",
-          refunds: [
-            expect.objectContaining({ id: refunded.value.transaction.id }),
-          ],
+          refunds: [expect.objectContaining({ id: refunded.value.id })],
         },
       });
       expect(

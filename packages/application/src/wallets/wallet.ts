@@ -19,8 +19,8 @@ import type {
   WalletType,
 } from "@bookkeeping/domain/wallets";
 import { and, eq, lt, or, sql } from "drizzle-orm";
-import type { IdempotencyConflict } from "../idempotency/idempotency";
-import { executeIdempotentCreation } from "../idempotency/idempotency";
+import type { IdempotentCreator } from "../idempotency/idempotency";
+import { defineIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
 import { notFound } from "../shared/not-found";
@@ -213,7 +213,13 @@ export function validateWalletCreation(
   if (refused) {
     return err(refused);
   }
-  return ok({ ...command, name });
+  return ok({
+    name,
+    type: command.type,
+    savings: command.savings,
+    openingAmount: command.openingAmount,
+    openingDate: command.openingDate,
+  });
 }
 
 export interface CreateWalletInput extends WalletCreationCommand {
@@ -223,56 +229,24 @@ export interface CreateWalletInput extends WalletCreationCommand {
   idempotencyKey: string;
 }
 
-export interface CreateWalletOutcome {
-  wallet: WalletSummary;
-  /** True when an earlier request with the same key already created it. */
-  replayed: boolean;
-}
-
-export type CreateWalletError = WalletRejected | IdempotencyConflict;
-
-const WALLET_CREATION_OPERATION = "wallets.create";
-
 /**
  * Opens a wallet once per idempotency key. An invalid command is rejected
  * before the key is touched, so a corrected retry may reuse it; a retry with
  * the same accepted command replays the wallet as it was created.
  */
-export async function createWallet(
-  db: Database,
-  input: Readonly<CreateWalletInput>,
-): Promise<Result<CreateWalletOutcome, CreateWalletError>> {
-  const validated = validateWalletCreation(input);
-  if (!validated.ok) {
-    return validated;
-  }
-  const command = validated.value;
+export const createWallet: IdempotentCreator<
+  CreateWalletInput,
+  WalletSummary,
+  WalletRejected
+> = defineIdempotentCreation({
+  operation: "wallets.create",
+  prepare: (input: Readonly<CreateWalletInput>) =>
+    validateWalletCreation(input),
   // The insert has no expected failure of its own; every rejection happens
-  // during validation above.
-  const outcome = await executeIdempotentCreation<WalletSummary, never>(db, {
-    ownerId: input.ownerId,
-    operation: WALLET_CREATION_OPERATION,
-    key: input.idempotencyKey,
-    // Spelled out rather than spread so a new command field cannot join the
-    // fingerprint silently.
-    payload: {
-      name: command.name,
-      type: command.type,
-      savings: command.savings,
-      openingAmount: command.openingAmount,
-      openingDate: command.openingDate,
-    },
-    create: async (tx) =>
-      ok(await insertWallet(tx, { ownerId: input.ownerId, ...command })),
-  });
-  if (!outcome.ok) {
-    return err(outcome.error);
-  }
-  return ok({
-    wallet: outcome.value.result,
-    replayed: outcome.value.replayed,
-  });
-}
+  // during validation.
+  insert: async (tx, { ownerId, command }) =>
+    ok(await insertWallet(tx, { ownerId, ...command })),
+});
 
 interface OwnedWalletCreation extends WalletCreationCommand {
   ownerId: string;

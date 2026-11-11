@@ -202,7 +202,7 @@ describe("updateTransaction", () => {
       if (!created.ok) {
         throw new Error("Expense failed");
       }
-      return { ...owner, expense: created.value.transaction };
+      return { ...owner, expense: created.value };
     }
 
     function refundInput(
@@ -316,7 +316,7 @@ describe("updateTransaction", () => {
         if (!first.ok || !second.ok) {
           throw new Error("Refunds failed");
         }
-        const { id, recordedAt } = first.value.transaction;
+        const { id, recordedAt } = first.value;
         const base = {
           ownerId,
           id,
@@ -423,9 +423,7 @@ describe("updateTransaction", () => {
         if (existing && !existing.ok) {
           throw new Error("Initial refund failed");
         }
-        const refundId = existing?.ok
-          ? existing.value.transaction.id
-          : undefined;
+        const refundId = existing?.ok ? existing.value.id : undefined;
         const refundWrite = refundId
           ? updateTransaction(db, {
               ownerId,
@@ -531,9 +529,7 @@ describe("updateTransaction", () => {
           ).toHaveLength(refundResult.ok ? 1 : 0);
           expect(
             (await findTransaction(db, { ownerId, id: refundId }))?.recordedAt,
-          ).toEqual(
-            existing?.ok ? existing.value.transaction.recordedAt : undefined,
-          );
+          ).toEqual(existing?.ok ? existing.value.recordedAt : undefined);
         }
       });
     }
@@ -549,7 +545,7 @@ describe("updateTransaction", () => {
         if (!refund.ok) {
           throw new Error("Refund failed");
         }
-        const id = refund.value.transaction.id;
+        const id = refund.value.id;
         await db.execute(
           sql`alter table transaction_changes add constraint fail_refund_history check (transaction_id is null) not valid`,
         );
@@ -569,7 +565,7 @@ describe("updateTransaction", () => {
           sql`alter table transaction_changes drop constraint fail_refund_history`,
         );
         expect(await findTransaction(db, { ownerId, id })).toEqual(
-          refund.value.transaction,
+          refund.value,
         );
         expect(
           await findExpenseRefunds(db, { ownerId, id: expense.id }),
@@ -659,7 +655,7 @@ describe("updateTransaction", () => {
       }),
       updateTransaction(db, {
         ownerId: owner.ownerId,
-        id: refund.value.transaction.id,
+        id: refund.value.id,
         walletId: owner.cashId,
         categoryId: null,
         amount: 25_000n,
@@ -681,7 +677,7 @@ describe("updateTransaction", () => {
         refundAllowance: 5_000n,
         refunds: [
           expect.objectContaining({
-            id: refund.value.transaction.id,
+            id: refund.value.id,
             amount: 25_000n,
           }),
         ],
@@ -707,7 +703,7 @@ describe("updateTransaction", () => {
       if (!created.ok) {
         throw new Error("Transfer failed");
       }
-      const id = created.value.transaction.id;
+      const id = created.value.id;
       await db
         .update(wallets)
         .set({ archivedAt: new Date() })
@@ -777,7 +773,7 @@ describe("updateTransaction", () => {
       if (!created.ok) {
         throw new Error("Transfer failed");
       }
-      const { id, recordedAt } = created.value.transaction;
+      const { id, recordedAt } = created.value;
       const edited = await updateTransaction(db, {
         ...input,
         id,
@@ -826,7 +822,7 @@ describe("updateTransaction", () => {
         expect.objectContaining({ action: "delete", after: null }),
       ]);
       const replay = await createTransaction(db, input);
-      expect(replay.ok && replay.value.replayed).toBe(true);
+      expect(replay.ok).toBe(true);
       expect(await listTransactions(db, { ownerId: owner.ownerId })).toEqual(
         [],
       );
@@ -851,7 +847,7 @@ describe("updateTransaction", () => {
       if (!created.ok) {
         throw new Error("Transfer failed");
       }
-      const id = created.value.transaction.id;
+      const id = created.value.id;
       // Inject a storage fault at the audit boundary, after the financial
       // update. DDL lives in this rolled-back test transaction and never
       // touches application databases.
@@ -872,7 +868,7 @@ describe("updateTransaction", () => {
         }),
       ).rejects.toThrow();
       expect(await findTransaction(db, { ownerId: owner.ownerId, id })).toEqual(
-        created.value.transaction,
+        created.value,
       );
       expect(
         await listTransactionChanges(db, { ownerId: owner.ownerId, id }),

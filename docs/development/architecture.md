@@ -135,11 +135,13 @@ packages/application/
     wallets/              # @bookkeeping/application/wallets: listWallets, findWallet, createWallet, deleteWallet, ...
 ```
 
-Resource creation uses `executeIdempotentCreation` with an authenticated owner,
-a stable operation name, a client key, and the complete validated application
-payload. Equal retries replay the stored application result; conflicting payloads
-are rejected. The result codec is owned by the application operation, so receipts
-remain independent of HTTP response shapes.
+Resource creation is declared once with `defineIdempotentCreation`: a stable
+operation name, a `prepare` step that normalizes the command and may reject it,
+and an `insert` step that runs in the transaction and may reject. The returned
+creator takes an authenticated owner and a client key. Equal retries replay the
+stored application result for 24 hours; a changed command is rejected as a
+conflict. The result codec is owned by the module, so receipts remain
+independent of HTTP response shapes.
 
 `@bookkeeping/auth` owns the framework-independent Better Auth configuration:
 the Drizzle adapter over the database package's auth tables (with transactions

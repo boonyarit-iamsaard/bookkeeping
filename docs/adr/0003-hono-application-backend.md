@@ -38,9 +38,11 @@ runtime remains a later initiative.
 - Application resources start under `/v1`; managed authentication routes and
   operational health checks remain outside that version namespace.
 - Resource-creating requests require a client-generated `Idempotency-Key`.
-  Reusing a key with the same validated payload replays the original success;
-  reusing it with a different payload is a conflict, and validation failures
-  do not consume the key.
+  Reusing a key with the same validated payload replays the original success
+  for 24 hours, after which the key names a new creation; reusing it with a
+  different payload within that window is a conflict, and validation failures
+  do not consume the key. A change to a command or result shape may make a
+  replay in flight across a deploy conflict, but it never creates twice.
 - Calendar dates use `YYYY-MM-DD`, reporting months use `YYYY-MM`, and instants
   use UTC RFC 3339 strings. Calendar dates never undergo timezone conversion.
 - Growing transaction collections use opaque cursor pagination bound to their

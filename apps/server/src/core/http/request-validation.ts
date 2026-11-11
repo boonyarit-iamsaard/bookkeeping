@@ -1,5 +1,7 @@
 import { validator } from "hono-openapi";
 import * as z from "zod";
+import type { idempotencyKeyHeaderSchema } from "./idempotency.js";
+import { idempotencyKeyMiddleware } from "./idempotency.js";
 import type { ProblemFieldError, ProblemOptions } from "./problem-details.js";
 import {
   createProblemResponse,
@@ -104,6 +106,17 @@ export function createCommandMiddleware<Schema extends z.ZodType>(
   });
 }
 
+/**
+ * What every creation route validates before its handler runs: the key
+ * header first, so an unusable key is refused before the body is read, then
+ * the JSON command.
+ */
+export function createCreationMiddleware<Schema extends z.ZodType>(
+  schema: Schema,
+) {
+  return [idempotencyKeyMiddleware, createCommandMiddleware(schema)] as const;
+}
+
 /** What a query validator hands a handler. */
 export interface QueryValidatedInput<QuerySchema extends z.ZodType> {
   in: { query: z.input<QuerySchema> };
@@ -121,6 +134,18 @@ export interface ResourceCommandValidatedInput<
   };
   out: {
     param: z.output<ParamSchema>;
+    json: z.output<CommandSchema>;
+  };
+}
+
+/** What the creation middleware hands a handler: the key header and the command. */
+export interface CreationValidatedInput<CommandSchema extends z.ZodType> {
+  in: {
+    header: z.input<typeof idempotencyKeyHeaderSchema>;
+    json: z.input<CommandSchema>;
+  };
+  out: {
+    header: z.output<typeof idempotencyKeyHeaderSchema>;
     json: z.output<CommandSchema>;
   };
 }
