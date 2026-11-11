@@ -881,15 +881,36 @@ export interface components {
             items: components["schemas"]["Wallet"][];
             page: components["schemas"]["Page"];
         };
+        WalletFieldError: components["schemas"]["WalletRuleFieldError"] | components["schemas"]["WalletValidationFieldError"];
         WalletOpeningRequest: {
             amount: components["schemas"]["MoneyInput"];
             /** Format: date */
             date: string;
         };
+        WalletPlainRuleFieldError: {
+            /** @enum {string} */
+            code: "empty" | "out-of-range" | "invalid" | "in-future" | "movement-before-opening";
+            detail?: string;
+            pointer: string;
+        };
+        WalletRejectionProblem: {
+            /** @enum {string} */
+            code: "bad-request" | "conflict" | "forbidden" | "has-children" | "history-remains" | "idempotency-conflict" | "idempotency-key-required" | "in-use" | "internal-error" | "invalid-command" | "method-not-allowed" | "not-found" | "protected" | "rate-limited" | "refunds-exist" | "service-unavailable" | "unauthenticated";
+            detail?: string;
+            errors?: components["schemas"]["WalletFieldError"][];
+            instance?: string;
+            status: number;
+            title: string;
+            type: string;
+        } & {
+            [key: string]: unknown;
+        };
+        WalletRuleFieldError: components["schemas"]["WalletPlainRuleFieldError"];
         WalletStateRequest: {
             archived?: boolean;
             savings?: boolean;
         };
+        WalletValidationFieldError: components["schemas"]["ProblemFieldError"];
     };
     responses: never;
     parameters: never;
@@ -2320,7 +2341,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/problem+json": components["schemas"]["WalletRejectionProblem"];
                 };
             };
             /** @description Internal server error */
@@ -2567,7 +2588,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/problem+json": components["schemas"]["WalletRejectionProblem"];
                 };
             };
             /** @description Internal server error */

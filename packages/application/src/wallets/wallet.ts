@@ -24,6 +24,8 @@ import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
 import { notFound } from "../shared/not-found";
+import type { Rejected } from "../shared/rejection";
+import { rejected } from "../shared/rejection";
 import {
   selectWalletSummaries,
   summarizeWalletBalance,
@@ -114,19 +116,35 @@ export interface WalletOpening {
   openingDate: CalendarDate;
 }
 
+/** The inputs an opening carries, which a wallet creation and an opening replacement share. */
 export type WalletOpeningField = "openingAmount" | "openingDate";
 
-export type WalletOpeningIssueCode = "out-of-range" | "invalid" | "in-future";
+/** The inputs a wallet command can refuse: the creation adds the name to the opening's two. */
+export type WalletField = "name" | WalletOpeningField;
 
-export interface WalletOpeningIssue {
-  field: WalletOpeningField;
-  code: WalletOpeningIssueCode;
-}
+/** Every rule rejection a wallet command reports; each names the input it refuses. */
+export type WalletRejection =
+  | { code: "empty"; field: "name" }
+  | { code: "out-of-range"; field: "openingAmount" }
+  | { code: "invalid"; field: "openingDate" }
+  | { code: "in-future"; field: "openingDate" }
+  /**
+   * A movement, deleted ones included, is dated before the proposed opening.
+   * Choosing an earlier date is the correction, so it names the date.
+   */
+  | { code: "movement-before-opening"; field: "openingDate" };
 
-export interface InvalidWalletOpening {
-  code: "invalid-opening";
-  issues: readonly WalletOpeningIssue[];
-}
+/** The rejections an opening can carry: everything but the name, which an opening lacks. */
+export type WalletOpeningRejection = Exclude<
+  WalletRejection,
+  { field: "name" }
+>;
+
+/** The refused inputs of a wallet command, in the shared envelope. */
+export type WalletRejected = Rejected<WalletRejection>;
+
+/** The refused inputs of an opening, in the shared envelope. */
+export type WalletOpeningRejected = Rejected<WalletOpeningRejection>;
 
 // The largest opening the domain lets an amount reach, in satang.
 const MAX_OPENING_AMOUNT = 10n ** BigInt(MAX_WHOLE_DIGITS) * 100n - 1n;
@@ -134,32 +152,40 @@ const MAX_OPENING_AMOUNT = 10n ** BigInt(MAX_WHOLE_DIGITS) * 100n - 1n;
 /**
  * Accepts an opening independently of how it arrived: the amount must fit
  * the stored range and the date must be a real calendar date no later than
- * today in Bangkok. Every issue is reported, so a client can correct them
- * all at once.
+ * today in Bangkok. Every rejection is reported, so a client can correct
+ * them all at once.
  */
 export function validateWalletOpening(
   opening: Readonly<WalletOpening>,
-): Result<WalletOpening, InvalidWalletOpening> {
-  const issues: WalletOpeningIssue[] = [];
-  if (
-    opening.openingAmount > MAX_OPENING_AMOUNT ||
-    opening.openingAmount < -MAX_OPENING_AMOUNT
-  ) {
-    issues.push({ field: "openingAmount", code: "out-of-range" });
-  }
-  const openingDate = parseCalendarDate(opening.openingDate);
-  if (!openingDate.ok) {
-    issues.push({ field: "openingDate", code: "invalid" });
-  } else if (openingDate.value > todayIn({ timeZone: APP_TIME_ZONE })) {
-    issues.push({ field: "openingDate", code: "in-future" });
-  }
-  if (issues.length > 0) {
-    return err({ code: "invalid-opening", issues });
+): Result<WalletOpening, WalletOpeningRejected> {
+  const rejections = collectOpeningRejections(opening);
+  const [first, ...rest] = rejections;
+  if (first) {
+    return err(rejected(first, ...rest));
   }
   return ok({
     openingAmount: opening.openingAmount,
     openingDate: opening.openingDate,
   });
+}
+
+function collectOpeningRejections(
+  opening: Readonly<WalletOpening>,
+): WalletOpeningRejection[] {
+  const rejections: WalletOpeningRejection[] = [];
+  if (
+    opening.openingAmount > MAX_OPENING_AMOUNT ||
+    opening.openingAmount < -MAX_OPENING_AMOUNT
+  ) {
+    rejections.push({ code: "out-of-range", field: "openingAmount" });
+  }
+  const openingDate = parseCalendarDate(opening.openingDate);
+  if (!openingDate.ok) {
+    rejections.push({ code: "invalid", field: "openingDate" });
+  } else if (openingDate.value > todayIn({ timeZone: APP_TIME_ZONE })) {
+    rejections.push({ code: "in-future", field: "openingDate" });
+  }
+  return rejections;
 }
 
 /** A wallet as a client asks for it, before the application accepts it. */
@@ -169,39 +195,23 @@ export interface WalletCreationCommand extends WalletOpening {
   savings: boolean;
 }
 
-export type WalletCreationField = "name" | WalletOpeningField;
-
-export type WalletCreationIssueCode = "empty" | WalletOpeningIssueCode;
-
-export interface WalletCreationIssue {
-  field: WalletCreationField;
-  code: WalletCreationIssueCode;
-}
-
-export interface InvalidWalletCreation {
-  code: "invalid-wallet";
-  issues: readonly WalletCreationIssue[];
-}
-
 /**
  * Accepts a wallet command: the name must have visible characters and the
- * opening must satisfy `validateWalletOpening`. Every issue is reported, so
- * a client can correct them all at once.
+ * opening must satisfy `validateWalletOpening`. Every rejection is
+ * reported, so a client can correct them all at once.
  */
 export function validateWalletCreation(
   command: Readonly<WalletCreationCommand>,
-): Result<WalletCreationCommand, InvalidWalletCreation> {
-  const issues: WalletCreationIssue[] = [];
+): Result<WalletCreationCommand, WalletRejected> {
   const name = command.name.trim();
+  const rejections: WalletRejection[] = [];
   if (name === "") {
-    issues.push({ field: "name", code: "empty" });
+    rejections.push({ code: "empty", field: "name" });
   }
-  const opening = validateWalletOpening(command);
-  if (!opening.ok) {
-    issues.push(...opening.error.issues);
-  }
-  if (issues.length > 0) {
-    return err({ code: "invalid-wallet", issues });
+  rejections.push(...collectOpeningRejections(command));
+  const [first, ...rest] = rejections;
+  if (first) {
+    return err(rejected(first, ...rest));
   }
   return ok({ ...command, name });
 }
@@ -219,7 +229,7 @@ export interface CreateWalletOutcome {
   replayed: boolean;
 }
 
-export type CreateWalletError = InvalidWalletCreation | IdempotencyConflict;
+export type CreateWalletError = WalletRejected | IdempotencyConflict;
 
 const WALLET_CREATION_OPERATION = "wallets.create";
 
@@ -303,15 +313,7 @@ async function insertWallet(
 
 export interface ReplaceWalletOpeningInput extends WalletRef, WalletOpening {}
 
-/** A movement is dated before the proposed opening; history cannot be excluded. */
-export interface MovementBeforeOpening {
-  code: "movement-before-opening";
-}
-
-export type ReplaceWalletOpeningError =
-  | InvalidWalletOpening
-  | NotFound
-  | MovementBeforeOpening;
+export type ReplaceWalletOpeningError = WalletOpeningRejected | NotFound;
 
 /**
  * Replaces the opening balance as one value: amount and date change together
@@ -354,7 +356,9 @@ export async function replaceWalletOpening(
       )
       .limit(1);
     if (movement) {
-      return err({ code: "movement-before-opening" });
+      return err(
+        rejected({ code: "movement-before-opening", field: "openingDate" }),
+      );
     }
     if (
       current.openingAmount !== opening.openingAmount ||

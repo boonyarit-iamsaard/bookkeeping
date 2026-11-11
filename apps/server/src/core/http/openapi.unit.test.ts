@@ -358,7 +358,7 @@ describe("OpenAPI document", () => {
       }),
     ).toBe("#/components/schemas/Wallet");
     expect(operation.responses["201"].headers).toHaveProperty("Location");
-    expectProblemResponses(operation, ["400", "401", "409", "422", "500"]);
+    expectProblemResponses(operation, ["400", "401", "409", "500"]);
     expect(documentedSchema(document, "MoneyInput")).toEqual(
       expect.objectContaining({
         properties: expect.objectContaining({
@@ -397,7 +397,7 @@ describe("OpenAPI document", () => {
       }),
     ).toBe("#/components/schemas/Wallet");
     expect(operation.responses["201"]).toBeUndefined();
-    expectProblemResponses(operation, ["400", "401", "404", "422", "500"]);
+    expectProblemResponses(operation, ["400", "401", "404", "500"]);
     expect(
       documentedSchema(document, "WalletOpeningRequest")?.properties?.amount,
     ).toHaveProperty("$ref", "#/components/schemas/MoneyInput");

@@ -36,8 +36,8 @@ describe("validateWalletCreation", () => {
     expect(validateWalletCreation({ ...command, name: " \t" })).toEqual({
       ok: false,
       error: {
-        code: "invalid-wallet",
-        issues: [{ field: "name", code: "empty" }],
+        code: "rejected",
+        rejections: [{ code: "empty", field: "name" }],
       },
     });
   });
@@ -50,8 +50,8 @@ describe("validateWalletCreation", () => {
       expect(validateWalletCreation({ ...command, openingAmount })).toEqual({
         ok: false,
         error: {
-          code: "invalid-wallet",
-          issues: [{ field: "openingAmount", code: "out-of-range" }],
+          code: "rejected",
+          rejections: [{ code: "out-of-range", field: "openingAmount" }],
         },
       });
     }
@@ -63,8 +63,8 @@ describe("validateWalletCreation", () => {
     ).toEqual({
       ok: false,
       error: {
-        code: "invalid-wallet",
-        issues: [{ field: "openingDate", code: "invalid" }],
+        code: "rejected",
+        rejections: [{ code: "invalid", field: "openingDate" }],
       },
     });
   });
@@ -82,8 +82,8 @@ describe("validateWalletCreation", () => {
     ).toEqual({
       ok: false,
       error: {
-        code: "invalid-wallet",
-        issues: [{ field: "openingDate", code: "in-future" }],
+        code: "rejected",
+        rejections: [{ code: "in-future", field: "openingDate" }],
       },
     });
   });
@@ -101,11 +101,9 @@ describe("validateWalletCreation", () => {
     if (result.ok) {
       return;
     }
-    expect(result.error.issues.map((issue) => issue.field)).toEqual([
-      "name",
-      "openingAmount",
-      "openingDate",
-    ]);
+    expect(result.error.rejections.map((rejection) => rejection.field)).toEqual(
+      ["name", "openingAmount", "openingDate"],
+    );
   });
 });
 
@@ -135,10 +133,10 @@ describe("validateWalletOpening", () => {
     ).toEqual({
       ok: false,
       error: {
-        code: "invalid-opening",
-        issues: [
-          { field: "openingAmount", code: "out-of-range" },
-          { field: "openingDate", code: "invalid" },
+        code: "rejected",
+        rejections: [
+          { code: "out-of-range", field: "openingAmount" },
+          { code: "invalid", field: "openingDate" },
         ],
       },
     });
@@ -157,8 +155,8 @@ describe("validateWalletOpening", () => {
     ).toEqual({
       ok: false,
       error: {
-        code: "invalid-opening",
-        issues: [{ field: "openingDate", code: "in-future" }],
+        code: "rejected",
+        rejections: [{ code: "in-future", field: "openingDate" }],
       },
     });
   });
