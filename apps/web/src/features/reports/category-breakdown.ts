@@ -4,7 +4,7 @@ import type { components } from "@/core/api/openapi.gen";
 import type { CategoryColor } from "@/features/categories/category-color";
 import { parentCategoryColor } from "@/features/categories/category-color";
 
-type CategorySpending = components["schemas"]["CategorySpending"];
+export type CategorySpending = components["schemas"]["CategorySpending"];
 type ParentCategorySpending = components["schemas"]["ParentCategorySpending"];
 type ChildCategorySpending = components["schemas"]["ChildCategorySpending"];
 

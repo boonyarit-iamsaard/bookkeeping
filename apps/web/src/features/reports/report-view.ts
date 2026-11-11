@@ -1,16 +1,15 @@
 import type { components } from "@/core/api/openapi.gen";
-import type { BalanceTrend } from "./balance-trend";
+import type { BalanceTrend, ClosingBalances } from "./balance-trend";
 import { createBalanceTrend } from "./balance-trend";
-import type { CategoryBreakdown } from "./category-breakdown";
+import type { CategoryBreakdown, CategorySpending } from "./category-breakdown";
 import { createCategoryBreakdown } from "./category-breakdown";
 import type { ReportValues } from "./report-schema";
-import type { TrendPoint } from "./trend-series";
+import type { MonthlyReport, TrendPoint } from "./trend-series";
 import { createTrendSeries } from "./trend-series";
 
-type ClosingBalances = components["schemas"]["ClosingBalances"];
-type MonthlyReport = components["schemas"]["MonthlyReport"];
-type CategorySpending = components["schemas"]["CategorySpending"];
 type WalletCollection = components["schemas"]["WalletCollection"];
+type WalletItems = WalletCollection["items"];
+type WalletTotal = WalletCollection["balance"]["total"];
 
 /** A pending comparison may supply totals, but never another Wallet's figures. */
 export function totalsOnly(
@@ -82,10 +81,10 @@ export type ReportView =
       categoryBreakdown: CategoryBreakdown;
       balanceTrend: BalanceTrend;
       trend: TrendPoint[];
-      currentWallets: WalletCollection["items"];
-      currentTotal: WalletCollection["balance"]["total"];
-      datedWallets: WalletCollection["items"];
-      datedTotal: WalletCollection["balance"]["total"];
+      currentWallets: WalletItems;
+      currentTotal: WalletTotal;
+      datedWallets: WalletItems;
+      datedTotal: WalletTotal;
     } & ReportControls);
 
 /** Invalid when the address is, loading until every read is in, else ready. */

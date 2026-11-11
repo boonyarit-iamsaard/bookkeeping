@@ -4,7 +4,7 @@ import type { ApiMoney } from "@/core/api/money";
 import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 
-type ClosingBalances = components["schemas"]["ClosingBalances"];
+export type ClosingBalances = components["schemas"]["ClosingBalances"];
 
 export interface BalanceDay {
   date: CalendarDate;
