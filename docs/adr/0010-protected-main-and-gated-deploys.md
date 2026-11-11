@@ -59,9 +59,9 @@ Docker entry per Dockerfile directory because its fetcher does not recurse.
 ## Consequences
 
 - Every change goes through a pull request, including the owner's, and merges
-  as one squash commit because history is linear; the repository allows no
-  other merge method. If the ruleset's "require branches to be up to date" box
-  is ticked, a pull request must also be current with `main` before it merges.
+  as squash or rebase because history is linear. If the ruleset's "require
+  branches to be up to date" box is ticked, a pull request must also be current
+  with `main` before it merges.
 - A dependency release younger than three days is not installed. For an urgent
   advisory, exempt the one fixed package through `minimumReleaseAgeExclude`
   rather than lowering the global value, and remove the exemption afterwards.
