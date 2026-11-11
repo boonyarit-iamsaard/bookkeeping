@@ -1,7 +1,10 @@
 import type { Result } from "@bookkeeping/domain/result";
 import { err } from "@bookkeeping/domain/result";
+import type { FieldOf } from "./field-pointer";
+import { pointerSegments } from "./field-pointer";
 import type { ApiProblem, ApiResponse } from "./problem";
 import { readApiResponse } from "./problem";
+import { FALLBACK_FIELD_MESSAGE } from "./rejection-wording";
 
 /** The header parameter creation routes document, as the generated types spell it. */
 export const IDEMPOTENCY_KEY_HEADER = "idempotency-key";
@@ -46,7 +49,7 @@ export type DescribeFieldError = (
 interface DeliveryOptions {
   /**
    * The message shown beside a rejected field. Features supply their own
-   * table; the default falls back to the problem's own prose.
+   * wording module; the default is the shared fallback.
    */
   describeFieldError?: DescribeFieldError;
   /**
@@ -77,8 +80,6 @@ export type WriteOptions<Input, Output> =
   | KeyedWriteOptions<Input, Output>
   | KeylessWriteOptions<Input, Output>;
 
-export type FieldOf = (pointer: string) => string | undefined;
-
 export interface WriteSubmissionOptions {
   generateKey?: () => string;
 }
@@ -95,16 +96,13 @@ export interface WriteSubmission<Input, Output> {
   ) => Promise<WriteResult<Output>>;
 }
 
-const FALLBACK_FIELD_MESSAGE = "This value was not accepted.";
-
-function defaultDescribeFieldError(fieldError: Readonly<ApiFieldError>) {
-  return fieldError.detail ?? FALLBACK_FIELD_MESSAGE;
+function defaultDescribeFieldError(): string {
+  return FALLBACK_FIELD_MESSAGE;
 }
 
-/** RFC 6901: the first segment after `#/`, with `~1` and `~0` unescaped. */
+/** The top-level request field a pointer addresses. */
 function toRequestField(pointer: string): string {
-  const [segment = ""] = pointer.replace(/^#?\//, "").split("/");
-  return segment.replaceAll("~1", "/").replaceAll("~0", "~");
+  return pointerSegments(pointer)[0] ?? "";
 }
 
 function noFields(): undefined {
@@ -119,14 +117,6 @@ function joinMessages(messages: readonly string[]): string {
   return messages
     .map((message) => (/[.!?]$/.test(message) ? message : `${message}.`))
     .join(" ");
-}
-
-/** Claims a pointer for the form field its first segment names, if the form shows it. */
-export function createFieldOf(fields: readonly string[]): FieldOf {
-  return (pointer) => {
-    const field = toRequestField(pointer);
-    return fields.includes(field) ? field : undefined;
-  };
 }
 
 interface RejectionMapping {
