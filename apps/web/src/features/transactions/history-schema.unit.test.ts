@@ -1,13 +1,9 @@
 import { describe, expect, test } from "vitest";
-import {
-  hasHistoryFilters,
-  historyFilters,
-  historySearchSchema,
-  parseHistoryFilters,
-  transactionFiltersSchema,
-} from "./history-schema";
+import { historySearchSchema } from "./history-schema";
 
 const WALLET_ID = "00000000-0000-4000-8000-000000000001";
+const COFFEE = "00000000-0000-4000-8000-000000000003";
+const SNACKS = "00000000-0000-4000-8000-000000000004";
 
 describe("history search", () => {
   test("keeps text values and drops empty controls", () => {
@@ -30,9 +26,6 @@ describe("history search", () => {
 
   test("keeps the text of a value the router read as a number", () => {
     expect(historySearchSchema.parse({ type: 7 })).toEqual({ type: "7" });
-    expect(transactionFiltersSchema.safeParse({ type: "7" }).success).toBe(
-      false,
-    );
   });
 
   test("reads the deletion flag as the number the address carries", () => {
@@ -43,133 +36,13 @@ describe("history search", () => {
     expect(historySearchSchema.parse({ deleted: "yes" })).toEqual({});
   });
 
-  test("a repeated parameter is not a filter value", () => {
-    expect(historySearchSchema.parse({ from: ["2026-09-01"] })).toEqual({});
-  });
-});
-
-describe("transaction filters", () => {
-  test("accepts dates in order, uuids, and a known type", () => {
-    const parsed = transactionFiltersSchema.safeParse({
-      from: "2026-09-01",
-      to: "2026-09-30",
-      walletId: WALLET_ID,
-      type: "expense",
-    });
-    expect(parsed.success).toBe(true);
-  });
-
-  test("rejects a From date after the To date", () => {
-    expect(
-      transactionFiltersSchema.safeParse({
-        from: "2026-09-03",
-        to: "2026-09-01",
-      }).success,
-    ).toBe(false);
-  });
-
-  test("rejects year zero and impossible dates", () => {
-    expect(
-      transactionFiltersSchema.safeParse({ from: "0000-01-01" }).success,
-    ).toBe(false);
-    expect(
-      transactionFiltersSchema.safeParse({ to: "2026-02-30" }).success,
-    ).toBe(false);
-  });
-
-  test("rejects an unknown type and a malformed id", () => {
-    expect(transactionFiltersSchema.safeParse({ type: "loan" }).success).toBe(
-      false,
-    );
-    expect(
-      transactionFiltersSchema.safeParse({ categoryId: "not-a-uuid" }).success,
-    ).toBe(false);
-  });
-});
-
-describe("history filters", () => {
-  test("separates the filters from the page cursor and the saved id", () => {
-    expect(
-      historyFilters({
-        from: "2026-09-01",
-        type: "income",
-        cursor: "eyJ2IjoxfQ",
-        created: "abc",
-      }),
-    ).toEqual({ from: "2026-09-01", type: "income" });
-  });
-
-  test("a cursor alone is not a filter", () => {
-    expect(historyFilters({ cursor: "eyJ2IjoxfQ" })).toEqual({});
-    expect(hasHistoryFilters({ cursor: "eyJ2IjoxfQ", created: "abc" })).toBe(
-      false,
-    );
-    expect(hasHistoryFilters({ type: "income" })).toBe(true);
-  });
-});
-
-describe("tag filter", () => {
-  const Coffee = "00000000-0000-4000-8000-000000000003";
-  const Snacks = "00000000-0000-4000-8000-000000000004";
-
   test("reads one tag or several from the address as a list", () => {
-    expect(historySearchSchema.parse({ tagId: Coffee }).tagId).toEqual([
-      Coffee,
+    expect(historySearchSchema.parse({ tagId: COFFEE }).tagId).toEqual([
+      COFFEE,
     ]);
     expect(
-      historySearchSchema.parse({ tagId: [Coffee, "", Snacks] }).tagId,
-    ).toEqual([Coffee, Snacks]);
+      historySearchSchema.parse({ tagId: [COFFEE, "", SNACKS] }).tagId,
+    ).toEqual([COFFEE, SNACKS]);
     expect(historySearchSchema.parse({ tagId: [] }).tagId).toBeUndefined();
-  });
-
-  test("counts as a filter and keeps its order", () => {
-    expect(historyFilters({ tagId: [Snacks, Coffee] })).toEqual({
-      tagId: [Snacks, Coffee],
-    });
-    expect(hasHistoryFilters({ tagId: [Coffee] })).toBe(true);
-  });
-
-  test("rejects a tag that is not an identifier", () => {
-    expect(parseHistoryFilters({ tagId: ["gone"] })).toEqual({
-      ok: false,
-      errors: ["Choose tags from the list."],
-    });
-  });
-});
-
-describe("parsed history filters", () => {
-  test("valid filters parse with no errors", () => {
-    expect(
-      parseHistoryFilters({ from: "2026-09-01", to: "2026-09-30" }),
-    ).toEqual({ ok: true, filters: { from: "2026-09-01", to: "2026-09-30" } });
-  });
-
-  test("names each malformed field rather than the date order", () => {
-    expect(
-      parseHistoryFilters({ from: "bogus", walletId: "gone", type: "7" }),
-    ).toEqual({
-      ok: false,
-      errors: [
-        "Choose a valid From date.",
-        "Choose a valid wallet.",
-        "Choose a valid type.",
-      ],
-    });
-  });
-
-  test("a reversed range names the date order", () => {
-    expect(
-      parseHistoryFilters({ from: "2026-09-03", to: "2026-09-01" }),
-    ).toEqual({
-      ok: false,
-      errors: ["From date must be on or before To date."],
-    });
-  });
-
-  test("ignores the page cursor and the saved id", () => {
-    expect(parseHistoryFilters({ cursor: "x", created: "y" })).toEqual({
-      ok: true,
-      filters: {},
-    });
   });
 });

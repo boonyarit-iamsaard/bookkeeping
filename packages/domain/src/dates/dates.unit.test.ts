@@ -4,6 +4,7 @@ import {
   earlierOf,
   formatCalendarDate,
   formatInstant,
+  isCalendarDate,
   isReportMonth,
   parseCalendarDate,
   todayIn,
@@ -41,6 +42,28 @@ describe("parseCalendarDate", () => {
       ok: false,
       error: "invalid",
     });
+  });
+});
+
+describe("isCalendarDate", () => {
+  test("accepts real calendar dates from year 1 onward", () => {
+    expect(isCalendarDate("2026-09-01")).toBe(true);
+    expect(isCalendarDate("2028-02-29")).toBe(true);
+    expect(isCalendarDate("0001-01-01")).toBe(true);
+  });
+
+  test("rejects year zero, impossible dates, and malformed strings", () => {
+    for (const value of [
+      "0000-12-31",
+      "2026-02-29",
+      "2026-13-01",
+      "",
+      "2026-9-1",
+      "09/13/2026",
+      " 2026-09-01",
+    ]) {
+      expect(isCalendarDate(value)).toBe(false);
+    }
   });
 });
 

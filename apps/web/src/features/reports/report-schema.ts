@@ -1,29 +1,13 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import { isReportMonth, parseCalendarDate } from "@bookkeeping/domain/dates";
+import { isCalendarDate, isReportMonth } from "@bookkeeping/domain/dates";
 import { z } from "zod";
+import { searchValue } from "@/shared/helpers/search-value";
 import { reportMonthOf } from "./report-month";
-
-const calendarDate = z
-  .string()
-  .refine(
-    (value) => value >= "0001-01-01" && parseCalendarDate(value).ok,
-    "Choose a valid date.",
-  );
 
 export const reportSchema = z.object({
   month: z.string().refine(isReportMonth),
-  asOf: calendarDate,
+  asOf: z.string().refine(isCalendarDate, "Choose a valid date."),
 });
-
-const searchValue = z.preprocess((value) => {
-  if (typeof value === "string") {
-    return value === "" ? undefined : value;
-  }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  return value === undefined ? undefined : "invalid";
-}, z.string().optional());
 
 export const reportSearchSchema = z.object({
   month: searchValue,

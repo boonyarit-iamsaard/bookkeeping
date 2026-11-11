@@ -9,11 +9,9 @@ import type { components } from "@/core/api/openapi.gen";
 import type { FilterOptionGroup } from "@/features/transactions/components/filter-select";
 import { FilterSelect } from "@/features/transactions/components/filter-select";
 import { historyFilterChips } from "@/features/transactions/history-chips";
-import type { HistorySearch } from "@/features/transactions/history-schema";
-import {
-  HISTORY_FILTER_KEYS,
-  parseHistoryFilters,
-} from "@/features/transactions/history-schema";
+import type { HistoryFilterValues } from "@/features/transactions/history-schema";
+import { HISTORY_FILTER_KEYS } from "@/features/transactions/history-schema";
+import type { HistoryView } from "@/features/transactions/history-view";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { ErrorNotice } from "@/shared/components/error-notice";
@@ -25,14 +23,20 @@ type ApiWallet = components["schemas"]["Wallet"];
 type ApiCategory = components["schemas"]["Category"];
 type ApiTag = components["schemas"]["TagSummary"];
 
-interface HistoryFilterChipsProps {
+interface HistoryFilterNamesProps {
   wallets: readonly ApiWallet[];
   categories: readonly ApiCategory[];
   tags: readonly ApiTag[];
-  values: Readonly<HistorySearch>;
 }
 
-interface HistoryFiltersProps extends HistoryFilterChipsProps {}
+interface HistoryFilterChipsProps extends HistoryFilterNamesProps {
+  view: Readonly<HistoryView>;
+}
+
+interface HistoryFiltersProps extends HistoryFilterNamesProps {
+  values: Readonly<HistoryFilterValues>;
+  errors: readonly string[];
+}
 
 /** Each tree as a group: parents first, their children indented beneath. */
 function categoryGroups(
@@ -55,9 +59,9 @@ function categoryGroups(
 }
 
 /** The controls' values as the GET form would have sent them; empty ones lift the filter. */
-function filtersFromForm(form: HTMLFormElement): HistorySearch {
+function filtersFromForm(form: HTMLFormElement): HistoryFilterValues {
   const data = new FormData(form);
-  const filters: HistorySearch = Object.fromEntries(
+  const filters: HistoryFilterValues = Object.fromEntries(
     HISTORY_FILTER_KEYS.flatMap((key) => {
       const value = data.get(key);
       return typeof value === "string" && value !== "" ? [[key, value]] : [];
@@ -128,6 +132,7 @@ export function HistoryFilters({
   categories,
   tags,
   values,
+  errors,
 }: Readonly<HistoryFiltersProps>) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -135,10 +140,8 @@ export function HistoryFilters({
     return values[key] ?? "";
   }
   const today = todayIn({ timeZone: APP_TIME_ZONE });
-  const parsed = parseHistoryFilters(values);
-  const errors = parsed.ok ? [] : parsed.errors;
 
-  function showFilters(search: HistorySearch) {
+  function showFilters(search: HistoryFilterValues) {
     setOpen(false);
     void navigate({ to: "/transactions", search });
   }
@@ -275,9 +278,9 @@ export function HistoryFilterChips({
   wallets,
   categories,
   tags,
-  values,
+  view,
 }: Readonly<HistoryFilterChipsProps>) {
-  const chips = historyFilterChips(values, { wallets, categories, tags });
+  const chips = historyFilterChips(view, { wallets, categories, tags });
   if (chips.length === 0) {
     return null;
   }
