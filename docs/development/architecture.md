@@ -130,7 +130,8 @@ packages/application/
                           # @bookkeeping/application/categories/defaults: the default trees
     idempotency/          # @bookkeeping/application/idempotency: replay-safe creation
     testing/              # @bookkeeping/application/testing/*: fixtures shared by application and server tests
-    transactions/         # @bookkeeping/application/transactions: listTransactions, findTransaction, createTransaction, updateTransaction, deleteTransaction, findExpenseRefunds, ...
+    transactions/         # @bookkeeping/application/transactions: createTransaction, updateTransaction, deleteTransaction
+                          # @bookkeeping/application/transactions/reads: listTransactions, listTransactionPage, findTransaction, findExpenseRefunds, findLastUsedWalletId, listTransactionChanges
                           # @bookkeeping/application/transactions/reports: report reads (getMonthlySummary, getDailySummary, getCategorySpending, getClosingBalances)
     wallets/              # @bookkeeping/application/wallets: listWallets, findWallet, createWallet, deleteWallet, ...
 ```

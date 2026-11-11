@@ -6,7 +6,7 @@
   "apps/server/src/features/categories/category.routes.integration.test.ts": 31205,
   "apps/server/src/features/reports/report.routes.integration.test.ts": 40853,
   "apps/server/src/features/transactions/transaction.routes.integration.test.ts": 42150,
-  "apps/server/src/features/transactions/transaction.routes.ts": 24860,
+  "apps/server/src/features/transactions/transaction.routes.ts": 24929,
   "apps/server/src/features/wallets/wallet.routes.integration.test.ts": 24269,
   "apps/web/src/features/categories/icons.ts": 23384,
   "apps/web/src/features/transactions/components/transaction-form.tsx": 27480,
@@ -15,8 +15,8 @@
   "docs/research/supply-chain-hardening.md": 55266,
   "packages/application/src/categories/category.integration.test.ts": 40762,
   "packages/application/src/categories/category.ts": 22104,
-  "packages/application/src/transactions/transaction-create.integration.test.ts": 22240,
-  "packages/application/src/transactions/transaction-reads.integration.test.ts": 28549,
-  "packages/application/src/transactions/transaction-update.integration.test.ts": 29477,
+  "packages/application/src/transactions/transaction-create.integration.test.ts": 22271,
+  "packages/application/src/transactions/transaction-reads.integration.test.ts": 28588,
+  "packages/application/src/transactions/transaction-update.integration.test.ts": 29516,
   "packages/application/src/wallets/wallet.integration.test.ts": 24214
 }

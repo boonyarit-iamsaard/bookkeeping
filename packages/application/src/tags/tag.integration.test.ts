@@ -5,11 +5,11 @@ import { describe, expect, test } from "vitest";
 import { createTagForTest } from "../testing/tag-fixture";
 import type { OwnerFixture } from "../testing/transaction-suite-fixture";
 import { setupOwner, softDelete } from "../testing/transaction-suite-fixture";
+import { createTransaction } from "../transactions/transaction";
 import {
-  createTransaction,
   findTransaction,
   listTransactionChanges,
-} from "../transactions/transaction";
+} from "../transactions/transaction-reads";
 import { createTag, deleteTag, listTags, renameTag } from "./tag";
 
 const { withRollback, committed } = setupTestDatabase();

@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import type {
   ListTransactionsOptions,
   TransactionListPosition,
-} from "@bookkeeping/application/transactions";
+} from "@bookkeeping/application/transactions/reads";
 import {
   normalizeTagIds,
   optionalTagIds,
