@@ -146,12 +146,16 @@ test("transfers require explicit THB and a distinct destination, with no categor
   ).toEqual([
     { path: "destinationWalletId", rejection: { code: "same-wallet" } },
   ]);
-  // A destination left empty is a shape error with no server rule of its own.
+  // A destination left empty is a required-field hint, kept local: it asks no
+  // server rule, so it is not the mirrored `same-wallet` message.
   const empty = schema.safeParse({ ...input, destinationWalletId: "" });
   expect(empty.error?.issues.map((issue) => issue.path)).toEqual([
     ["destinationWalletId"],
   ]);
   expect(rejectionsAsked(empty)).toEqual([]);
+  expect(empty.error?.issues.map((issue) => issue.message)).toEqual([
+    "Choose a destination wallet",
+  ]);
 });
 
 describe("linked refund form schema", () => {

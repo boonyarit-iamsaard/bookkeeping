@@ -1,3 +1,4 @@
+import type { DeclaredWrite } from "@/core/api/form-writes";
 import type { components } from "@/core/api/openapi.gen";
 import {
   createBlockerDescriber,
@@ -37,3 +38,9 @@ export const describeWalletFieldError = createFieldErrorDescriber(
 export const describeWalletRejection = createBlockerDescriber(
   WALLET_BLOCKER_MESSAGES,
 );
+
+/** How every wallet write reads a refusal. These writes show no fields, so a field error arrives as the message. */
+export const WALLET_REFUSAL_WORDING = {
+  describeFieldError: describeWalletFieldError,
+  describeRejection: describeWalletRejection,
+} satisfies Pick<DeclaredWrite, "describeFieldError" | "describeRejection">;

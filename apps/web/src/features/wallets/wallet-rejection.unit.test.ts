@@ -4,6 +4,7 @@ import type { ApiRejection } from "@/core/api/write-submission";
 import {
   describeWalletFieldError,
   describeWalletRejection,
+  WALLET_REFUSAL_WORDING,
 } from "@/features/wallets/wallet-rejection";
 
 type WalletRejectionCode =
@@ -83,5 +84,31 @@ describe("describeWalletRejection", () => {
     expect(describeWalletRejection(rejection("conflict"))).toBe(
       "The problem's own words",
     );
+  });
+});
+
+// Every wallet write, the create form included, declares this wording, so the
+// whole request refused alike everywhere reads the same on every screen.
+describe("WALLET_REFUSAL_WORDING", () => {
+  test.each([
+    ["unauthenticated", "Sign in again to continue."],
+    [
+      "not-found",
+      "This item no longer exists. It may have been deleted elsewhere.",
+    ],
+  ])("words %s in the shared voice", (code, message) => {
+    expect(WALLET_REFUSAL_WORDING.describeRejection(rejection(code))).toBe(
+      message,
+    );
+  });
+
+  test("words a field error with the wallet wording", () => {
+    expect(
+      WALLET_REFUSAL_WORDING.describeFieldError({
+        field: "name",
+        pointer: "#/name",
+        code: "empty",
+      }),
+    ).toBe("Enter a wallet name");
   });
 });

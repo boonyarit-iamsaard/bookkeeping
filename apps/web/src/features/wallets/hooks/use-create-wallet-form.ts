@@ -7,7 +7,7 @@ import type { components } from "@/core/api/openapi.gen";
 import { useFormWrites } from "@/core/api/use-form-writes";
 import type { WalletFormInput } from "@/features/wallets/wallet-form-schema";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
-import { describeWalletFieldError } from "@/features/wallets/wallet-rejection";
+import { WALLET_REFUSAL_WORDING } from "@/features/wallets/wallet-rejection";
 
 type CreateWalletRequest = components["schemas"]["CreateWalletRequest"];
 type Wallet = components["schemas"]["Wallet"];
@@ -38,7 +38,7 @@ export function useCreateWalletForm({
             params: { header: attempt.header },
             body: input,
           }),
-        describeFieldError: describeWalletFieldError,
+        ...WALLET_REFUSAL_WORDING,
         onDone: (created: Wallet) =>
           navigate({ to: "/wallets", search: { created: created.id } }),
       },

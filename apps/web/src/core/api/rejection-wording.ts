@@ -31,6 +31,13 @@ export function describeRejection(
   return describeSharedRejection(rejection.problem.code) ?? rejection.message;
 }
 
+function isPublished<Code extends string>(
+  messages: Readonly<Record<Code, string>>,
+  code: string,
+): code is Code {
+  return Object.hasOwn(messages, code);
+}
+
 /**
  * A feature's field-error describer, from a table keyed by every code the API
  * publishes for it. Type the table with the published union so a new or
@@ -39,10 +46,8 @@ export function describeRejection(
 export function createFieldErrorDescriber<Code extends string>(
   messages: Readonly<Record<Code, string>>,
 ): (fieldError: Readonly<ApiFieldError>) => string {
-  const isPublished = (code: string): code is Code =>
-    Object.hasOwn(messages, code);
   return ({ code }) =>
-    isPublished(code) ? messages[code] : FALLBACK_FIELD_MESSAGE;
+    isPublished(messages, code) ? messages[code] : FALLBACK_FIELD_MESSAGE;
 }
 
 /**
@@ -53,11 +58,11 @@ export function createFieldErrorDescriber<Code extends string>(
 export function createBlockerDescriber<Code extends string>(
   messages: Readonly<Record<Code, string>>,
 ): (rejection: Readonly<ApiRejection>) => string | undefined {
-  const isPublished = (code: string): code is Code =>
-    Object.hasOwn(messages, code);
   return (rejection) => {
     const { code } = rejection.problem;
-    return isPublished(code) ? messages[code] : describeRejection(rejection);
+    return isPublished(messages, code)
+      ? messages[code]
+      : describeRejection(rejection);
   };
 }
 
@@ -93,10 +98,12 @@ export function createFactualFieldErrorDescriber<
 }: Readonly<FactualDescriberOptions<Code, Facts>>): (
   fieldError: Readonly<ApiFieldError>,
 ) => string {
-  const isFactual = (code: string): code is keyof Facts & Code =>
-    Object.hasOwn(factual, code);
-  const isPlain = (code: string): code is Exclude<Code, keyof Facts> =>
-    Object.hasOwn(plain, code);
+  function isFactual(code: string): code is keyof Facts & Code {
+    return Object.hasOwn(factual, code);
+  }
+  function isPlain(code: string): code is Exclude<Code, keyof Facts> {
+    return Object.hasOwn(plain, code);
+  }
 
   return (fieldError) => {
     const { code } = fieldError;

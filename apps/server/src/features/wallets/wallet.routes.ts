@@ -1,7 +1,3 @@
-import type {
-  WalletOpeningField,
-  WalletOpeningRejection,
-} from "@bookkeeping/application/wallets";
 import {
   createWallet,
   deleteWallet,
@@ -22,7 +18,6 @@ import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
-import { toFieldErrors } from "../../core/http/field-rejections.js";
 import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
 import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
 import type { Money } from "../../core/http/money.js";
@@ -62,8 +57,8 @@ import {
 } from "../../core/http/resource-answers.js";
 import type { walletRejectionProblemSchema } from "./wallet-rejection.js";
 import {
-  WALLET_CREATION_POINTERS,
-  WALLET_OPENING_POINTERS,
+  toCreationFieldErrors,
+  toOpeningFieldErrors,
   walletCodes,
 } from "./wallet-rejection.js";
 
@@ -276,11 +271,7 @@ export function createWalletRoutes(db: Database) {
           return answerCreation(c, {
             result: created,
             present: (outcome) => presentWallet(outcome.wallet),
-            toFieldErrors: (rejected) =>
-              toFieldErrors(rejected, {
-                pointers: WALLET_CREATION_POINTERS,
-                codes: walletCodes,
-              }),
+            toFieldErrors: toCreationFieldErrors,
           });
         },
         {
@@ -421,14 +412,7 @@ export function createWalletRoutes(db: Database) {
           return answerCorrection(c, {
             result: replaced,
             present: presentWallet,
-            toFieldErrors: (rejected) =>
-              toFieldErrors<WalletOpeningField, WalletOpeningRejection>(
-                rejected,
-                {
-                  pointers: WALLET_OPENING_POINTERS,
-                  codes: walletCodes,
-                },
-              ),
+            toFieldErrors: toOpeningFieldErrors,
           });
         },
         {

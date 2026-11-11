@@ -12,7 +12,6 @@ import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
-import { toFieldErrors } from "../../core/http/field-rejections.js";
 import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
 import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
 import { describeProblemResponse } from "../../core/http/openapi.js";
@@ -25,12 +24,12 @@ import {
 import {
   answerCorrection,
   answerCreation,
-  answerRemoval,
+  answerUnblockedRemoval,
   describeCorrection,
   describeCreation,
 } from "../../core/http/resource-answers.js";
 import type { tagRejectionProblemSchema } from "./tag-rejection.js";
-import { TAG_FIELD_POINTERS, tagCodes } from "./tag-rejection.js";
+import { tagCodes, toTagFieldErrors } from "./tag-rejection.js";
 
 export const tagResponseSchema = z
   .object({ id: z.uuid(), name: z.string() })
@@ -123,11 +122,7 @@ export function createTagRoutes(db: Database) {
           return answerCreation(c, {
             result: created,
             present: (outcome) => ({ ...outcome.tag }),
-            toFieldErrors: (rejected) =>
-              toFieldErrors(rejected, {
-                pointers: TAG_FIELD_POINTERS,
-                codes: tagCodes,
-              }),
+            toFieldErrors: toTagFieldErrors,
           });
         },
         {
@@ -220,11 +215,7 @@ export function createTagRoutes(db: Database) {
           return answerCorrection(c, {
             result: renamed,
             present: (tag) => ({ ...tag }),
-            toFieldErrors: (rejected) =>
-              toFieldErrors(rejected, {
-                pointers: TAG_FIELD_POINTERS,
-                codes: tagCodes,
-              }),
+            toFieldErrors: toTagFieldErrors,
           });
         },
         {
@@ -259,11 +250,7 @@ export function createTagRoutes(db: Database) {
           ownerId: c.get("session").user.id,
           id: c.req.valid("param").tagId,
         });
-        return answerRemoval<never>(c, {
-          result: deleted,
-          // Nothing blocks a tag's removal, so no blocker reaches the mapper.
-          toBlockerProblem: (blocker) => blocker,
-        });
+        return answerUnblockedRemoval(c, { result: deleted });
       },
     );
 }

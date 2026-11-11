@@ -26,3 +26,14 @@ export function rejected<Rejection extends FieldRejection>(
 ): Rejected<Rejection> {
   return { code: "rejected", rejections };
 }
+
+/**
+ * Reports the refused inputs collected by a validator, or `undefined` when it
+ * collected none.
+ */
+export function rejectedOrNone<Rejection extends FieldRejection>(
+  rejections: readonly Rejection[],
+): Rejected<Rejection> | undefined {
+  const [first, ...rest] = rejections;
+  return first === undefined ? undefined : rejected(first, ...rest);
+}

@@ -38,6 +38,16 @@ function mirroredHint(rejection: TransactionRejection) {
   };
 }
 
+/**
+ * Hints for a required input left empty. They are shape-only: no server rule
+ * stands behind them, so they stay local and are never mirrored. The
+ * destination's is not the `same-wallet` rule, which is mirrored below.
+ */
+const REQUIRED_FIELD_HINTS = {
+  destinationWalletId: "Choose a destination wallet",
+  categoryId: "Choose a category",
+} as const;
+
 interface TransactionFormSchemaOptions {
   /**
    * Opening dates of the wallets offered, so the form can name the date
@@ -165,7 +175,7 @@ function transactionFieldCheck({
         ctx.addIssue({
           code: "custom",
           path: ["destinationWalletId"],
-          message: "Choose a destination wallet",
+          message: REQUIRED_FIELD_HINTS.destinationWalletId,
         });
       } else if (value.destinationWalletId === value.walletId) {
         ctx.addIssue({
@@ -180,7 +190,7 @@ function transactionFieldCheck({
       ctx.addIssue({
         code: "custom",
         path: ["categoryId"],
-        message: "Choose a category",
+        message: REQUIRED_FIELD_HINTS.categoryId,
       });
     }
     const ids =

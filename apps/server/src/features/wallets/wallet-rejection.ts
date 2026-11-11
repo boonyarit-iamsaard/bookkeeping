@@ -1,9 +1,15 @@
 import type {
   WalletField,
   WalletOpeningField,
+  WalletOpeningRejected,
+  WalletOpeningRejection,
+  WalletRejected,
   WalletRejection,
 } from "@bookkeeping/application/wallets";
-import { defineCodeTable } from "../../core/http/field-rejections.js";
+import {
+  defineCodeTable,
+  toFieldErrors,
+} from "../../core/http/field-rejections.js";
 
 /**
  * Where each refused input lives in a wallet creation document. The money
@@ -38,3 +44,21 @@ export const walletCodes = defineCodeTable<WalletRejection>("Wallet", {
 });
 
 export const walletRejectionProblemSchema = walletCodes.problemSchema;
+
+/** The field errors of a refused creation, pointing into the creation document. */
+export function toCreationFieldErrors(rejected: Readonly<WalletRejected>) {
+  return toFieldErrors(rejected, {
+    pointers: WALLET_CREATION_POINTERS,
+    codes: walletCodes,
+  });
+}
+
+/** The field errors of a refused opening replacement, pointing into its document. */
+export function toOpeningFieldErrors(
+  rejected: Readonly<WalletOpeningRejected>,
+) {
+  return toFieldErrors<WalletOpeningField, WalletOpeningRejection>(rejected, {
+    pointers: WALLET_OPENING_POINTERS,
+    codes: walletCodes,
+  });
+}

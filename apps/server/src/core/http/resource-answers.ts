@@ -13,13 +13,13 @@ import {
 
 const LOCATION_HEADER = "Location";
 
-/** A rejection the application addresses to inputs, as every operation reports one. */
-interface Coded {
+/** Any refusal the application reports by code: a rejected input or a removal's blocker. */
+interface Refusal {
   code: string;
 }
 
 function isIdempotencyConflict(
-  error: Readonly<Coded>,
+  error: Readonly<Refusal>,
 ): error is IdempotencyConflict {
   return error.code === "idempotency-conflict";
 }
@@ -45,7 +45,7 @@ export interface CreationAnswer<
  */
 export function answerCreation<
   Outcome,
-  Rejection extends Coded,
+  Rejection extends Refusal,
   Body extends { id: string },
 >(
   c: Context,
@@ -98,7 +98,7 @@ export interface CorrectionAnswer<Value, Rejection, Body> {
  * Answers a correction: 404 for the shared not-found, 422 with field errors
  * for a rejected command, and 200 with the corrected resource.
  */
-export function answerCorrection<Value, Rejection extends Coded, Body>(
+export function answerCorrection<Value, Rejection extends Refusal, Body>(
   c: Context,
   {
     result,
@@ -118,17 +118,18 @@ export function answerCorrection<Value, Rejection extends Coded, Body>(
   return c.json(present(result.value), 200);
 }
 
+export interface UnblockedRemovalAnswer {
+  result: Result<unknown, NotFound>;
+}
+
 export interface RemovalAnswer<Blocker> {
   result: Result<unknown, NotFound | Blocker>;
   /** The 409 that names why the resource's own state refuses the removal. */
   toBlockerProblem: (blocker: Blocker) => ProblemOptions<409>;
 }
 
-/**
- * Answers a removal: 404 for the shared not-found, 409 naming the blocker,
- * or an empty 204. A removal nothing can block names `never` as its blocker.
- */
-export function answerRemoval<Blocker extends Coded = never>(
+/** Answers a removal: 404 for the shared not-found, 409 naming the blocker, or an empty 204. */
+export function answerRemoval<Blocker extends Refusal>(
   c: Context,
   { result, toBlockerProblem }: Readonly<RemovalAnswer<Blocker>>,
 ) {
@@ -139,6 +140,19 @@ export function answerRemoval<Blocker extends Coded = never>(
     return createProblemResponse(c, toBlockerProblem(result.error));
   }
   return c.body(null, 204);
+}
+
+/** Answers the removal of a resource whose own state never refuses it: 404 or an empty 204. */
+export function answerUnblockedRemoval(
+  c: Context,
+  { result }: Readonly<UnblockedRemovalAnswer>,
+) {
+  return answerRemoval(c, { result, toBlockerProblem: refuseNothing });
+}
+
+/** Maps the blocker of a removal nothing can block: the type is `never`, so it never runs. */
+function refuseNothing(blocker: never): never {
+  return blocker;
 }
 
 /** The documented responses `answerCreation` produces for one resource schema. */

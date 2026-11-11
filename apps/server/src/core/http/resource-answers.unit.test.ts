@@ -8,6 +8,7 @@ import {
   answerCreation,
   answerRead,
   answerRemoval,
+  answerUnblockedRemoval,
 } from "./resource-answers.js";
 
 type Rejection = { code: "blank-name" } | { code: "idempotency-conflict" };
@@ -66,7 +67,15 @@ function app() {
           title: "In use",
         }),
       });
-    });
+    })
+    .delete("/tags/:id", (c) =>
+      answerUnblockedRemoval(c, {
+        result:
+          c.req.param("id") === created.id
+            ? ok({ id: created.id })
+            : err<NotFound>({ code: "not-found" }),
+      }),
+    );
 }
 
 async function problemOf(response: Response) {
@@ -146,5 +155,15 @@ describe("resource answers", () => {
         }),
       ),
     ).toMatchObject({ status: 409, code: "in-use" });
+  });
+
+  test("a removal nothing can block answers an empty 204 or not found", async () => {
+    const removed = await app().request("/tags/0199", { method: "DELETE" });
+    expect(removed.status).toBe(204);
+    expect(await removed.text()).toBe("");
+
+    expect(
+      await problemOf(await app().request("/tags/0000", { method: "DELETE" })),
+    ).toMatchObject({ status: 404, code: "not-found" });
   });
 });

@@ -4,17 +4,13 @@ import { useNavigate } from "@tanstack/react-router";
 import { Archive, ArchiveRestore, PiggyBank, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "@/core/api/client";
-import type { DeclaredWrite } from "@/core/api/form-writes";
 import { formatApiMoneyInput } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { walletQueries } from "@/core/api/queries";
 import { useFormWrites } from "@/core/api/use-form-writes";
 import { WalletTile } from "@/features/wallets/components/wallet-tile";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
-import {
-  describeWalletFieldError,
-  describeWalletRejection,
-} from "@/features/wallets/wallet-rejection";
+import { WALLET_REFUSAL_WORDING } from "@/features/wallets/wallet-rejection";
 import { ConfirmPanel } from "@/shared/components/confirm-panel";
 import { DatePicker } from "@/shared/components/date-picker";
 import { ErrorNotice } from "@/shared/components/error-notice";
@@ -39,12 +35,6 @@ const NO_OUTCOME = { error: "", notice: "" };
 /** Each management task is its own card on the ground. */
 const manageCardClass =
   "flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-card sm:p-7";
-
-/** How every wallet write reads a refusal. These writes show no fields, so a field error arrives as the message. */
-const WALLET_REFUSAL_WORDING = {
-  describeFieldError: describeWalletFieldError,
-  describeRejection: describeWalletRejection,
-} satisfies Pick<DeclaredWrite, "describeFieldError" | "describeRejection">;
 
 export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   const navigate = useNavigate();

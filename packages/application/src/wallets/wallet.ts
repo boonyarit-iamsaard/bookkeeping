@@ -25,7 +25,7 @@ import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
 import { notFound } from "../shared/not-found";
 import type { Rejected } from "../shared/rejection";
-import { rejected } from "../shared/rejection";
+import { rejected, rejectedOrNone } from "../shared/rejection";
 import {
   selectWalletSummaries,
   summarizeWalletBalance,
@@ -159,9 +159,9 @@ export function validateWalletOpening(
   opening: Readonly<WalletOpening>,
 ): Result<WalletOpening, WalletOpeningRejected> {
   const rejections = collectOpeningRejections(opening);
-  const [first, ...rest] = rejections;
-  if (first) {
-    return err(rejected(first, ...rest));
+  const refused = rejectedOrNone(rejections);
+  if (refused) {
+    return err(refused);
   }
   return ok({
     openingAmount: opening.openingAmount,
@@ -209,9 +209,9 @@ export function validateWalletCreation(
     rejections.push({ code: "empty", field: "name" });
   }
   rejections.push(...collectOpeningRejections(command));
-  const [first, ...rest] = rejections;
-  if (first) {
-    return err(rejected(first, ...rest));
+  const refused = rejectedOrNone(rejections);
+  if (refused) {
+    return err(refused);
   }
   return ok({ ...command, name });
 }

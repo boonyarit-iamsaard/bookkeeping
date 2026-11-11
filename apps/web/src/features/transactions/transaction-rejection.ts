@@ -19,31 +19,22 @@ type RuleFieldError = components["schemas"]["TransactionRuleFieldError"];
 /** Every reason the API refuses a transaction command, as it publishes them. */
 export type TransactionRejectionCode = RuleFieldError["code"];
 
-/** The published variant a code belongs to; several plain codes share one. */
-type RuleVariant<Code extends TransactionRejectionCode> =
-  RuleFieldError extends infer Variant
-    ? Variant extends { code: infer Codes }
-      ? Code extends Codes
-        ? Variant
-        : never
-      : never
-    : never;
-
-/** The code and the facts its message names. */
-type PublishedFacts<Code extends TransactionRejectionCode> = Omit<
-  RuleVariant<Code>,
-  "pointer" | "detail"
+/** The published variants whose message names a fact; the plain variant lists every other code. */
+type FactualVariant = Exclude<
+  RuleFieldError,
+  components["schemas"]["TransactionPlainRuleFieldError"]
 >;
 
 /** The codes whose published variant carries a fact beside the code. */
-type FactualCode = {
-  [Code in TransactionRejectionCode]: Exclude<
-    keyof PublishedFacts<Code>,
-    "code"
-  > extends never
-    ? never
-    : Code;
-}[TransactionRejectionCode];
+type FactualCode = FactualVariant["code"];
+
+/** Each factual code's published variant without its routing: the code and the facts its message names. */
+type PublishedFacts = {
+  [Variant in FactualVariant as Variant["code"]]: Omit<
+    Variant,
+    "pointer" | "detail"
+  >;
+};
 
 /** The facts each factual code's message reads, as the domain holds them. */
 interface TransactionFacts {
@@ -95,7 +86,7 @@ const moneySchema = z
 type FactReaders = {
   [Code in FactualCode]: z.ZodType<
     TransactionFacts[Code],
-    PublishedFacts<Code>
+    PublishedFacts[Code]
   >;
 };
 

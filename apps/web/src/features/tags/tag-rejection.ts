@@ -1,6 +1,10 @@
 import { MAX_TAG_NAME_LENGTH } from "@bookkeeping/domain/tags";
+import type { DeclaredWrite } from "@/core/api/form-writes";
 import type { components } from "@/core/api/openapi.gen";
-import { createFieldErrorDescriber } from "@/core/api/rejection-wording";
+import {
+  createFieldErrorDescriber,
+  describeRejection,
+} from "@/core/api/rejection-wording";
 
 /** Every reason the API refuses a tag name, as it publishes them. */
 export type TagRejectionCode =
@@ -16,3 +20,12 @@ const TAG_MESSAGES: Record<TagRejectionCode, string> = {
 
 /** The message beside a refused tag name, in the product's words. */
 export const describeTagFieldError = createFieldErrorDescriber(TAG_MESSAGES);
+
+/**
+ * How every tag write reads a refusal. No tag rule blocks a write, so the
+ * error bar reads the shared wording or the problem's own message.
+ */
+export const TAG_REFUSAL_WORDING = {
+  describeFieldError: describeTagFieldError,
+  describeRejection,
+} satisfies Pick<DeclaredWrite, "describeFieldError" | "describeRejection">;
