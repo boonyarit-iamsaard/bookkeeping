@@ -14,6 +14,7 @@ import type { ReportFigure } from "../report-labels";
 import { REPORT_FIGURE_LABELS } from "../report-labels";
 import { formatReportMonth } from "../report-month";
 import type { TrendPoint } from "../trend-series";
+import { TREND_HEADING } from "../trend-series";
 import { BalanceOverTime } from "./balance-over-time";
 import { SpendingByCategory } from "./spending-by-category";
 import { TrendChart } from "./trend-chart";
@@ -134,7 +135,7 @@ export function FinancialReport({
       </section>
       <section aria-labelledby="trend-heading" className={CARD_CLASS}>
         <h2 id="trend-heading" className={CARD_HEADING_CLASS}>
-          Last six months
+          {TREND_HEADING}
         </h2>
         <TrendChart key={summary.month} points={trend} />
       </section>

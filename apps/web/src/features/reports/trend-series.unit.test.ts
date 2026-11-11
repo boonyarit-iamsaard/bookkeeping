@@ -1,6 +1,11 @@
 import { describe, expect, test } from "vitest";
 import type { components } from "@/core/api/openapi.gen";
-import { createTrendSeries, trendMonths } from "./trend-series";
+import {
+  createTrendSeries,
+  TREND_HEADING,
+  TREND_LENGTH,
+  trendMonths,
+} from "./trend-series";
 
 type MonthlyReport = components["schemas"]["MonthlyReport"];
 
@@ -25,6 +30,11 @@ describe("trendMonths", () => {
       "2026-01",
       "2026-02",
     ]);
+  });
+
+  test("covers as many months as the trend's length, which its heading names", () => {
+    expect(trendMonths("2026-09")).toHaveLength(TREND_LENGTH);
+    expect(TREND_HEADING).toBe("Last six months");
   });
 
   test("stops at the first month the calendar has", () => {

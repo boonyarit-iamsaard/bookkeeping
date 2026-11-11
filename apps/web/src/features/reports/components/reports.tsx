@@ -7,7 +7,7 @@ import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today
 import { DatePicker } from "@/shared/components/date-picker";
 import { MonthPicker } from "@/shared/components/month-picker";
 import { reportMonthOf } from "../report-month";
-import { useReportReads } from "../report-reads";
+import { useReportView } from "../report-reads";
 import type { ReportSearch } from "../report-schema";
 import { FinancialReport } from "./financial-report";
 import { ReportsLoading } from "./reports-loading";
@@ -21,7 +21,7 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
   const today = useBangkokToday(initialToday);
   const thisMonth = reportMonthOf(today);
   const [comparedWalletId, setComparedWalletId] = useState<string>();
-  const report = useReportReads({ search, today, comparedWalletId });
+  const report = useReportView({ search, today, comparedWalletId });
   const navigate = useNavigate({ from: "/reports" });
 
   if (report.state === "loading") {
