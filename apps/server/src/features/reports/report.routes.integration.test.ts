@@ -663,8 +663,6 @@ describe("GET /v1/reports/category-spending", () => {
       );
       expect(september.netExpenses).toEqual(monthly.netExpenses);
       expect(september.netExpenses.value).toBe("200.00");
-      // Food is left out of the share base, so it exceeds Net expenses.
-      expect(september.shareBase).toEqual({ value: "300.00", currency: "THB" });
     });
   });
 

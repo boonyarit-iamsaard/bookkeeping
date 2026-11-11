@@ -4,7 +4,7 @@
   "apps/server/src/core/http/api-contract.integration.test.ts": 20040,
   "apps/server/src/core/http/openapi.unit.test.ts": 30179,
   "apps/server/src/features/categories/category.routes.integration.test.ts": 31205,
-  "apps/server/src/features/reports/report.routes.integration.test.ts": 41007,
+  "apps/server/src/features/reports/report.routes.integration.test.ts": 40853,
   "apps/server/src/features/transactions/transaction.routes.integration.test.ts": 42732,
   "apps/server/src/features/transactions/transaction.routes.ts": 24860,
   "apps/server/src/features/wallets/wallet.routes.integration.test.ts": 24800,
