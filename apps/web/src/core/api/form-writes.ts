@@ -1,3 +1,4 @@
+import { createFieldOf } from "./field-pointer";
 import type { ApiResponse } from "./problem";
 import type {
   ApiRejection,
@@ -6,11 +7,7 @@ import type {
   WriteOptions,
   WriteResult,
 } from "./write-submission";
-import {
-  createFieldOf,
-  createWriteSubmission,
-  isLostResponse,
-} from "./write-submission";
+import { createWriteSubmission, isLostResponse } from "./write-submission";
 
 /**
  * What a write does to its record. It decides the idempotency key (only a
@@ -23,7 +20,7 @@ export type WriteKind = "create" | "change" | "delete";
 export type ReadKey = readonly unknown[];
 
 interface FormWriteCommon<Output> {
-  /** The message beside a rejected field; defaults to the problem's prose. */
+  /** The message beside a rejected field; defaults to the shared fallback. */
   describeFieldError?: DescribeFieldError;
   /** The error-bar message for a rejection; defaults to its own message. */
   describeRejection?: (rejection: Readonly<ApiRejection>) => string | undefined;

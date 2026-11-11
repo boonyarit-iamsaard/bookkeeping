@@ -37,7 +37,38 @@ describe("validateCategoryCreation", () => {
       validateCategoryCreation({ ...command, iconId: "retired-glyph" }),
     ).toEqual({
       ok: false,
-      error: { code: "unknown-icon", field: "iconId" },
+      error: {
+        code: "rejected",
+        rejections: [{ code: "unknown-icon", field: "iconId" }],
+      },
+    });
+  });
+
+  test("addresses a refused new parent by the parent's own fields", () => {
+    function attempt(create: { name: string; iconId: string }) {
+      return validateCategoryCreation({ ...command, parent: { create } });
+    }
+
+    expect(attempt({ name: "  ", iconId: "beer" })).toEqual({
+      ok: false,
+      error: {
+        code: "rejected",
+        rejections: [{ code: "blank-name", field: "parentName" }],
+      },
+    });
+    expect(attempt({ name: "x".repeat(61), iconId: "beer" })).toEqual({
+      ok: false,
+      error: {
+        code: "rejected",
+        rejections: [{ code: "name-too-long", field: "parentName" }],
+      },
+    });
+    expect(attempt({ name: "Drinks", iconId: "retired-glyph" })).toEqual({
+      ok: false,
+      error: {
+        code: "rejected",
+        rejections: [{ code: "unknown-icon", field: "parentIconId" }],
+      },
     });
   });
 });
@@ -54,7 +85,10 @@ describe("validateCategoryUpdate", () => {
   test("rejects a blank name", () => {
     expect(validateCategoryUpdate({ ...update, name: "   " })).toEqual({
       ok: false,
-      error: { code: "blank-name" },
+      error: {
+        code: "rejected",
+        rejections: [{ code: "blank-name", field: "name" }],
+      },
     });
   });
 
@@ -62,7 +96,10 @@ describe("validateCategoryUpdate", () => {
     expect(validateCategoryUpdate({ ...update, name: "x".repeat(61) })).toEqual(
       {
         ok: false,
-        error: { code: "name-too-long" },
+        error: {
+          code: "rejected",
+          rejections: [{ code: "name-too-long", field: "name" }],
+        },
       },
     );
   });
@@ -72,7 +109,10 @@ describe("validateCategoryUpdate", () => {
       validateCategoryUpdate({ ...update, iconId: "retired-glyph" }),
     ).toEqual({
       ok: false,
-      error: { code: "unknown-icon" },
+      error: {
+        code: "rejected",
+        rejections: [{ code: "unknown-icon", field: "iconId" }],
+      },
     });
   });
 });

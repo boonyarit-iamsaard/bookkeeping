@@ -5,9 +5,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useFormWrites } from "@/core/api/use-form-writes";
-import type { ApiFieldError } from "@/core/api/write-submission";
 import type { WalletFormInput } from "@/features/wallets/wallet-form-schema";
 import { walletFormSchema } from "@/features/wallets/wallet-form-schema";
+import { WALLET_REFUSAL_WORDING } from "@/features/wallets/wallet-rejection";
 
 type CreateWalletRequest = components["schemas"]["CreateWalletRequest"];
 type Wallet = components["schemas"]["Wallet"];
@@ -24,21 +24,6 @@ interface UseCreateWalletFormOptions {
   defaultOpeningDate: CalendarDate;
 }
 
-const FIELD_ERROR_MESSAGES: Record<string, string> = {
-  empty: "Enter a wallet name",
-  "invalid-format": "Enter a valid value",
-  "too-many-decimals": "Use at most two decimals; satang is the smallest unit",
-  "out-of-range": "That amount is larger than the app can store",
-  "in-future": "Opening date cannot be in the future",
-};
-
-function describeWalletFieldError({
-  code,
-  detail,
-}: Readonly<ApiFieldError>): string {
-  return detail ?? FIELD_ERROR_MESSAGES[code] ?? "This value was not accepted.";
-}
-
 export function useCreateWalletForm({
   defaultOpeningDate,
 }: Readonly<UseCreateWalletFormOptions>) {
@@ -53,7 +38,7 @@ export function useCreateWalletForm({
             params: { header: attempt.header },
             body: input,
           }),
-        describeFieldError: describeWalletFieldError,
+        ...WALLET_REFUSAL_WORDING,
         onDone: (created: Wallet) =>
           navigate({ to: "/wallets", search: { created: created.id } }),
       },

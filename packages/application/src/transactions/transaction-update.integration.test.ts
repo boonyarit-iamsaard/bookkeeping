@@ -4,6 +4,7 @@ import { wallets } from "@bookkeeping/database/wallets";
 import { inArray, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { listCategories } from "../categories/category";
+import { rejected } from "../shared/rejection";
 import {
   balanceOf,
   expenseUpdateInput,
@@ -156,7 +157,10 @@ describe("updateTransaction", () => {
         }),
       ).toEqual({
         ok: false,
-        error: { field: "categoryId", code: "category-kind-mismatch" },
+        error: rejected({
+          field: "categoryId",
+          code: "category-kind-mismatch",
+        }),
       });
 
       expect(
@@ -461,11 +465,9 @@ describe("updateTransaction", () => {
         ]);
         if (conflict === "archive") {
           if (!refundResult.ok) {
-            expect(refundResult.error).toEqual({
-              field: "walletId",
-              code: "wallet-archived",
-              walletId: receiver,
-            });
+            expect(refundResult.error).toEqual(
+              rejected({ field: "walletId", code: "wallet-archived" }),
+            );
           }
           expect(
             await createTransaction(db, {
@@ -474,11 +476,7 @@ describe("updateTransaction", () => {
             }),
           ).toEqual({
             ok: false,
-            error: {
-              field: "walletId",
-              code: "wallet-archived",
-              walletId: receiver,
-            },
+            error: rejected({ field: "walletId", code: "wallet-archived" }),
           });
         } else if (
           operation === "edit" &&

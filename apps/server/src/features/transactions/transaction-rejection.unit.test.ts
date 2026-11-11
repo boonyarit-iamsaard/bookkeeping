@@ -1,22 +1,29 @@
-import type { TransactionRejection } from "@bookkeeping/application/transactions";
+import { rejected } from "@bookkeeping/application/shared/rejection";
+import type {
+  TransactionField,
+  TransactionRejection,
+} from "@bookkeeping/application/transactions";
 import { describe, expect, test } from "vitest";
-import type { TransactionFieldError } from "./transaction-rejection.js";
+import type { RuleFieldError } from "../../core/http/field-rejections.js";
+import { toFieldErrors } from "../../core/http/field-rejections.js";
+import { createUnitTestApp } from "../../testing/create-unit-test-app.js";
+import {
+  documentedSchema,
+  fetchDocument,
+} from "../../testing/openapi-document.js";
 import {
   CREATE_FIELD_POINTERS,
-  toFieldErrors,
-  transactionFieldErrorSchema,
+  transactionCodes,
   UPDATE_FIELD_POINTERS,
 } from "./transaction-rejection.js";
 
 interface WireCase {
   rejection: TransactionRejection;
   /** The field error a create request answers. */
-  create: TransactionFieldError;
+  create: RuleFieldError;
   /** Where the same rejection points in an update request document. */
   updatePointer: string;
 }
-
-const ARCHIVED_WALLET_ID = "01999999-0000-7000-8000-000000000001";
 
 // Keyed by every rejection code, so a new rejection fails to compile until
 // its wire form is asserted here.
@@ -43,11 +50,7 @@ const WIRE_CASES: { [Code in TransactionRejection["code"]]: WireCase } = {
     updatePointer: "#/destinationWalletId",
   },
   "wallet-archived": {
-    rejection: {
-      field: "destinationWalletId",
-      code: "wallet-archived",
-      walletId: ARCHIVED_WALLET_ID,
-    },
+    rejection: { field: "destinationWalletId", code: "wallet-archived" },
     create: { pointer: "#/destinationWalletId", code: "wallet-archived" },
     updatePointer: "#/destinationWalletId",
   },
@@ -92,11 +95,7 @@ const WIRE_CASES: { [Code in TransactionRejection["code"]]: WireCase } = {
     updatePointer: "#/transactionDate",
   },
   "future-date": {
-    rejection: {
-      field: "transactionDate",
-      code: "future-date",
-      today: "2026-09-10",
-    },
+    rejection: { field: "transactionDate", code: "future-date" },
     create: { pointer: "#/transactionDate", code: "future-date" },
     updatePointer: "#/transactionDate",
   },
@@ -177,25 +176,60 @@ const WIRE_CASES: { [Code in TransactionRejection["code"]]: WireCase } = {
   },
 };
 
-describe("transaction field errors", () => {
+const tablesFor = (pointers: Readonly<Record<TransactionField, string>>) => ({
+  pointers,
+  codes: transactionCodes,
+});
+
+describe("the transaction code table", () => {
   test.for(Object.entries(WIRE_CASES))(
     "%s addresses its field and carries exactly the facts its message names",
     ([, { rejection, create, updatePointer }]) => {
-      const created = toFieldErrors(rejection, CREATE_FIELD_POINTERS);
+      const created = toFieldErrors(
+        rejected(rejection),
+        tablesFor(CREATE_FIELD_POINTERS),
+      );
       expect(created).toEqual([create]);
-      expect(transactionFieldErrorSchema.parse(created[0])).toEqual(create);
-      expect(toFieldErrors(rejection, UPDATE_FIELD_POINTERS)).toEqual([
-        { ...create, pointer: updatePointer },
-      ]);
+      expect(transactionCodes.fieldErrorSchema.parse(created[0])).toEqual(
+        create,
+      );
+      expect(
+        toFieldErrors(rejected(rejection), tablesFor(UPDATE_FIELD_POINTERS)),
+      ).toEqual([{ ...create, pointer: updatePointer }]);
     },
   );
 
   test("a rule code never passes without the facts its message names", () => {
     expect(
-      transactionFieldErrorSchema.safeParse({
+      transactionCodes.fieldErrorSchema.safeParse({
         pointer: "#/amount/value",
         code: "exceeds-refundable",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("the published transaction rejections", () => {
+  test("derive one variant per factual code and one for the plain codes", async () => {
+    const document = await fetchDocument(createUnitTestApp());
+
+    expect(
+      documentedSchema(document, "TransactionExceedsRefundableFieldError"),
+    ).toEqual(
+      expect.objectContaining({
+        required: expect.arrayContaining(["code", "refundAllowance"]),
+      }),
+    );
+    const branches = documentedSchema(
+      document,
+      "TransactionRuleFieldError",
+    ).oneOf?.map((branch) => JSON.stringify(branch));
+    expect(branches).toContain(
+      '{"$ref":"#/components/schemas/TransactionExceedsRefundableFieldError"}',
+    );
+    expect(
+      documentedSchema(document, "TransactionPlainRuleFieldError").properties
+        ?.code.enum,
+    ).toEqual(expect.arrayContaining(["wallet-archived", "future-date"]));
   });
 });

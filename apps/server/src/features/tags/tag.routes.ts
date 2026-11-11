@@ -24,11 +24,12 @@ import {
 import {
   answerCorrection,
   answerCreation,
-  answerRemoval,
+  answerUnblockedRemoval,
   describeCorrection,
   describeCreation,
-  NOT_FOUND,
 } from "../../core/http/resource-answers.js";
+import type { tagRejectionProblemSchema } from "./tag-rejection.js";
+import { tagCodes, toTagFieldErrors } from "./tag-rejection.js";
 
 export const tagResponseSchema = z
   .object({ id: z.uuid(), name: z.string() })
@@ -80,11 +81,6 @@ interface CreateTagValidatedInput {
   };
 }
 
-/** Every refused name addresses the name. */
-function toNameFieldErrors(error: Readonly<{ code: string }>) {
-  return [{ pointer: "#/name", code: error.code }];
-}
-
 export function createTagRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>()
     .post(
@@ -114,7 +110,7 @@ export function createTagRoutes(db: Database) {
         {
           201: typeof tagResponseSchema;
           409: typeof problemDetailsSchema;
-          422: typeof problemDetailsSchema;
+          422: typeof tagRejectionProblemSchema;
         }
       >(
         async (c) => {
@@ -126,10 +122,13 @@ export function createTagRoutes(db: Database) {
           return answerCreation(c, {
             result: created,
             present: (outcome) => ({ ...outcome.tag }),
-            toFieldErrors: toNameFieldErrors,
+            toFieldErrors: toTagFieldErrors,
           });
         },
-        describeCreation("tag", tagResponseSchema),
+        {
+          ...describeCreation("tag", tagResponseSchema),
+          422: tagCodes.describeRejection(),
+        },
       ),
     )
     .get(
@@ -204,7 +203,7 @@ export function createTagRoutes(db: Database) {
         {
           200: typeof tagResponseSchema;
           404: typeof problemDetailsSchema;
-          422: typeof problemDetailsSchema;
+          422: typeof tagRejectionProblemSchema;
         }
       >(
         async (c) => {
@@ -216,16 +215,16 @@ export function createTagRoutes(db: Database) {
           return answerCorrection(c, {
             result: renamed,
             present: (tag) => ({ ...tag }),
-            toFieldErrors: (error) =>
-              error.code === "tag-not-found"
-                ? NOT_FOUND
-                : toNameFieldErrors(error),
+            toFieldErrors: toTagFieldErrors,
           });
         },
-        describeCorrection(
-          "The renamed tag, or the tag it merged into",
-          tagResponseSchema,
-        ),
+        {
+          ...describeCorrection(
+            "The renamed tag, or the tag it merged into",
+            tagResponseSchema,
+          ),
+          422: tagCodes.describeRejection(),
+        },
       ),
     )
     .delete(
@@ -251,10 +250,7 @@ export function createTagRoutes(db: Database) {
           ownerId: c.get("session").user.id,
           id: c.req.valid("param").tagId,
         });
-        return answerRemoval(c, {
-          result: deleted,
-          toBlockerProblem: () => NOT_FOUND,
-        });
+        return answerUnblockedRemoval(c, { result: deleted });
       },
     );
 }

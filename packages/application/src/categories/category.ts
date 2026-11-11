@@ -24,7 +24,17 @@ import type {
 } from "../idempotency/idempotency";
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
+import type { NotFound } from "../shared/not-found";
+import { notFound } from "../shared/not-found";
+import { rejected } from "../shared/rejection";
+import type { CategoryRejected, CategoryRejection } from "./category-rejection";
 import { DEFAULT_CATEGORIES } from "./default-categories";
+
+export type {
+  CategoryField,
+  CategoryRejected,
+  CategoryRejection,
+} from "./category-rejection";
 
 /** The columns every read and write returns: a `CategorySummary` row. */
 export const categorySummaryColumns = {
@@ -80,37 +90,24 @@ export interface UpdateCategoryInput
   extends CategoryRef,
     CategoryUpdateCommand {}
 
-export type UpdateCategoryError =
-  | { code: "category-not-found" }
-  | { code: "blank-name" }
-  | { code: "name-too-long" }
-  | { code: "unknown-icon" }
-  /** Same name, case-insensitively, already in scope (tree or parent). */
-  | { code: "duplicate-name" }
-  /** Uncategorized keeps its name; only its icon may change. */
-  | { code: "protected" };
+export type UpdateCategoryError = NotFound | CategoryRejected;
 
 export interface CategoryUpdateCommand {
   name: string;
   iconId: string;
 }
 
-export type CategoryUpdateValidationError = Extract<
-  UpdateCategoryError,
-  { code: "blank-name" | "name-too-long" | "unknown-icon" }
->;
-
 /** Normalizes and validates presentation data before the row is touched. */
 export function validateCategoryUpdate(
   command: Readonly<CategoryUpdateCommand>,
-): Result<CategoryUpdateCommand, CategoryUpdateValidationError> {
+): Result<CategoryUpdateCommand, CategoryRejected> {
   const name = normalizeCategoryName(command.name);
   const invalidName = validateName(name, "name");
   if (invalidName) {
-    return err({ code: invalidName.code });
+    return err(rejected(invalidName));
   }
   if (!isCategoryIconId(command.iconId)) {
-    return err({ code: "unknown-icon" });
+    return err(rejected({ code: "unknown-icon", field: "iconId" }));
   }
   return ok({ name, iconId: command.iconId });
 }
@@ -131,7 +128,7 @@ export async function updateCategory(
   }
   const { name, iconId } = validated.value;
   if (!isUuid(input.id)) {
-    return err({ code: "category-not-found" });
+    return err(notFound());
   }
   try {
     return await db.transaction(async (tx) => {
@@ -158,13 +155,15 @@ export async function updateCategory(
             eq(categories.userId, input.ownerId),
           ),
         );
-      return err({
-        code: current?.isProtected ? "protected" : "category-not-found",
-      });
+      return err(
+        current?.isProtected
+          ? rejected({ code: "protected", field: "name" })
+          : notFound(),
+      );
     });
   } catch (error) {
     if (isScopedNameViolation(error)) {
-      return err({ code: "duplicate-name" });
+      return err(rejected({ code: "duplicate-name", field: "name" }));
     }
     throw error;
   }
@@ -256,7 +255,7 @@ function countRows() {
 }
 
 export type RemoveCategoryError =
-  | { code: "category-not-found" }
+  | NotFound
   /** Uncategorized is the fallback; it cannot itself be removed. */
   | { code: "protected" }
   /** Every child, used or not, must go before its parent. */
@@ -276,7 +275,7 @@ const RESTRICT_VIOLATIONS = new Set(["23001", "23503"]);
 const TRANSACTION_CATEGORY_FK = "transactions_category_id_categories_id_fk";
 const CHILD_PARENT_FK = "categories_parent_id_categories_id_fk";
 
-/** Unwinds the removal transaction once the category is found already gone. */
+/** Unwinds the removal once the category is found already gone. */
 class AlreadyRemoved extends Error {}
 
 type RemovalFallback =
@@ -322,16 +321,18 @@ interface FallbackOptions {
 
 /**
  * Removes a category and moves its transactions to the fallback in one
- * transaction; refunds read their expense's category, so they follow by
- * themselves. Its locks follow the global order in
- * `transactions/transaction-judgement.ts`. The restrict foreign
- * keys are the final word: a transaction or child committed meanwhile
- * fails the delete, and nothing is changed.
+ * transaction; refunds follow their expense's category. Its locks follow
+ * the global order in `transactions/transaction-judgement.ts`. The restrict
+ * foreign keys are the final word: a transaction or child committed
+ * meanwhile fails the delete and changes nothing.
  */
 export async function removeCategory(
   db: Database,
   input: Readonly<CategoryRef>,
 ): Promise<Result<RemoveCategoryOutcome, RemoveCategoryError>> {
+  if (!isUuid(input.id)) {
+    return err(notFound());
+  }
   try {
     return await db.transaction(async (tx) => {
       const [category] = await tx
@@ -344,7 +345,7 @@ export async function removeCategory(
           ),
         );
       if (!category) {
-        return err({ code: "category-not-found" });
+        return err(notFound());
       }
       if (category.isProtected) {
         return err({ code: "protected" });
@@ -374,7 +375,7 @@ export async function removeCategory(
     });
   } catch (error) {
     if (error instanceof AlreadyRemoved) {
-      return err({ code: "category-not-found" });
+      return err(notFound());
     }
     const cause = databaseError(error);
     if (cause && RESTRICT_VIOLATIONS.has(cause.code)) {
@@ -414,27 +415,7 @@ export interface CreateCategoryInput extends CategoryCreationCommand {
   idempotencyKey: string;
 }
 
-export type CategoryErrorField =
-  | "name"
-  | "iconId"
-  | "parentName"
-  | "parentIconId";
-
-export type CategoryCreationValidationError =
-  | { code: "blank-name"; field: "name" | "parentName" }
-  | { code: "name-too-long"; field: "name" | "parentName" }
-  | { code: "unknown-icon"; field: "iconId" | "parentIconId" };
-
-export type CreateCategoryError =
-  | CategoryCreationValidationError
-  /** Same name, case-insensitively, already in scope (tree or parent). */
-  | { code: "duplicate-name"; field: "name" | "parentName" }
-  | { code: "parent-not-found" }
-  /** Trees have two levels: a child category cannot be a parent. */
-  | { code: "parent-is-child" }
-  /** Uncategorized has no children. */
-  | { code: "parent-protected" }
-  | IdempotencyConflict;
+export type CreateCategoryError = CategoryRejected | IdempotencyConflict;
 
 export interface CreateCategoryData {
   category: CategorySummary;
@@ -449,7 +430,7 @@ export interface CreateCategoryOutcome extends CreateCategoryData {
 
 /** The two shape rules every category name obeys, on creation or rename. */
 type NameRejection = Extract<
-  CategoryCreationValidationError,
+  CategoryRejection,
   { code: "blank-name" | "name-too-long" }
 >;
 
@@ -469,24 +450,24 @@ function validateName(
 /** Normalizes and validates command data before it can consume an idempotency key. */
 export function validateCategoryCreation(
   input: Readonly<CategoryCreationCommand>,
-): Result<CategoryCreationCommand, CategoryCreationValidationError> {
+): Result<CategoryCreationCommand, CategoryRejected> {
   const name = normalizeCategoryName(input.name);
   const invalidName = validateName(name, "name");
   if (invalidName) {
-    return err(invalidName);
+    return err(rejected(invalidName));
   }
   if (!isCategoryIconId(input.iconId)) {
-    return err({ code: "unknown-icon", field: "iconId" });
+    return err(rejected({ code: "unknown-icon", field: "iconId" }));
   }
 
   if (input.parent && "create" in input.parent) {
     const parentName = normalizeCategoryName(input.parent.create.name);
     const invalidParentName = validateName(parentName, "parentName");
     if (invalidParentName) {
-      return err(invalidParentName);
+      return err(rejected(invalidParentName));
     }
     if (!isCategoryIconId(input.parent.create.iconId)) {
-      return err({ code: "unknown-icon", field: "parentIconId" });
+      return err(rejected({ code: "unknown-icon", field: "parentIconId" }));
     }
     return ok({
       ...input,
@@ -586,7 +567,7 @@ async function createCategoryRows({
     });
   } catch (error) {
     if (isScopedNameViolation(error)) {
-      return err({ code: "duplicate-name", field: "name" });
+      return err(rejected({ code: "duplicate-name", field: "name" }));
     }
     throw error;
   }
@@ -597,12 +578,7 @@ async function createCategoryRows({
   );
 }
 
-type ParentResolutionError =
-  | Extract<
-      CreateCategoryError,
-      { code: "parent-not-found" | "parent-is-child" | "parent-protected" }
-    >
-  | { code: "duplicate-name"; field: "parentName" };
+type ParentResolutionError = CategoryRejected;
 
 /**
  * Where the new category lands: top level, under a locked existing row, or
@@ -644,7 +620,7 @@ async function resolveParent({
     return ok({ kind: "created", parent });
   } catch (error) {
     if (isScopedNameViolation(error)) {
-      return err({ code: "duplicate-name", field: "parentName" });
+      return err(rejected({ code: "duplicate-name", field: "parentName" }));
     }
     throw error;
   }
@@ -670,7 +646,7 @@ async function lockParent({
   Result<CategorySummary, ParentResolutionError>
 > {
   if (!isUuid(existingId)) {
-    return err({ code: "parent-not-found" });
+    return err(rejected({ code: "parent-not-found", field: "parent" }));
   }
   const [row] = await db
     .select(categorySummaryColumns)
@@ -684,13 +660,13 @@ async function lockParent({
     )
     .for("share");
   if (!row) {
-    return err({ code: "parent-not-found" });
+    return err(rejected({ code: "parent-not-found", field: "parent" }));
   }
   if (row.parentId !== null) {
-    return err({ code: "parent-is-child" });
+    return err(rejected({ code: "parent-is-child", field: "parent" }));
   }
   if (row.isProtected) {
-    return err({ code: "parent-protected" });
+    return err(rejected({ code: "parent-protected", field: "parent" }));
   }
   return ok(row);
 }

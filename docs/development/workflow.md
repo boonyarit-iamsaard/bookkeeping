@@ -27,8 +27,8 @@ interfere, use a separate branch or worktree without discarding or stashing
 unrelated changes. Agents run Git writes through the
 [host-command policy](../../AGENTS.md#host-commands) when the sandbox requires it.
 
-Merge changes through pull requests with the required `CI`, `SPA browser suite`
-and `Dependency Review` checks passing; `main` rejects direct pushes. See
+Merge changes through pull requests with the required `CI`, `SPA browser suite`,
+`Dependency Review` and `Acceptance criteria` checks passing; `main` rejects direct pushes. See
 [ADR 0010](../adr/0010-protected-main-and-gated-deploys.md). Delete the remote branch on merge:
 `gh pr merge --delete-branch`, or `git push origin --delete <branch>`.
 

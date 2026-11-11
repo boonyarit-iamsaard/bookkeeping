@@ -1,7 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
+import { createFieldOf } from "./field-pointer";
 import type { ApiResponse } from "./problem";
 import type { WriteAttempt } from "./write-submission";
-import { createFieldOf, createWriteSubmission } from "./write-submission";
+import { createWriteSubmission } from "./write-submission";
 
 interface Wallet {
   id: string;
@@ -163,9 +164,9 @@ describe("createWriteSubmission", () => {
       rejected(422, {
         ...invalidCommand,
         errors: [
-          { pointer: "#/name", code: "blank-name" },
-          { pointer: "#/openingAmount/value", code: "invalid-format" },
-          { pointer: "#/openingAmount/currency", code: "invalid-value" },
+          { pointer: "#/first", code: "code-a" },
+          { pointer: "#/second/value", code: "code-b" },
+          { pointer: "#/second/unit", code: "code-c" },
         ],
       }),
     );
@@ -179,7 +180,7 @@ describe("createWriteSubmission", () => {
         keyed: true,
         send,
         describeFieldError: ({ field, code }) => `${field}: ${code}`,
-        fieldOf: createFieldOf(["name", "openingAmount"]),
+        fieldOf: createFieldOf(["first", "second"]),
       },
     );
 
@@ -189,8 +190,8 @@ describe("createWriteSubmission", () => {
         status: 422,
         message: undefined,
         fieldErrors: {
-          name: "name: blank-name",
-          openingAmount: "openingAmount: invalid-format",
+          first: "first: code-a",
+          second: "second: code-b",
         },
       },
     });
@@ -201,8 +202,8 @@ describe("createWriteSubmission", () => {
       rejected(422, {
         ...invalidCommand,
         errors: [
-          { pointer: "#/type", code: "invalid-transfer" },
-          { pointer: "#/amount/value", code: "amount-out-of-range" },
+          { pointer: "#/other", code: "code-d" },
+          { pointer: "#/second/value", code: "code-e" },
         ],
       }),
     );
@@ -217,15 +218,15 @@ describe("createWriteSubmission", () => {
         send,
         describeFieldError: ({ code }) => `described ${code}`,
         fieldOf: (pointer) =>
-          pointer === "#/amount/value" ? "amount" : undefined,
+          pointer === "#/second/value" ? "second" : undefined,
       },
     );
 
     expect(result).toMatchObject({
       ok: false,
       error: {
-        fieldErrors: { amount: "described amount-out-of-range" },
-        message: "described invalid-transfer",
+        fieldErrors: { second: "described code-e" },
+        message: "described code-d",
       },
     });
   });
@@ -236,9 +237,9 @@ describe("createWriteSubmission", () => {
         ...invalidCommand,
         errors: [
           {
-            pointer: "#/amount/value",
-            code: "exceeds-refundable",
-            refundAllowance: { value: "300.00", currency: "THB" },
+            pointer: "#/second/value",
+            code: "code-h",
+            extra: { value: "1" },
           },
         ],
       }),
@@ -254,7 +255,7 @@ describe("createWriteSubmission", () => {
       error: {
         errors: [
           expect.objectContaining({
-            refundAllowance: { value: "300.00", currency: "THB" },
+            extra: { value: "1" },
           }),
         ],
       },
@@ -266,8 +267,8 @@ describe("createWriteSubmission", () => {
       rejected(422, {
         ...invalidCommand,
         errors: [
-          { pointer: "#/openingAmount/value", code: "invalid-format" },
-          { pointer: "#/currency", code: "invalid-value" },
+          { pointer: "#/second/value", code: "code-b" },
+          { pointer: "#/other", code: "code-c" },
         ],
       }),
     );
@@ -281,15 +282,15 @@ describe("createWriteSubmission", () => {
         keyed: true,
         send,
         describeFieldError: ({ code }) => `described ${code}`,
-        fieldOf: createFieldOf(["name", "openingAmount"]),
+        fieldOf: createFieldOf(["first", "second"]),
       },
     );
 
     expect(result).toMatchObject({
       ok: false,
       error: {
-        fieldErrors: { openingAmount: "described invalid-format" },
-        message: "described invalid-value",
+        fieldErrors: { second: "described code-b" },
+        message: "described code-c",
       },
     });
   });
@@ -299,8 +300,8 @@ describe("createWriteSubmission", () => {
       rejected(422, {
         ...invalidCommand,
         errors: [
-          { pointer: "#/name", code: "blank-name" },
-          { pointer: "#/", code: "unrecognized-keys" },
+          { pointer: "#/first", code: "code-a" },
+          { pointer: "#/", code: "code-f" },
         ],
       }),
     );
@@ -314,15 +315,15 @@ describe("createWriteSubmission", () => {
         keyed: true,
         send,
         describeFieldError: ({ code }) => `described ${code}`,
-        fieldOf: createFieldOf(["name"]),
+        fieldOf: createFieldOf(["first"]),
       },
     );
 
     expect(result).toMatchObject({
       ok: false,
       error: {
-        fieldErrors: { name: "described blank-name" },
-        message: "described unrecognized-keys",
+        fieldErrors: { first: "described code-a" },
+        message: "described code-f",
       },
     });
   });
@@ -332,8 +333,8 @@ describe("createWriteSubmission", () => {
       rejected(422, {
         ...invalidCommand,
         errors: [
-          { pointer: "#/openingDate", code: "in-future" },
-          { pointer: "#/openingAmount/value", code: "invalid-format" },
+          { pointer: "#/third", code: "code-g" },
+          { pointer: "#/second/value", code: "code-b" },
         ],
       }),
     );
@@ -354,7 +355,7 @@ describe("createWriteSubmission", () => {
       ok: false,
       error: {
         fieldErrors: {},
-        message: "Described in-future. Described invalid-format.",
+        message: "Described code-g. Described code-b.",
       },
     });
   });
@@ -364,7 +365,7 @@ describe("createWriteSubmission", () => {
       rejected(422, {
         ...invalidCommand,
         errors: [
-          { pointer: "#/type", code: "same" },
+          { pointer: "#/other", code: "same" },
           { pointer: "#/", code: "same" },
         ],
       }),
@@ -384,13 +385,11 @@ describe("createWriteSubmission", () => {
     });
   });
 
-  test("describes a field error by its detail when no describer is given", async () => {
+  test("words a field error with the shared fallback when no describer is given", async () => {
     const send = vi.fn(async () =>
       rejected(422, {
         ...invalidCommand,
-        errors: [
-          { pointer: "#/name", code: "duplicate-name", detail: "Taken" },
-        ],
+        errors: [{ pointer: "#/first", code: "code-i", detail: "Taken" }],
       }),
     );
     const submission = createWriteSubmission<unknown, Wallet>({
@@ -399,12 +398,12 @@ describe("createWriteSubmission", () => {
 
     const result = await submission.submit(
       {},
-      { keyed: true, send, fieldOf: createFieldOf(["name"]) },
+      { keyed: true, send, fieldOf: createFieldOf(["first"]) },
     );
 
     expect(result).toMatchObject({
       ok: false,
-      error: { fieldErrors: { name: "Taken" } },
+      error: { fieldErrors: { first: "This value was not accepted." } },
     });
   });
 

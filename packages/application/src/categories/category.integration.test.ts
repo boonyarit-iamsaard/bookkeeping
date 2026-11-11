@@ -33,6 +33,15 @@ import { DEFAULT_CATEGORIES } from "./default-categories";
 
 const { withRollback, committed } = setupTestDatabase();
 
+/** The shared envelope of one refused input. */
+function refusal(code: string, field: string) {
+  return { code: "rejected", rejections: [{ code, field }] };
+}
+
+function refused(code: string, field: string) {
+  return { ok: false, error: refusal(code, field) };
+}
+
 async function setupOwner(db: Database) {
   const owner = await createTestUser(db);
   await initializeDefaultCategories(db, owner.id);
@@ -384,10 +393,7 @@ describe("createCategory", () => {
         idempotencyKey: "category-validation",
       });
 
-      expect(rejected).toEqual({
-        ok: false,
-        error: { code: "blank-name", field: "name" },
-      });
+      expect(rejected).toEqual(refused("blank-name", "name"));
       expect(corrected).toMatchObject({
         ok: true,
         value: { replayed: false },
@@ -564,7 +570,7 @@ describe("updateCategory", () => {
           name: "Misc",
           iconId: "sparkles",
         }),
-      ).toEqual({ ok: false, error: { code: "protected" } });
+      ).toEqual(refused("protected", "name"));
 
       const listed = await listCategories(db, owner.id);
       expect(
@@ -592,24 +598,18 @@ describe("updateCategory", () => {
         });
       }
 
-      expect(await attempt({ name: " restaurants ", iconId: "cart" })).toEqual({
-        ok: false,
-        error: { code: "duplicate-name" },
-      });
-      expect(await attempt({ name: "   ", iconId: "cart" })).toEqual({
-        ok: false,
-        error: { code: "blank-name" },
-      });
+      expect(await attempt({ name: " restaurants ", iconId: "cart" })).toEqual(
+        refused("duplicate-name", "name"),
+      );
+      expect(await attempt({ name: "   ", iconId: "cart" })).toEqual(
+        refused("blank-name", "name"),
+      );
       expect(
         await attempt({ name: "Groceries", iconId: "retired-glyph" }),
-      ).toEqual({
-        ok: false,
-        error: { code: "unknown-icon" },
-      });
-      expect(await attempt({ name: "x".repeat(61), iconId: "cart" })).toEqual({
-        ok: false,
-        error: { code: "name-too-long" },
-      });
+      ).toEqual(refused("unknown-icon", "iconId"));
+      expect(await attempt({ name: "x".repeat(61), iconId: "cart" })).toEqual(
+        refused("name-too-long", "name"),
+      );
       // Every rejection left the row as it was.
       expect(
         await findCategory(db, { ownerId: owner.id, id: groceries.id }),
@@ -621,30 +621,16 @@ describe("updateCategory", () => {
       });
 
       const foreign = stranger.find("expense", "Transport");
-      expect(
-        await updateCategory(db, {
-          ownerId: owner.id,
-          id: foreign.id,
-          name: "Mine",
-          iconId: "bus",
-        }),
-      ).toEqual({ ok: false, error: { code: "category-not-found" } });
-      expect(
-        await updateCategory(db, {
-          ownerId: owner.id,
-          id: "00000000-0000-0000-0000-000000000000",
-          name: "Mine",
-          iconId: "bus",
-        }),
-      ).toEqual({ ok: false, error: { code: "category-not-found" } });
-      expect(
-        await updateCategory(db, {
-          ownerId: owner.id,
-          id: "not-a-uuid",
-          name: "Mine",
-          iconId: "bus",
-        }),
-      ).toEqual({ ok: false, error: { code: "category-not-found" } });
+      for (const id of [foreign.id, crypto.randomUUID(), "not-a-uuid"]) {
+        expect(
+          await updateCategory(db, {
+            ownerId: owner.id,
+            id,
+            name: "Mine",
+            iconId: "bus",
+          }),
+        ).toEqual({ ok: false, error: { code: "not-found" } });
+      }
       expect(
         await findCategory(db, { ownerId: owner.id, id: foreign.id }),
       ).toBeNull();
@@ -872,10 +858,7 @@ describe("createCategory tree rules", () => {
         iconId: "utensils",
         parent: { create: { name: "food & drink", iconId: "utensils" } },
       });
-      expect(rejected).toEqual({
-        ok: false,
-        error: { code: "duplicate-name", field: "parentName" },
-      });
+      expect(rejected).toEqual(refused("duplicate-name", "parentName"));
       const listed = await listCategories(db, owner.id);
       expect(listed.some((c) => c.name === "Lunch")).toBe(false);
       expect(
@@ -898,26 +881,19 @@ describe("createCategory tree rules", () => {
         });
       }
 
-      expect(await attempt("  groceries ", foodAndDrink.id)).toEqual({
-        ok: false,
-        error: { code: "duplicate-name", field: "name" },
-      });
-      expect(await attempt("FOOD & DRINK", null)).toEqual({
-        ok: false,
-        error: { code: "duplicate-name", field: "name" },
-      });
-      expect(await attempt("uncategorized", null)).toEqual({
-        ok: false,
-        error: { code: "duplicate-name", field: "name" },
-      });
-      expect(await attempt("   ", null)).toEqual({
-        ok: false,
-        error: { code: "blank-name", field: "name" },
-      });
-      expect(await attempt("x".repeat(61), null)).toEqual({
-        ok: false,
-        error: { code: "name-too-long", field: "name" },
-      });
+      expect(await attempt("  groceries ", foodAndDrink.id)).toEqual(
+        refused("duplicate-name", "name"),
+      );
+      expect(await attempt("FOOD & DRINK", null)).toEqual(
+        refused("duplicate-name", "name"),
+      );
+      expect(await attempt("uncategorized", null)).toEqual(
+        refused("duplicate-name", "name"),
+      );
+      expect(await attempt("   ", null)).toEqual(refused("blank-name", "name"));
+      expect(await attempt("x".repeat(61), null)).toEqual(
+        refused("name-too-long", "name"),
+      );
       // Same name in a different scope: a parent, and a child elsewhere.
       const asParent = await attempt("  Groceries  ", null);
       expect(asParent.ok && asParent.value.category.name).toBe("Groceries");
@@ -947,26 +923,21 @@ describe("createCategory tree rules", () => {
         });
       }
 
-      expect(await attempt(find("expense", "Groceries").id)).toEqual({
-        ok: false,
-        error: { code: "parent-is-child" },
-      });
-      expect(await attempt(find("expense", "Uncategorized").id)).toEqual({
-        ok: false,
-        error: { code: "parent-protected" },
-      });
-      expect(await attempt(find("income", "Salary").id)).toEqual({
-        ok: false,
-        error: { code: "parent-not-found" },
-      });
-      expect(await attempt(stranger.find("expense", "Transport").id)).toEqual({
-        ok: false,
-        error: { code: "parent-not-found" },
-      });
-      expect(await attempt("not-a-uuid")).toEqual({
-        ok: false,
-        error: { code: "parent-not-found" },
-      });
+      expect(await attempt(find("expense", "Groceries").id)).toEqual(
+        refused("parent-is-child", "parent"),
+      );
+      expect(await attempt(find("expense", "Uncategorized").id)).toEqual(
+        refused("parent-protected", "parent"),
+      );
+      expect(await attempt(find("income", "Salary").id)).toEqual(
+        refused("parent-not-found", "parent"),
+      );
+      expect(await attempt(stranger.find("expense", "Transport").id)).toEqual(
+        refused("parent-not-found", "parent"),
+      );
+      expect(await attempt("not-a-uuid")).toEqual(
+        refused("parent-not-found", "parent"),
+      );
       expect(
         (await listCategories(db, owner.id)).some((c) => c.name === "Nested"),
       ).toBe(false);
@@ -984,10 +955,7 @@ describe("createCategory tree rules", () => {
           iconId: "retired-glyph",
           parent: null,
         }),
-      ).toEqual({
-        ok: false,
-        error: { code: "unknown-icon", field: "iconId" },
-      });
+      ).toEqual(refused("unknown-icon", "iconId"));
     });
   });
 
@@ -1009,10 +977,7 @@ describe("createCategory tree rules", () => {
 
     expect(outcomes.filter((o) => o.ok)).toHaveLength(1);
     expect(outcomes.filter((o) => !o.ok).map((o) => !o.ok && o.error)).toEqual(
-      Array.from({ length: 3 }, () => ({
-        code: "duplicate-name",
-        field: "name",
-      })),
+      Array.from({ length: 3 }, () => refusal("duplicate-name", "name")),
     );
     const listed = await listCategories(db, owner.id);
     expect(listed.filter((c) => c.name === "Subscriptions")).toHaveLength(1);
@@ -1098,7 +1063,11 @@ describe("removeCategory", () => {
       const foreign = stranger.find("income", "Salary");
       expect(await remove(foreign.id)).toEqual({
         ok: false,
-        error: { code: "category-not-found" },
+        error: { code: "not-found" },
+      });
+      expect(await remove("not-a-uuid")).toEqual({
+        ok: false,
+        error: { code: "not-found" },
       });
       expect((await stranger.find("income", "Salary")).id).toBe(foreign.id);
 
@@ -1116,7 +1085,7 @@ describe("removeCategory", () => {
       });
       expect(await remove(investment.id)).toEqual({
         ok: false,
-        error: { code: "category-not-found" },
+        error: { code: "not-found" },
       });
 
       for (const id of [direct, viaChild]) {
@@ -1173,7 +1142,7 @@ describe("removeCategory", () => {
         expect(removed.error).toEqual({ code: "has-children" });
       }
       if (!child.ok) {
-        expect(child.error).toEqual({ code: "parent-not-found" });
+        expect(child.error).toEqual(refusal("parent-not-found", "parent"));
       }
     }
     const tree = await listCategories(db, owner.id);
@@ -1274,7 +1243,7 @@ describe("removeCategory", () => {
       for (const outcome of outcomes.filter((o) => !o.ok)) {
         expect(outcome).toEqual({
           ok: false,
-          error: { code: "category-not-found" },
+          error: { code: "not-found" },
         });
       }
     }

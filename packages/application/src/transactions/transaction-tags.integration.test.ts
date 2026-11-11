@@ -107,7 +107,10 @@ describe("tagging on creation", () => {
 
       expect(created).toEqual({
         ok: false,
-        error: { field: "tagIds", code: "tag-not-found" },
+        error: {
+          code: "rejected",
+          rejections: [{ field: "tagIds", code: "tag-not-found" }],
+        },
       });
     });
   });
@@ -265,11 +268,17 @@ describe("refunds and transfers", () => {
 
       expect(refund).toEqual({
         ok: false,
-        error: { field: "type", code: "invalid-refund" },
+        error: {
+          code: "rejected",
+          rejections: [{ field: "type", code: "invalid-refund" }],
+        },
       });
       expect(transfer).toEqual({
         ok: false,
-        error: { field: "type", code: "invalid-transfer" },
+        error: {
+          code: "rejected",
+          rejections: [{ field: "type", code: "invalid-transfer" }],
+        },
       });
     });
   });

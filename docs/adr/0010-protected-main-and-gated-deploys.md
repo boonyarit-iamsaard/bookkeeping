@@ -86,13 +86,13 @@ Apply in this order. A required check is selectable only after it has
 succeeded once within the past seven days, and the full-SHA requirement is only
 safe once the pinned workflow is on `main`.
 
-1. Let `CI`, `SPA browser suite` and `Dependency Review` each run green once
-   (the last on a pull request).
+1. Let `CI`, `SPA browser suite`, `Dependency Review` and `Acceptance criteria`
+   each run green once (the last two on a pull request).
 2. Settings, Rules, Rulesets: create a ruleset on the default branch, enforcement
    Active, with these rules and this bypass.
    - Require a pull request before merging, with zero required approvals.
    - Require status checks to pass: `CI`, `SPA browser suite`,
-     `Dependency Review`.
+     `Dependency Review`, `Acceptance criteria`.
    - Require linear history.
    - Block force pushes and restrict deletions.
    - Bypass list: the Repository admin role, for pull requests only.
@@ -109,3 +109,16 @@ safe once the pinned workflow is on `main`.
    off: both are declined above.
 6. Open a trial pull request to confirm the ruleset blocks a direct push and
    that Railway still deploys on merge.
+
+## Amendment, 2026-11-10
+
+The ruleset requires a fourth check, `Acceptance criteria`
+(`.github/workflows/acceptance-criteria.yaml`). A merged pull request closes
+its issues outside any agent run, so issues closed with every acceptance
+criterion unticked. The check fails while any issue the pull request closes
+still holds an unticked criterion. It skips drafts, which GitHub counts as
+success, and runs on pull request events only, so it never delays Railway's
+wait-for-CI on `main`. Ticking a criterion does not re-run it; re-run the
+failed job instead. A companion workflow, `retire-triage-state.yaml`, removes
+the triage state label from each issue as it closes; it runs on issue events,
+so no ruleset can require it.

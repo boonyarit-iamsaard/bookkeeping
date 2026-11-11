@@ -13,6 +13,7 @@ import {
   initializeDefaultCategories,
   listCategories,
 } from "../categories/category";
+import { rejected } from "../shared/rejection";
 import { insertRetainedTransferSnapshot } from "../testing/transaction-fixture";
 import {
   createTransaction,
@@ -28,6 +29,10 @@ import {
 import { changeWalletState } from "./wallet-state";
 
 const { withRollback, committed } = setupTestDatabase();
+
+function refused(...rejections: object[]) {
+  return { ok: false, error: { code: "rejected", rejections } };
+}
 
 interface WalletFixture {
   ownerId: string;
@@ -421,16 +426,12 @@ describe("createWallet", () => {
       });
       const corrected = await openWallet(db, { ownerId: owner.id });
 
-      expect(rejected).toEqual({
-        ok: false,
-        error: {
-          code: "invalid-wallet",
-          issues: [
-            { field: "name", code: "empty" },
-            { field: "openingDate", code: "invalid" },
-          ],
-        },
-      });
+      expect(rejected).toEqual(
+        refused(
+          { code: "empty", field: "name" },
+          { code: "invalid", field: "openingDate" },
+        ),
+      );
       expect(corrected.ok && corrected.value.replayed).toBe(false);
       expect(await listWallets(db, { ownerId: owner.id })).toEqual([
         expect.objectContaining({ name: "Kasikorn savings" }),
@@ -608,7 +609,9 @@ describe("replaceWalletOpening", () => {
             openingAmount: 0n,
             openingDate: "2026-09-03",
           }),
-        ).toEqual({ ok: false, error: { code: "movement-before-opening" } });
+        ).toEqual(
+          refused({ code: "movement-before-opening", field: "openingDate" }),
+        );
         expect(
           (
             await replaceWalletOpening(db, {
@@ -634,16 +637,12 @@ describe("replaceWalletOpening", () => {
         openingDate: "2999-01-01",
       });
 
-      expect(rejected).toEqual({
-        ok: false,
-        error: {
-          code: "invalid-opening",
-          issues: [
-            { field: "openingAmount", code: "out-of-range" },
-            { field: "openingDate", code: "in-future" },
-          ],
-        },
-      });
+      expect(rejected).toEqual(
+        refused(
+          { code: "out-of-range", field: "openingAmount" },
+          { code: "in-future", field: "openingDate" },
+        ),
+      );
       expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
         cash,
       );
@@ -667,7 +666,7 @@ describe("replaceWalletOpening", () => {
             openingAmount: 0n,
             openingDate: "2026-09-01",
           }),
-        ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+        ).toEqual({ ok: false, error: { code: "not-found" } });
       }
       expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
         cash,
@@ -689,7 +688,7 @@ describe("deleteWallet", () => {
       ).toBeNull();
       expect(
         await deleteWallet(db, { ownerId: owner.id, id: cash.id }),
-      ).toEqual({ ok: false, error: { code: "wallet-not-found" } });
+      ).toEqual({ ok: false, error: { code: "not-found" } });
     });
   });
 
@@ -765,7 +764,7 @@ describe("deleteWallet", () => {
       ]) {
         expect(await deleteWallet(db, attempt)).toEqual({
           ok: false,
-          error: { code: "wallet-not-found" },
+          error: { code: "not-found" },
         });
       }
       expect(await findWallet(db, { ownerId: owner.id, id: cash.id })).toEqual(
@@ -831,7 +830,9 @@ describe("wallet lifecycle", () => {
             openingAmount: 0n,
             openingDate: "2026-09-03",
           }),
-        ).toEqual({ ok: false, error: { code: "movement-before-opening" } });
+        ).toEqual(
+          refused({ code: "movement-before-opening", field: "openingDate" }),
+        );
       }
     });
   });
@@ -858,11 +859,7 @@ describe("wallet lifecycle", () => {
         }),
       ).toEqual({
         ok: false,
-        error: {
-          field: "walletId",
-          code: "wallet-archived",
-          walletId: owned.id,
-        },
+        error: rejected({ field: "walletId", code: "wallet-archived" }),
       });
       await changeWalletState(db, { ...owned, archived: false });
       expect(
@@ -903,7 +900,7 @@ describe("wallet lifecycle", () => {
     await archive;
     expect(await create).toEqual({
       ok: false,
-      error: { field: "walletId", code: "wallet-archived", walletId: owned.id },
+      error: rejected({ field: "walletId", code: "wallet-archived" }),
     });
     const [{ count } = { count: "0" }] = await db
       .select({ count: sql<string>`count(*)` })

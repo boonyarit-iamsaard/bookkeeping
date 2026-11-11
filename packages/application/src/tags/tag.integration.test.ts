@@ -87,7 +87,10 @@ describe("createTag", () => {
 
       expect(duplicate).toEqual({
         ok: false,
-        error: { code: "duplicate-name" },
+        error: {
+          code: "rejected",
+          rejections: [{ code: "duplicate-name", field: "name" }],
+        },
       });
     });
   });
@@ -128,8 +131,20 @@ describe("createTag", () => {
         name: "x".repeat(41),
       });
 
-      expect(blank).toEqual({ ok: false, error: { code: "blank-name" } });
-      expect(overlong).toEqual({ ok: false, error: { code: "name-too-long" } });
+      expect(blank).toEqual({
+        ok: false,
+        error: {
+          code: "rejected",
+          rejections: [{ code: "blank-name", field: "name" }],
+        },
+      });
+      expect(overlong).toEqual({
+        ok: false,
+        error: {
+          code: "rejected",
+          rejections: [{ code: "name-too-long", field: "name" }],
+        },
+      });
     });
   });
 
@@ -324,10 +339,16 @@ describe("renameTag", () => {
           id: foreign,
           name: "Mine",
         }),
-      ).toEqual({ ok: false, error: { code: "tag-not-found" } });
+      ).toEqual({ ok: false, error: { code: "not-found" } });
       expect(
         await renameTag(db, { ownerId: owner.ownerId, id: own, name: " " }),
-      ).toEqual({ ok: false, error: { code: "blank-name" } });
+      ).toEqual({
+        ok: false,
+        error: {
+          code: "rejected",
+          rejections: [{ code: "blank-name", field: "name" }],
+        },
+      });
     });
   });
 });
@@ -374,7 +395,7 @@ describe("deleteTag", () => {
 
       expect(
         await deleteTag(db, { ownerId: owner.ownerId, id: foreign }),
-      ).toEqual({ ok: false, error: { code: "tag-not-found" } });
+      ).toEqual({ ok: false, error: { code: "not-found" } });
       expect(await listTags(db, stranger.ownerId)).toHaveLength(1);
     });
   });

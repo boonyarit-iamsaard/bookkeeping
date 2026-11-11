@@ -1,3 +1,4 @@
+import type { NotFound } from "@bookkeeping/application/shared/not-found";
 import { err, ok } from "@bookkeeping/domain/result";
 import { Hono } from "hono";
 import { describe, expect, test } from "vitest";
@@ -7,12 +8,12 @@ import {
   answerCreation,
   answerRead,
   answerRemoval,
-  NOT_FOUND,
+  answerUnblockedRemoval,
 } from "./resource-answers.js";
 
 type Rejection = { code: "blank-name" } | { code: "idempotency-conflict" };
-type CorrectionError = { code: "not-found" } | { code: "blank-name" };
-type RemovalError = { code: "not-found" } | { code: "in-use" };
+type CorrectionError = NotFound | { code: "blank-name" };
+type RemovalError = NotFound | { code: "in-use" };
 
 const created = { id: "0199", name: "Cash" };
 
@@ -48,10 +49,7 @@ function app() {
       return answerCorrection(c, {
         result,
         present: (wallet) => wallet,
-        toFieldErrors: (error) =>
-          error.code === "not-found"
-            ? NOT_FOUND
-            : [{ pointer: "#/name", code: error.code }],
+        toFieldErrors: (error) => [{ pointer: "#/name", code: error.code }],
       });
     })
     .delete("/wallets/:id", (c) => {
@@ -63,12 +61,21 @@ function app() {
           : err<RemovalError>({ code: "not-found" });
       return answerRemoval(c, {
         result,
-        toBlockerProblem: (error) =>
-          error.code === "not-found"
-            ? NOT_FOUND
-            : { code: "in-use", status: 409, title: "In use" },
+        toBlockerProblem: () => ({
+          code: "in-use",
+          status: 409,
+          title: "In use",
+        }),
       });
-    });
+    })
+    .delete("/tags/:id", (c) =>
+      answerUnblockedRemoval(c, {
+        result:
+          c.req.param("id") === created.id
+            ? ok({ id: created.id })
+            : err<NotFound>({ code: "not-found" }),
+      }),
+    );
 }
 
 async function problemOf(response: Response) {
@@ -118,7 +125,7 @@ describe("resource answers", () => {
 
     expect(
       await problemOf(await app().request("/wallets/0000", { method: "PUT" })),
-    ).toMatchObject({ status: 404 });
+    ).toMatchObject({ status: 404, code: "not-found" });
     expect(
       await problemOf(
         await app().request("/wallets/0199?outcome=rejected", {
@@ -140,7 +147,7 @@ describe("resource answers", () => {
       await problemOf(
         await app().request("/wallets/0000", { method: "DELETE" }),
       ),
-    ).toMatchObject({ status: 404 });
+    ).toMatchObject({ status: 404, code: "not-found" });
     expect(
       await problemOf(
         await app().request("/wallets/0199?outcome=blocked", {
@@ -148,5 +155,15 @@ describe("resource answers", () => {
         }),
       ),
     ).toMatchObject({ status: 409, code: "in-use" });
+  });
+
+  test("a removal nothing can block answers an empty 204 or not found", async () => {
+    const removed = await app().request("/tags/0199", { method: "DELETE" });
+    expect(removed.status).toBe(204);
+    expect(await removed.text()).toBe("");
+
+    expect(
+      await problemOf(await app().request("/tags/0000", { method: "DELETE" })),
+    ).toMatchObject({ status: 404, code: "not-found" });
   });
 });

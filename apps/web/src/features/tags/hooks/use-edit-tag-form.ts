@@ -2,10 +2,7 @@ import { useState } from "react";
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useFormWrites } from "@/core/api/use-form-writes";
-import {
-  describeTagNameError,
-  describeTagRejection,
-} from "@/features/tags/tag-messages";
+import { TAG_REFUSAL_WORDING } from "@/features/tags/tag-rejection";
 import type { TagSummary } from "@/features/tags/tag-search";
 
 type Tag = components["schemas"]["Tag"];
@@ -47,8 +44,7 @@ export function useEditTagForm({
             params: { path: { tagId: tag.id } },
             body: input,
           }),
-        describeFieldError: describeTagNameError,
-        describeRejection: describeTagRejection,
+        ...TAG_REFUSAL_WORDING,
         onDone: (renamed: Tag) =>
           onDone({
             operation: "rename",
@@ -62,7 +58,7 @@ export function useEditTagForm({
           apiClient.DELETE("/v1/tags/{tagId}", {
             params: { path: { tagId: tag.id } },
           }),
-        describeRejection: describeTagRejection,
+        ...TAG_REFUSAL_WORDING,
         onDone: () => onDone({ operation: "delete" }),
       },
     },

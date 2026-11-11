@@ -40,6 +40,7 @@ import {
 } from "../../testing/openapi-document.js";
 import { recordReportExchanges } from "./api-contract-reports.js";
 import { recordTagExchanges } from "./api-contract-tags.js";
+import { recordWalletRejectionExchanges } from "./api-contract-wallet-rejections.js";
 import { IDEMPOTENCY_KEY_HEADER } from "./idempotency.js";
 import type { ProblemCode } from "./problem-details.js";
 import {
@@ -517,23 +518,7 @@ describe("published API contract", () => {
           },
         }),
       });
-      record({
-        operationId: "createWallet",
-        method: "post",
-        path: "/v1/wallets",
-        schema: problemDetailsSchema,
-        response: await call({
-          method: "POST",
-          path: "/v1/wallets",
-          idempotencyKey: "blank-name",
-          body: {
-            name: "   ",
-            type: "cash",
-            openingAmount: money("1000.00"),
-            openingDate: OPENING_DATE,
-          },
-        }),
-      });
+      await recordWalletRejectionExchanges({ call, record, walletId: cashId });
       record({
         operationId: "deleteWallet",
         method: "delete",

@@ -1,5 +1,15 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import type * as z from "zod";
 import { createTransactionFormSchema } from "@/features/transactions/transaction-form-schema";
+
+/** The server rule, by code and facts, each mirrored hint asked for and where it shows. */
+function rejectionsAsked(result: z.ZodSafeParseResult<unknown>) {
+  return (result.error?.issues ?? []).flatMap((issue) =>
+    issue.code === "custom" && issue.params?.rejection
+      ? [{ path: issue.path.join("."), rejection: issue.params.rejection }]
+      : [],
+  );
+}
 
 const base = {
   type: "expense",
@@ -32,19 +42,38 @@ describe("transaction form schema", () => {
   test.each([
     ["", "Enter an amount"],
     ["abc", "Enter an amount in baht"],
-    ["0", "must be at least ฿0.01"],
-    ["-5", "must be at least ฿0.01"],
     ["1.005", "at most two decimals"],
-    ["100000000", "at most ฿99,999,999.99"],
-  ])("rejects amount %j", (amount, message) => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
-    const result = createTransactionFormSchema().safeParse({ ...base, amount });
-    expect(result.success).toBe(false);
-    expect(
-      result.error?.issues.map((issue) => issue.message).join("\n"),
-    ).toContain(message);
-  });
+  ])(
+    "keeps its own wording for the unreadable amount %j",
+    (amount, message) => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
+      const result = createTransactionFormSchema().safeParse({
+        ...base,
+        amount,
+      });
+      expect(result.success).toBe(false);
+      expect(
+        result.error?.issues.map((issue) => issue.message).join("\n"),
+      ).toContain(message);
+      expect(rejectionsAsked(result)).toEqual([]);
+    },
+  );
+
+  test.each(["0", "-5", "100000000", "1000000000000000"])(
+    "asks for amount-out-of-range on amount %j",
+    (amount) => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
+      const result = createTransactionFormSchema().safeParse({
+        ...base,
+        amount,
+      });
+      expect(rejectionsAsked(result)).toEqual([
+        { path: "amount", rejection: { code: "amount-out-of-range" } },
+      ]);
+    },
+  );
 
   test("accepts the exact bounds", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
@@ -66,10 +95,23 @@ describe("transaction form schema", () => {
     expect(
       schema.safeParse({ ...base, transactionDate: "2026-09-14" }).success,
     ).toBe(true);
-    const future = schema.safeParse({ ...base, transactionDate: "2026-09-15" });
-    expect(future.error?.issues[0]?.message).toContain("future");
-    const early = schema.safeParse({ ...base, transactionDate: "2026-08-31" });
-    expect(early.error?.issues[0]?.message).toContain("1 Sep 2026");
+    expect(
+      rejectionsAsked(
+        schema.safeParse({ ...base, transactionDate: "2026-09-15" }),
+      ),
+    ).toEqual([
+      { path: "transactionDate", rejection: { code: "future-date" } },
+    ]);
+    expect(
+      rejectionsAsked(
+        schema.safeParse({ ...base, transactionDate: "2026-08-31" }),
+      ),
+    ).toEqual([
+      {
+        path: "transactionDate",
+        rejection: { code: "before-opening", openingDate: "2026-09-01" },
+      },
+    ]);
   });
 
   test("rejects a note over 200 characters", () => {
@@ -79,9 +121,9 @@ describe("transaction form schema", () => {
     expect(schema.safeParse({ ...base, note: "x".repeat(200) }).success).toBe(
       true,
     );
-    expect(schema.safeParse({ ...base, note: "x".repeat(201) }).success).toBe(
-      false,
-    );
+    expect(
+      rejectionsAsked(schema.safeParse({ ...base, note: "x".repeat(201) })),
+    ).toEqual([{ path: "note", rejection: { code: "note-too-long" } }]);
   });
 });
 
@@ -97,14 +139,23 @@ test("transfers require explicit THB and a distinct destination, with no categor
   for (const currency of [undefined, "USD", ""]) {
     expect(schema.safeParse({ ...input, currency }).success).toBe(false);
   }
-  for (const destinationWalletId of ["", "wallet-1"]) {
-    const invalid = schema.safeParse({ ...input, destinationWalletId });
-    expect(invalid.error?.issues).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ path: ["destinationWalletId"] }),
-      ]),
-    );
-  }
+  expect(
+    rejectionsAsked(
+      schema.safeParse({ ...input, destinationWalletId: "wallet-1" }),
+    ),
+  ).toEqual([
+    { path: "destinationWalletId", rejection: { code: "same-wallet" } },
+  ]);
+  // A destination left empty is a required-field hint, kept local: it asks no
+  // server rule, so it is not the mirrored `same-wallet` message.
+  const empty = schema.safeParse({ ...input, destinationWalletId: "" });
+  expect(empty.error?.issues.map((issue) => issue.path)).toEqual([
+    ["destinationWalletId"],
+  ]);
+  expect(rejectionsAsked(empty)).toEqual([]);
+  expect(empty.error?.issues.map((issue) => issue.message)).toEqual([
+    "Choose a destination wallet",
+  ]);
 });
 
 describe("linked refund form schema", () => {
@@ -131,33 +182,35 @@ describe("linked refund form schema", () => {
   });
 
   test.each([
-    [{ amount: "300.01" }, ["amount", "Only ฿300.00 of this expense is left"]],
+    [
+      { amount: "300.01" },
+      {
+        path: "amount",
+        rejection: { code: "exceeds-refundable", refundAllowance: 30_000n },
+      },
+    ],
     [
       { transactionDate: "2026-09-09" },
-      ["transactionDate", "dated 10 Sep 2026"],
+      {
+        path: "transactionDate",
+        rejection: { code: "before-expense", expenseDate: "2026-09-10" },
+      },
     ],
-    [
-      { refundOfTransactionId: "" },
-      ["refundOfTransactionId", "from its expense"],
-    ],
-  ])("rejects %j", (changes, [path, message]) => {
+  ])("asks for the code and facts of %j", (changes, expected) => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
-    const result = schema.safeParse({ ...refund, ...changes });
-    expect(result.success).toBe(false);
     expect(
-      result.error?.issues.map((issue) => [issue.path[0], issue.message]),
-    ).toEqual([[path, expect.stringContaining(message)]]);
+      rejectionsAsked(schema.safeParse({ ...refund, ...changes })),
+    ).toEqual([expected]);
   });
 
-  test("names a fully refunded expense", () => {
+  test("a refund left without its expense keeps its own wording", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-13T10:00:00Z"));
-    const full = createTransactionFormSchema({
-      linkedExpense: { transactionDate: "2026-09-10", refundAllowance: 0n },
-    });
-    expect(
-      full.safeParse({ ...refund, amount: "0.01" }).error?.issues[0]?.message,
-    ).toBe("This expense is already fully refunded");
+    const result = schema.safeParse({ ...refund, refundOfTransactionId: "" });
+    expect(result.error?.issues.map((issue) => issue.path)).toEqual([
+      ["refundOfTransactionId"],
+    ]);
+    expect(rejectionsAsked(result)).toEqual([]);
   });
 });

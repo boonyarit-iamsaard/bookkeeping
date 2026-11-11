@@ -1,7 +1,7 @@
 import { apiClient } from "@/core/api/client";
 import type { components } from "@/core/api/openapi.gen";
 import { useFormWrites } from "@/core/api/use-form-writes";
-import { describeTagNameError } from "@/features/tags/tag-messages";
+import { TAG_REFUSAL_WORDING } from "@/features/tags/tag-rejection";
 
 type Tag = components["schemas"]["Tag"];
 type TagNameRequest = components["schemas"]["TagNameRequest"];
@@ -27,7 +27,7 @@ export function useCreateTag({ onCreated }: Readonly<UseCreateTagOptions>) {
             params: { header: attempt.header },
             body: input,
           }),
-        describeFieldError: describeTagNameError,
+        ...TAG_REFUSAL_WORDING,
         onDone: onCreated,
       },
     },
