@@ -193,6 +193,12 @@ export interface CategorySpending {
   month: string;
   /** The sum of every parent's spending: the month's Net expenses. */
   netExpenses: bigint;
+  /**
+   * The Category share base: the sum of the parents whose spending is above
+   * zero. It exceeds Net expenses when a parent's refunds outran its spending,
+   * and is zero when no parent is positive.
+   */
+  shareBase: bigint;
   /** Parents with activity in the month, in category order, Uncategorized last. */
   parents: readonly ParentCategorySpending[];
 }

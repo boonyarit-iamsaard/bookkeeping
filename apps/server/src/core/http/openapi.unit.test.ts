@@ -778,6 +778,7 @@ describe("OpenAPI document", () => {
     expect(spendingSchema.required).toEqual([
       "month",
       "netExpenses",
+      "shareBase",
       "parents",
     ]);
     expect(spendingSchema.properties?.netExpenses.$ref).toBe(
