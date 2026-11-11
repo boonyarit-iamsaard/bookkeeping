@@ -44,3 +44,53 @@ export function createFieldErrorDescriber<Code extends string>(
   return ({ code }) =>
     isPublished(code) ? messages[code] : FALLBACK_FIELD_MESSAGE;
 }
+
+interface FactualDescriberOptions<Code extends string, Facts> {
+  /** The message of every published code that names no fact. */
+  plain: Readonly<Record<Exclude<Code, keyof Facts>, string>>;
+  /** The message of every code that names facts, built from them. */
+  factual: { readonly [C in keyof Facts & Code]: (facts: Facts[C]) => string };
+  /**
+   * The facts a field error carries for a factual code, parsed rather than
+   * trusted, or `undefined` when they are missing or malformed.
+   */
+  readFacts: <C extends keyof Facts & Code>(
+    code: C,
+    fieldError: Readonly<ApiFieldError>,
+  ) => Facts[C] | undefined;
+}
+
+/**
+ * A feature's field-error describer when some of its messages name facts:
+ * plain codes read a string, factual codes read a function of the facts
+ * parsed off the field error. `Facts` maps each factual code to its facts. A
+ * code outside the table, or a factual code whose facts did not arrive, reads
+ * the shared fallback.
+ */
+export function createFactualFieldErrorDescriber<
+  Code extends string,
+  Facts extends { [C in Code]?: object },
+>({
+  plain,
+  factual,
+  readFacts,
+}: Readonly<FactualDescriberOptions<Code, Facts>>): (
+  fieldError: Readonly<ApiFieldError>,
+) => string {
+  const isFactual = (code: string): code is keyof Facts & Code =>
+    Object.hasOwn(factual, code);
+  const isPlain = (code: string): code is Exclude<Code, keyof Facts> =>
+    Object.hasOwn(plain, code);
+
+  return (fieldError) => {
+    const { code } = fieldError;
+    if (isPlain(code)) {
+      return plain[code];
+    }
+    if (!isFactual(code)) {
+      return FALLBACK_FIELD_MESSAGE;
+    }
+    const facts = readFacts(code, fieldError);
+    return facts === undefined ? FALLBACK_FIELD_MESSAGE : factual[code](facts);
+  };
+}

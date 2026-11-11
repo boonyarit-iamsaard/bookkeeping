@@ -1,11 +1,13 @@
 import { MAX_TAGS_PER_TRANSACTION } from "@bookkeeping/domain/tags";
 import { describe, expect, test } from "vitest";
 import { createFormWrites } from "@/core/api/form-writes";
+import { FALLBACK_FIELD_MESSAGE } from "@/core/api/rejection-wording";
 import type { ApiFieldError } from "@/core/api/write-submission";
 import type { TransactionRejectionCode } from "@/features/transactions/transaction-rejection";
 import {
   carriesFacts,
   describeTransactionFieldError,
+  describeTransactionRejection,
   TRANSACTION_FORM_FIELDS,
 } from "@/features/transactions/transaction-rejection";
 
@@ -72,8 +74,7 @@ const REJECTIONS: Record<TransactionRejectionCode, ExpectedRejection> = {
   "same-wallet": {
     pointer: "#/destinationWalletId",
     field: "destinationWalletId",
-    message:
-      "Choose two different available wallets. Transfers have no category.",
+    message: "Choose a different destination wallet",
   },
   "wallet-archived": {
     pointer: "#/walletId",
@@ -202,15 +203,39 @@ describe("transaction rejections", () => {
     ).toBe("This expense is already fully refunded");
   });
 
-  test("a missing fact falls back to the code's plain message", () => {
+  test("a factual code missing its facts reads the shared fallback", () => {
     const error = fieldError({
       pointer: "#/amount/value",
       code: "exceeds-refundable",
     });
-    expect(describeTransactionFieldError(error)).toBe(
-      "The amount is more than this expense has left to refund",
-    );
+    expect(describeTransactionFieldError(error)).toBe(FALLBACK_FIELD_MESSAGE);
     expect(carriesFacts(error)).toBe(false);
+  });
+
+  test("a code the API does not publish reads the shared fallback", () => {
+    expect(
+      describeTransactionFieldError(
+        fieldError({ pointer: "#/note", code: "renamed-upstream" }),
+      ),
+    ).toBe(FALLBACK_FIELD_MESSAGE);
+  });
+
+  test("a form hint asks for a rejection by its code and facts, and reads as the server's refusal does", () => {
+    expect(
+      describeTransactionRejection({
+        code: "exceeds-refundable",
+        refundAllowance: 30_000n,
+      }),
+    ).toBe("Only ฿300.00 of this expense is left to refund");
+    expect(
+      describeTransactionRejection({
+        code: "exceeds-refundable",
+        refundAllowance: 0n,
+      }),
+    ).toBe("This expense is already fully refunded");
+    expect(describeTransactionRejection({ code: "future-date" })).toBe(
+      "The date cannot be in the future",
+    );
   });
 
   test("a rejection naming a figure or date carries facts; others do not", () => {

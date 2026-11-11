@@ -5,7 +5,7 @@ import {
   todayIn,
 } from "@bookkeeping/domain/dates";
 import type { MoneyParseError } from "@bookkeeping/domain/money";
-import { formatMoney, parseMoneyInput } from "@bookkeeping/domain/money";
+import { parseMoneyInput } from "@bookkeeping/domain/money";
 import {
   MAX_NOTE_LENGTH,
   MAX_TRANSACTION_AMOUNT,
@@ -13,27 +13,30 @@ import {
   TRANSACTION_TYPES,
 } from "@bookkeeping/domain/transactions";
 import * as z from "zod";
-import {
-  beforeExpenseMessage,
-  beforeOpeningMessage,
-  refundAllowanceMessage,
-} from "@/features/transactions/transaction-rejection";
+import type { TransactionRejection } from "@/features/transactions/transaction-rejection";
+import { describeTransactionRejection } from "@/features/transactions/transaction-rejection";
 
-const AMOUNT_MESSAGES: Record<MoneyParseError, string> = {
+// An unreadable amount has no server rule; its own wording stays here. An
+// amount too long to read is out of range, which the server words.
+const UNREADABLE_AMOUNT_MESSAGES: Record<
+  Exclude<MoneyParseError, "too-large">,
+  string
+> = {
   empty: "Enter an amount, for example 120 or 85.50",
   invalid: "Enter an amount in baht, for example 85.50",
   "too-many-decimals": "Use at most two decimals; satang is the smallest unit",
-  "too-large": "Amounts can be at most ฿99,999,999.99",
 };
 
-const MIN_AMOUNT_TEXT = formatMoney({
-  amountInMinorUnits: MIN_TRANSACTION_AMOUNT,
-  currency: "THB",
-});
-const MAX_AMOUNT_TEXT = formatMoney({
-  amountInMinorUnits: MAX_TRANSACTION_AMOUNT,
-  currency: "THB",
-});
+/**
+ * A hint that mirrors a server rule: the message is that rule's, asked by code
+ * and facts, and the issue keeps both so the form can be tested on what it asks.
+ */
+function mirroredHint(rejection: TransactionRejection) {
+  return {
+    message: describeTransactionRejection(rejection),
+    params: { rejection },
+  };
+}
 
 interface TransactionFormSchemaOptions {
   /**
@@ -63,25 +66,23 @@ function transactionFields() {
     categoryId: z.string(),
     amount: z.string().transform((raw, ctx) => {
       const result = parseMoneyInput({ text: raw, currency: "THB" });
+      const outOfRange = mirroredHint({ code: "amount-out-of-range" });
       if (!result.ok) {
-        ctx.addIssue({
-          code: "custom",
-          message: AMOUNT_MESSAGES[result.error],
-        });
+        ctx.addIssue(
+          result.error === "too-large"
+            ? { code: "custom", ...outOfRange }
+            : {
+                code: "custom",
+                message: UNREADABLE_AMOUNT_MESSAGES[result.error],
+              },
+        );
         return z.NEVER;
       }
-      if (result.value < MIN_TRANSACTION_AMOUNT) {
-        ctx.addIssue({
-          code: "custom",
-          message: `The amount must be at least ${MIN_AMOUNT_TEXT}`,
-        });
-        return z.NEVER;
-      }
-      if (result.value > MAX_TRANSACTION_AMOUNT) {
-        ctx.addIssue({
-          code: "custom",
-          message: `Amounts can be at most ${MAX_AMOUNT_TEXT}`,
-        });
+      if (
+        result.value < MIN_TRANSACTION_AMOUNT ||
+        result.value > MAX_TRANSACTION_AMOUNT
+      ) {
+        ctx.addIssue({ code: "custom", ...outOfRange });
         return z.NEVER;
       }
       return result.value;
@@ -91,13 +92,13 @@ function transactionFields() {
       .refine((value) => parseCalendarDate(value).ok, "Enter the date")
       .refine(
         (value) => value <= todayIn({ timeZone: APP_TIME_ZONE }),
-        "The date cannot be in the future",
+        mirroredHint({ code: "future-date" }),
       ),
     note: z
       .string()
-      .max(
-        MAX_NOTE_LENGTH,
-        `Notes can be at most ${MAX_NOTE_LENGTH} characters`,
+      .refine(
+        (value) => value.length <= MAX_NOTE_LENGTH,
+        mirroredHint({ code: "note-too-long" }),
       ),
     // The picker keeps the set within the limit; the API owns that rule.
     tagIds: z.array(z.string()),
@@ -136,14 +137,20 @@ function checkRefundFields({
     ctx.addIssue({
       code: "custom",
       path: ["amount"],
-      message: refundAllowanceMessage(linkedExpense.refundAllowance),
+      ...mirroredHint({
+        code: "exceeds-refundable",
+        refundAllowance: linkedExpense.refundAllowance,
+      }),
     });
   }
   if (linkedExpense && value.transactionDate < linkedExpense.transactionDate) {
     ctx.addIssue({
       code: "custom",
       path: ["transactionDate"],
-      message: beforeExpenseMessage(linkedExpense.transactionDate),
+      ...mirroredHint({
+        code: "before-expense",
+        expenseDate: linkedExpense.transactionDate,
+      }),
     });
   }
 }
@@ -154,14 +161,17 @@ function transactionFieldCheck({
 }: Readonly<TransactionFormSchemaOptions>) {
   return (value: Readonly<TransactionFieldValues>, ctx: z.RefinementCtx) => {
     if (value.type === "transfer") {
-      if (
-        !value.destinationWalletId ||
-        value.destinationWalletId === value.walletId
-      ) {
+      if (!value.destinationWalletId) {
         ctx.addIssue({
           code: "custom",
           path: ["destinationWalletId"],
-          message: "Choose a different destination wallet",
+          message: "Choose a destination wallet",
+        });
+      } else if (value.destinationWalletId === value.walletId) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["destinationWalletId"],
+          ...mirroredHint({ code: "same-wallet" }),
         });
       }
     } else if (value.type === "refund") {
@@ -183,7 +193,7 @@ function transactionFieldCheck({
         ctx.addIssue({
           code: "custom",
           path: ["transactionDate"],
-          message: beforeOpeningMessage(openingDate),
+          ...mirroredHint({ code: "before-opening", openingDate }),
         });
         break;
       }
