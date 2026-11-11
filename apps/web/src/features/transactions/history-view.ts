@@ -27,6 +27,10 @@ const transactionFiltersSchema = z
     "From date must be on or before To date.",
   );
 
+const HISTORY_FIELDS = [...HISTORY_FILTER_KEYS, "tagId"] as const;
+
+type HistoryField = (typeof HISTORY_FIELDS)[number];
+
 const FILTER_ERROR_MESSAGES = {
   from: "Choose a valid From date.",
   to: "Choose a valid To date.",
@@ -34,11 +38,7 @@ const FILTER_ERROR_MESSAGES = {
   categoryId: "Choose a valid category.",
   type: "Choose a valid type.",
   tagId: "Choose tags from the list.",
-} as const;
-
-type HistoryField = keyof typeof FILTER_ERROR_MESSAGES;
-
-const HISTORY_FIELDS = [...HISTORY_FILTER_KEYS, "tagId"] as const;
+} as const satisfies Record<HistoryField, string>;
 
 /** One key per filter value: the control's key, or `tagId:<id>` for each chosen tag. */
 export type HistoryValueKey = HistoryFilterKey | `tagId:${string}`;

@@ -13,6 +13,17 @@ const searchValues = z.preprocess((value) => {
 }, z.array(z.string()).optional());
 
 /**
+ * The page cursor or the saved id. These are not filters, so a repeated one
+ * drops to the first page with no highlight rather than reading an invalid page.
+ */
+const navigationValue = z.preprocess((value) => {
+  if (typeof value === "string") {
+    return value === "" ? undefined : value;
+  }
+  return typeof value === "number" ? String(value) : undefined;
+}, z.string().optional());
+
+/**
  * `?deleted=1` after a deletion. The router writes validated search back to
  * the address, so the output stays the number `1`: a string would be quoted.
  */
@@ -33,8 +44,8 @@ export const historySearchSchema = z.object({
   categoryId: searchValue,
   type: searchValue,
   tagId: searchValues,
-  cursor: searchValue,
-  created: searchValue,
+  cursor: navigationValue,
+  created: navigationValue,
   deleted: deletedFlag,
 });
 

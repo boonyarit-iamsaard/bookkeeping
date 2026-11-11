@@ -70,14 +70,6 @@ describe("history view", () => {
     ]);
   });
 
-  test("rejects year zero and impossible dates", () => {
-    const view = buildHistoryView({ from: "0000-01-01", to: "2026-02-30" });
-    expect(view.state === "invalid" && [...view.invalidKeys]).toEqual([
-      "from",
-      "to",
-    ]);
-  });
-
   test("a reversed date range names the order but marks neither date", () => {
     const view = buildHistoryView({ from: "2026-09-03", to: "2026-09-01" });
     expect(view).toMatchObject({

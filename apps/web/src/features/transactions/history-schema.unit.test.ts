@@ -36,6 +36,12 @@ describe("history search", () => {
     expect(historySearchSchema.parse({ deleted: "yes" })).toEqual({});
   });
 
+  test("drops a repeated page cursor or saved id rather than reading it", () => {
+    expect(
+      historySearchSchema.parse({ cursor: ["a", "b"], created: ["c", "d"] }),
+    ).toEqual({});
+  });
+
   test("reads one tag or several from the address as a list", () => {
     expect(historySearchSchema.parse({ tagId: COFFEE }).tagId).toEqual([
       COFFEE,
