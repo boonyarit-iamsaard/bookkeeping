@@ -1,8 +1,8 @@
 {
   "docs/runbooks/production-backups/01-aws-foundation-and-railway-backups.md": 36911,
   "docs/runbooks/production-backups/03-deploy-storage-and-uploader-key.md": 28028,
-  "apps/server/src/core/http/api-contract.integration.test.ts": 20333,
-  "apps/server/src/core/http/openapi.unit.test.ts": 30718,
+  "apps/server/src/core/http/api-contract.integration.test.ts": 20040,
+  "apps/server/src/core/http/openapi.unit.test.ts": 30704,
   "apps/server/src/features/categories/category.routes.integration.test.ts": 31205,
   "apps/server/src/features/reports/report.routes.integration.test.ts": 40740,
   "apps/server/src/features/transactions/transaction.routes.integration.test.ts": 43703,
@@ -18,5 +18,5 @@
   "packages/application/src/transactions/transaction-create.integration.test.ts": 33030,
   "packages/application/src/transactions/transaction-reads.integration.test.ts": 28719,
   "packages/application/src/transactions/transaction-update.integration.test.ts": 29528,
-  "packages/application/src/wallets/wallet.integration.test.ts": 28108
+  "packages/application/src/wallets/wallet.integration.test.ts": 28095
 }

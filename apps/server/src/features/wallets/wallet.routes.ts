@@ -1,7 +1,6 @@
-import type { NotFound } from "@bookkeeping/application/shared/not-found";
 import type {
-  ReplaceWalletOpeningError,
-  WalletCreationIssue,
+  WalletOpeningField,
+  WalletOpeningRejection,
 } from "@bookkeeping/application/wallets";
 import {
   createWallet,
@@ -23,6 +22,7 @@ import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
+import { toFieldErrors } from "../../core/http/field-rejections.js";
 import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
 import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
 import type { Money } from "../../core/http/money.js";
@@ -37,10 +37,7 @@ import {
   describeProblemResponse,
   describeProblemVariant,
 } from "../../core/http/openapi.js";
-import type {
-  ProblemFieldError,
-  ProblemOptions,
-} from "../../core/http/problem-details.js";
+import type { ProblemOptions } from "../../core/http/problem-details.js";
 import {
   getProblemOptionsForStatus,
   problemDetailsSchema,
@@ -63,6 +60,12 @@ import {
   describeCreation,
   describeRead,
 } from "../../core/http/resource-answers.js";
+import type { walletRejectionProblemSchema } from "./wallet-rejection.js";
+import {
+  WALLET_CREATION_POINTERS,
+  WALLET_OPENING_POINTERS,
+  walletCodes,
+} from "./wallet-rejection.js";
 
 export const walletResponseSchema = z
   .object({
@@ -192,17 +195,6 @@ interface CreateWalletValidatedInput {
   };
 }
 
-// The money object nests its value, so the pointer reaches inside it.
-const WALLET_ISSUE_POINTERS: Record<WalletCreationIssue["field"], string> = {
-  name: "#/name",
-  openingAmount: "#/openingAmount/value",
-  openingDate: "#/openingDate",
-};
-
-function toWalletFieldError(issue: WalletCreationIssue): ProblemFieldError {
-  return { pointer: WALLET_ISSUE_POINTERS[issue.field], code: issue.code };
-}
-
 /** The opening balance as its own resource: amount and date replaced together. */
 export const walletOpeningRequestSchema = z
   .object({
@@ -210,30 +202,6 @@ export const walletOpeningRequestSchema = z
     date: z.iso.date(),
   })
   .meta({ id: "WalletOpeningRequest" });
-
-// The opening resource names its fields without the prefix the wallet
-// representation carries, so its pointers differ from the creation ones.
-const OPENING_ISSUE_POINTERS = {
-  openingAmount: "#/amount/value",
-  openingDate: "#/date",
-} as const;
-
-/**
- * Every opening rejection short of "not found" is addressed to a field: an
- * invalid value to its own, and a movement before the proposed opening to
- * the date, since choosing an earlier date is the correction.
- */
-function toOpeningFieldErrors(
-  error: Exclude<ReplaceWalletOpeningError, NotFound>,
-): ProblemFieldError[] {
-  if (error.code === "movement-before-opening") {
-    return [{ pointer: OPENING_ISSUE_POINTERS.openingDate, code: error.code }];
-  }
-  return error.issues.map((issue) => ({
-    pointer: OPENING_ISSUE_POINTERS[issue.field],
-    code: issue.code,
-  }));
-}
 
 /** Archive and Savings wallet markers can change independently. */
 export const walletStateRequestSchema = z
@@ -291,7 +259,7 @@ export function createWalletRoutes(db: Database) {
         {
           201: typeof walletResponseSchema;
           409: typeof problemDetailsSchema;
-          422: typeof problemDetailsSchema;
+          422: typeof walletRejectionProblemSchema;
         }
       >(
         async (c) => {
@@ -308,11 +276,17 @@ export function createWalletRoutes(db: Database) {
           return answerCreation(c, {
             result: created,
             present: (outcome) => presentWallet(outcome.wallet),
-            toFieldErrors: (rejection) =>
-              rejection.issues.map(toWalletFieldError),
+            toFieldErrors: (rejected) =>
+              toFieldErrors(rejected, {
+                pointers: WALLET_CREATION_POINTERS,
+                codes: walletCodes,
+              }),
           });
         },
-        describeCreation("wallet", walletResponseSchema),
+        {
+          ...describeCreation("wallet", walletResponseSchema),
+          422: walletCodes.describeRejection(),
+        },
       ),
     )
     .get(
@@ -433,7 +407,7 @@ export function createWalletRoutes(db: Database) {
         {
           200: typeof walletResponseSchema;
           404: typeof problemDetailsSchema;
-          422: typeof problemDetailsSchema;
+          422: typeof walletRejectionProblemSchema;
         }
       >(
         async (c) => {
@@ -447,13 +421,23 @@ export function createWalletRoutes(db: Database) {
           return answerCorrection(c, {
             result: replaced,
             present: presentWallet,
-            toFieldErrors: toOpeningFieldErrors,
+            toFieldErrors: (rejected) =>
+              toFieldErrors<WalletOpeningField, WalletOpeningRejection>(
+                rejected,
+                {
+                  pointers: WALLET_OPENING_POINTERS,
+                  codes: walletCodes,
+                },
+              ),
           });
         },
-        describeCorrection(
-          "The wallet with its replaced opening balance",
-          walletResponseSchema,
-        ),
+        {
+          ...describeCorrection(
+            "The wallet with its replaced opening balance",
+            walletResponseSchema,
+          ),
+          422: walletCodes.describeRejection(),
+        },
       ),
     )
     .patch(
