@@ -1,4 +1,5 @@
 import type { IdempotencyConflict } from "@bookkeeping/application/idempotency";
+import { CREATION_REPLAY_WINDOW_HOURS } from "@bookkeeping/application/idempotency";
 import type { NotFound } from "@bookkeeping/application/shared/not-found";
 import { isNotFound } from "@bookkeeping/application/shared/not-found";
 import type { Result } from "@bookkeeping/domain/result";
@@ -161,7 +162,7 @@ export function describeCreation<Schema>(resource: string, schema: Schema) {
     201: {
       description:
         `The created ${resource}, or the original on a replay: a key ` +
-        "replays the original creation for 24 hours, and after that it " +
+        `replays the original creation for ${CREATION_REPLAY_WINDOW_HOURS} hours, and after that it ` +
         "names a new creation",
       headers: {
         [LOCATION_HEADER]: {
