@@ -1,7 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
+import { createFieldOf } from "./field-pointer";
 import type { ApiResponse } from "./problem";
 import type { WriteAttempt } from "./write-submission";
-import { createFieldOf, createWriteSubmission } from "./write-submission";
+import { createWriteSubmission } from "./write-submission";
 
 interface Wallet {
   id: string;
@@ -384,7 +385,7 @@ describe("createWriteSubmission", () => {
     });
   });
 
-  test("describes a field error by its detail when no describer is given", async () => {
+  test("words a field error with the shared fallback when no describer is given", async () => {
     const send = vi.fn(async () =>
       rejected(422, {
         ...invalidCommand,
@@ -404,7 +405,7 @@ describe("createWriteSubmission", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: { fieldErrors: { name: "Taken" } },
+      error: { fieldErrors: { name: "This value was not accepted." } },
     });
   });
 
