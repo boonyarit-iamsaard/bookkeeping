@@ -13,6 +13,8 @@ import {
 import { users } from "../auth/auth.schema";
 import { transactions } from "../transactions/transaction.schema";
 
+export const TAG_NAME_INDEX = "tags_user_name_unique";
+
 /** One row per tag an Account owns; names are unique per owner ignoring case. */
 export const tags = pgTable(
   "tags",
@@ -29,10 +31,7 @@ export const tags = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("tags_user_name_unique").on(
-      table.userId,
-      sql`lower(${table.name})`,
-    ),
+    uniqueIndex(TAG_NAME_INDEX).on(table.userId, sql`lower(${table.name})`),
     check(
       "tags_name_length",
       sql`char_length(${table.name}) between 1 and ${sql.raw(String(MAX_TAG_NAME_LENGTH))}`,

@@ -3,11 +3,11 @@ import { sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { rejected } from "../shared/rejection";
 import {
-  insertWallet,
   recordExpense,
   setupOwner,
   withClock,
 } from "../testing/transaction-suite-fixture";
+import { createWalletForTest } from "../testing/wallet-fixture";
 import { listWallets } from "../wallets/wallet";
 import type { CreateTransactionInput } from "./transaction";
 import {
@@ -548,10 +548,11 @@ describe("createTransaction", () => {
   test("one transfer subtracts from its source and adds to its destination on its date", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
-      const destination = await insertWallet(db, {
+      const { id: destination } = await createWalletForTest(db, {
         ownerId: owner.ownerId,
         name: "Bank",
         type: "bank_account",
+        openingAmount: 0n,
         openingDate: "2026-09-02",
       });
       const result = await createTransaction(db, {
@@ -633,10 +634,11 @@ describe("createTransaction", () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);
       const expense = await recordExpense(db, owner);
-      const bank = await insertWallet(db, {
+      const { id: bank } = await createWalletForTest(db, {
         ownerId: owner.ownerId,
         name: "Bank",
         type: "bank_account",
+        openingAmount: 0n,
         openingDate: "2026-09-04",
       });
       const refund = await createTransaction(db, {

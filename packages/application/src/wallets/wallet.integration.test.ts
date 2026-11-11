@@ -6,7 +6,6 @@ import {
 import { transactions } from "@bookkeeping/database/transactions";
 import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import type { WalletType } from "@bookkeeping/domain/wallets";
 import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
 import {
@@ -15,6 +14,11 @@ import {
 } from "../categories/category";
 import { rejected } from "../shared/rejection";
 import { insertRetainedTransferSnapshot } from "../testing/transaction-fixture";
+import type { WalletFixtureInput } from "../testing/wallet-fixture";
+import {
+  createWalletForTest,
+  insertWalletRowForTest,
+} from "../testing/wallet-fixture";
 import {
   createTransaction,
   deleteTransaction,
@@ -34,34 +38,11 @@ function refused(...rejections: object[]) {
   return { ok: false, error: { code: "rejected", rejections } };
 }
 
-interface WalletFixture {
-  ownerId: string;
-  name: string;
-  type: WalletType;
-  openingAmount: bigint;
-  openingDate: CalendarDate;
-}
-
-/** Persists a wallet row directly; creation moves here with its own ticket. */
-async function insertWallet(db: Database, fixture: Readonly<WalletFixture>) {
-  const [row] = await db
-    .insert(wallets)
-    .values({
-      userId: fixture.ownerId,
-      name: fixture.name,
-      type: fixture.type,
-      openingAmount: fixture.openingAmount,
-      openingDate: fixture.openingDate,
-    })
-    .returning({ id: wallets.id });
-  return row.id;
-}
-
 describe("listWallets", () => {
   test("lists an opened wallet with its opening balance as the balance", async () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
-      await insertWallet(db, {
+      await createWalletForTest(db, {
         ownerId: owner.id,
         name: "Kasikorn savings",
         type: "bank_account",
@@ -89,7 +70,7 @@ describe("listWallets", () => {
     try {
       await withRollback(async (db) => {
         const owner = await createTestUser(db);
-        await insertWallet(db, {
+        await insertWalletRowForTest(db, {
           ownerId: owner.id,
           name: "Future",
           type: "cash",
@@ -111,7 +92,7 @@ describe("listWallets", () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
       for (const type of ["cash", "bank_account", "e_wallet"] as const) {
-        await insertWallet(db, {
+        await createWalletForTest(db, {
           ownerId: owner.id,
           name: type,
           type,
@@ -130,14 +111,14 @@ describe("listWallets", () => {
   test("openings beyond signed 32-bit satang and negative openings are exact", async () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
-      await insertWallet(db, {
+      await createWalletForTest(db, {
         ownerId: owner.id,
         name: "Big",
         type: "bank_account",
         openingAmount: 9_999_999_999n,
         openingDate: "2026-09-01",
       });
-      await insertWallet(db, {
+      await createWalletForTest(db, {
         ownerId: owner.id,
         name: "Overdrawn",
         type: "e_wallet",
@@ -155,14 +136,14 @@ describe("listWallets", () => {
   test("overall balances retain satang beyond JavaScript integer precision and allow negative holdings", async () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
-      await insertWallet(db, {
+      await createWalletForTest(db, {
         ownerId: owner.id,
         name: "Large",
         type: "bank_account",
         openingAmount: 90_071_992_547_409_919n,
         openingDate: "2026-09-01",
       });
-      await insertWallet(db, {
+      await createWalletForTest(db, {
         ownerId: owner.id,
         name: "Negative",
         type: "cash",
@@ -188,7 +169,7 @@ describe("listWallets", () => {
     await withRollback(async (db) => {
       const alice = await createTestUser(db);
       const bob = await createTestUser(db);
-      await insertWallet(db, {
+      await createWalletForTest(db, {
         ownerId: alice.id,
         name: "Alice cash",
         type: "cash",
@@ -204,7 +185,7 @@ describe("listWallets", () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
       for (const amount of [9_999_999_999n, 9_999_999_999n, -1n]) {
-        await insertWallet(db, {
+        await createWalletForTest(db, {
           ownerId: owner.id,
           name: "Wallet",
           type: "cash",
@@ -226,7 +207,7 @@ describe("findWallet", () => {
   test("returns an owned wallet with the same balance the listing shows", async () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);
-      const id = await insertWallet(db, {
+      const { id } = await createWalletForTest(db, {
         ownerId: owner.id,
         name: "Cash",
         type: "cash",
@@ -243,7 +224,7 @@ describe("findWallet", () => {
     await withRollback(async (db) => {
       const alice = await createTestUser(db);
       const bob = await createTestUser(db);
-      const id = await insertWallet(db, {
+      const { id } = await createWalletForTest(db, {
         ownerId: alice.id,
         name: "Alice cash",
         type: "cash",
@@ -276,10 +257,8 @@ describe("findWallet", () => {
   });
 });
 
-interface CreateWalletFixture extends Partial<WalletFixture> {
-  ownerId: string;
+interface CreateWalletFixture extends WalletFixtureInput {
   idempotencyKey?: string;
-  savings?: boolean;
 }
 
 function openWallet(
@@ -428,23 +407,19 @@ async function insertTransfer(
 
 async function openCashPair(db: Database) {
   const owner = await createTestUser(db);
-  const cash = await openWallet(db, {
+  const cash = await createWalletForTest(db, {
     ownerId: owner.id,
-    idempotencyKey: "cash",
     name: "Cash",
     type: "cash",
     openingAmount: 10_000n,
   });
-  const bank = await openWallet(db, {
+  const bank = await createWalletForTest(db, {
     ownerId: owner.id,
-    idempotencyKey: "bank",
     name: "Bank",
+    type: "bank_account",
     openingAmount: 10_000n,
   });
-  if (!(cash.ok && bank.ok)) {
-    throw new Error("Expected wallet creation to succeed");
-  }
-  return { owner, cash: cash.value, bank: bank.value };
+  return { owner, cash, bank };
 }
 
 async function listChanges(db: Database, walletId: string) {
@@ -650,18 +625,16 @@ describe("deleteWallet", () => {
   test("rejects a wallet referenced only by a retained transaction snapshot", async () => {
     await withRollback(async (db) => {
       const { owner, cash, bank } = await openCashPair(db);
-      const spare = await openWallet(db, {
+      const spare = await createWalletForTest(db, {
         ownerId: owner.id,
-        idempotencyKey: "spare",
         name: "Spare",
+        type: "bank_account",
+        openingAmount: 1_200_000n,
       });
-      if (!spare.ok) {
-        throw new Error("Expected wallet creation to succeed");
-      }
       await insertRetainedTransferSnapshot(db, {
         ownerId: owner.id,
         currentWalletId: bank.id,
-        currentDestinationWalletId: spare.value.id,
+        currentDestinationWalletId: spare.id,
         retainedWalletId: cash.id,
       });
 

@@ -9,6 +9,7 @@ import {
   bigint,
   check,
   date,
+  foreignKey,
   index,
   jsonb,
   pgEnum,
@@ -20,6 +21,9 @@ import {
 import { users } from "../auth/auth.schema";
 import { categories } from "../categories/category.schema";
 import { wallets } from "../wallets/wallet.schema";
+
+export const TRANSACTION_CATEGORY_FK =
+  "transactions_category_id_categories_id_fk";
 
 export const transactionTypeEnum = pgEnum(
   "transaction_type",
@@ -43,9 +47,7 @@ export const transactions = pgTable(
       { onDelete: "restrict" },
     ),
     // Null for transfers and refunds; a refund follows its expense's category.
-    categoryId: uuid("category_id").references(() => categories.id, {
-      onDelete: "restrict",
-    }),
+    categoryId: uuid("category_id"),
     // The expense a refund returns money for. Restrict: an expense with
     // refunds cannot be deleted, and its row must outlive them regardless.
     refundOfTransactionId: uuid("refund_of_transaction_id").references(
@@ -71,6 +73,13 @@ export const transactions = pgTable(
       .notNull(),
   },
   (table) => [
+    foreignKey({
+      name: TRANSACTION_CATEGORY_FK,
+      columns: [table.categoryId],
+      foreignColumns: [categories.id],
+    })
+      .onDelete("restrict")
+      .onUpdate("no action"),
     index("transactions_user_id_date_idx").on(
       table.userId,
       table.transactionDate,
