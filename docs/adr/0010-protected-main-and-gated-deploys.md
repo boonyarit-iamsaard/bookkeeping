@@ -86,13 +86,13 @@ Apply in this order. A required check is selectable only after it has
 succeeded once within the past seven days, and the full-SHA requirement is only
 safe once the pinned workflow is on `main`.
 
-1. Let `CI`, `SPA browser suite` and `Dependency Review` each run green once
-   (the last on a pull request).
+1. Let `CI`, `SPA browser suite`, `Dependency Review` and `Acceptance criteria`
+   each run green once (the last two on a pull request).
 2. Settings, Rules, Rulesets: create a ruleset on the default branch, enforcement
    Active, with these rules and this bypass.
    - Require a pull request before merging, with zero required approvals.
    - Require status checks to pass: `CI`, `SPA browser suite`,
-     `Dependency Review`.
+     `Dependency Review`, `Acceptance criteria`.
    - Require linear history.
    - Block force pushes and restrict deletions.
    - Bypass list: the Repository admin role, for pull requests only.
