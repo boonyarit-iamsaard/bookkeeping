@@ -335,46 +335,6 @@ describe("POST /v1/transactions", () => {
       });
     });
   });
-  test("replays a transfer and conflicts when its payload changes", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const owner = await createOwner({ db });
-      const body = {
-        ...transferBody(owner),
-        amount: { value: "123.4", currency: "THB" },
-      };
-      const firstResponse = await postTransaction(app, {
-        cookie: owner.cookie,
-        idempotencyKey: "transfer-retry",
-        body,
-      });
-      const first = transactionResponseSchema.parse(await firstResponse.json());
-
-      const replayResponse = await postTransaction(app, {
-        cookie: owner.cookie,
-        idempotencyKey: "transfer-retry",
-        body: { ...body, amount: { value: "123.40", currency: "THB" } },
-      });
-      const replay = transactionResponseSchema.parse(
-        await replayResponse.json(),
-      );
-
-      expect(firstResponse.status).toBe(201);
-      expect(replayResponse.status).toBe(201);
-      expect(replay).toEqual(first);
-      await expectProblem(
-        await postTransaction(app, {
-          cookie: owner.cookie,
-          idempotencyKey: "transfer-retry",
-          body: { ...body, amount: { value: "124.40", currency: "THB" } },
-        }),
-        { status: 409, code: "idempotency-conflict" },
-      );
-    });
-  });
-
   test("maps request validation failures to field errors", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
@@ -519,7 +479,21 @@ describe("POST /v1/transactions", () => {
         await normalizedReplayResponse.json(),
       );
       expect(normalizedReplayResponse.status).toBe(201);
+      expect(normalizedReplayResponse.headers.get("location")).toBe(
+        firstResponse.headers.get("location"),
+      );
       expect(normalizedReplay).toEqual(first);
+      await expectProblem(
+        await postTransaction(app, {
+          cookie: owner.cookie,
+          idempotencyKey: "retry",
+          body: {
+            ...originalBody,
+            amount: { value: "124.40", currency: "THB" },
+          },
+        }),
+        { status: 409, code: "idempotency-conflict" },
+      );
     });
   });
 

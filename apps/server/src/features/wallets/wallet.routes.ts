@@ -18,8 +18,7 @@ import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
-import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
-import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
+import { readIdempotencyKey } from "../../core/http/idempotency.js";
 import type { Money } from "../../core/http/money.js";
 import {
   currencySchema,
@@ -38,11 +37,13 @@ import {
   problemDetailsSchema,
 } from "../../core/http/problem-details.js";
 import type {
+  CreationValidatedInput,
   QueryValidatedInput,
   ResourceCommandValidatedInput,
 } from "../../core/http/request-validation.js";
 import {
   createCommandMiddleware,
+  createCreationMiddleware,
   createQueryMiddleware,
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
@@ -178,18 +179,6 @@ export const createWalletRequestSchema = z
   })
   .meta({ id: "CreateWalletRequest" });
 
-/** What the validators hand the creation handler. */
-interface CreateWalletValidatedInput {
-  in: {
-    json: z.input<typeof createWalletRequestSchema>;
-    header: z.input<typeof idempotencyKeyHeaderSchema>;
-  };
-  out: {
-    json: z.output<typeof createWalletRequestSchema>;
-    header: z.output<typeof idempotencyKeyHeaderSchema>;
-  };
-}
-
 /** The opening balance as its own resource: amount and date replaced together. */
 export const walletOpeningRequestSchema = z
   .object({
@@ -235,22 +224,19 @@ export function createWalletRoutes(db: Database) {
         description:
           "Opens a wallet for the signed-in owner with an exact opening " +
           "balance on a calendar date no later than today in Bangkok. The " +
-          "request must carry a client-generated Idempotency-Key: repeating " +
-          "it with the same payload replays the original creation, while a " +
-          "different payload under the same key is a conflict. A rejected " +
-          "request never consumes its key.",
+          "request must carry a client-generated Idempotency-Key, and a " +
+          "rejected request never consumes it.",
         tags: ["Wallets"],
         responses: {
           400: describeProblemResponse(400),
           401: describeProblemResponse(401),
         },
       }),
-      idempotencyKeyMiddleware,
-      createCommandMiddleware(createWalletRequestSchema),
+      ...createCreationMiddleware(createWalletRequestSchema),
       describeResponse<
         AuthenticatedEnv,
         typeof COLLECTION_PATH,
-        CreateWalletValidatedInput,
+        CreationValidatedInput<typeof createWalletRequestSchema>,
         {
           201: typeof walletResponseSchema;
           409: typeof problemDetailsSchema;
@@ -261,7 +247,7 @@ export function createWalletRoutes(db: Database) {
           const body = c.req.valid("json");
           const created = await createWallet(db, {
             ownerId: c.get("session").user.id,
-            idempotencyKey: c.req.valid("header")["idempotency-key"],
+            idempotencyKey: readIdempotencyKey(c),
             name: body.name,
             type: body.type,
             openingAmount: body.openingAmount.amountInMinorUnits,

@@ -159,7 +159,10 @@ function refuseNothing(blocker: never): never {
 export function describeCreation<Schema>(resource: string, schema: Schema) {
   return {
     201: {
-      description: `The created ${resource}, or the original on a replay`,
+      description:
+        `The created ${resource}, or the original on a replay: a key ` +
+        "replays the original creation for 24 hours, and after that it " +
+        "names a new creation",
       headers: {
         [LOCATION_HEADER]: {
           description: `Where the created ${resource} can be retrieved`,

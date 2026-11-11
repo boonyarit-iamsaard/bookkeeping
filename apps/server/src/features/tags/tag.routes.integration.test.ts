@@ -110,6 +110,65 @@ describe("tag routes", () => {
     });
   });
 
+  test("replays the original creation for a retried key and conflicts on a changed payload", async () => {
+    await withRollback(async (db) => {
+      const app = createApp(db);
+      const { cookie } = await createOwnerSession(db);
+      const first = await request(app, {
+        method: "POST",
+        cookie,
+        idempotencyKey: "tag-retry",
+        body: { name: "Coffee" },
+      });
+      const original = tagResponseSchema.parse(await first.json());
+
+      const retry = await request(app, {
+        method: "POST",
+        cookie,
+        idempotencyKey: "tag-retry",
+        // The same name spelled with stray spaces is the same normalized payload.
+        body: { name: " Coffee " },
+      });
+      const conflict = await request(app, {
+        method: "POST",
+        cookie,
+        idempotencyKey: "tag-retry",
+        body: { name: "Tea" },
+      });
+
+      expect(retry.status).toBe(201);
+      expect(retry.headers.get("location")).toBe(first.headers.get("location"));
+      expect(tagResponseSchema.parse(await retry.json())).toEqual(original);
+      await expectProblem(conflict, {
+        status: 409,
+        code: "idempotency-conflict",
+      });
+      const listed = tagCollectionResponseSchema.parse(
+        await (await request(app, { cookie })).json(),
+      );
+      expect(listed.items).toHaveLength(1);
+    });
+  });
+
+  test("a missing, blank, or over-long Idempotency-Key is a bad request", async () => {
+    await withRollback(async (db) => {
+      const app = createApp(db);
+      const { cookie } = await createOwnerSession(db);
+
+      for (const idempotencyKey of [undefined, "   ", "k".repeat(256)]) {
+        await expectProblem(
+          await request(app, {
+            method: "POST",
+            cookie,
+            idempotencyKey,
+            body: { name: "Coffee" },
+          }),
+          { status: 400, code: "idempotency-key-required" },
+        );
+      }
+    });
+  });
+
   test("maps a refused name to its field", async () => {
     await withRollback(async (db) => {
       const app = createApp(db);

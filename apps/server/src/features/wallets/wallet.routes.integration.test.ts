@@ -234,7 +234,7 @@ describe("POST /v1/wallets", () => {
     });
   });
 
-  test("a retry with the same key and payload replays the original creation", async () => {
+  test("replays the original creation for a retried key and conflicts on a changed payload", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -253,33 +253,20 @@ describe("POST /v1/wallets", () => {
           openingAmount: { value: "12000.50", currency: "THB" },
         },
       });
+      const conflict = await postWallet(app, {
+        cookie,
+        idempotencyKey: "retry",
+        body: { ...SAVINGS_REQUEST, name: "Kasikorn current" },
+      });
 
       expect(retry.status).toBe(201);
       expect(retry.headers.get("location")).toBe(first.headers.get("location"));
       expect(await retry.json()).toEqual(original);
-      expect(await listWalletItems(app, cookie)).toEqual([original]);
-    });
-  });
-
-  test("the same key with a different payload conflicts and creates nothing more", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const { cookie } = await createOwnerSession(db);
-      await postWallet(app, { cookie, idempotencyKey: "changed" });
-
-      const conflict = await postWallet(app, {
-        cookie,
-        idempotencyKey: "changed",
-        body: { ...SAVINGS_REQUEST, name: "Kasikorn current" },
-      });
-
       await expectProblem(conflict, {
         status: 409,
         code: "idempotency-conflict",
       });
-      expect(await listWalletItems(app, cookie)).toHaveLength(1);
+      expect(await listWalletItems(app, cookie)).toEqual([original]);
     });
   });
 

@@ -12,13 +12,16 @@ import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
-import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
-import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
+import { readIdempotencyKey } from "../../core/http/idempotency.js";
 import { describeProblemResponse } from "../../core/http/openapi.js";
 import type { problemDetailsSchema } from "../../core/http/problem-details.js";
-import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
+import type {
+  CreationValidatedInput,
+  ResourceCommandValidatedInput,
+} from "../../core/http/request-validation.js";
 import {
   createCommandMiddleware,
+  createCreationMiddleware,
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
 import {
@@ -70,17 +73,6 @@ const tagParamsSchema = z.object({ tagId: z.uuid() });
 const tagParamMiddleware = createResourceParamMiddleware(tagParamsSchema);
 const tagNameCommandMiddleware = createCommandMiddleware(tagNameRequestSchema);
 
-interface CreateTagValidatedInput {
-  in: {
-    json: z.input<typeof tagNameRequestSchema>;
-    header: z.input<typeof idempotencyKeyHeaderSchema>;
-  };
-  out: {
-    json: z.output<typeof tagNameRequestSchema>;
-    header: z.output<typeof idempotencyKeyHeaderSchema>;
-  };
-}
-
 export function createTagRoutes(db: Database) {
   return new Hono<AuthenticatedEnv>()
     .post(
@@ -91,22 +83,19 @@ export function createTagRoutes(db: Database) {
         description:
           "Creates a tag the signed-in owner can put on income and expense " +
           "transactions. Names are trimmed and unique per owner, ignoring " +
-          "case. The request must carry a client-generated Idempotency-Key: " +
-          "repeating it with the same normalized payload replays the " +
-          "original creation, while a different payload is a conflict. A " +
-          "rejected request never consumes its key.",
+          "case. The request must carry a client-generated Idempotency-Key, " +
+          "and a rejected request never consumes it.",
         tags: ["Tags"],
         responses: {
           400: describeProblemResponse(400),
           401: describeProblemResponse(401),
         },
       }),
-      idempotencyKeyMiddleware,
-      tagNameCommandMiddleware,
+      ...createCreationMiddleware(tagNameRequestSchema),
       describeResponse<
         AuthenticatedEnv,
         typeof COLLECTION_PATH,
-        CreateTagValidatedInput,
+        CreationValidatedInput<typeof tagNameRequestSchema>,
         {
           201: typeof tagResponseSchema;
           409: typeof problemDetailsSchema;
@@ -116,7 +105,7 @@ export function createTagRoutes(db: Database) {
         async (c) => {
           const created = await createTag(db, {
             ownerId: c.get("session").user.id,
-            idempotencyKey: c.req.valid("header")["idempotency-key"],
+            idempotencyKey: readIdempotencyKey(c),
             name: c.req.valid("json").name,
           });
           return answerCreation(c, {

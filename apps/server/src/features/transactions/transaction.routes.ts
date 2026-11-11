@@ -26,8 +26,7 @@ import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
-import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
-import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
+import { readIdempotencyKey } from "../../core/http/idempotency.js";
 import {
   moneyInputSchema,
   moneySchema,
@@ -46,11 +45,13 @@ import {
 } from "../../core/http/problem-details.js";
 
 import type {
+  CreationValidatedInput,
   QueryValidatedInput,
   ResourceCommandValidatedInput,
 } from "../../core/http/request-validation.js";
 import {
   createCommandMiddleware,
+  createCreationMiddleware,
   createQueryMiddleware,
   createResourceParamMiddleware,
 } from "../../core/http/request-validation.js";
@@ -215,17 +216,6 @@ export const updateTransactionRequestSchema = z
   })
   .meta({ id: "UpdateTransactionRequest" });
 
-interface CreateTransactionValidatedInput {
-  in: {
-    json: z.input<typeof createTransactionRequestSchema>;
-    header: z.input<typeof idempotencyKeyHeaderSchema>;
-  };
-  out: {
-    json: z.output<typeof createTransactionRequestSchema>;
-    header: z.output<typeof idempotencyKeyHeaderSchema>;
-  };
-}
-
 export type TransactionWalletResponse = z.infer<typeof transactionWalletSchema>;
 
 export type TransactionResponse = z.infer<typeof transactionResponseSchema>;
@@ -373,9 +363,6 @@ const transactionParamsSchema = z.object({ transactionId: z.uuid() });
 const transactionParamMiddleware = createResourceParamMiddleware(
   transactionParamsSchema,
 );
-const transactionCreationCommandMiddleware = createCommandMiddleware(
-  createTransactionRequestSchema,
-);
 const transactionUpdateCommandMiddleware = createCommandMiddleware(
   updateTransactionRequestSchema,
 );
@@ -396,21 +383,19 @@ export function createTransactionRoutes(db: Database) {
           "name an active owned receiving wallet and one of the owner's own " +
           "expenses, follow the expense's category and tags, and cannot " +
           "exceed what remains of it. The request must carry a " +
-          "client-generated Idempotency-Key: repeating it with the same " +
-          "normalized payload replays the original detail, while a different " +
-          "payload is a conflict. A rejected request never consumes its key.",
+          "client-generated Idempotency-Key, and a rejected request never " +
+          "consumes it.",
         tags: ["Transactions"],
         responses: {
           400: describeProblemResponse(400),
           401: describeProblemResponse(401),
         },
       }),
-      idempotencyKeyMiddleware,
-      transactionCreationCommandMiddleware,
+      ...createCreationMiddleware(createTransactionRequestSchema),
       describeResponse<
         AuthenticatedEnv,
         typeof COLLECTION_PATH,
-        CreateTransactionValidatedInput,
+        CreationValidatedInput<typeof createTransactionRequestSchema>,
         {
           201: typeof transactionResponseSchema;
           409: typeof problemDetailsSchema;
@@ -421,7 +406,7 @@ export function createTransactionRoutes(db: Database) {
           const body = c.req.valid("json");
           const created = await createTransaction(db, {
             ownerId: c.get("session").user.id,
-            idempotencyKey: c.req.valid("header")["idempotency-key"],
+            idempotencyKey: readIdempotencyKey(c),
             type: body.type,
             amount: body.amount.amountInMinorUnits,
             walletId: body.walletId,

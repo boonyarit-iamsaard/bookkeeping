@@ -45,3 +45,15 @@ export const idempotencyKeyMiddleware = validator(
     }
   },
 );
+
+/** A validated request the creation middleware has handed to a handler. */
+interface ValidatedKeyRequest {
+  req: {
+    valid: (target: "header") => z.output<typeof idempotencyKeyHeaderSchema>;
+  };
+}
+
+/** The usable key of a creation request, trimmed by the header validator. */
+export function readIdempotencyKey(c: ValidatedKeyRequest): string {
+  return c.req.valid("header")["idempotency-key"];
+}

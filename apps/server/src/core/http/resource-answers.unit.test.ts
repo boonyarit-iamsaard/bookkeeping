@@ -2,6 +2,7 @@ import type { NotFound } from "@bookkeeping/application/shared/not-found";
 import { err, ok } from "@bookkeeping/domain/result";
 import { Hono } from "hono";
 import { describe, expect, test } from "vitest";
+import * as z from "zod";
 import { PROBLEM_MEDIA_TYPE, problemDetailsSchema } from "./problem-details.js";
 import {
   answerCorrection,
@@ -9,6 +10,7 @@ import {
   answerRead,
   answerRemoval,
   answerUnblockedRemoval,
+  describeCreation,
 } from "./resource-answers.js";
 
 type Rejection = { code: "blank-name" } | { code: "idempotency-conflict" };
@@ -165,5 +167,17 @@ describe("resource answers", () => {
     expect(
       await problemOf(await app().request("/tags/0000", { method: "DELETE" })),
     ).toMatchObject({ status: 404, code: "not-found" });
+  });
+});
+
+describe("describeCreation", () => {
+  test("states the 24-hour replay window once, in the shared 201 description", () => {
+    const { 201: creation } = describeCreation("wallet", z.object({}));
+
+    expect(creation.description).toBe(
+      "The created wallet, or the original on a replay: a key replays the " +
+        "original creation for 24 hours, and after that it names a new " +
+        "creation",
+    );
   });
 });
