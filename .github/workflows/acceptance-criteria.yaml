@@ -28,14 +28,19 @@ jobs:
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         run: |
+          # Plain assignments so a failed lookup fails the job instead of
+          # reading as no issues or no unticked criteria. URLs keep each
+          # issue's repository.
+          issues=$(gh pr view "$PR" --repo "$REPO" --json closingIssuesReferences --jq '.closingIssuesReferences[].url')
           failed=0
-          for issue in $(gh pr view "$PR" --repo "$REPO" --json closingIssuesReferences --jq '.closingIssuesReferences[].number'); do
-            unticked=$(gh issue view "$issue" --repo "$REPO" --json body --jq '.body' | grep -cE '^[[:space:]]*[-*] \[ \]' || true)
+          for issue in $issues; do
+            body=$(gh issue view "$issue" --json body --jq '.body')
+            unticked=$(printf '%s\n' "$body" | grep -cE '^[[:space:]]*[-*] \[ \]' || true)
             if [ "$unticked" -gt 0 ]; then
-              echo "::error::#$issue has $unticked unchecked acceptance criteria. Tick each one the Spec review did not report as missing or partial (gh issue edit $issue --body-file <edited body>); if one stays unmet, comment why on the issue and remove its Closes line from this pull request. Then re-run this check."
+              echo "::error::$issue has $unticked unchecked acceptance criteria. Tick each one the Spec review did not report as missing or partial (gh issue edit $issue --body-file <edited body>); if one stays unmet, comment why on the issue and remove its Closes line from this pull request. Then re-run this check."
               failed=1
             else
-              echo "#$issue: every acceptance criterion is ticked."
+              echo "$issue: every acceptance criterion is ticked."
             fi
           done
           exit "$failed"
