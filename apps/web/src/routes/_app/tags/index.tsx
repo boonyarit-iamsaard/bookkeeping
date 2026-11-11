@@ -14,9 +14,6 @@ export const Route = createFileRoute("/_app/tags/")({
 
 function TagsPage() {
   const { data } = useSuspenseQuery(tagQueries.list());
-  if (!data) {
-    throw new Error("The tags query returned no data");
-  }
   return (
     <Page layout="wide">
       <TagManagement tags={data.items} />

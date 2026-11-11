@@ -17,9 +17,8 @@ export async function loadOwnedTransaction(
   queryClient: QueryClient,
   transactionId: string,
 ): Promise<Transaction> {
-  let transaction: Transaction | undefined;
   try {
-    transaction = await queryClient.ensureQueryData(
+    return await queryClient.ensureQueryData(
       transactionQueries.detail(transactionId),
     );
   } catch (error) {
@@ -31,8 +30,4 @@ export async function loadOwnedTransaction(
     }
     throw error;
   }
-  if (!transaction) {
-    throw new Error("The transaction query returned no data");
-  }
-  return transaction;
 }

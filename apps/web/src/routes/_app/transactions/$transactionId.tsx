@@ -37,9 +37,6 @@ function TransactionDetailPage() {
   const { data: transaction } = useSuspenseQuery(
     transactionQueries.detail(transactionId),
   );
-  if (!transaction) {
-    throw new Error("The transaction query returned no data");
-  }
 
   return (
     <Page layout="wide">
@@ -81,9 +78,6 @@ function ExpenseRefundsSection({
   const { data: refunds } = useSuspenseQuery(
     transactionQueries.refunds(transactionId),
   );
-  if (!refunds) {
-    throw new Error("The expense refunds query returned no data");
-  }
   return (
     <ExpenseRefundsView
       expense={{ id: transactionId }}

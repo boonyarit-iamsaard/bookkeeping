@@ -74,9 +74,6 @@ export function Home({
   const { data: daily } = useSuspenseQuery(plan.daily);
   const { data: report } = useSuspenseQuery(plan.monthly);
   const { data: recent } = useSuspenseQuery(plan.recent);
-  if (!walletCollection || !daily || !report || !recent) {
-    throw new Error("The home queries returned no data");
-  }
   const wallets = walletCollection.items;
   const arrive = useFirstShowing(wallets.length > 0);
   const summaryCards: [SummaryStripCard, SummaryStripCard] = [

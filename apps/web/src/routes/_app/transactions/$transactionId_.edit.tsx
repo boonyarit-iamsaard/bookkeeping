@@ -1,4 +1,5 @@
 // biome-ignore lint/style/useFilenamingConvention: TanStack Router dynamic params must be valid JavaScript identifiers.
+import { carriesOwnTags } from "@bookkeeping/domain/transactions";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { components } from "@/core/api/openapi.gen";
@@ -40,7 +41,9 @@ export const Route = createFileRoute("/_app/transactions/$transactionId_/edit")(
       await Promise.all([
         context.queryClient.ensureQueryData(walletQueries.list()),
         context.queryClient.ensureQueryData(categoryQueries.list()),
-        context.queryClient.ensureQueryData(tagQueries.list()),
+        carriesOwnTags(transaction)
+          ? context.queryClient.ensureQueryData(tagQueries.list())
+          : undefined,
         transaction.refundOf
           ? context.queryClient.ensureQueryData(
               transactionQueries.detail(refundedExpenseId),
@@ -73,9 +76,6 @@ function EditTransactionPage() {
     transactionQueries.detail(transactionId),
   );
   const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
-  if (!transaction || !walletCollection) {
-    throw new Error("The transaction edit queries returned no data");
-  }
 
   const wallets = toWalletOptions(walletCollection.items, {
     retainedWalletIds: [
@@ -148,9 +148,6 @@ function EditRefundForm({
   const { data: refunds } = useSuspenseQuery(
     transactionQueries.refunds(expenseId, { excluding: props.transaction.id }),
   );
-  if (!expense || !refunds) {
-    throw new Error("The refunded expense queries returned no data");
-  }
   return (
     <EditForm {...props} refundOf={linkedExpenseView({ expense, refunds })} />
   );
@@ -160,9 +157,6 @@ function EditExpenseForm(props: Readonly<EditTransactionFormProps>) {
   const { data: refunds } = useSuspenseQuery(
     transactionQueries.refunds(props.transaction.id),
   );
-  if (!refunds) {
-    throw new Error("The expense refunds query returned no data");
-  }
   return <EditForm {...props} refunds={refunds} />;
 }
 

@@ -54,9 +54,6 @@ function RefundPage() {
     transactionQueries.refunds(transactionId),
   );
   const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
-  if (!expense || !refunds || !walletCollection) {
-    throw new Error("The refund entry queries returned no data");
-  }
   if (expense.type !== "expense") {
     throw notFound();
   }

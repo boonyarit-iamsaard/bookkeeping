@@ -18,9 +18,6 @@ export const Route = createFileRoute("/_app/categories/")({
 function CategoriesPage() {
   const { data: categoryCollection } = useSuspenseQuery(categoryQueries.list());
   const { data: usageCollection } = useSuspenseQuery(categoryQueries.usage());
-  if (!categoryCollection || !usageCollection) {
-    throw new Error("The categories queries returned no data");
-  }
   const usage = Object.fromEntries(
     usageCollection.items.map((entry) => [
       entry.categoryId,

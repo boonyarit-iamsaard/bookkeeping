@@ -45,9 +45,6 @@ function NewTransactionPage() {
   const { data: entryDefaults } = useSuspenseQuery(
     transactionQueries.entryDefaults(),
   );
-  if (!walletCollection || !entryDefaults) {
-    throw new Error("The transaction entry queries returned no data");
-  }
   const wallets = toWalletOptions(walletCollection.items);
   const captureOrigin = parseCaptureOrigin(search.origin, (pathname) =>
     isSignedInPathname(router, pathname),

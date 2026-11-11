@@ -53,9 +53,6 @@ function TransactionsPage() {
   const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
   const { data: categoryCollection } = useSuspenseQuery(categoryQueries.list());
   const { data: tagCollection } = useSuspenseQuery(tagQueries.list());
-  if (!walletCollection || !categoryCollection || !tagCollection) {
-    throw new Error("The history queries returned no data");
-  }
   const transactions = listQuery && page ? page.items : [];
   const nextCursor = listQuery && page ? page.page.nextCursor : null;
   const justDeleted = search.deleted === 1;
