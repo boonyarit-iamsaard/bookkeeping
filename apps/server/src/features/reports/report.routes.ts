@@ -5,7 +5,11 @@ import {
   getMonthlySummary,
 } from "@bookkeeping/application/transactions/reports";
 import type { Database } from "@bookkeeping/database/connection";
-import { parseCalendarDate } from "@bookkeeping/domain/dates";
+import {
+  isReportMonth,
+  parseCalendarDate,
+  REPORT_MONTH_PATTERN,
+} from "@bookkeeping/domain/dates";
 import type {
   CategorySpending,
   ClosingBalances,
@@ -47,19 +51,13 @@ export const monthlyReportResponseSchema = z
 
 export type MonthlyReportResponse = z.infer<typeof monthlyReportResponseSchema>;
 
-/** The month grammar the product reports in: YYYY-MM over real calendar months. */
-const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
-
 /** The date grammar of a daily report: YYYY-MM-DD, with real dates checked by `parseCalendarDate`. */
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export const monthlyReportQuerySchema = z.strictObject({
-  month: z
-    .string()
-    .regex(MONTH_PATTERN)
-    .refine(
-      (value) => value >= "0001-01" && parseCalendarDate(`${value}-01`).ok,
-    ),
+  // The pattern stays so the published schema still documents the grammar;
+  // `isReportMonth` is the authority.
+  month: z.string().regex(REPORT_MONTH_PATTERN).refine(isReportMonth),
 });
 
 const monthlyReportQueryMiddleware = createQueryMiddleware(

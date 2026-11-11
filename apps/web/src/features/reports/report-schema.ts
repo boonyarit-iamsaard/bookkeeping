@@ -1,5 +1,5 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import { parseCalendarDate } from "@bookkeeping/domain/dates";
+import { isReportMonth, parseCalendarDate } from "@bookkeeping/domain/dates";
 import { z } from "zod";
 import { reportMonthOf } from "./report-month";
 
@@ -11,12 +11,7 @@ const calendarDate = z
   );
 
 export const reportSchema = z.object({
-  month: z
-    .string()
-    .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
-    .refine(
-      (value) => value >= "0001-01" && parseCalendarDate(`${value}-01`).ok,
-    ),
+  month: z.string().refine(isReportMonth),
   asOf: calendarDate,
 });
 
