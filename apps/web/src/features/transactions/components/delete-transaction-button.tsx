@@ -8,7 +8,7 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import * as z from "zod";
 import { apiClient } from "@/core/api/client";
-import { parseApiMoney } from "@/core/api/money";
+import { apiMoneySchema } from "@/core/api/money";
 import { transactionQueries } from "@/core/api/queries";
 import { describeRejection } from "@/core/api/rejection-wording";
 import { useFormWrites } from "@/core/api/use-form-writes";
@@ -39,7 +39,7 @@ const BLOCKED_STATUS = 409;
 const refundsExistProblemSchema = z.object({
   refunds: z.array(
     z.object({
-      amount: z.object({ value: z.string(), currency: z.literal("THB") }),
+      amount: apiMoneySchema,
       transactionDate: z.string(),
     }),
   ),
@@ -69,7 +69,7 @@ function describeBlocked(rejection: Readonly<ApiRejection>): string {
   const refunds = parsed.data.refunds
     .map(
       (refund) =>
-        `${formatMoney({ amountInMinorUnits: parseApiMoney(refund.amount), currency: "THB" })} on ${formatCalendarDate(refund.transactionDate)}`,
+        `${formatMoney({ amountInMinorUnits: refund.amount, currency: "THB" })} on ${formatCalendarDate(refund.transactionDate)}`,
     )
     .join(", ");
   return `This expense has linked refunds: ${refunds}. Delete each refund first, then delete the expense.`;

@@ -1,8 +1,5 @@
-import {
-  APP_TIME_ZONE,
-  parseCalendarDate,
-  todayIn,
-} from "@bookkeeping/domain/dates";
+import type { CalendarDate } from "@bookkeeping/domain/dates";
+import { parseCalendarDate } from "@bookkeeping/domain/dates";
 import type { MoneyParseError } from "@bookkeeping/domain/money";
 import { parseMoneyInput } from "@bookkeeping/domain/money";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
@@ -15,8 +12,11 @@ const AMOUNT_MESSAGES: Record<MoneyParseError, string> = {
   "too-large": "That amount is larger than the app can store",
 };
 
-/** Parses the create-wallet form into the exact domain opening amount. */
-export const walletFormSchema = z.object({
+interface WalletFormSchemaOptions {
+  today: CalendarDate;
+}
+
+const walletFormFields = {
   name: z.string().trim().min(1, "Enter a wallet name"),
   type: z.enum(WALLET_TYPES, { error: "Choose a wallet type" }),
   savings: z.boolean(),
@@ -30,11 +30,22 @@ export const walletFormSchema = z.object({
   }),
   openingDate: z
     .string()
-    .refine((value) => parseCalendarDate(value).ok, "Enter the opening date")
-    .refine(
-      (value) => value <= todayIn({ timeZone: APP_TIME_ZONE }),
+    .refine((value) => parseCalendarDate(value).ok, "Enter the opening date"),
+};
+
+/** Parses the create-wallet form into the exact domain opening amount. */
+export function createWalletFormSchema({
+  today,
+}: Readonly<WalletFormSchemaOptions>) {
+  return z.object({
+    ...walletFormFields,
+    openingDate: walletFormFields.openingDate.refine(
+      (value) => value <= today,
       "Opening date cannot be in the future",
     ),
-});
+  });
+}
 
-export type WalletFormInput = z.input<typeof walletFormSchema>;
+export type WalletFormInput = z.input<
+  ReturnType<typeof createWalletFormSchema>
+>;

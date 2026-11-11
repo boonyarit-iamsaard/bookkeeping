@@ -1,9 +1,5 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import {
-  APP_TIME_ZONE,
-  parseCalendarDate,
-  todayIn,
-} from "@bookkeeping/domain/dates";
+import { parseCalendarDate } from "@bookkeeping/domain/dates";
 import type { MoneyParseError } from "@bookkeeping/domain/money";
 import { parseMoneyInput } from "@bookkeeping/domain/money";
 import {
@@ -49,6 +45,7 @@ const REQUIRED_FIELD_HINTS = {
 } as const;
 
 interface TransactionFormSchemaOptions {
+  today: CalendarDate;
   /**
    * Opening dates of the wallets offered, so the form can name the date
    * inline. The server re-checks against the stored wallet regardless.
@@ -64,7 +61,7 @@ export interface LinkedExpenseLimits {
   refundAllowance: bigint;
 }
 
-function transactionFields() {
+function transactionFields(today: CalendarDate) {
   return {
     type: z.enum(TRANSACTION_TYPES, {
       error: "Choose income, expense, or transfer",
@@ -100,10 +97,7 @@ function transactionFields() {
     transactionDate: z
       .string()
       .refine((value) => parseCalendarDate(value).ok, "Enter the date")
-      .refine(
-        (value) => value <= todayIn({ timeZone: APP_TIME_ZONE }),
-        mirroredHint({ code: "future-date" }),
-      ),
+      .refine((value) => value <= today, mirroredHint({ code: "future-date" })),
     note: z
       .string()
       .refine(
@@ -217,10 +211,10 @@ function transactionFieldCheck({
  * are parsed again in the API.
  */
 export function createTransactionFormSchema(
-  options: Readonly<TransactionFormSchemaOptions> = {},
+  options: Readonly<TransactionFormSchemaOptions>,
 ) {
   return z
-    .object(transactionFields())
+    .object(transactionFields(options.today))
     .superRefine(transactionFieldCheck(options));
 }
 

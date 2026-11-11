@@ -42,6 +42,10 @@ _Avoid_: End-of-day balance, daily balance
 **Transaction date**:
 The date a money movement occurred, used to determine its effect on wallet balances and period totals.
 
+**Today**:
+The current calendar date in Bangkok, the app's one time zone. No Transaction date or opening date may fall after it.
+_Avoid_: Current date, local date
+
 **Recording time**:
 The time a transaction was originally entered into the app, distinct from its transaction date.
 

@@ -1,4 +1,3 @@
-import type { CalendarDate } from "@bookkeeping/domain/dates";
 import {
   formatCalendarDate,
   parseCalendarDate,
@@ -42,18 +41,9 @@ function describeOpeningDate(value: string): string {
   return `The balance above is what the wallet held at the start of ${date}. Tracking begins there.`;
 }
 
-interface CreateWalletFormProps {
-  /** Today in Asia/Bangkok, computed by the route. */
-  defaultOpeningDate: CalendarDate;
-}
-
-export function CreateWalletForm({
-  defaultOpeningDate,
-}: Readonly<CreateWalletFormProps>) {
+export function CreateWalletForm() {
   const navigate = useNavigate();
-  const { form, serverError, serverFieldErrors } = useCreateWalletForm({
-    defaultOpeningDate,
-  });
+  const { form, today, serverError, serverFieldErrors } = useCreateWalletForm();
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -224,8 +214,8 @@ export function CreateWalletForm({
                   <DatePicker
                     id={field.name}
                     name={field.name}
-                    today={defaultOpeningDate}
-                    max={defaultOpeningDate}
+                    today={today}
+                    max={today}
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={field.handleChange}

@@ -40,6 +40,13 @@ export function linkedExpenseView({
   };
 }
 
+/** A UI hint mirroring the server's `exceeds-refundable` rule. */
+export function canRecordRefund(
+  refunds: Readonly<Pick<ApiTransactionRefunds, "refundAllowance">>,
+): boolean {
+  return parseApiMoney(refunds.refundAllowance) > 0n;
+}
+
 /** The allowance for reading: "฿300.00". */
 export function refundAllowanceLabel(
   expense: Readonly<Pick<LinkedExpenseView, "refundAllowance">>,

@@ -8,7 +8,7 @@ import {
   MIN_TRANSACTION_AMOUNT,
 } from "@bookkeeping/domain/transactions";
 import * as z from "zod";
-import { parseApiMoney } from "@/core/api/money";
+import { apiMoneySchema } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import { createFactualFieldErrorDescriber } from "@/core/api/rejection-wording";
 import type { ApiFieldError } from "@/core/api/write-submission";
@@ -78,10 +78,6 @@ function formatBaht(amountInMinorUnits: bigint): string {
   return formatMoney({ amountInMinorUnits, currency: "THB" });
 }
 
-const moneySchema = z
-  .object({ value: z.string(), currency: z.literal("THB") })
-  .transform(parseApiMoney);
-
 /** The published variant's facts in, the domain's facts out. */
 type FactReaders = {
   [Code in FactualCode]: z.ZodType<
@@ -95,11 +91,11 @@ type FactReaders = {
 const FACT_READERS: FactReaders = {
   "exceeds-refundable": z.object({
     code: z.literal("exceeds-refundable"),
-    refundAllowance: moneySchema,
+    refundAllowance: apiMoneySchema,
   }),
   "below-refunded": z.object({
     code: z.literal("below-refunded"),
-    refundedTotal: moneySchema,
+    refundedTotal: apiMoneySchema,
   }),
   "after-refund": z.object({
     code: z.literal("after-refund"),

@@ -1,6 +1,5 @@
-import { formatMoneyInput } from "@bookkeeping/domain/money";
 import { useState } from "react";
-import type { ApiMoney } from "@/core/api/money";
+import { presentApiMoney } from "@/core/api/money";
 import { chartMarkClass } from "@/shared/components/chart/chart-series";
 import { ChartSwatch } from "@/shared/components/chart/chart-swatch";
 import { Money } from "@/shared/components/money";
@@ -13,17 +12,12 @@ interface TrendChartProps {
   points: readonly TrendPoint[];
 }
 
+const CURRENCY = "THB";
+
 const SERIES = [
   { key: "income", label: "Income", series: "income" },
   { key: "netExpenses", label: "Net expenses", series: "expense" },
 ] as const;
-
-function toApiMoney(amountInMinorUnits: bigint): ApiMoney {
-  return {
-    value: formatMoneyInput({ amountInMinorUnits, currency: "THB" }),
-    currency: "THB",
-  };
-}
 
 /**
  * The level 2 chart: Income and Net expenses for the six months ending at the
@@ -66,10 +60,20 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
               <tr key={point.month}>
                 <th scope="row">{formatReportMonth(point.month)}</th>
                 <td>
-                  <Money amount={toApiMoney(point.income)} />
+                  <Money
+                    amount={presentApiMoney({
+                      amountInMinorUnits: point.income,
+                      currency: CURRENCY,
+                    })}
+                  />
                 </td>
                 <td>
-                  <Money amount={toApiMoney(point.netExpenses)} />
+                  <Money
+                    amount={presentApiMoney({
+                      amountInMinorUnits: point.netExpenses,
+                      currency: CURRENCY,
+                    })}
+                  />
                 </td>
               </tr>
             ))}
@@ -152,7 +156,12 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
                   {series.label}
                 </dt>
                 <dd>
-                  <Money amount={toApiMoney(selected[series.key])} />
+                  <Money
+                    amount={presentApiMoney({
+                      amountInMinorUnits: selected[series.key],
+                      currency: CURRENCY,
+                    })}
+                  />
                 </dd>
               </div>
             ))}

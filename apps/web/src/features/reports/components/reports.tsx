@@ -3,9 +3,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
-import { useBangkokToday } from "@/features/transactions/hooks/use-bangkok-today";
 import { DatePicker } from "@/shared/components/date-picker";
 import { MonthPicker } from "@/shared/components/month-picker";
+import { useToday } from "@/shared/hooks/use-today";
 import { reportMonthOf } from "../report-month";
 import { useReportView } from "../report-reads";
 import type { ReportSearch } from "../report-schema";
@@ -18,7 +18,7 @@ interface ReportsProps {
 }
 
 export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
-  const today = useBangkokToday(initialToday);
+  const today = useToday(initialToday);
   const thisMonth = reportMonthOf(today);
   const [comparedWalletId, setComparedWalletId] = useState<string>();
   const report = useReportView({ search, today, comparedWalletId });

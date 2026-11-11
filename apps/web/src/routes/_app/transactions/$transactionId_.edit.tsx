@@ -1,5 +1,4 @@
 // biome-ignore lint/style/useFilenamingConvention: TanStack Router dynamic params must be valid JavaScript identifiers.
-import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { components } from "@/core/api/openapi.gen";
@@ -181,7 +180,6 @@ function EditForm({
   return (
     <TransactionForm
       wallets={wallets}
-      today={todayIn({ timeZone: APP_TIME_ZONE })}
       mode={{
         kind: "correct",
         transaction: editableTransaction({ transaction, refundOf, refunds }),

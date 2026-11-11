@@ -5,6 +5,7 @@ import {
   carriesOwnCategory,
   carriesOwnTags,
 } from "@bookkeeping/domain/transactions";
+import { presentApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import type { CaptureOrigin } from "@/features/transactions/capture-origin";
 import { captureOriginHref } from "@/features/transactions/capture-origin";
@@ -50,7 +51,7 @@ export interface TransactionEntry {
 interface OpenEntryOptions {
   mode: EntryMode;
   categories: readonly CategoryOption[];
-  /** Today in Asia/Bangkok, read by the route. */
+  /** Today in Asia/Bangkok when the form first opened. */
   today: CalendarDate;
 }
 
@@ -187,13 +188,10 @@ export type EntryRequest =
 
 function wireFieldsOf(values: Readonly<TransactionFormValues>) {
   return {
-    amount: {
-      value: formatMoneyInput({
-        amountInMinorUnits: values.amount,
-        currency: values.currency,
-      }),
+    amount: presentApiMoney({
+      amountInMinorUnits: values.amount,
       currency: values.currency,
-    },
+    }),
     walletId: values.walletId,
     transactionDate: values.transactionDate,
     note: values.note,

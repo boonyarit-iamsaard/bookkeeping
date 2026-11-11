@@ -20,7 +20,7 @@ interface MoneyInput {
   currency: Currency;
 }
 
-interface MoneyAmount {
+export interface MoneyAmount {
   amountInMinorUnits: bigint;
   currency: Currency;
 }

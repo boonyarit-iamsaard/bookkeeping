@@ -1,5 +1,4 @@
 import { Dialog } from "@base-ui/react/dialog";
-import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Check, Hash, SlidersHorizontal, TriangleAlert, X } from "lucide-react";
@@ -18,6 +17,7 @@ import { ErrorNotice } from "@/shared/components/error-notice";
 import { Button } from "@/shared/components/ui/button";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/helpers/cn";
+import { useToday } from "@/shared/hooks/use-today";
 
 type ApiWallet = components["schemas"]["Wallet"];
 type ApiCategory = components["schemas"]["Category"];
@@ -136,10 +136,10 @@ export function HistoryFilters({
 }: Readonly<HistoryFiltersProps>) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const today = useToday();
   function value(key: (typeof HISTORY_FILTER_KEYS)[number]) {
     return values[key] ?? "";
   }
-  const today = todayIn({ timeZone: APP_TIME_ZONE });
 
   function showFilters(search: HistoryFilterValues) {
     setOpen(false);
