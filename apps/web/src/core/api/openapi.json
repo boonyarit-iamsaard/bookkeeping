@@ -529,6 +529,129 @@
         ],
         "additionalProperties": false
       },
+      "CategoryRejectionProblem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "bad-request",
+              "conflict",
+              "forbidden",
+              "has-children",
+              "history-remains",
+              "idempotency-conflict",
+              "idempotency-key-required",
+              "in-use",
+              "internal-error",
+              "invalid-command",
+              "method-not-allowed",
+              "not-found",
+              "protected",
+              "rate-limited",
+              "refunds-exist",
+              "service-unavailable",
+              "unauthenticated"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryFieldError"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": {}
+      },
+      "CategoryFieldError": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CategoryRuleFieldError"
+          },
+          {
+            "$ref": "#/components/schemas/CategoryValidationFieldError"
+          }
+        ]
+      },
+      "CategoryRuleFieldError": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CategoryPlainRuleFieldError"
+          }
+        ]
+      },
+      "CategoryPlainRuleFieldError": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "blank-name",
+              "name-too-long",
+              "unknown-icon",
+              "duplicate-name",
+              "parent-not-found",
+              "parent-is-child",
+              "parent-protected",
+              "protected"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pointer",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "CategoryValidationFieldError": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pointer",
+          "code"
+        ],
+        "additionalProperties": false,
+        "$ref": "#/components/schemas/ProblemFieldError"
+      },
       "CategoryCollection": {
         "type": "object",
         "properties": {
@@ -2483,7 +2606,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/CategoryRejectionProblem"
                 }
               }
             }
@@ -2722,7 +2845,7 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/CategoryRejectionProblem"
                 }
               }
             }

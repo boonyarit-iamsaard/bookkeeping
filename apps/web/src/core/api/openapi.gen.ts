@@ -458,6 +458,25 @@ export interface components {
             items: components["schemas"]["Category"][];
             page: components["schemas"]["Page"];
         };
+        CategoryFieldError: components["schemas"]["CategoryRuleFieldError"] | components["schemas"]["CategoryValidationFieldError"];
+        CategoryPlainRuleFieldError: {
+            /** @enum {string} */
+            code: "blank-name" | "name-too-long" | "unknown-icon" | "duplicate-name" | "parent-not-found" | "parent-is-child" | "parent-protected" | "protected";
+            detail?: string;
+            pointer: string;
+        };
+        CategoryRejectionProblem: {
+            /** @enum {string} */
+            code: "bad-request" | "conflict" | "forbidden" | "has-children" | "history-remains" | "idempotency-conflict" | "idempotency-key-required" | "in-use" | "internal-error" | "invalid-command" | "method-not-allowed" | "not-found" | "protected" | "rate-limited" | "refunds-exist" | "service-unavailable" | "unauthenticated";
+            detail?: string;
+            errors?: components["schemas"]["CategoryFieldError"][];
+            instance?: string;
+            status: number;
+            title: string;
+            type: string;
+        } & {
+            [key: string]: unknown;
+        };
         CategoryRemovalProblem: {
             /** @enum {string} */
             code: "protected" | "has-children" | "in-use";
@@ -470,6 +489,7 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        CategoryRuleFieldError: components["schemas"]["CategoryPlainRuleFieldError"];
         CategorySpending: {
             month: string;
             netExpenses: components["schemas"]["Money"];
@@ -488,6 +508,7 @@ export interface components {
             categoryId: string;
             transactions: number;
         };
+        CategoryValidationFieldError: components["schemas"]["ProblemFieldError"];
         ChildCategorySpending: {
             /** Format: uuid */
             id: string;
@@ -1034,7 +1055,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/problem+json": components["schemas"]["CategoryRejectionProblem"];
                 };
             };
             /** @description Internal server error */
@@ -1210,7 +1231,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/problem+json": components["schemas"]["CategoryRejectionProblem"];
                 };
             };
             /** @description Internal server error */
