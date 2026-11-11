@@ -208,6 +208,39 @@ describe("defineIdempotentCreation", () => {
     expect(await listOwnerCategories(db, owner.id)).toHaveLength(1);
   });
 
+  test("concurrent creations under different keys sweep one owner's expired receipts without deadlock", async () => {
+    const db = committed();
+    const owner = await createTestUser(db);
+    const staleKeys = Array.from(
+      { length: 40 },
+      (_, index) => `stale-${index}`,
+    );
+    for (const key of staleKeys) {
+      await createCategory(db, {
+        ownerId: owner.id,
+        idempotencyKey: key,
+        name: key,
+      });
+    }
+    await expireReceipts(db, { ownerId: owner.id });
+    const freshKeys = Array.from({ length: 8 }, (_, index) => `fresh-${index}`);
+
+    const outcomes = await Promise.all(
+      freshKeys.map((key) =>
+        createCategory(db, {
+          ownerId: owner.id,
+          idempotencyKey: key,
+          name: key,
+        }),
+      ),
+    );
+
+    expect(outcomes.every((outcome) => outcome.ok)).toBe(true);
+    expect(await listOwnerReceiptKeys(db, owner.id)).toEqual(
+      [...freshKeys].sort(),
+    );
+  });
+
   test("a rejection from prepare creates nothing and leaves the key unused", async () => {
     await withRollback(async (db) => {
       const owner = await createTestUser(db);

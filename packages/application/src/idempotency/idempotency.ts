@@ -3,7 +3,7 @@ import type { Database } from "@bookkeeping/database/connection";
 import { creationReceipts } from "@bookkeeping/database/idempotency";
 import type { Result } from "@bookkeeping/domain/result";
 import { err, ok } from "@bookkeeping/domain/result";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 export interface StoredCreationResultObject {
   readonly [key: string]: StoredCreationResult;
@@ -107,15 +107,29 @@ export interface IdempotencyConflict {
 export const CREATION_REPLAY_WINDOW_HOURS = 24;
 
 /** What every creator input carries besides the command itself. */
-export interface IdempotentCreationScope {
+export interface IdempotentCreationRequest {
   /** Always derived from the authenticated session. */
   ownerId: string;
   /** Client-generated; one key names one logical creation for this owner. */
   idempotencyKey: string;
 }
 
+/**
+ * The creator `defineIdempotentCreation` returns. A module declares its
+ * exported creator with this type, so the contract is authored while the
+ * definition's inferred return must still conform to it.
+ */
+export type IdempotentCreator<
+  Input extends IdempotentCreationRequest,
+  Value,
+  Rejection,
+> = (
+  db: Database,
+  input: Readonly<Input>,
+) => Promise<Result<Value, Rejection | IdempotencyConflict>>;
+
 export interface IdempotentCreationDefinition<
-  Input extends IdempotentCreationScope,
+  Input extends IdempotentCreationRequest,
   Command extends object,
   Created,
   PrepareRejection,
@@ -157,7 +171,7 @@ export interface IdempotentCreationDefinition<
  * older receipts is kept.
  */
 export function defineIdempotentCreation<
-  Input extends IdempotentCreationScope,
+  Input extends IdempotentCreationRequest,
   Command extends object,
   Created,
   PrepareRejection,
@@ -172,12 +186,7 @@ export function defineIdempotentCreation<
       InsertRejection
     >
   >,
-): (
-  db: Database,
-  input: Readonly<Input>,
-) => Promise<
-  Result<Created, PrepareRejection | InsertRejection | IdempotencyConflict>
-> {
+): IdempotentCreator<Input, Created, PrepareRejection | InsertRejection> {
   const { operation } = definition;
   return async (db, input) => {
     const prepared = definition.prepare(input);
@@ -189,7 +198,7 @@ export function defineIdempotentCreation<
     const payloadFingerprint = fingerprintValidatedPayload(command);
     return db.transaction(async (tx) => {
       await lockCreationScope(tx, { ownerId, operation, key });
-      await purgeExpiredReceipts(tx, ownerId);
+      await purgeExpiredReceipts(tx, { ownerId, operation, key });
       const [receipt] = await tx
         .select({
           payloadFingerprint: creationReceipts.payloadFingerprint,
@@ -230,7 +239,8 @@ export function defineIdempotentCreation<
   };
 }
 
-interface CreationScope {
+/** One receipt's identity: the creation scope a lock and a purge both address. */
+interface ReceiptScope {
   ownerId: string;
   operation: string;
   key: string;
@@ -238,7 +248,7 @@ interface CreationScope {
 
 async function lockCreationScope(
   db: Database,
-  { ownerId, operation, key }: Readonly<CreationScope>,
+  { ownerId, operation, key }: Readonly<ReceiptScope>,
 ): Promise<void> {
   const scope = JSON.stringify([ownerId, operation, key]);
   await db.execute(
@@ -246,19 +256,38 @@ async function lockCreationScope(
   );
 }
 
-/** Deletes the owner's receipts past their window, so an expired key counts as absent. */
+const receiptIsExpired = sql`${creationReceipts.createdAt} < now() - make_interval(hours => ${CREATION_REPLAY_WINDOW_HOURS})`;
+
+/**
+ * Deletes the owner's receipts past their window, so an expired key counts as
+ * absent. This key's own expired receipt goes first and is awaited, since the
+ * creation needs it gone. The owner-wide sweep that follows runs under a
+ * per-key lock, so it takes only rows nobody else holds: a concurrent
+ * creation under another key sweeps the rest, and no two wait on each
+ * other's rows.
+ */
 async function purgeExpiredReceipts(
   db: Database,
-  ownerId: string,
+  { ownerId, operation, key }: Readonly<ReceiptScope>,
 ): Promise<void> {
   await db
     .delete(creationReceipts)
     .where(
       and(
         eq(creationReceipts.userId, ownerId),
-        sql`${creationReceipts.createdAt} < now() - make_interval(hours => ${CREATION_REPLAY_WINDOW_HOURS})`,
+        eq(creationReceipts.operation, operation),
+        eq(creationReceipts.key, key),
+        receiptIsExpired,
       ),
     );
+  const unclaimed = db
+    .select({ id: creationReceipts.id })
+    .from(creationReceipts)
+    .where(and(eq(creationReceipts.userId, ownerId), receiptIsExpired))
+    .for("update", { skipLocked: true });
+  await db
+    .delete(creationReceipts)
+    .where(inArray(creationReceipts.id, unclaimed));
 }
 
 /**
