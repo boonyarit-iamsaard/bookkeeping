@@ -1,5 +1,7 @@
+import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { describe, expect, test } from "vitest";
+import { listCategories } from "../categories/category";
 import { insertTransaction } from "../testing/transaction-fixture";
 import {
   recordExpense,
@@ -11,7 +13,11 @@ import {
   deleteTransaction,
   updateTransaction,
 } from "./transaction";
-import { getDailySummary, getMonthlySummary } from "./transaction-reports";
+import {
+  getCategorySpending,
+  getDailySummary,
+  getMonthlySummary,
+} from "./transaction-reports";
 
 const { withRollback } = setupTestDatabase();
 
@@ -285,6 +291,141 @@ describe("getDailySummary", () => {
         net: 60_000n,
         transactionCount: 3,
       });
+    });
+  });
+});
+
+async function expenseCategoryId(
+  db: Database,
+  { ownerId, name }: { ownerId: string; name: string },
+): Promise<string> {
+  const category = (await listCategories(db, ownerId)).find(
+    (candidate) => candidate.kind === "expense" && candidate.name === name,
+  );
+  if (!category) {
+    throw new Error(`Missing expense category ${name}`);
+  }
+  return category.id;
+}
+
+describe("getCategorySpending share base", () => {
+  test("equals Net expenses when every parent has positive spending", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const fuel = await expenseCategoryId(db, {
+        ownerId: owner.ownerId,
+        name: "Fuel",
+      });
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        amount: 30_000n,
+        transactionDate: "2026-09-10",
+      });
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: fuel,
+        amount: 20_000n,
+        transactionDate: "2026-09-11",
+      });
+
+      const spending = await getCategorySpending(db, {
+        ownerId: owner.ownerId,
+        month: "2026-09",
+      });
+
+      expect(spending.netExpenses).toBe(50_000n);
+      expect(spending.shareBase).toBe(50_000n);
+    });
+  });
+
+  test("leaves out a parent whose refunds outran its spending, so it exceeds Net expenses", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const fuel = await expenseCategoryId(db, {
+        ownerId: owner.ownerId,
+        name: "Fuel",
+      });
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        amount: 30_000n,
+        transactionDate: "2026-09-10",
+      });
+      const earlierFuel = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: fuel,
+        amount: 20_000n,
+        transactionDate: "2026-08-31",
+      });
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "refund",
+        walletId: owner.bankId,
+        refundOfTransactionId: earlierFuel,
+        amount: 20_000n,
+        transactionDate: "2026-09-05",
+      });
+
+      const spending = await getCategorySpending(db, {
+        ownerId: owner.ownerId,
+        month: "2026-09",
+      });
+
+      expect(spending.netExpenses).toBe(10_000n);
+      expect(spending.shareBase).toBe(30_000n);
+    });
+  });
+
+  test("is zero for a month where no parent has positive spending", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+      const earlier = await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "expense",
+        walletId: owner.cashId,
+        categoryId: owner.childId,
+        amount: 30_000n,
+        transactionDate: "2026-08-31",
+      });
+      await insertTransaction(db, {
+        ownerId: owner.ownerId,
+        type: "refund",
+        walletId: owner.bankId,
+        refundOfTransactionId: earlier,
+        amount: 30_000n,
+        transactionDate: "2026-09-05",
+      });
+
+      const spending = await getCategorySpending(db, {
+        ownerId: owner.ownerId,
+        month: "2026-09",
+      });
+
+      expect(spending.netExpenses).toBe(-30_000n);
+      expect(spending.shareBase).toBe(0n);
+    });
+  });
+
+  test("is zero for a month with no activity", async () => {
+    await withRollback(async (db) => {
+      const owner = await setupOwner(db);
+
+      const spending = await getCategorySpending(db, {
+        ownerId: owner.ownerId,
+        month: "2026-09",
+      });
+
+      expect(spending.parents).toEqual([]);
+      expect(spending.shareBase).toBe(0n);
     });
   });
 });

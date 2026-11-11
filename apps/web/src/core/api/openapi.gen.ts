@@ -494,6 +494,7 @@ export interface components {
             month: string;
             netExpenses: components["schemas"]["Money"];
             parents: components["schemas"]["ParentCategorySpending"][];
+            shareBase: components["schemas"]["Money"];
         };
         CategoryUsage: {
             children: number;

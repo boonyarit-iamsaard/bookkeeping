@@ -1,9 +1,11 @@
 import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 
-type MonthlyReport = components["schemas"]["MonthlyReport"];
+export type MonthlyReport = components["schemas"]["MonthlyReport"];
 
-const TREND_LENGTH = 6;
+/** How many months the trend covers; `TREND_HEADING` names the same number. */
+export const TREND_LENGTH = 6;
+export const TREND_HEADING = "Last six months";
 /** January of year 1, counted in months since year 0. */
 const FIRST_MONTH_INDEX = 12;
 

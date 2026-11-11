@@ -23,6 +23,18 @@ export function parseCalendarDate(
   return ok(value);
 }
 
+/** The grammar of a report month, YYYY-MM; `isReportMonth` is the full rule. */
+export const REPORT_MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** Whether a value is a report month: YYYY-MM, a real calendar month, no earlier than 0001-01. */
+export function isReportMonth(value: string): boolean {
+  return (
+    REPORT_MONTH_PATTERN.test(value) &&
+    value >= "0001-01" &&
+    parseCalendarDate(`${value}-01`).ok
+  );
+}
+
 function partOf(
   parts: readonly Intl.DateTimeFormatPart[],
   type: Intl.DateTimeFormatPartTypes,

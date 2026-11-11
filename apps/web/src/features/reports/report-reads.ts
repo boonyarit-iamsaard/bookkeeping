@@ -5,15 +5,12 @@ import type {
   QueryKey,
 } from "@tanstack/react-query";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { components } from "@/core/api/openapi.gen";
 import { reportQueries, walletQueries } from "@/core/api/queries";
-import { createBalanceTrend } from "./balance-trend";
-import { createCategoryBreakdown } from "./category-breakdown";
 import type { ReportSearch, ReportValues } from "./report-schema";
 import { reportSchema, reportValues } from "./report-schema";
-import { createTrendSeries, trendMonths } from "./trend-series";
-
-type ClosingBalances = components["schemas"]["ClosingBalances"];
+import type { ReportView } from "./report-view";
+import { buildReportView, comparisonStandIn } from "./report-view";
+import { trendMonths } from "./trend-series";
 
 /** Keeps a typed observation and its preload together in the one inventory. */
 function reportRead<Data, Key extends QueryKey>(
@@ -84,26 +81,18 @@ export async function preloadReports({
   }
 }
 
-/** A pending comparison may supply totals, but never another Wallet's figures. */
-function totalsOnly(balances: Readonly<ClosingBalances>): ClosingBalances {
-  return {
-    month: balances.month,
-    entries: balances.entries.map(({ date, total }) => ({ date, total })),
-  };
-}
-
-interface UseReportReadsOptions {
+interface UseReportViewOptions {
   search: Readonly<ReportSearch>;
   today: CalendarDate;
   comparedWalletId: string | undefined;
 }
 
-/** All report readiness and comparison identity stay behind this interface. */
-export function useReportReads({
+/** Wires the report's reads into the report view; the view builder owns what they mean. */
+export function useReportView({
   search,
   today,
   comparedWalletId,
-}: Readonly<UseReportReadsOptions>) {
+}: Readonly<UseReportViewOptions>): ReportView {
   const reads = createReportReads(search, today);
   const queryClient = useQueryClient();
   const observation = { enabled: reads.valid, throwOnError: true };
@@ -116,9 +105,13 @@ export function useReportReads({
     ...reportQueries.closingBalances(reads.values.month, comparedWalletId),
     ...observation,
     placeholderData: (previous) =>
-      previous?.month === reads.values.month
-        ? previous
-        : queryClient.getQueryData(reads.base.closingBalances.options.queryKey),
+      comparisonStandIn({
+        previous,
+        month: reads.values.month,
+        uncompared: queryClient.getQueryData(
+          reads.base.closingBalances.options.queryKey,
+        ),
+      }),
   });
   const currentWallets = useQuery({
     ...reads.base.currentWallets.options,
@@ -134,38 +127,22 @@ export function useReportReads({
       throwOnError: true,
     })),
   });
-  const controls = { values: reads.values, invalidFields: reads.invalidFields };
-  if (!reads.valid) {
-    return { ...controls, state: "invalid" as const };
-  }
-  const trendReports = trendQueries.flatMap((query) =>
-    query.data ? [query.data] : [],
-  );
-  if (
-    report.data === undefined ||
-    categorySpending.data === undefined ||
-    closingBalances.data === undefined ||
-    currentWallets.data === undefined ||
-    datedWallets.data === undefined ||
-    trendReports.length !== reads.trend.length
-  ) {
-    return { ...controls, state: "loading" as const };
-  }
-  return {
-    ...controls,
-    state: "ready" as const,
-    summary: report.data,
-    categoryBreakdown: createCategoryBreakdown(categorySpending.data),
-    balanceTrend: createBalanceTrend(
-      closingBalances.isPlaceholderData
-        ? totalsOnly(closingBalances.data)
-        : closingBalances.data,
-      reads.values.asOf,
-    ),
-    trend: createTrendSeries(trendReports),
-    currentWallets: currentWallets.data.items,
-    currentTotal: currentWallets.data.balance.total,
-    datedWallets: datedWallets.data.items,
-    datedTotal: datedWallets.data.balance.total,
-  };
+  return buildReportView({
+    address: {
+      valid: reads.valid,
+      values: reads.values,
+      invalidFields: reads.invalidFields,
+    },
+    reads: {
+      monthly: report.data,
+      categorySpending: categorySpending.data,
+      closingBalances: {
+        data: closingBalances.data,
+        isStandIn: closingBalances.isPlaceholderData,
+      },
+      currentWallets: currentWallets.data,
+      datedWallets: datedWallets.data,
+      trend: trendQueries.map((query) => query.data),
+    },
+  });
 }

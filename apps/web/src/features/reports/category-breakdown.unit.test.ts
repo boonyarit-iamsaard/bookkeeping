@@ -37,7 +37,18 @@ function spending(
   return {
     month: "2026-09",
     netExpenses: { value: netExpenses, currency: "THB" },
+    shareBase: { value: netExpenses, currency: "THB" },
     parents: [...parents],
+  };
+}
+
+function withShareBase(
+  categorySpending: CategorySpending,
+  shareBase: string,
+): CategorySpending {
+  return {
+    ...categorySpending,
+    shareBase: { value: shareBase, currency: "THB" },
   };
 }
 
@@ -156,6 +167,24 @@ describe("createCategoryBreakdown", () => {
     expect(breakdown.empty).toBe(false);
   });
 
+  test("measures every share against the server's share base", () => {
+    const breakdown = createCategoryBreakdown(
+      withShareBase(
+        spending("100.00", [
+          parent(FOOD_ID, { spending: { value: "100.00", currency: "THB" } }),
+        ]),
+        "400.00",
+      ),
+    );
+
+    expect(
+      breakdown.segments.map(({ share, shareLabel }) => ({
+        share,
+        shareLabel,
+      })),
+    ).toEqual([{ share: 0.25, shareLabel: "25%" }]);
+  });
+
   test("never states a share with spending as 0%", () => {
     const breakdown = createCategoryBreakdown(
       spending("1000.01", [
@@ -199,22 +228,25 @@ describe("createCategoryBreakdown", () => {
     ]);
   });
 
-  test("lists parents with more refunded than spent beneath the bar and shares out positive spending", () => {
+  test("lists parents with more refunded than spent beneath the bar and measures shares against the share base", () => {
     const breakdown = createCategoryBreakdown(
-      spending("300.00", [
-        parent(FOOD_ID, {
-          sortOrder: 1,
-          spending: { value: "300.00", currency: "THB" },
-        }),
-        parent(TRANSPORT_ID, {
-          sortOrder: 2,
-          spending: { value: "-100.00", currency: "THB" },
-        }),
-        parent(DEBT_ID, {
-          sortOrder: 3,
-          spending: { value: "100.00", currency: "THB" },
-        }),
-      ]),
+      withShareBase(
+        spending("300.00", [
+          parent(FOOD_ID, {
+            sortOrder: 1,
+            spending: { value: "300.00", currency: "THB" },
+          }),
+          parent(TRANSPORT_ID, {
+            sortOrder: 2,
+            spending: { value: "-100.00", currency: "THB" },
+          }),
+          parent(DEBT_ID, {
+            sortOrder: 3,
+            spending: { value: "100.00", currency: "THB" },
+          }),
+        ]),
+        "400.00",
+      ),
     );
 
     expect(

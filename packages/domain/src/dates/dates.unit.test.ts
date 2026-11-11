@@ -4,6 +4,7 @@ import {
   earlierOf,
   formatCalendarDate,
   formatInstant,
+  isReportMonth,
   parseCalendarDate,
   todayIn,
 } from "./dates";
@@ -40,6 +41,42 @@ describe("parseCalendarDate", () => {
       ok: false,
       error: "invalid",
     });
+  });
+});
+
+describe("isReportMonth", () => {
+  test("accepts real calendar months from year 1 onward", () => {
+    expect(isReportMonth("2026-09")).toBe(true);
+    expect(isReportMonth("2026-01")).toBe(true);
+    expect(isReportMonth("2026-12")).toBe(true);
+    expect(isReportMonth("0001-01")).toBe(true);
+    expect(isReportMonth("9999-12")).toBe(true);
+  });
+
+  test("rejects month 00 and month 13", () => {
+    expect(isReportMonth("2026-00")).toBe(false);
+    expect(isReportMonth("2026-13")).toBe(false);
+  });
+
+  test("rejects months before year 1", () => {
+    expect(isReportMonth("0000-12")).toBe(false);
+    expect(isReportMonth("0000-01")).toBe(false);
+  });
+
+  test("rejects malformed strings", () => {
+    for (const value of [
+      "",
+      "2026",
+      "2026-9",
+      "26-09",
+      "2026/09",
+      "2026-09-01",
+      " 2026-09",
+      "2026-09 ",
+      "abcd-ef",
+    ]) {
+      expect(isReportMonth(value)).toBe(false);
+    }
   });
 });
 
