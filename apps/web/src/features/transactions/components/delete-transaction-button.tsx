@@ -6,17 +6,14 @@ import type { TransactionType } from "@bookkeeping/domain/transactions";
 import { useNavigate } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
-import * as z from "zod";
 import { apiClient } from "@/core/api/client";
-import { apiMoneySchema } from "@/core/api/money";
 import { transactionQueries } from "@/core/api/queries";
-import { describeRejection } from "@/core/api/rejection-wording";
 import { useFormWrites } from "@/core/api/use-form-writes";
-import type { ApiRejection } from "@/core/api/write-submission";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
 } from "@/features/transactions/transaction-labels";
+import { describeTransactionBlocker } from "@/features/transactions/transaction-rejection";
 import { ErrorNotice } from "@/shared/components/error-notice";
 import { Button } from "@/shared/components/ui/button";
 import { SheetPortal } from "@/shared/components/ui/sheet";
@@ -33,18 +30,6 @@ interface DeleteTransactionButtonProps {
   disabled?: boolean;
 }
 
-const BLOCKED_STATUS = 409;
-
-/** The refunds a `refunds-exist` problem lists, as its extension carries them. */
-const refundsExistProblemSchema = z.object({
-  refunds: z.array(
-    z.object({
-      amount: apiMoneySchema,
-      transactionDate: z.string(),
-    }),
-  ),
-});
-
 function deletionEffect(type: TransactionType) {
   if (type === "transfer") {
     return "will leave the list and both wallet balances.";
@@ -55,32 +40,6 @@ function deletionEffect(type: TransactionType) {
   }
 
   return "will leave the list and the wallet balance.";
-}
-
-/** The record stays: linked refunds still count against it. */
-function describeBlocked(rejection: Readonly<ApiRejection>): string {
-  const parsed = refundsExistProblemSchema.safeParse(rejection.problem);
-  if (!parsed.success) {
-    return (
-      rejection.message ??
-      "This expense has linked refunds. Delete each refund first, then delete the expense."
-    );
-  }
-  const refunds = parsed.data.refunds
-    .map(
-      (refund) =>
-        `${formatMoney({ amountInMinorUnits: refund.amount, currency: "THB" })} on ${formatCalendarDate(refund.transactionDate)}`,
-    )
-    .join(", ");
-  return `This expense has linked refunds: ${refunds}. Delete each refund first, then delete the expense.`;
-}
-
-function describeDeleteRejection(
-  rejection: Readonly<ApiRejection>,
-): string | undefined {
-  return rejection.status === BLOCKED_STATUS
-    ? describeBlocked(rejection)
-    : describeRejection(rejection);
 }
 
 /**
@@ -105,7 +64,7 @@ export function DeleteTransactionButton({
           apiClient.DELETE("/v1/transactions/{transactionId}", {
             params: { path: { transactionId: transaction.id } },
           }),
-        describeRejection: describeDeleteRejection,
+        describeRejection: describeTransactionBlocker,
         retired: [
           transactionQueries.detail(transaction.id).queryKey,
           transactionQueries.refunds(transaction.id).queryKey,

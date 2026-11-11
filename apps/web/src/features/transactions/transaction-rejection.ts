@@ -10,8 +10,11 @@ import {
 import * as z from "zod";
 import { apiMoneySchema } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
-import { createFactualFieldErrorDescriber } from "@/core/api/rejection-wording";
-import type { ApiFieldError } from "@/core/api/write-submission";
+import {
+  createFactualFieldErrorDescriber,
+  describeRejection,
+} from "@/core/api/rejection-wording";
+import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
 
 /** A rule rejection as the API publishes it, keyed by code. */
 type RuleFieldError = components["schemas"]["TransactionRuleFieldError"];
@@ -208,4 +211,63 @@ export function carriesFacts(fieldError: Readonly<ApiFieldError>): boolean {
     isFactualCode(fieldError.code) &&
     readFacts(fieldError.code, fieldError) !== undefined
   );
+}
+
+/** Every reason the API refuses to delete a transaction, as it publishes them. */
+type TransactionBlockerCode =
+  components["schemas"]["RefundsExistProblem"]["code"];
+
+/** The refunds a `refunds-exist` problem lists, as its extension carries them. */
+const refundsExistProblemSchema = z.object({
+  refunds: z.array(
+    z.object({
+      amount: apiMoneySchema,
+      transactionDate: z.string(),
+    }),
+  ),
+});
+
+/** The record stays: linked refunds still count against it. */
+function describeRefundsExist(rejection: Readonly<ApiRejection>): string {
+  const parsed = refundsExistProblemSchema.safeParse(rejection.problem);
+  if (!parsed.success) {
+    return (
+      rejection.message ??
+      "This expense has linked refunds. Delete each refund first, then delete the expense."
+    );
+  }
+  const refunds = parsed.data.refunds
+    .map(
+      (refund) =>
+        `${formatBaht(refund.amount)} on ${formatCalendarDate(refund.transactionDate)}`,
+    )
+    .join(", ");
+  return `This expense has linked refunds: ${refunds}. Delete each refund first, then delete the expense.`;
+}
+
+// Keyed by every published blocker code, so a new or renamed one fails to
+// compile until it is worded. Each message may read the problem's facts.
+const BLOCKER_MESSAGES: Record<
+  TransactionBlockerCode,
+  (rejection: Readonly<ApiRejection>) => string
+> = {
+  "refunds-exist": describeRefundsExist,
+};
+
+function isBlockerCode(code: string): code is TransactionBlockerCode {
+  return Object.hasOwn(BLOCKER_MESSAGES, code);
+}
+
+/**
+ * The error-bar message for a refused transaction deletion, chosen by the
+ * problem's published code. A shared code reads its shared wording; any other
+ * problem reads its own message.
+ */
+export function describeTransactionBlocker(
+  rejection: Readonly<ApiRejection>,
+): string | undefined {
+  const { code } = rejection.problem;
+  return isBlockerCode(code)
+    ? BLOCKER_MESSAGES[code](rejection)
+    : describeRejection(rejection);
 }

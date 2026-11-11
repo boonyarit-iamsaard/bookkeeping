@@ -2,10 +2,11 @@ import { MAX_TAGS_PER_TRANSACTION } from "@bookkeeping/domain/tags";
 import { describe, expect, test } from "vitest";
 import { createFormWrites } from "@/core/api/form-writes";
 import { FALLBACK_FIELD_MESSAGE } from "@/core/api/rejection-wording";
-import type { ApiFieldError } from "@/core/api/write-submission";
+import type { ApiFieldError, ApiRejection } from "@/core/api/write-submission";
 import type { TransactionRejectionCode } from "@/features/transactions/transaction-rejection";
 import {
   carriesFacts,
+  describeTransactionBlocker,
   describeTransactionFieldError,
   describeTransactionRejection,
   TRANSACTION_FORM_FIELDS,
@@ -47,6 +48,18 @@ function fieldError(
   error: Readonly<Omit<ApiFieldError, "field">> & Record<string, unknown>,
 ): ApiFieldError {
   return { ...error, field: "" };
+}
+
+function rejection(
+  problem: Readonly<{ code: string } & Record<string, unknown>>,
+): ApiRejection {
+  return {
+    status: 409,
+    problem: { status: 409, title: "Title", ...problem },
+    errors: [],
+    fieldErrors: {},
+    message: "The problem's own words",
+  };
 }
 
 // Every code the API publishes, at the pointer a create request addresses it
@@ -251,5 +264,41 @@ describe("transaction rejections", () => {
     expect(
       carriesFacts(fieldError({ pointer: "#/note", code: "note-too-long" })),
     ).toBe(false);
+  });
+});
+
+describe("describeTransactionBlocker", () => {
+  test("an expense with linked refunds lists each one", () => {
+    expect(
+      describeTransactionBlocker(
+        rejection({
+          code: "refunds-exist",
+          refunds: [
+            {
+              amount: { value: "120.00", currency: "THB" },
+              transactionDate: "2026-09-01",
+            },
+            {
+              amount: { value: "45.50", currency: "THB" },
+              transactionDate: "2026-09-03",
+            },
+          ],
+        }),
+      ),
+    ).toBe(
+      "This expense has linked refunds: ฿120.00 on 1 Sep 2026, ฿45.50 on 3 Sep 2026. Delete each refund first, then delete the expense.",
+    );
+  });
+
+  test("another conflict reads its own message, not the linked-refunds wording", () => {
+    expect(describeTransactionBlocker(rejection({ code: "conflict" }))).toBe(
+      "The problem's own words",
+    );
+  });
+
+  test("a code every feature shares reads the shared wording", () => {
+    expect(
+      describeTransactionBlocker(rejection({ code: "unauthenticated" })),
+    ).toBe("Sign in again to continue.");
   });
 });
