@@ -22,3 +22,12 @@ export async function expectProblem(
   expect(problem.status).toBe(expected.status);
   return problem;
 }
+
+/** Asserts a rejected command and returns its field errors. */
+export async function expectFieldErrors(response: Response) {
+  const problem = await expectProblem(response, {
+    status: 422,
+    code: "invalid-command",
+  });
+  return problem.errors;
+}

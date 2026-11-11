@@ -167,12 +167,10 @@ describe("acceptTransaction", () => {
     expect(rejection(transfer, archivedBank)).toEqual({
       field: "destinationWalletId",
       code: "wallet-archived",
-      walletId: BANK,
     });
     expect(rejection({ ...expense, walletId: BANK }, archivedBank)).toEqual({
       field: "walletId",
       code: "wallet-archived",
-      walletId: BANK,
     });
     expect(
       rejection(
@@ -208,7 +206,6 @@ describe("acceptTransaction", () => {
     ).toEqual({
       field: "transactionDate",
       code: "future-date",
-      today: "2026-09-10",
     });
     expect(
       rejection({ ...transfer, transactionDate: "2026-09-02" }, facts),

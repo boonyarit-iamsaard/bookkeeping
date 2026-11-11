@@ -1,210 +1,122 @@
 import type {
   TransactionField,
+  TransactionRejected,
   TransactionRejection,
 } from "@bookkeeping/application/transactions";
 import * as z from "zod";
-import { moneySchema, presentMoney } from "../../core/http/money.js";
-import { describeProblemAs } from "../../core/http/openapi.js";
 import {
-  getProblemOptionsForStatus,
-  problemDetailsSchema,
-  problemFieldErrorSchema,
-} from "../../core/http/problem-details.js";
+  defineCodeTable,
+  toFieldErrors,
+} from "../../core/http/field-rejections.js";
+import { moneySchema, presentMoney } from "../../core/http/money.js";
 
 /** Where each rejected input lives in a create request document. */
-export const CREATE_FIELD_POINTERS: Record<TransactionField, string> = {
-  type: "#/type",
-  walletId: "#/walletId",
-  destinationWalletId: "#/destinationWalletId",
-  categoryId: "#/categoryId",
-  refundOfTransactionId: "#/refundOfTransactionId",
-  amount: "#/amount/value",
-  transactionDate: "#/transactionDate",
-  note: "#/note",
-  tagIds: "#/tagIds",
-};
+export const CREATE_FIELD_POINTERS: Readonly<Record<TransactionField, string>> =
+  {
+    type: "#/type",
+    walletId: "#/walletId",
+    destinationWalletId: "#/destinationWalletId",
+    categoryId: "#/categoryId",
+    refundOfTransactionId: "#/refundOfTransactionId",
+    amount: "#/amount/value",
+    transactionDate: "#/transactionDate",
+    note: "#/note",
+    tagIds: "#/tagIds",
+  };
 
 // The update request names no type or refund link: a contradiction with the
 // fixed type addresses the whole document.
-export const UPDATE_FIELD_POINTERS: Record<TransactionField, string> = {
-  ...CREATE_FIELD_POINTERS,
-  type: "#/",
-  refundOfTransactionId: "#/",
-};
-
-/** The rejections whose message names a figure or date: each carries that fact. */
-type FactualRejectionCode =
-  | "exceeds-refundable"
-  | "below-refunded"
-  | "after-refund"
-  | "before-expense"
-  | "before-opening";
-
-type PlainRejectionCode = Exclude<
-  TransactionRejection["code"],
-  FactualRejectionCode
->;
-
-// Keyed by every plain code, so a new rejection fails to compile until it is
-// published here or given its facts.
-const PLAIN_REJECTION_CODES: { [Code in PlainRejectionCode]: Code } = {
-  "wallet-not-found": "wallet-not-found",
-  "destination-wallet-not-found": "destination-wallet-not-found",
-  "same-wallet": "same-wallet",
-  "wallet-archived": "wallet-archived",
-  "invalid-transfer": "invalid-transfer",
-  "category-not-found": "category-not-found",
-  "category-kind-mismatch": "category-kind-mismatch",
-  "amount-out-of-range": "amount-out-of-range",
-  "note-too-long": "note-too-long",
-  "too-many-tags": "too-many-tags",
-  "tag-not-found": "tag-not-found",
-  "invalid-date": "invalid-date",
-  "future-date": "future-date",
-  "invalid-refund": "invalid-refund",
-  "expense-not-found": "expense-not-found",
-};
-
-const refundAllowanceFieldErrorSchema = problemFieldErrorSchema
-  .extend({
-    code: z.literal("exceeds-refundable"),
-    /** What the expense has left to refund, not counting the refund being corrected. */
-    refundAllowance: moneySchema,
-  })
-  .meta({ id: "RefundAllowanceFieldError" });
-
-const refundedTotalFieldErrorSchema = problemFieldErrorSchema
-  .extend({
-    code: z.literal("below-refunded"),
-    /** What the expense's current refunds add up to. */
-    refundedTotal: moneySchema,
-  })
-  .meta({ id: "RefundedTotalFieldError" });
-
-const refundDateFieldErrorSchema = problemFieldErrorSchema
-  .extend({
-    code: z.literal("after-refund"),
-    /** The earliest linked refund's date. */
-    refundDate: z.iso.date(),
-  })
-  .meta({ id: "RefundDateFieldError" });
-
-const expenseDateFieldErrorSchema = problemFieldErrorSchema
-  .extend({
-    code: z.literal("before-expense"),
-    /** The refunded expense's date. */
-    expenseDate: z.iso.date(),
-  })
-  .meta({ id: "ExpenseDateFieldError" });
-
-const openingDateFieldErrorSchema = problemFieldErrorSchema
-  .extend({
-    code: z.literal("before-opening"),
-    /** The date the rejected wallet's tracked history begins. */
-    openingDate: z.iso.date(),
-  })
-  .meta({ id: "OpeningDateFieldError" });
-
-const plainRuleFieldErrorSchema = problemFieldErrorSchema
-  .extend({ code: z.enum(PLAIN_REJECTION_CODES) })
-  .meta({ id: "PlainRuleFieldError" });
-
-/** A rule rejection keyed by its code, carrying exactly the facts that code names. */
-const transactionRuleFieldErrorSchema = z
-  .discriminatedUnion("code", [
-    refundAllowanceFieldErrorSchema,
-    refundedTotalFieldErrorSchema,
-    refundDateFieldErrorSchema,
-    expenseDateFieldErrorSchema,
-    openingDateFieldErrorSchema,
-    plainRuleFieldErrorSchema,
-  ])
-  .meta({ id: "TransactionRuleFieldError" });
-
-const FACTUAL_REJECTION_CODES: { [Code in FactualRejectionCode]: Code } = {
-  "exceeds-refundable": "exceeds-refundable",
-  "below-refunded": "below-refunded",
-  "after-refund": "after-refund",
-  "before-expense": "before-expense",
-  "before-opening": "before-opening",
-};
-
-const RULE_REJECTION_CODES: ReadonlySet<string> = new Set([
-  ...Object.values(PLAIN_REJECTION_CODES),
-  ...Object.values(FACTUAL_REJECTION_CODES),
-]);
-
-/** A request validation error; a rule code never passes as one, so its facts cannot go missing. */
-const transactionValidationFieldErrorSchema = problemFieldErrorSchema
-  .refine((fieldError) => !RULE_REJECTION_CODES.has(fieldError.code))
-  .meta({ id: "TransactionValidationFieldError" });
+export const UPDATE_FIELD_POINTERS: Readonly<Record<TransactionField, string>> =
+  {
+    ...CREATE_FIELD_POINTERS,
+    type: "#/",
+    refundOfTransactionId: "#/",
+  };
 
 /**
- * A field error in a rejected transaction command: a rule rejection, with the
- * facts its message names, or a request validation error.
+ * Every transaction rule code, published as is or with the facts its message
+ * names. A new rejection fails to compile until it has an entry here.
  */
-export const transactionFieldErrorSchema = z
-  .union([
-    transactionRuleFieldErrorSchema,
-    transactionValidationFieldErrorSchema,
-  ])
-  .meta({ id: "TransactionFieldError" });
+export const transactionCodes = defineCodeTable<TransactionRejection>(
+  "Transaction",
+  {
+    "wallet-not-found": "plain",
+    "destination-wallet-not-found": "plain",
+    "same-wallet": "plain",
+    "wallet-archived": "plain",
+    "invalid-transfer": "plain",
+    "category-not-found": "plain",
+    "category-kind-mismatch": "plain",
+    "amount-out-of-range": "plain",
+    "note-too-long": "plain",
+    "too-many-tags": "plain",
+    "tag-not-found": "plain",
+    "invalid-date": "plain",
+    "future-date": "plain",
+    "invalid-refund": "plain",
+    "expense-not-found": "plain",
+    "exceeds-refundable": {
+      facts: {
+        /** What the expense has left to refund, not counting the refund being corrected. */
+        refundAllowance: moneySchema,
+      },
+      project: ({ refundAllowance }) => ({
+        refundAllowance: presentMoney({
+          amountInMinorUnits: refundAllowance,
+          currency: "THB",
+        }),
+      }),
+    },
+    "below-refunded": {
+      facts: {
+        /** What the expense's current refunds add up to. */
+        refundedTotal: moneySchema,
+      },
+      project: ({ refundedTotal }) => ({
+        refundedTotal: presentMoney({
+          amountInMinorUnits: refundedTotal,
+          currency: "THB",
+        }),
+      }),
+    },
+    "after-refund": {
+      facts: {
+        /** The earliest linked refund's date. */
+        refundDate: z.iso.date(),
+      },
+      project: ({ refundDate }) => ({ refundDate }),
+    },
+    "before-expense": {
+      facts: {
+        /** The refunded expense's date. */
+        expenseDate: z.iso.date(),
+      },
+      project: ({ expenseDate }) => ({ expenseDate }),
+    },
+    "before-opening": {
+      facts: {
+        /** The date the rejected wallet's tracked history begins. */
+        openingDate: z.iso.date(),
+      },
+      project: ({ openingDate }) => ({ openingDate }),
+    },
+  },
+);
 
-export const transactionRejectionProblemSchema = problemDetailsSchema
-  .extend({ errors: z.array(transactionFieldErrorSchema).optional() })
-  .meta({ id: "TransactionRejectionProblem" });
+export const transactionRejectionProblemSchema = transactionCodes.problemSchema;
 
-export type TransactionFieldError = z.infer<typeof transactionFieldErrorSchema>;
-
-/** The documented 422 a rejected create or update answers. */
-export function describeTransactionRejection() {
-  return describeProblemAs(
-    getProblemOptionsForStatus(422),
-    transactionRejectionProblemSchema,
-  );
+/** The field errors of a refused create, pointing into the create document. */
+export function toCreateFieldErrors(rejected: Readonly<TransactionRejected>) {
+  return toFieldErrors(rejected, {
+    pointers: CREATE_FIELD_POINTERS,
+    codes: transactionCodes,
+  });
 }
 
-export function toFieldErrors(
-  rejection: Readonly<TransactionRejection>,
-  pointers: Readonly<Record<TransactionField, string>>,
-): TransactionFieldError[] {
-  const pointer = pointers[rejection.field];
-  switch (rejection.code) {
-    case "exceeds-refundable":
-      return [
-        {
-          pointer,
-          code: rejection.code,
-          refundAllowance: presentMoney({
-            amountInMinorUnits: rejection.refundAllowance,
-            currency: "THB",
-          }),
-        },
-      ];
-    case "below-refunded":
-      return [
-        {
-          pointer,
-          code: rejection.code,
-          refundedTotal: presentMoney({
-            amountInMinorUnits: rejection.refundedTotal,
-            currency: "THB",
-          }),
-        },
-      ];
-    case "after-refund":
-      return [
-        { pointer, code: rejection.code, refundDate: rejection.refundDate },
-      ];
-    case "before-expense":
-      return [
-        { pointer, code: rejection.code, expenseDate: rejection.expenseDate },
-      ];
-    case "before-opening":
-      return [
-        { pointer, code: rejection.code, openingDate: rejection.openingDate },
-      ];
-    default:
-      return [{ pointer, code: PLAIN_REJECTION_CODES[rejection.code] }];
-  }
+/** The field errors of a refused update, pointing into the update document. */
+export function toUpdateFieldErrors(rejected: Readonly<TransactionRejected>) {
+  return toFieldErrors(rejected, {
+    pointers: UPDATE_FIELD_POINTERS,
+    codes: transactionCodes,
+  });
 }

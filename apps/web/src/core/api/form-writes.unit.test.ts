@@ -432,10 +432,11 @@ describe("createFormWrites", () => {
             rejected(422, {
               ...invalidCommand,
               errors: [
-                { pointer: "#/name", code: "blank-name", detail: "Name it" },
-                { pointer: "#/color", code: "invalid", detail: "Pick one" },
+                { pointer: "#/name", code: "blank-name" },
+                { pointer: "#/color", code: "invalid" },
               ],
             }),
+          describeFieldError: ({ code }) => `Described ${code}`,
           onDone: vi.fn(),
         },
       }),
@@ -444,7 +445,7 @@ describe("createFormWrites", () => {
     await writes.submit("save");
     writes.clearFieldError("name");
 
-    expect(writes.state().fieldErrors).toEqual({ color: "Pick one" });
+    expect(writes.state().fieldErrors).toEqual({ color: "Described invalid" });
   });
 
   test("only a creation sends an idempotency key", async () => {

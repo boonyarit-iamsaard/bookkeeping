@@ -40,11 +40,7 @@ export type TransactionRejection =
   | { field: "walletId"; code: "wallet-not-found" }
   | { field: "destinationWalletId"; code: "destination-wallet-not-found" }
   | { field: "destinationWalletId"; code: "same-wallet" }
-  | {
-      field: "walletId" | "destinationWalletId";
-      code: "wallet-archived";
-      walletId: string;
-    }
+  | { field: "walletId" | "destinationWalletId"; code: "wallet-archived" }
   | { field: "type"; code: "invalid-transfer" }
   | { field: "categoryId"; code: "category-not-found" }
   | { field: "categoryId"; code: "category-kind-mismatch" }
@@ -53,7 +49,7 @@ export type TransactionRejection =
   | { field: "tagIds"; code: "too-many-tags" }
   | { field: "tagIds"; code: "tag-not-found" }
   | { field: "transactionDate"; code: "invalid-date" }
-  | { field: "transactionDate"; code: "future-date"; today: CalendarDate }
+  | { field: "transactionDate"; code: "future-date" }
   | {
       field: "transactionDate";
       code: "before-opening";
@@ -263,7 +259,6 @@ function rejectWallets(
             ? "destinationWalletId"
             : "walletId",
         code: "wallet-archived",
-        walletId: id,
       };
     }
   }
@@ -302,11 +297,7 @@ function rejectDate(
   facts: Readonly<TransactionFacts>,
 ): TransactionRejection | undefined {
   if (command.transactionDate > facts.today) {
-    return {
-      field: "transactionDate",
-      code: "future-date",
-      today: facts.today,
-    };
+    return { field: "transactionDate", code: "future-date" };
   }
   const named = new Set(walletIdsOf(command));
   const unopened = facts.wallets.find(

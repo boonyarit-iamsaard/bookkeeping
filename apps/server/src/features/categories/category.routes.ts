@@ -1,8 +1,6 @@
 import type {
-  CategoryErrorField,
-  CreateCategoryError,
+  CategoryRejected,
   RemoveCategoryError,
-  UpdateCategoryError,
 } from "@bookkeeping/application/categories";
 import {
   createCategory,
@@ -23,16 +21,14 @@ import { describeResponse, describeRoute } from "hono-openapi";
 import * as z from "zod";
 import type { AuthenticatedEnv } from "../../core/auth/session.js";
 import { createCollectionResponseSchema } from "../../core/http/collection.js";
+import { toFieldErrors } from "../../core/http/field-rejections.js";
 import type { idempotencyKeyHeaderSchema } from "../../core/http/idempotency.js";
 import { idempotencyKeyMiddleware } from "../../core/http/idempotency.js";
 import {
   describeProblemResponse,
   describeProblemVariant,
 } from "../../core/http/openapi.js";
-import type {
-  ProblemFieldError,
-  ProblemOptions,
-} from "../../core/http/problem-details.js";
+import type { ProblemOptions } from "../../core/http/problem-details.js";
 import { problemDetailsSchema } from "../../core/http/problem-details.js";
 import type { ResourceCommandValidatedInput } from "../../core/http/request-validation.js";
 import {
@@ -48,6 +44,11 @@ import {
   describeCreation,
   describeRead,
 } from "../../core/http/resource-answers.js";
+import type { categoryRejectionProblemSchema } from "./category-rejection.js";
+import {
+  CATEGORY_FIELD_POINTERS,
+  categoryCodes,
+} from "./category-rejection.js";
 
 export const categoryResponseSchema = z
   .object({
@@ -181,46 +182,12 @@ interface CreateCategoryValidatedInput {
 type CategoryCommandValidatedInput<Schema extends z.ZodType> =
   ResourceCommandValidatedInput<typeof categoryParamsSchema, Schema>;
 
-const CATEGORY_ISSUE_POINTERS: Record<CategoryErrorField, string> = {
-  name: "#/name",
-  iconId: "#/iconId",
-  parentName: "#/parent/create/name",
-  parentIconId: "#/parent/create/iconId",
-};
-
-function toCategoryFieldError(
-  error: Exclude<CreateCategoryError, { code: "idempotency-conflict" }>,
-): ProblemFieldError {
-  switch (error.code) {
-    case "blank-name":
-    case "name-too-long":
-    case "unknown-icon":
-    case "duplicate-name":
-      return {
-        pointer: CATEGORY_ISSUE_POINTERS[error.field],
-        code: error.code,
-      };
-    case "parent-not-found":
-    case "parent-is-child":
-    case "parent-protected":
-      return { pointer: "#/parent", code: error.code };
-  }
-}
-
-// An update rejects on name or icon alone; Uncategorized's fixed name is a
-// name problem, since choosing its current name is the correction.
-function toCategoryUpdateFieldError(
-  error: Exclude<UpdateCategoryError, NotFound>,
-): ProblemFieldError {
-  switch (error.code) {
-    case "blank-name":
-    case "name-too-long":
-    case "duplicate-name":
-    case "protected":
-      return { pointer: "#/name", code: error.code };
-    case "unknown-icon":
-      return { pointer: "#/iconId", code: error.code };
-  }
+/** Each refused input of a category command at its pointer. */
+function toCategoryFieldErrors(rejected: CategoryRejected) {
+  return toFieldErrors(rejected, {
+    pointers: CATEGORY_FIELD_POINTERS,
+    codes: categoryCodes,
+  });
 }
 
 const categoryCommandMiddleware = createCommandMiddleware(
@@ -257,7 +224,7 @@ export function createCategoryRoutes(db: Database) {
           {
             201: typeof categoryResponseSchema;
             409: typeof problemDetailsSchema;
-            422: typeof problemDetailsSchema;
+            422: typeof categoryRejectionProblemSchema;
           }
         >(
           async (c) => {
@@ -270,10 +237,13 @@ export function createCategoryRoutes(db: Database) {
             return answerCreation(c, {
               result: created,
               present: (outcome) => outcome.category,
-              toFieldErrors: (rejection) => [toCategoryFieldError(rejection)],
+              toFieldErrors: toCategoryFieldErrors,
             });
           },
-          describeCreation("category", categoryResponseSchema),
+          {
+            ...describeCreation("category", categoryResponseSchema),
+            422: categoryCodes.describeRejection(),
+          },
         ),
       )
       .get(
@@ -429,7 +399,7 @@ export function createCategoryRoutes(db: Database) {
           {
             200: typeof categoryResponseSchema;
             404: typeof problemDetailsSchema;
-            422: typeof problemDetailsSchema;
+            422: typeof categoryRejectionProblemSchema;
           }
         >(
           async (c) => {
@@ -443,13 +413,16 @@ export function createCategoryRoutes(db: Database) {
             return answerCorrection(c, {
               result: updated,
               present: (category) => category,
-              toFieldErrors: (error) => [toCategoryUpdateFieldError(error)],
+              toFieldErrors: toCategoryFieldErrors,
             });
           },
-          describeCorrection(
-            "The category with its updated presentation",
-            categoryResponseSchema,
-          ),
+          {
+            ...describeCorrection(
+              "The category with its updated presentation",
+              categoryResponseSchema,
+            ),
+            422: categoryCodes.describeRejection(),
+          },
         ),
       )
       .delete(

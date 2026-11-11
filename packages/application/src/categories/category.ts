@@ -26,7 +26,15 @@ import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
 import { notFound } from "../shared/not-found";
+import { rejected } from "../shared/rejection";
+import type { CategoryRejected, CategoryRejection } from "./category-rejection";
 import { DEFAULT_CATEGORIES } from "./default-categories";
+
+export type {
+  CategoryField,
+  CategoryRejected,
+  CategoryRejection,
+} from "./category-rejection";
 
 /** The columns every read and write returns: a `CategorySummary` row. */
 export const categorySummaryColumns = {
@@ -82,37 +90,24 @@ export interface UpdateCategoryInput
   extends CategoryRef,
     CategoryUpdateCommand {}
 
-export type UpdateCategoryError =
-  | NotFound
-  | { code: "blank-name" }
-  | { code: "name-too-long" }
-  | { code: "unknown-icon" }
-  /** Same name, case-insensitively, already in scope (tree or parent). */
-  | { code: "duplicate-name" }
-  /** Uncategorized keeps its name; only its icon may change. */
-  | { code: "protected" };
+export type UpdateCategoryError = NotFound | CategoryRejected;
 
 export interface CategoryUpdateCommand {
   name: string;
   iconId: string;
 }
 
-export type CategoryUpdateValidationError = Extract<
-  UpdateCategoryError,
-  { code: "blank-name" | "name-too-long" | "unknown-icon" }
->;
-
 /** Normalizes and validates presentation data before the row is touched. */
 export function validateCategoryUpdate(
   command: Readonly<CategoryUpdateCommand>,
-): Result<CategoryUpdateCommand, CategoryUpdateValidationError> {
+): Result<CategoryUpdateCommand, CategoryRejected> {
   const name = normalizeCategoryName(command.name);
   const invalidName = validateName(name, "name");
   if (invalidName) {
-    return err({ code: invalidName.code });
+    return err(rejected(invalidName));
   }
   if (!isCategoryIconId(command.iconId)) {
-    return err({ code: "unknown-icon" });
+    return err(rejected({ code: "unknown-icon", field: "iconId" }));
   }
   return ok({ name, iconId: command.iconId });
 }
@@ -160,13 +155,15 @@ export async function updateCategory(
             eq(categories.userId, input.ownerId),
           ),
         );
-      return err({
-        code: current?.isProtected ? "protected" : "not-found",
-      });
+      return err(
+        current?.isProtected
+          ? rejected({ code: "protected", field: "name" })
+          : notFound(),
+      );
     });
   } catch (error) {
     if (isScopedNameViolation(error)) {
-      return err({ code: "duplicate-name" });
+      return err(rejected({ code: "duplicate-name", field: "name" }));
     }
     throw error;
   }
@@ -418,27 +415,7 @@ export interface CreateCategoryInput extends CategoryCreationCommand {
   idempotencyKey: string;
 }
 
-export type CategoryErrorField =
-  | "name"
-  | "iconId"
-  | "parentName"
-  | "parentIconId";
-
-export type CategoryCreationValidationError =
-  | { code: "blank-name"; field: "name" | "parentName" }
-  | { code: "name-too-long"; field: "name" | "parentName" }
-  | { code: "unknown-icon"; field: "iconId" | "parentIconId" };
-
-export type CreateCategoryError =
-  | CategoryCreationValidationError
-  /** Same name, case-insensitively, already in scope (tree or parent). */
-  | { code: "duplicate-name"; field: "name" | "parentName" }
-  | { code: "parent-not-found" }
-  /** Trees have two levels: a child category cannot be a parent. */
-  | { code: "parent-is-child" }
-  /** Uncategorized has no children. */
-  | { code: "parent-protected" }
-  | IdempotencyConflict;
+export type CreateCategoryError = CategoryRejected | IdempotencyConflict;
 
 export interface CreateCategoryData {
   category: CategorySummary;
@@ -453,7 +430,7 @@ export interface CreateCategoryOutcome extends CreateCategoryData {
 
 /** The two shape rules every category name obeys, on creation or rename. */
 type NameRejection = Extract<
-  CategoryCreationValidationError,
+  CategoryRejection,
   { code: "blank-name" | "name-too-long" }
 >;
 
@@ -473,24 +450,24 @@ function validateName(
 /** Normalizes and validates command data before it can consume an idempotency key. */
 export function validateCategoryCreation(
   input: Readonly<CategoryCreationCommand>,
-): Result<CategoryCreationCommand, CategoryCreationValidationError> {
+): Result<CategoryCreationCommand, CategoryRejected> {
   const name = normalizeCategoryName(input.name);
   const invalidName = validateName(name, "name");
   if (invalidName) {
-    return err(invalidName);
+    return err(rejected(invalidName));
   }
   if (!isCategoryIconId(input.iconId)) {
-    return err({ code: "unknown-icon", field: "iconId" });
+    return err(rejected({ code: "unknown-icon", field: "iconId" }));
   }
 
   if (input.parent && "create" in input.parent) {
     const parentName = normalizeCategoryName(input.parent.create.name);
     const invalidParentName = validateName(parentName, "parentName");
     if (invalidParentName) {
-      return err(invalidParentName);
+      return err(rejected(invalidParentName));
     }
     if (!isCategoryIconId(input.parent.create.iconId)) {
-      return err({ code: "unknown-icon", field: "parentIconId" });
+      return err(rejected({ code: "unknown-icon", field: "parentIconId" }));
     }
     return ok({
       ...input,
@@ -590,7 +567,7 @@ async function createCategoryRows({
     });
   } catch (error) {
     if (isScopedNameViolation(error)) {
-      return err({ code: "duplicate-name", field: "name" });
+      return err(rejected({ code: "duplicate-name", field: "name" }));
     }
     throw error;
   }
@@ -601,12 +578,7 @@ async function createCategoryRows({
   );
 }
 
-type ParentResolutionError =
-  | Extract<
-      CreateCategoryError,
-      { code: "parent-not-found" | "parent-is-child" | "parent-protected" }
-    >
-  | { code: "duplicate-name"; field: "parentName" };
+type ParentResolutionError = CategoryRejected;
 
 /**
  * Where the new category lands: top level, under a locked existing row, or
@@ -648,7 +620,7 @@ async function resolveParent({
     return ok({ kind: "created", parent });
   } catch (error) {
     if (isScopedNameViolation(error)) {
-      return err({ code: "duplicate-name", field: "parentName" });
+      return err(rejected({ code: "duplicate-name", field: "parentName" }));
     }
     throw error;
   }
@@ -674,7 +646,7 @@ async function lockParent({
   Result<CategorySummary, ParentResolutionError>
 > {
   if (!isUuid(existingId)) {
-    return err({ code: "parent-not-found" });
+    return err(rejected({ code: "parent-not-found", field: "parent" }));
   }
   const [row] = await db
     .select(categorySummaryColumns)
@@ -688,13 +660,13 @@ async function lockParent({
     )
     .for("share");
   if (!row) {
-    return err({ code: "parent-not-found" });
+    return err(rejected({ code: "parent-not-found", field: "parent" }));
   }
   if (row.parentId !== null) {
-    return err({ code: "parent-is-child" });
+    return err(rejected({ code: "parent-is-child", field: "parent" }));
   }
   if (row.isProtected) {
-    return err({ code: "parent-protected" });
+    return err(rejected({ code: "parent-protected", field: "parent" }));
   }
   return ok(row);
 }

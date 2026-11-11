@@ -27,7 +27,9 @@ import type {
 import { executeIdempotentCreation } from "../idempotency/idempotency";
 import { isUuid } from "../shared/identifier";
 import type { NotFound } from "../shared/not-found";
-import { notFound } from "../shared/not-found";
+import { isNotFound, notFound } from "../shared/not-found";
+import type { Rejected } from "../shared/rejection";
+import { rejected } from "../shared/rejection";
 import { carriesAnyTag, replaceTagsOf } from "../tags/tag-links";
 import type { DetailRow } from "./transaction-detail";
 import {
@@ -113,7 +115,10 @@ export interface CreateTransactionOutcome {
   replayed: boolean;
 }
 
-export type CreateTransactionError = TransactionRejection | IdempotencyConflict;
+/** The refused inputs of a transaction command, in the shared envelope. */
+export type TransactionRejected = Rejected<TransactionRejection>;
+
+export type CreateTransactionError = TransactionRejected | IdempotencyConflict;
 
 const TRANSACTION_CREATION_OPERATION = "transactions.create";
 
@@ -129,7 +134,7 @@ export async function createTransaction(
   const command = toTransactionCommand(input);
   const outcome = await executeIdempotentCreation<
     TransactionDetail,
-    TransactionRejection
+    TransactionRejected
   >(db, {
     ownerId: input.ownerId,
     operation: TRANSACTION_CREATION_OPERATION,
@@ -199,10 +204,10 @@ function transactionCreationPayload(
 async function insertTransaction(
   tx: Database,
   { ownerId, command }: Readonly<OwnedCommand>,
-): Promise<Result<TransactionDetail, TransactionRejection>> {
+): Promise<Result<TransactionDetail, TransactionRejected>> {
   const accepted = await judgeNewTransaction(tx, { ownerId, command });
   if (!accepted.ok) {
-    return err(accepted.error);
+    return err(rejected(accepted.error));
   }
   const [row] = await tx
     .insert(transactions)
@@ -292,7 +297,7 @@ export interface UpdateTransactionInput
   extends TransactionRef,
     TransactionCorrection {}
 
-export type UpdateTransactionError = NotFound | TransactionRejection;
+export type UpdateTransactionError = NotFound | TransactionRejected;
 
 /**
  * Corrects a transaction in place. The type and its refund link are fixed;
@@ -310,7 +315,9 @@ export async function updateTransaction(
   return db.transaction(async (tx) => {
     const judged = await judgeCorrection(tx, { ownerId, id, correction });
     if (!judged.ok) {
-      return err(judged.error);
+      return err(
+        isNotFound(judged.error) ? judged.error : rejected(judged.error),
+      );
     }
     const { current, command } = judged.value;
     const before = snapshotOf(current);
