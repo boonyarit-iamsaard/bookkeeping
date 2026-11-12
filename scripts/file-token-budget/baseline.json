@@ -1,6 +1,4 @@
 {
-  "docs/runbooks/production-backups/01-aws-foundation-and-railway-backups.md": 36911,
-  "docs/runbooks/production-backups/03-deploy-storage-and-uploader-key.md": 28028,
   "apps/server/src/core/http/api-contract.integration.test.ts": 20040,
   "apps/server/src/core/http/openapi.unit.test.ts": 30179,
   "apps/server/src/features/categories/category.routes.integration.test.ts": 31205,
@@ -12,7 +10,6 @@
   "apps/web/src/features/transactions/components/transaction-form.tsx": 27480,
   "apps/web/tests/e2e/shell.spec.ts": 23125,
   "apps/web/tests/e2e/transaction-entry.spec.ts": 21863,
-  "docs/research/supply-chain-hardening.md": 55266,
   "packages/application/src/categories/category.integration.test.ts": 40762,
   "packages/application/src/categories/category.ts": 22104,
   "packages/application/src/transactions/transaction-create.integration.test.ts": 22271,

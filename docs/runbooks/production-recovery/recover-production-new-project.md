@@ -112,7 +112,7 @@ database or write before the restore has passed.
      the service named `database`, as N1 does.
   2. Skip its stage 10: the restore already holds the schema, and `db:push`
      must not run. Sign-up stays closed, as stage 11 left it.
-  3. `backup`: `docs/runbooks/production-backups/03-deploy-storage-and-uploader-key.md`,
+  3. `backup`: `docs/runbooks/production-backups/03b-backup-service-and-uploader-key.md`,
      from the step that creates the service, with `DATABASE_URL` as
      `${{database.DATABASE_URL}}`. The S3 stack and bucket are in AWS and
      survive the Railway account; if the uploader key is lost, issue a new
@@ -123,7 +123,7 @@ database or write before the restore has passed.
 - **Undo:** Not needed.
 - **Ticks:** Nothing directly.
 - **Source:** `docs/runbooks/railway.md`,
-  `docs/runbooks/production-backups/03-deploy-storage-and-uploader-key.md`,
+  `docs/runbooks/production-backups/03b-backup-service-and-uploader-key.md`,
   <https://docs.railway.com/databases/postgresql> (reference variables)
 
 ### N6. Finish

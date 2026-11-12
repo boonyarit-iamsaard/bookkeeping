@@ -6,8 +6,9 @@ unprotected, and the owner worked straight on it, so a malicious dependency
 release, a moved Action tag, or a re-pushed base image reached that data with
 nothing in between. Before switching branch protection on, we copied the
 hardening from the sibling project `stay` and went a step further, so that the
-protection gates something worth gating. Facts and sources are in
-`docs/research/supply-chain-hardening.md`.
+protection gates something worth gating. Facts and sources are in the
+[supply-chain hardening research](https://github.com/boonyarit-iamsaard/bookkeeping/blob/29448cbefceab6a8742c4a2e41da131fd783d09d/docs/research/supply-chain-hardening.md),
+retired once this decision shipped.
 
 We protect `main` with a ruleset that requires a pull request (zero approvals,
 because there is one maintainer), the three checks `CI`, `SPA browser suite`
