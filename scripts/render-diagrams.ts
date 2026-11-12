@@ -43,6 +43,8 @@ function chooseDiagrams(paths: readonly string[]): string[] {
 async function renderDiagrams(paths: readonly string[]): Promise<void> {
   const browser = await chromium.launch();
   try {
+    // Render and close one page before opening the next to bound Chromium memory,
+    // including when rendering both color schemes for the same diagram.
     for (const path of paths) {
       const stem = path.slice(0, -diagramSuffix.length);
       for (const colorScheme of colorSchemes) {
