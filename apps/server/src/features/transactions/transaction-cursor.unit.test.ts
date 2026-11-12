@@ -1,7 +1,7 @@
 import type {
   ListTransactionsOptions,
   TransactionListPosition,
-} from "@bookkeeping/application/transactions";
+} from "@bookkeeping/application/transactions/reads";
 import { describe, expect, test } from "vitest";
 import {
   decodeTransactionCursor,

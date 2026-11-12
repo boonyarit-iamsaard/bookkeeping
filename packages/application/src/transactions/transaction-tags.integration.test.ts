@@ -7,13 +7,12 @@ import { createTagForTest } from "../testing/tag-fixture";
 import type { OwnerFixture } from "../testing/transaction-suite-fixture";
 import { setupOwner } from "../testing/transaction-suite-fixture";
 import type { CreateTransactionInput } from "./transaction";
+import { createTransaction, updateTransaction } from "./transaction";
 import {
-  createTransaction,
   findTransaction,
   listTransactionChanges,
   listTransactionPage,
-  updateTransaction,
-} from "./transaction";
+} from "./transaction-reads";
 
 const { withRollback } = setupTestDatabase();
 

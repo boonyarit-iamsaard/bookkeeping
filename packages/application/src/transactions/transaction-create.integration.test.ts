@@ -10,11 +10,8 @@ import {
 import { createWalletForTest } from "../testing/wallet-fixture";
 import { listWallets } from "../wallets/wallet";
 import type { CreateTransactionInput } from "./transaction";
-import {
-  createTransaction,
-  findExpenseRefunds,
-  listTransactions,
-} from "./transaction";
+import { createTransaction } from "./transaction";
+import { findExpenseRefunds, listTransactions } from "./transaction-reads";
 
 const { withRollback, committed } = setupTestDatabase();
 

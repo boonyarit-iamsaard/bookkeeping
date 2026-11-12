@@ -17,12 +17,14 @@ import type { CreateTransactionInput } from "./transaction";
 import {
   createTransaction,
   deleteTransaction,
+  updateTransaction,
+} from "./transaction";
+import {
   findExpenseRefunds,
   findTransaction,
   listTransactionChanges,
   listTransactions,
-  updateTransaction,
-} from "./transaction";
+} from "./transaction-reads";
 
 const { withRollback, committed } = setupTestDatabase();
 

@@ -19,6 +19,12 @@ const refundedExpenses = alias(transactions, "refunded_expenses");
 /** A text key that preserves PostgreSQL's microsecond recording precision. */
 export const recordingPosition = sql<string>`to_char(${transactions.recordedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 
+export interface TransactionRef {
+  /** Always the session user; never a client-supplied identifier. */
+  ownerId: string;
+  id: string;
+}
+
 /** The owner's current transactions: their own and not deleted. */
 export function ownedCurrent(ownerId: string) {
   return and(eq(transactions.userId, ownerId), isNull(transactions.deletedAt));
