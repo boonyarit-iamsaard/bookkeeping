@@ -24,7 +24,10 @@ export interface SonarServer {
 }
 
 function createSonarServer(url: string, password: string): SonarServer {
-  const authorization = `Basic ${Buffer.from(`${DEFAULT_LOGIN}:${password}`).toString("base64")}`;
+  const credentials = Buffer.from(`${DEFAULT_LOGIN}:${password}`).toString(
+    "base64",
+  );
+  const authorization = `Basic ${credentials}`;
   return {
     url,
     async request(path, options = {}) {

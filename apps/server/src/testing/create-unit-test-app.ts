@@ -9,11 +9,11 @@ export const TEST_CLIENT_ORIGIN = "http://localhost:4000";
 
 /** An auth gateway that serves nothing and never resolves a session. */
 export const anonymousAuthGateway: AuthGateway = {
-  async handleRequest() {
-    return new Response(null, { status: 404 });
+  handleRequest() {
+    return Promise.resolve(new Response(null, { status: 404 }));
   },
-  async resolveSession() {
-    return null;
+  resolveSession() {
+    return Promise.resolve(null);
   },
 };
 

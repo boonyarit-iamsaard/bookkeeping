@@ -140,9 +140,9 @@ async function fetchPages<T>(
   }
 }
 
-function text(value: unknown) {
+function text(value: string | number | undefined) {
   return String(value ?? "")
-    .replace(/[\\`*_{}[\]<>#|]/g, "\\$&")
+    .replace(/[\\`*_{}[\]<>#|]/g, String.raw`\$&`)
     .replace(/\r?\n/g, " ");
 }
 
@@ -177,8 +177,9 @@ function markdown(report: Readonly<Report>) {
   ];
   for (const issue of report.issues) {
     const file = issue.component.replace(/^bookkeeping:/, "");
+    const line = issue.line ? `:${issue.line}` : "";
     lines.push(
-      `### ${text(file)}${issue.line ? `:${issue.line}` : ""}`,
+      `### ${text(file)}${line}`,
       "",
       text(issue.message),
       "",
@@ -256,16 +257,15 @@ export async function exportReport({
     field: "hotspots",
     schema: keyedSchema,
   });
-  const hotspotDetails: z.infer<typeof hotspotSchema>[] = [];
-  for (const hotspot of hotspots.items) {
-    hotspotDetails.push(
+  const hotspotDetails = await Promise.all(
+    hotspots.items.map(async (hotspot) =>
       hotspotSchema.parse(
         await server.request(
           `hotspots/show?hotspot=${encodeURIComponent(hotspot.key)}`,
         ),
       ),
-    );
-  }
+    ),
+  );
   const report: Report = {
     projectKey: "bookkeeping",
     exportedAt: new Date().toISOString(),

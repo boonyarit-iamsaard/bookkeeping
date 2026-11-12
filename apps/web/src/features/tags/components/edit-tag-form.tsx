@@ -55,6 +55,7 @@ export function EditTagForm({
   } = useEditTagForm({ tag, onDone });
   const survivor = others.find((other) => sameTagName(other.name, name));
   const unchanged = name === tag.name;
+  const saveLabel = survivor ? "Merge tags" : "Save name";
   const describedBy = [
     survivor ? `${nameId}-merge` : `${nameId}-description`,
     nameError ? `${nameId}-error` : undefined,
@@ -126,7 +127,7 @@ export function EditTagForm({
           disabled={pending || unchanged}
           className="w-full"
         >
-          {saving ? "Saving…" : survivor ? "Merge tags" : "Save name"}
+          {saving ? "Saving…" : saveLabel}
         </Button>
 
         {/* Deletion stands apart by space and a hairline, not color alone. */}

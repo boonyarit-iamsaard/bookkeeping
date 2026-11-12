@@ -35,8 +35,8 @@ function readTestUserCookie(headers: Headers): string | null {
  */
 export function createTestAuthGateway(db: Database): AuthGateway {
   return {
-    async handleRequest() {
-      return new Response(null, { status: 404 });
+    handleRequest() {
+      return Promise.resolve(new Response(null, { status: 404 }));
     },
     async resolveSession(headers) {
       const userId = readTestUserCookie(headers);

@@ -60,8 +60,10 @@ async function renderDiagrams(paths: readonly string[]): Promise<void> {
             timeout: 15_000,
           })
           .catch((error: unknown) => {
+            const details =
+              pageErrors.length > 0 ? `: ${pageErrors.join("; ")}` : "";
             throw new Error(
-              `${relative(repositoryDirectory, path)} never became ready${pageErrors.length > 0 ? `: ${pageErrors.join("; ")}` : ""}`,
+              `${relative(repositoryDirectory, path)} never became ready${details}`,
               { cause: error },
             );
           });

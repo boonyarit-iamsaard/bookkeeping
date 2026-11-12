@@ -280,10 +280,10 @@ function TagSheet({
         </div>
         {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
         {full && (
-          <p role="status" className="text-muted-foreground text-sm">
+          <output className="text-muted-foreground text-sm">
             A transaction carries at most {MAX_TAGS_PER_TRANSACTION} tags.
             Remove one to add another.
-          </p>
+          </output>
         )}
       </div>
       <div

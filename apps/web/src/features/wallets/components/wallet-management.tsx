@@ -280,11 +280,10 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
           onClick={() => void submitSavingsState()}
         >
           <PiggyBank data-icon="inline-start" strokeWidth={1.75} />
-          {isRunning("savings")
-            ? "Saving…"
-            : wallet.savings
-              ? "Unmark as a Savings wallet"
-              : "Mark as a Savings wallet"}
+          {savingsButtonLabel({
+            pending: isRunning("savings"),
+            savings: wallet.savings,
+          })}
         </Button>
         {savingsOutcome.error && (
           <ErrorNotice>{savingsOutcome.error}</ErrorNotice>
@@ -377,4 +376,19 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       </section>
     </div>
   );
+}
+
+interface SavingsButtonState {
+  pending: boolean;
+  savings: boolean;
+}
+
+function savingsButtonLabel({
+  pending,
+  savings,
+}: Readonly<SavingsButtonState>) {
+  if (pending) {
+    return "Saving…";
+  }
+  return savings ? "Unmark as a Savings wallet" : "Mark as a Savings wallet";
 }

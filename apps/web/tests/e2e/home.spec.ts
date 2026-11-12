@@ -125,6 +125,7 @@ test("moving between summary cards shifts nothing around them", {
 }, async ({ page }) => {
   const today = todayIn({ timeZone: APP_TIME_ZONE });
   const earlier = `${today.slice(0, 7)}-01`;
+  // On the first day there is no earlier day this month to populate only its card.
   test.skip(earlier === today, "Today needs an empty day in a busy month");
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {
