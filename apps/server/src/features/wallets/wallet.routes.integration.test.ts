@@ -111,22 +111,6 @@ describe("GET /v1/wallets/{walletId}", () => {
       });
     });
   });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await getWallet(
-        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-        {
-          id: UNKNOWN_WALLET_ID,
-        },
-      );
-
-      expect(response.status).toBe(401);
-      expect(problemDetailsSchema.parse(await response.json()).code).toBe(
-        "unauthenticated",
-      );
-    });
-  });
 });
 
 interface CreateWalletRequest {
@@ -345,19 +329,6 @@ describe("POST /v1/wallets", () => {
       );
     });
   });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await postWallet(
-        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-        {
-          idempotencyKey: "anonymous",
-        },
-      );
-
-      await expectProblem(response, { status: 401, code: "unauthenticated" });
-    });
-  });
 });
 
 interface PutWalletOpeningRequest {
@@ -567,19 +538,6 @@ describe("PUT /v1/wallets/{walletId}/opening", () => {
       );
     });
   });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await putWalletOpening(
-        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-        {
-          id: UNKNOWN_WALLET_ID,
-        },
-      );
-
-      await expectProblem(response, { status: 401, code: "unauthenticated" });
-    });
-  });
 });
 
 interface PatchWalletRequest {
@@ -684,19 +642,6 @@ describe("PATCH /v1/wallets/{walletId}", () => {
       );
     });
   });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await patchWallet(
-        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-        {
-          id: UNKNOWN_WALLET_ID,
-        },
-      );
-
-      await expectProblem(response, { status: 401, code: "unauthenticated" });
-    });
-  });
 });
 
 describe("DELETE /v1/wallets/{walletId}", () => {
@@ -752,22 +697,6 @@ describe("DELETE /v1/wallets/{walletId}", () => {
       await expectProblem(await deleteWallet(app, { id: currentId, cookie }), {
         status: 409,
         code: "history-remains",
-      });
-    });
-  });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await deleteWallet(
-        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-        {
-          id: UNKNOWN_WALLET_ID,
-        },
-      );
-
-      await expectProblem(response, {
-        status: 401,
-        code: "unauthenticated",
       });
     });
   });

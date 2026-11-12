@@ -500,7 +500,7 @@ describe("POST /v1/transactions", () => {
     });
   });
 
-  test("requires authentication, a usable idempotency key, and valid JSON", async () => {
+  test("requires a usable idempotency key and valid JSON", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -523,16 +523,6 @@ describe("POST /v1/transactions", () => {
           rawBody: "{",
         }),
         { status: 400, code: "bad-request" },
-      );
-      await expectProblem(
-        await postTransaction(
-          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-          {
-            idempotencyKey: "anonymous",
-            body: expenseBody(owner),
-          },
-        ),
-        { status: 401, code: "unauthenticated" },
       );
     });
   });
@@ -778,34 +768,15 @@ describe("PUT /v1/transactions/{transactionId}", () => {
     });
   });
 
-  test("requires authentication and valid JSON", async () => {
+  test("rejects malformed JSON with the standard problem", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
       });
       const owner = await createOwner({ db });
-      const expense = transactionResponseSchema.parse(
-        await (
-          await postTransaction(app, {
-            cookie: owner.cookie,
-            idempotencyKey: "update-boundary",
-            body: expenseBody(owner),
-          })
-        ).json(),
-      );
-      await expectProblem(
-        await putTransaction(
-          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-          {
-            id: expense.id,
-            body: updateExpenseBody(owner),
-          },
-        ),
-        { status: 401, code: "unauthenticated" },
-      );
       await expectProblem(
         await putTransaction(app, {
-          id: expense.id,
+          id: UNKNOWN_TRANSACTION_ID,
           cookie: owner.cookie,
           rawBody: "{",
         }),
@@ -891,20 +862,6 @@ describe("DELETE /v1/transactions/{transactionId}", () => {
           wallet: refund.wallet,
         },
       ]);
-    });
-  });
-
-  test("requires authentication", async () => {
-    await withRollback(async (db) => {
-      await expectProblem(
-        await deleteTransaction(
-          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-          {
-            id: UNKNOWN_TRANSACTION_ID,
-          },
-        ),
-        { status: 401, code: "unauthenticated" },
-      );
     });
   });
 });
@@ -1016,18 +973,6 @@ describe("GET /v1/transactions", () => {
         ).json(),
       );
       expect(empty).toEqual({ items: [], page: { nextCursor: null } });
-    });
-  });
-
-  test("requires authentication", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      await expectProblem(await listTransactions(app), {
-        status: 401,
-        code: "unauthenticated",
-      });
     });
   });
 });
@@ -1342,35 +1287,6 @@ describe("GET /v1/transactions/entry-defaults", () => {
 
       expect(response.status).toBe(200);
       expect(body.lastUsedWalletId).toBe(owner.bankId);
-    });
-  });
-});
-
-describe("unauthenticated transaction reads", () => {
-  test("every read requires authentication", async () => {
-    await withRollback(async (db) => {
-      const app = createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      });
-      const owner = await createOwner({ db });
-      const id = await insertTransaction(db, {
-        ownerId: owner.ownerId,
-        type: "expense",
-        walletId: owner.cashId,
-        categoryId: owner.childId,
-      });
-
-      const responses = [
-        await getTransaction(app, { id }),
-        await getTransactionRefunds(app, { id }),
-        await getEntryDefaults(app),
-      ];
-      for (const response of responses) {
-        await expectProblem(response, {
-          status: 401,
-          code: "unauthenticated",
-        });
-      }
     });
   });
 });

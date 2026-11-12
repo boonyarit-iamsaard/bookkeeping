@@ -57,6 +57,36 @@ describe("requireSession", () => {
     expect(await response.json()).toEqual({ userId: "user-1" });
   });
 
+  it("answers every route outside the public ones unauthenticated without a session", async () => {
+    const app = createUnitTestApp();
+    const publicPaths = new Set(["/health", "/sign-up", "/openapi.json"]);
+    const protectedRoutes = new Set(
+      app.routes
+        .filter(
+          (route) =>
+            route.method !== "ALL" &&
+            !publicPaths.has(route.path) &&
+            !route.path.startsWith("/api/auth/"),
+        )
+        .map((route) => `${route.method} ${route.path}`),
+    );
+    expect(protectedRoutes.size).toBeGreaterThan(0);
+
+    for (const route of protectedRoutes) {
+      const [method, path] = route.split(" ");
+      const response = await app.request(
+        path.replaceAll(/:\w+/g, "01999999-0000-7000-8000-000000000000"),
+        { method },
+      );
+      const problem = problemDetailsSchema.parse(await response.json());
+      expect({ route, status: response.status, code: problem.code }).toEqual({
+        route,
+        status: 401,
+        code: "unauthenticated",
+      });
+    }
+  });
+
   it("leaves health and auth routes outside the session requirement", async () => {
     const app = createUnitTestApp({ auth: signedInAuthGateway });
 

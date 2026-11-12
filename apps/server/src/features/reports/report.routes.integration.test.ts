@@ -272,7 +272,7 @@ describe("GET /v1/reports/monthly", () => {
     });
   });
 
-  test("a malformed month is a bad request and every read requires authentication", async () => {
+  test("a malformed month is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -308,14 +308,6 @@ describe("GET /v1/reports/monthly", () => {
           query: "month=2026-09&from=2026-09-01",
         }),
         { status: 400, code: "bad-request" },
-      );
-      await expectProblem(await getMonthlyReport(app), {
-        status: 401,
-        code: "unauthenticated",
-      });
-      await expectProblem(
-        await getMonthlyReport(app, { query: "month=2026-09" }),
-        { status: 401, code: "unauthenticated" },
       );
     });
   });
@@ -756,7 +748,7 @@ describe("GET /v1/reports/category-spending", () => {
     });
   });
 
-  test("a malformed month is a bad request and the read requires authentication", async () => {
+  test("a malformed month is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -780,14 +772,6 @@ describe("GET /v1/reports/category-spending", () => {
       await expectProblem(
         await getCategorySpending(app, { cookie: owner.cookie }),
         { status: 400, code: "bad-request" },
-      );
-      await expectProblem(await getCategorySpending(app), {
-        status: 401,
-        code: "unauthenticated",
-      });
-      await expectProblem(
-        await getCategorySpending(app, { query: "month=2026-09" }),
-        { status: 401, code: "unauthenticated" },
       );
     });
   });
@@ -1227,7 +1211,7 @@ describe("GET /v1/reports/closing-balances", () => {
     });
   });
 
-  test("a malformed month is a bad request and the read requires authentication", async () => {
+  test("a malformed month is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -1251,14 +1235,6 @@ describe("GET /v1/reports/closing-balances", () => {
       await expectProblem(
         await getClosingBalances(app, { cookie: owner.cookie }),
         { status: 400, code: "bad-request" },
-      );
-      await expectProblem(await getClosingBalances(app), {
-        status: 401,
-        code: "unauthenticated",
-      });
-      await expectProblem(
-        await getClosingBalances(app, { query: "month=2026-09" }),
-        { status: 401, code: "unauthenticated" },
       );
     });
   });

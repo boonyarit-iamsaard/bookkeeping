@@ -111,7 +111,7 @@ describe("GET /v1/reports/daily", () => {
     });
   });
 
-  test("an impossible date is a bad request and the read requires authentication", async () => {
+  test("an impossible date is a bad request", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -124,10 +124,6 @@ describe("GET /v1/reports/daily", () => {
           query: "date=2026-02-30",
         }),
         { status: 400, code: "bad-request" },
-      );
-      await expectProblem(
-        await getDailyReport(app, { query: "date=2026-09-10" }),
-        { status: 401, code: "unauthenticated" },
       );
     });
   });

@@ -11,7 +11,6 @@ import { transactions } from "@bookkeeping/database/transactions";
 import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import { describe, expect, test } from "vitest";
-import { problemDetailsSchema } from "../../core/http/problem-details.js";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
   createIntegrationTestApp,
@@ -416,7 +415,7 @@ describe("POST /v1/categories", () => {
     });
   });
 
-  test("rejects malformed JSON and anonymous requests with standard problems", async () => {
+  test("rejects malformed JSON with the standard problem", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -430,15 +429,6 @@ describe("POST /v1/categories", () => {
           rawBody: "{",
         }),
         { status: 400, code: "bad-request" },
-      );
-      await expectProblem(
-        await postCategory(
-          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-          {
-            idempotencyKey: "anonymous",
-          },
-        ),
-        { status: 401, code: "unauthenticated" },
       );
     });
   });
@@ -479,19 +469,6 @@ describe("GET /v1/categories", () => {
       ).toBe(false);
     });
   });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await listCategories(
-        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-      );
-
-      expect(response.status).toBe(401);
-      expect(problemDetailsSchema.parse(await response.json()).code).toBe(
-        "unauthenticated",
-      );
-    });
-  });
 });
 
 describe("GET /v1/categories/{categoryId}", () => {
@@ -523,19 +500,6 @@ describe("GET /v1/categories/{categoryId}", () => {
       expect(categoryResponseSchema.parse(await response.json())).toEqual(
         uncategorized,
       );
-    });
-  });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await getCategory(
-        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-        {
-          categoryId: "00000000-0000-0000-0000-000000000000",
-        },
-      );
-
-      await expectProblem(response, { status: 401, code: "unauthenticated" });
     });
   });
 });
@@ -673,7 +637,7 @@ describe("PATCH /v1/categories/{categoryId}", () => {
     });
   });
 
-  test("rejects malformed JSON and anonymous requests with standard problems", async () => {
+  test("rejects malformed JSON with the standard problem", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),
@@ -694,15 +658,6 @@ describe("PATCH /v1/categories/{categoryId}", () => {
           rawBody: "{",
         }),
         { status: 400, code: "bad-request" },
-      );
-      await expectProblem(
-        await patchCategory(
-          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-          {
-            categoryId: anyCategory.id,
-          },
-        ),
-        { status: 401, code: "unauthenticated" },
       );
     });
   });
@@ -764,19 +719,6 @@ describe("GET /v1/categories/{categoryId}/usage", () => {
       expect(
         categoryUsageResponseSchema.parse(await groceriesResponse.json()),
       ).toEqual({ transactions: 2, children: 0 });
-    });
-  });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await getCategoryUsage(
-        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-        {
-          categoryId: "00000000-0000-0000-0000-000000000000",
-        },
-      );
-
-      await expectProblem(response, { status: 401, code: "unauthenticated" });
     });
   });
 });
@@ -874,20 +816,6 @@ describe("GET /v1/categories/usage", () => {
       expect(body).toEqual({ items: [], page: { nextCursor: null } });
     });
   });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      await expectProblem(
-        await listUsage(
-          createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-        ),
-        {
-          status: 401,
-          code: "unauthenticated",
-        },
-      );
-    });
-  });
 });
 
 describe("POST /v1/categories/defaults", () => {
@@ -915,22 +843,6 @@ describe("POST /v1/categories/defaults", () => {
         "application/json",
       );
       expect(outcome).toEqual({ seededKinds: ["income"] });
-    });
-  });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await createIntegrationTestApp(db, {
-        auth: createTestAuthGateway(db),
-      }).request(DEFAULTS_URL, {
-        method: "POST",
-        headers: { origin: TEST_CLIENT_ORIGIN },
-      });
-
-      expect(response.status).toBe(401);
-      expect(problemDetailsSchema.parse(await response.json()).code).toBe(
-        "unauthenticated",
-      );
     });
   });
 });
@@ -985,22 +897,6 @@ describe("DELETE /v1/categories/{categoryId}", () => {
         await deleteCategory(app, { categoryId: foodAndDrink.id, cookie }),
         { status: 409, code: "has-children" },
       );
-    });
-  });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await deleteCategory(
-        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-        {
-          categoryId: "00000000-0000-0000-0000-000000000000",
-        },
-      );
-
-      await expectProblem(response, {
-        status: 401,
-        code: "unauthenticated",
-      });
     });
   });
 });

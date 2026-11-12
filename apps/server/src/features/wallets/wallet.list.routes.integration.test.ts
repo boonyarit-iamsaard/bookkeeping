@@ -2,7 +2,6 @@ import { createWalletForTest } from "@bookkeeping/application/testing/wallet-fix
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import type { Hono } from "hono";
 import { describe, expect, test } from "vitest";
-import { problemDetailsSchema } from "../../core/http/problem-details.js";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
   createIntegrationTestApp,
@@ -183,19 +182,6 @@ describe("GET /v1/wallets", () => {
       const body = walletCollectionResponseSchema.parse(await response.json());
 
       expect(body.items).toEqual([]);
-    });
-  });
-
-  test("rejects an anonymous request with the standard problem", async () => {
-    await withRollback(async (db) => {
-      const response = await getWallets(
-        createIntegrationTestApp(db, { auth: createTestAuthGateway(db) }),
-      );
-
-      expect(response.status).toBe(401);
-      expect(problemDetailsSchema.parse(await response.json()).code).toBe(
-        "unauthenticated",
-      );
     });
   });
 
