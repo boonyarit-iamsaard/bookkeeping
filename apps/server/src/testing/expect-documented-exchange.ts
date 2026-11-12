@@ -52,7 +52,7 @@ export async function expectDocumentedExchange(
   ).toBeUndefined();
   // Presented values are JSON throughout: no bigint or Date reaches the
   // wire, so the parsed body round-trips to exactly what was sent.
-  expect(JSON.parse(JSON.stringify(parsed.data))).toEqual(body);
+  expect(structuredClone(parsed.data)).toEqual(body);
 }
 
 export interface ExchangeCollector {

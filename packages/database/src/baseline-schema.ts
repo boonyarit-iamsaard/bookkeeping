@@ -28,8 +28,8 @@ const IGNORED_LINE_PREFIXES = [
   "--",
   "SET ",
   "SELECT pg_catalog.set_config",
-  "\\restrict",
-  "\\unrestrict",
+  String.raw`\restrict`,
+  String.raw`\unrestrict`,
 ];
 
 const DOCKER_HOST_ALIAS = "host.docker.internal";

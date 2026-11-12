@@ -20,15 +20,11 @@ const nextMigrationFixture = fileURLToPath(
 /** The column the next migration fixture adds to `wallets`. */
 export const nextMigrationColumn = "fixture_column";
 
-const journalSchema = z
-  .object({
-    entries: z.array(
-      z
-        .object({ idx: z.number(), when: z.number(), tag: z.string() })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
+const journalSchema = z.looseObject({
+  entries: z.array(
+    z.looseObject({ idx: z.number(), when: z.number(), tag: z.string() }),
+  ),
+});
 
 export async function readMigrationJournal(
   folder: string,

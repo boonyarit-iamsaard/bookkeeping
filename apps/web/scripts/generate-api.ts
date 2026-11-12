@@ -52,13 +52,10 @@ async function findChangedFiles(): Promise<GeneratedFile[]> {
     { file: DOCUMENT_FILE, content: document },
     { file: TYPES_FILE, content: types },
   ];
-  const changed: GeneratedFile[] = [];
-  for (const entry of generated) {
-    if ((await readIfPresent(entry.file)) !== entry.content) {
-      changed.push(entry);
-    }
-  }
-  return changed;
+  const existing = await Promise.all(
+    generated.map((entry) => readIfPresent(entry.file)),
+  );
+  return generated.filter((entry, index) => existing[index] !== entry.content);
 }
 
 const checkOnly = process.argv.includes("--check");
@@ -80,9 +77,9 @@ if (checkOnly) {
     "The committed API client matches the server's OpenAPI document.",
   );
 } else if (changed.length > 0) {
-  for (const { file, content } of changed) {
-    await writeFile(file, content);
-  }
+  await Promise.all(
+    changed.map(({ file, content }) => writeFile(file, content)),
+  );
   console.log(`Regenerated:\n${changedPaths.join("\n")}`);
 } else {
   console.log("The API client is already up to date.");
