@@ -5,7 +5,6 @@
   "apps/web/src/features/categories/icons.ts": 23384,
   "apps/web/tests/e2e/shell.spec.ts": 23125,
   "apps/web/tests/e2e/transaction-entry.spec.ts": 21863,
-  "packages/application/src/categories/category.integration.test.ts": 39116,
   "packages/application/src/categories/category.ts": 22104,
   "packages/application/src/transactions/transaction-create.integration.test.ts": 21382,
   "packages/application/src/transactions/transaction-reads.integration.test.ts": 28588,
