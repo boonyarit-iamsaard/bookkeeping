@@ -1,7 +1,6 @@
 {
   "apps/server/src/core/http/api-contract.integration.test.ts": 20040,
   "apps/server/src/features/categories/category.routes.integration.test.ts": 27978,
-  "apps/server/src/features/transactions/transaction.routes.integration.test.ts": 39284,
   "apps/server/src/features/transactions/transaction.routes.ts": 24929,
   "apps/server/src/features/wallets/wallet.routes.integration.test.ts": 22199,
   "apps/web/src/features/categories/icons.ts": 23384,
