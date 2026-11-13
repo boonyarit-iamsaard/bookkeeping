@@ -4,20 +4,15 @@ import { err, ok } from "../result/result";
 /** A calendar date in ISO form, YYYY-MM-DD, with no time or zone. */
 export type CalendarDate = string; // NOSONAR
 
-// Stryker disable next-line Regex: the ISO prefix check below already rejects trailing text
-const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
 /** Accepts only well-formed, real calendar dates ("2026-02-30" is rejected). */
 export function parseCalendarDate(
   value: string,
 ): Result<CalendarDate, "invalid"> {
-  if (!CALENDAR_DATE_PATTERN.test(value)) {
-    return err("invalid");
-  }
   const parsed = new Date(`${value}T00:00:00Z`);
+  // Only a value that is exactly the parsed date's own ISO form is well-formed and real.
   if (
     Number.isNaN(parsed.getTime()) ||
-    !parsed.toISOString().startsWith(value)
+    parsed.toISOString().slice(0, 10) !== value
   ) {
     return err("invalid");
   }

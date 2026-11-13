@@ -10,7 +10,7 @@ export const strykerBase = {
     "!src/testing/**",
     "!src/**/*.gen.ts",
   ],
-  reporters: ["clear-text", "html", "json", "progress"],
+  reporters: ["clear-text", "html", "json"],
   incremental: true,
   // Sandboxes sit two levels under the root, like workspaces, so `../../` paths
   // resolve unchanged; naming no tsconfig stops Stryker rewriting its `extends`.
