@@ -89,9 +89,11 @@ never write it into this file. The repository is public.
   ```
 
   `Status` must be `CREATE_COMPLETE` and `Exec` must be `AVAILABLE`. There
-  must be four `Add` changes: `BackupBucket` (`AWS::S3::Bucket`),
-  `BackupBucketPolicy`, `UploaderUser` (`AWS::IAM::User`) and
-  `MonthlyCostBudget` (`AWS::Budgets::Budget`). I also check the `AlertEmail`
+  must be eleven `Add` changes, one per resource in `infra/aws/backups.yaml`:
+  `BackupBucket` (`AWS::S3::Bucket`), `BackupBucketPolicy`, `UploaderUser`
+  (`AWS::IAM::User`), `MonthlyCostBudget` (`AWS::Budgets::Budget`),
+  `AlertTopic`, `AlertLogGroup`, `AlertRole`, `AlertFunction`,
+  `AlertErrorsAlarm`, `AlertSchedulerRole` and `AlertSchedule`. I also check the `AlertEmail`
   parameter against what you meant to type, by showing you its domain only.
 
 - **Undo:** Before step 3, the change set is free to discard:
@@ -104,7 +106,7 @@ never write it into this file. The repository is public.
 
 - [x] **Done**
 - **Goal:** The stack reaches `CREATE_COMPLETE`, with the bucket, its policy,
-  the uploader user and the budget.
+  the uploader user, the budget and the backup alert.
 - **Why:** This creates the storage that ticket 04 writes to.
 - **Where:** This machine's terminal.
 - **⚠️ What cannot be undone:** Once the bucket exists, Object Lock can't be
@@ -148,8 +150,9 @@ never write it into this file. The repository is public.
   Each result must match `infra/aws/backups.yaml`: `CREATE_COMPLETE`; the
   bucket name ends in `-ap-southeast-1-an`; versioning `Enabled`; Object
   Lock `COMPLIANCE` with 35 days; all four public access blocks `true`;
-  `BucketOwnerEnforced`; `AES256`; three lifecycle rules; the TLS deny
-  statement; and `s3:PutObject` only on `daily/*` and `monthly/*`. I then
+  `BucketOwnerEnforced`; `AES256`; four lifecycle rules; the TLS deny
+  statement; and `s3:PutObject` only on `daily/*`, `monthly/*` and
+  `manual/*`. I then
   record the outputs under the issue's Comments: the uploader user name
   verbatim, and the bucket name as `<BUCKET_NAME>`.
 
@@ -176,9 +179,9 @@ never write it into this file. The repository is public.
   a confirmation email arrives.
 - **Do:**
   1. If an email asks you to confirm a subscription, confirm it and tell me.
-     For a budget that emails you directly, the docs mention confirmation
-     only for SNS topics, so none is expected.
-- **Expect:** No action needed.
+     A budget that emails you directly needs no confirmation, but the
+     `bookkeeping-backup-alert` SNS topic sends one; confirm that email.
+- **Expect:** One SNS confirmation email, confirmed.
 - **Verify:** I run, read-only, for both notifications (`ACTUAL` at 80 and
   `FORECASTED` at 100):
 
@@ -186,11 +189,15 @@ never write it into this file. The repository is public.
   aws budgets describe-subscribers-for-notification "${P[@]}" \
     --account-id <BACKUPS_ACCOUNT_ID> --budget-name bookkeeping-backups-monthly \
     --notification NotificationType=ACTUAL,ComparisonOperator=GREATER_THAN,Threshold=80,ThresholdType=PERCENTAGE
+  aws budgets describe-subscribers-for-notification "${P[@]}" \
+    --account-id <BACKUPS_ACCOUNT_ID> --budget-name bookkeeping-backups-monthly \
+    --notification NotificationType=FORECASTED,ComparisonOperator=GREATER_THAN,Threshold=100,ThresholdType=PERCENTAGE
   aws sns list-subscriptions "${P[@]}"
   ```
 
   Each notification has one `EMAIL` subscriber, `<OWNER_EMAIL>`. SNS lists
-  no subscription, so nothing is waiting for confirmation.
+  one `email` subscription on `bookkeeping-backup-alert`, and its
+  `SubscriptionArn` is an ARN, not `PendingConfirmation`.
 
 - **Undo:** Update the stack with a different `AlertEmail`.
 - **Ticks:** "Budget email confirmed received or subscribed." Note under

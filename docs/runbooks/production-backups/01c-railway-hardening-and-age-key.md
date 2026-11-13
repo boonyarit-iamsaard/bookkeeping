@@ -143,16 +143,20 @@ never write it into this file. The repository is public.
      age-keygen -y <NEW_KEY_FILE>   # the public key, age1…, safe to share
      ```
 
-  2. Re-encrypt in a single pipe, so the plaintext never touches disk:
+  2. Re-encrypt in a single pipe, so the plaintext never touches disk.
+     `pipefail` makes a failed decrypt fail the whole pipe:
 
      ```sh
+     set -o pipefail
      age -d -i <OLD_KEY_FILE> <OLD_DUMP_FILE> \
        | age -r <NEW_AGE_PUBLIC_KEY> -o <NEW_DUMP_FILE>
      ```
 
-  3. Check the two files decrypt to identical bytes:
+  3. Check the two files decrypt to identical bytes. Both commands must exit
+     0, and the hash must not be `e3b0c442…`, the hash of empty input:
 
      ```sh
+     set -o pipefail
      age -d -i <OLD_KEY_FILE> <OLD_DUMP_FILE> | sha256sum
      age -d -i <NEW_KEY_FILE> <NEW_DUMP_FILE> | sha256sum
      ```

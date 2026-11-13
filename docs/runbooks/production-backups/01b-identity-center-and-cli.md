@@ -216,7 +216,7 @@ bookkeeping-backups` shows the `backups` account."
     --query 'SummaryMap.{RootAccessKeysPresent:AccountAccessKeysPresent,RootMFAEnabled:AccountMFAEnabled}'
   aws organizations describe-organization $P \
     --query 'Organization.{FeatureSet:FeatureSet,Management:MasterAccountId}'
-  aws organizations list-accounts $P --query 'Accounts[].{Name:Name,Status:Status}'
+  aws organizations list-accounts $P --query 'Accounts[].{Name:Name,State:State}'
   aws iam list-organizations-features $P
   aws sso-admin list-instances $P --region ap-southeast-1 --query 'Instances[].Status'
   ```
@@ -260,8 +260,8 @@ bookkeeping-backups` shows the `backups` account."
   ```
 
   With those credentials, `aws iam get-login-profile` should fail with
-  `NoSuchEntity`, and `aws iam list-access-keys` and `aws iam list-mfa-devices`
-  should return empty lists.
+  `NoSuchEntity`, and `aws iam list-access-keys`, `aws iam list-mfa-devices`
+  and `aws iam list-signing-certificates` should return empty lists.
 
 - **Undo:** **Take privileged action** → **Allow password recovery** lets the
   holder of `<BACKUPS_ROOT_EMAIL>` reset a root password later.
