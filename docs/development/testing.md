@@ -62,6 +62,42 @@ generated `*.gen.ts` files.
 components, so a low web number is expected, not a gap. The root `scripts/`
 suite is repo tooling and has no coverage report.
 
+## Mutation testing
+
+Mutation testing changes the source one small edit at a time (a flipped
+comparison, an emptied string) and reruns the tests. A mutant the tests still
+pass "survived": the code runs under test, but nothing checks what it does.
+[Stryker](https://stryker-mutator.io/) runs it on demand, outside `pnpm test`
+and `pnpm run ci`, with no threshold yet. Only `packages/domain` is set up:
+
+```bash
+pnpm --filter @bookkeeping/domain test:mutation           # Retests only mutants whose code or tests changed
+pnpm --filter @bookkeeping/domain test:mutation --force   # Retests every mutant
+```
+
+A run is a heavy task: run it alone, per the resource limits in
+[AGENTS.md](../../AGENTS.md). It uses unit tests only, and `concurrency` is 2;
+on the development machine a full domain run takes about 50 seconds and peaks
+near 900 MB, and 4 workers were slower. Reports land in the workspace's
+`reports/mutation/` (`mutation.html` to browse, `mutation.json` for tools),
+beside the incremental results file `reports/stryker-incremental.json`.
+Nothing is sent to the Stryker dashboard. After changing which files are
+mutated, delete `reports/` first, because the incremental file keeps the old
+files' results in the report.
+
+The shared settings live in `stryker.config.base.mjs`, and each workspace's
+`stryker.config.mjs` extends it. Its sandboxes go to the root `.stryker-tmp/`
+so that they sit two levels deep like a workspace and relative `../../` paths
+still resolve. A workspace leaves out files whose rules another workspace's
+tests own; see [test ownership](../code-conventions.md#test-ownership).
+
+When a mutant survives, strengthen the test. Mark it only when no test could
+ever kill it (an equivalent mutant), on the line above, with the reason:
+
+```ts
+// Stryker disable next-line EqualityOperator: on equal dates either argument is the answer
+```
+
 ## Local SonarQube
 
 SonarQube is an optional, on-demand analysis tool. Run it when the project owner

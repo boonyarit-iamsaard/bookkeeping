@@ -26,6 +26,9 @@
       "outputs": ["coverage/**"],
       "passThroughEnv": ["TESTCONTAINERS_HOST_OVERRIDE"]
     },
+    "test:mutation": {
+      "cache": false
+    },
     "test:watch": {
       "cache": false,
       "persistent": true

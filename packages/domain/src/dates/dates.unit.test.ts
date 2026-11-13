@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  APP_TIME_ZONE,
   addDays,
   earlierOf,
   formatCalendarDate,
@@ -7,12 +8,13 @@ import {
   isCalendarDate,
   isReportMonth,
   parseCalendarDate,
+  REPORT_MONTH_PATTERN,
   todayIn,
 } from "./dates";
 
 describe("todayIn", () => {
   test("rolls to the next calendar day at Bangkok midnight, not UTC", () => {
-    const timeZone = "Asia/Bangkok";
+    const timeZone = APP_TIME_ZONE;
     expect(todayIn({ timeZone, now: new Date("2026-09-12T16:59:59Z") })).toBe(
       "2026-09-12",
     );
@@ -42,6 +44,12 @@ describe("parseCalendarDate", () => {
       ok: false,
       error: "invalid",
     });
+  });
+
+  test("rejects partial and expanded-year dates that Date would still parse", () => {
+    for (const value of ["2026-09", "2026", "+010000-01-01"]) {
+      expect(parseCalendarDate(value)).toEqual({ ok: false, error: "invalid" });
+    }
   });
 });
 
@@ -79,6 +87,12 @@ describe("isReportMonth", () => {
   test("rejects month 00 and month 13", () => {
     expect(isReportMonth("2026-00")).toBe(false);
     expect(isReportMonth("2026-13")).toBe(false);
+  });
+
+  test("the published pattern matches the whole value, not a part of it", () => {
+    for (const value of ["x2026-09", "2026-09x"]) {
+      expect(REPORT_MONTH_PATTERN.test(value)).toBe(false);
+    }
   });
 
   test("rejects months before year 1", () => {

@@ -12,6 +12,10 @@ node_modules
 
 # testing
 coverage/
+# Stryker reports and sandboxes; anchored so src/features/reports stays tracked
+/apps/*/reports/
+/packages/*/reports/
+.stryker-tmp/
 /.scannerwork/
 /.sonar-reports/
 

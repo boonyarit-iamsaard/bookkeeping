@@ -4,6 +4,7 @@ import { err, ok } from "../result/result";
 /** A calendar date in ISO form, YYYY-MM-DD, with no time or zone. */
 export type CalendarDate = string; // NOSONAR
 
+// Stryker disable next-line Regex: the ISO prefix check below already rejects trailing text
 const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Accepts only well-formed, real calendar dates ("2026-02-30" is rejected). */
@@ -44,6 +45,7 @@ function partOf(
   parts: readonly Intl.DateTimeFormatPart[],
   type: Intl.DateTimeFormatPartTypes,
 ): string {
+  // Stryker disable next-line OptionalChaining,StringLiteral: these formatters always emit every part they request
   return parts.find((candidate) => candidate.type === type)?.value ?? "";
 }
 
@@ -101,6 +103,7 @@ export function addDays(date: CalendarDate, days: number): CalendarDate {
 
 /** The earlier of two calendar dates; ISO dates order the same as strings. */
 export function earlierOf(a: CalendarDate, b: CalendarDate): CalendarDate {
+  // Stryker disable next-line EqualityOperator: on equal dates either argument is the answer
   return a <= b ? a : b;
 }
 

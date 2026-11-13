@@ -4,10 +4,11 @@
 
 ### Local resource limits
 
-Sonar scans and browser test (e2e) runs are exclusive on this machine: never
-run either concurrently with any other heavy task — another Sonar scan, e2e, a
-production build, or the unit/integration suites (including
-`pnpm test:coverage`) — and never with each other.
+Sonar scans, Stryker mutation runs (`test:mutation`), and browser test (e2e)
+runs are exclusive on this machine: never run one concurrently with any other
+heavy task — another Sonar scan or mutation run, e2e, a production build, or
+the unit/integration suites (including `pnpm test:coverage`) — and never with
+each other.
 Overlapping runs have exhausted memory and nearly crashed the machine.
 Everything else may run in parallel, including Turborepo task parallelism.
 Lightweight independent reads and searches may run in parallel.
