@@ -6,6 +6,7 @@
   "exports": {
     "./categories": "./src/categories/category.ts",
     "./categories/defaults": "./src/categories/default-categories.ts",
+    "./categories/reads": "./src/categories/category-reads.ts",
     "./idempotency": "./src/idempotency/idempotency.ts",
     "./shared/not-found": "./src/shared/not-found.ts",
     "./shared/rejection": "./src/shared/rejection.ts",

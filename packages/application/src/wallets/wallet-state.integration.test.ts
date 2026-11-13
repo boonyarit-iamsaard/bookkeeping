@@ -9,10 +9,8 @@ import type { WalletType } from "@bookkeeping/domain/wallets";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import { asc, eq } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
-import {
-  initializeDefaultCategories,
-  listCategories,
-} from "../categories/category";
+import { initializeDefaultCategories } from "../categories/category";
+import { listCategories } from "../categories/category-reads";
 import { createWallet, findWallet } from "./wallet";
 import { changeWalletState } from "./wallet-state";
 

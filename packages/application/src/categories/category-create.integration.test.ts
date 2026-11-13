@@ -17,11 +17,8 @@ import {
   refused,
   setupOwner,
 } from "../testing/category-suite-fixture";
-import {
-  createCategory,
-  initializeDefaultCategories,
-  listCategories,
-} from "./category";
+import { createCategory, initializeDefaultCategories } from "./category";
+import { listCategories } from "./category-reads";
 
 const { withRollback, committed } = setupTestDatabase();
 

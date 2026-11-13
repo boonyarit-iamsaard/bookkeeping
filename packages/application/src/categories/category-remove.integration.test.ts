@@ -14,11 +14,8 @@ import {
   insertLinkedRefund,
 } from "../testing/transaction-fixture";
 import { createWalletForTest } from "../testing/wallet-fixture";
-import {
-  initializeDefaultCategories,
-  listCategories,
-  removeCategory,
-} from "./category";
+import { initializeDefaultCategories, removeCategory } from "./category";
+import { listCategories } from "./category-reads";
 
 const { withRollback, committed } = setupTestDatabase();
 

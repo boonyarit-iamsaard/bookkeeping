@@ -8,10 +8,8 @@ import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
-import {
-  initializeDefaultCategories,
-  listCategories,
-} from "../categories/category";
+import { initializeDefaultCategories } from "../categories/category";
+import { listCategories } from "../categories/category-reads";
 import { rejected } from "../shared/rejection";
 import { insertRetainedTransferSnapshot } from "../testing/transaction-fixture";
 import type { WalletFixtureInput } from "../testing/wallet-fixture";

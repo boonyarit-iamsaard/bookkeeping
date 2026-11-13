@@ -1,10 +1,8 @@
 import type { Database } from "@bookkeeping/database/connection";
 import { createTestUser } from "@bookkeeping/database/testing";
 import type { CategoryKind } from "@bookkeeping/domain/categories";
-import {
-  initializeDefaultCategories,
-  listCategories,
-} from "../categories/category";
+import { initializeDefaultCategories } from "../categories/category";
+import { listCategories } from "../categories/category-reads";
 import { DEFAULT_CATEGORIES } from "../categories/default-categories";
 
 /** The shared envelope of one refused input. */

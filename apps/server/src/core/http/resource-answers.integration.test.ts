@@ -1,7 +1,5 @@
-import {
-  initializeDefaultCategories,
-  listCategories,
-} from "@bookkeeping/application/categories";
+import { initializeDefaultCategories } from "@bookkeeping/application/categories";
+import { listCategories } from "@bookkeeping/application/categories/reads";
 import { createTagForTest } from "@bookkeeping/application/testing/tag-fixture";
 import { insertTransaction } from "@bookkeeping/application/testing/transaction-fixture";
 import { softDelete } from "@bookkeeping/application/testing/transaction-suite-fixture";

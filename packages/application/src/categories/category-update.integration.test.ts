@@ -2,7 +2,8 @@ import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { describe, expect, test } from "vitest";
 import { createCategoryForTest } from "../testing/category-fixture";
 import { refused, setupOwner } from "../testing/category-suite-fixture";
-import { findCategory, listCategories, updateCategory } from "./category";
+import { updateCategory } from "./category";
+import { findCategory, listCategories } from "./category-reads";
 
 const { withRollback } = setupTestDatabase();
 

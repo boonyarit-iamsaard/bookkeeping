@@ -1,4 +1,4 @@
-import { listCategories } from "@bookkeeping/application/categories";
+import { listCategories } from "@bookkeeping/application/categories/reads";
 import { insertTransaction } from "@bookkeeping/application/testing/transaction-fixture";
 import { categories as categoryTable } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";

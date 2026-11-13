@@ -3,9 +3,8 @@
   "apps/server/src/features/transactions/transaction.routes.ts": 24929,
   "apps/server/src/features/wallets/wallet.routes.integration.test.ts": 22199,
   "apps/web/tests/e2e/transaction-entry.spec.ts": 21863,
-  "packages/application/src/categories/category.ts": 22104,
   "packages/application/src/transactions/transaction-create.integration.test.ts": 21382,
-  "packages/application/src/transactions/transaction-reads.integration.test.ts": 28588,
-  "packages/application/src/transactions/transaction-update.integration.test.ts": 29516,
-  "packages/application/src/wallets/wallet.integration.test.ts": 22915
+  "packages/application/src/transactions/transaction-reads.integration.test.ts": 28628,
+  "packages/application/src/transactions/transaction-update.integration.test.ts": 29522,
+  "packages/application/src/wallets/wallet.integration.test.ts": 22957
 }

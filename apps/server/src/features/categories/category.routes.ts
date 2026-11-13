@@ -4,14 +4,16 @@ import type {
 } from "@bookkeeping/application/categories";
 import {
   createCategory,
-  findCategory,
-  findCategoryUsage,
   initializeDefaultCategories,
-  listCategories,
-  listCategoryUsage,
   removeCategory,
   updateCategory,
 } from "@bookkeeping/application/categories";
+import {
+  findCategory,
+  findCategoryUsage,
+  listCategories,
+  listCategoryUsage,
+} from "@bookkeeping/application/categories/reads";
 import type { NotFound } from "@bookkeeping/application/shared/not-found";
 import type { Database } from "@bookkeeping/database/connection";
 import { CATEGORY_KINDS } from "@bookkeeping/domain/categories";

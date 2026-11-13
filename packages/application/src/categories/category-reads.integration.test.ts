@@ -13,13 +13,13 @@ import {
   insertLinkedRefund,
 } from "../testing/transaction-fixture";
 import { createWalletForTest } from "../testing/wallet-fixture";
+import { initializeDefaultCategories } from "./category";
 import {
   findCategory,
   findCategoryUsage,
-  initializeDefaultCategories,
   listCategories,
   listCategoryUsage,
-} from "./category";
+} from "./category-reads";
 import { DEFAULT_CATEGORIES } from "./default-categories";
 
 const { withRollback } = setupTestDatabase();
