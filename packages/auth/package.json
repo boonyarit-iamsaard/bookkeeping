@@ -10,6 +10,7 @@
   },
   "scripts": {
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "types:check": "tsc --noEmit"
   },
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@types/node": "^24",
+    "@vitest/coverage-v8": "^5.1.0",
     "typescript": "^5",
     "vitest": "^5.1.0"
   }

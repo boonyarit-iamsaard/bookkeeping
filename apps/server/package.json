@@ -9,6 +9,7 @@
     "start": "node --enable-source-maps dist/server.js",
     "password:reset": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/reset-password-cli.ts",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:image": "vitest run --config vitest.image.config.mts",
     "types:check": "tsc --noEmit"
@@ -31,6 +32,7 @@
     "@dotenvx/dotenvx": "^2.38.2",
     "@seriousme/openapi-schema-validator": "^2.11.0",
     "@types/node": "^24",
+    "@vitest/coverage-v8": "^5.1.0",
     "esbuild": "^0.28.2",
     "tsx": "^4.23.15",
     "typescript": "^5",

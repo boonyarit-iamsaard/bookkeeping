@@ -22,6 +22,10 @@
     "test": {
       "passThroughEnv": ["TESTCONTAINERS_HOST_OVERRIDE"]
     },
+    "test:coverage": {
+      "outputs": ["coverage/**"],
+      "passThroughEnv": ["TESTCONTAINERS_HOST_OVERRIDE"]
+    },
     "test:watch": {
       "cache": false,
       "persistent": true

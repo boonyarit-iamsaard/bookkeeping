@@ -42,6 +42,10 @@ it("clearing one Vitest invocation preserves the other invocations' module cache
       join(fixture, "node_modules/vitest"),
       "junction",
     );
+    await copyFile(
+      join(repository, "vitest.coverage.ts"),
+      join(fixture, "vitest.coverage.ts"),
+    );
     for (const workspace of workspaces) {
       const directory = join(fixture, workspace);
       await mkdir(directory, { recursive: true });

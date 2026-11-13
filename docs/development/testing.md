@@ -40,6 +40,28 @@ uses port 5100. Specs run on 360px Chromium; tests tagged
 [test ownership](../code-conventions.md#test-ownership) rules and the
 browser test policy in [AGENTS.md](../../AGENTS.md).
 
+## Coverage
+
+Coverage is an on-demand report, not part of `pnpm test` or `pnpm run ci`, and
+no threshold gates it yet:
+
+```bash
+pnpm test:coverage                                   # Every workspace's unit and integration tests, with coverage
+pnpm --filter @bookkeeping/domain test:coverage      # One workspace
+```
+
+It counts the same tests as `pnpm test` and needs Docker for the integration
+suites. Each workspace writes its own report to `<workspace>/coverage/`:
+`index.html` to browse and `lcov.info` for tools. The numbers are per
+workspace and are never merged into one total. The shared settings live in
+`vitest.coverage.ts`. They count every file under `src/`, so a module no test
+loads shows as uncovered, and they exclude tests, `src/testing/` helpers, and
+generated `*.gen.ts` files.
+
+`apps/web` counts only its unit tests. The browser suite owns its screens and
+components, so a low web number is expected, not a gap. The root `scripts/`
+suite is repo tooling and has no coverage report.
+
 ## Local SonarQube
 
 SonarQube is an optional, on-demand analysis tool. Run it when the project owner
@@ -90,7 +112,7 @@ The scanner analyzes
 and `infra/aws/`, and classifies colocated Vitest tests and `apps/web/tests/`
 as test code; it
 skips the generated route tree. It does
-not run tests or generate coverage; coverage reporting is not configured.
+not run tests or import coverage, and it skips the `coverage/` reports.
 
 The stack uses SonarQube's embedded database, which is meant for evaluation
 only and suits a server that never outlives one scan. It disables

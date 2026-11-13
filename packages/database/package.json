@@ -27,6 +27,7 @@
     "db:adopt-baseline": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/adopt-baseline-cli.ts",
     "db:studio": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- drizzle-kit studio",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "types:check": "tsc --noEmit"
   },
@@ -41,6 +42,7 @@
     "@testcontainers/postgresql": "^12.2.1",
     "@types/node": "^24",
     "@types/pg": "^8.23.1",
+    "@vitest/coverage-v8": "^5.1.0",
     "drizzle-kit": "0.31.11",
     "tsx": "^4.23.15",
     "typescript": "^5",
