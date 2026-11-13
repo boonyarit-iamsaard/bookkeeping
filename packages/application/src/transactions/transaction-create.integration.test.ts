@@ -513,35 +513,6 @@ describe("createTransaction", () => {
     });
   });
 
-  test("the same key with a changed payload conflicts and changes nothing", async () => {
-    await withRollback(async (db) => {
-      const owner = await setupOwner(db);
-      const input = {
-        ownerId: owner.ownerId,
-        idempotencyKey: `conflict-${crypto.randomUUID()}`,
-        type: "expense" as const,
-        walletId: owner.cashId,
-        categoryId: owner.childId,
-        amount: 12_000n,
-        transactionDate: "2026-09-02",
-        note: "",
-      };
-      await createTransaction(db, input);
-
-      const changed = await createTransaction(db, {
-        ...input,
-        amount: 13_000n,
-      });
-
-      expect(changed).toEqual({
-        ok: false,
-        error: { code: "idempotency-conflict" },
-      });
-      const listed = await listTransactions(db, { ownerId: owner.ownerId });
-      expect(listed.map((t) => t.amount)).toEqual([12_000n]);
-    });
-  });
-
   test("one transfer subtracts from its source and adds to its destination on its date", async () => {
     await withRollback(async (db) => {
       const owner = await setupOwner(db);

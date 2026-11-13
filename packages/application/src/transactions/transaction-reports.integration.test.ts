@@ -1,7 +1,7 @@
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { describe, expect, test } from "vitest";
-import { listCategories } from "../categories/category";
+import { listCategories } from "../categories/category-reads";
 import { insertTransaction } from "../testing/transaction-fixture";
 import {
   recordExpense,

@@ -115,6 +115,8 @@ async function fetchPages<T>(
   const items: T[] = [];
   const components = new Map<string, z.infer<typeof keyedSchema>>();
   const rules = new Map<string, z.infer<typeof keyedSchema>>();
+  // Numbered pages could be fetched concurrently after learning the total;
+  // keep requests sequential to limit load on the local SonarQube server.
   for (let page = 1; ; page++) {
     const result = pageSchema.parse(
       await server.request(`${options.path}&ps=500&p=${page}`),

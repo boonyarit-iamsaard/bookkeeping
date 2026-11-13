@@ -1,3 +1,4 @@
+import { ICON_TAGS } from "@/features/categories/icon-tags";
 import type { IconDefinition } from "@/features/categories/icons";
 import { ICON_CATALOG } from "@/features/categories/icons";
 
@@ -49,7 +50,7 @@ interface IndexedIcon {
 const INDEX: readonly IndexedIcon[] = ICON_CATALOG.map((definition, order) => {
   const phrases = new Set<string>();
   const tokens = new Set<string>();
-  for (const tag of definition.tags) {
+  for (const tag of ICON_TAGS[definition.id]) {
     const words = normalize(tag);
     phrases.add(words.join(" "));
     for (const word of words) {

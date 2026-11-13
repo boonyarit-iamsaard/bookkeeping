@@ -18,7 +18,7 @@ import {
   transactionEntryDefaultsResponseSchema,
   transactionRefundsResponseSchema,
   transactionResponseSchema,
-} from "../../features/transactions/transaction.routes.js";
+} from "../../features/transactions/transaction.schemas.js";
 import {
   historyRemainsProblemSchema,
   walletCollectionResponseSchema,

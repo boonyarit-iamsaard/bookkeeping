@@ -3,7 +3,7 @@ import { setupTestDatabase } from "@bookkeeping/database/testing";
 import { wallets } from "@bookkeeping/database/wallets";
 import { inArray, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
-import { listCategories } from "../categories/category";
+import { listCategories } from "../categories/category-reads";
 import { rejected } from "../shared/rejection";
 import {
   balanceOf,

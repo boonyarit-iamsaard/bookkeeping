@@ -3,10 +3,8 @@ import { createTestUser } from "@bookkeeping/database/testing";
 import { transactions } from "@bookkeeping/database/transactions";
 import { eq } from "drizzle-orm";
 import { vi } from "vitest";
-import {
-  initializeDefaultCategories,
-  listCategories,
-} from "../categories/category";
+import { initializeDefaultCategories } from "../categories/category";
+import { listCategories } from "../categories/category-reads";
 import { createTransaction } from "../transactions/transaction";
 import { listWallets } from "../wallets/wallet";
 import { createWalletForTest } from "./wallet-fixture";

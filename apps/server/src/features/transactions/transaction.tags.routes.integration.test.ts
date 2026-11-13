@@ -1,7 +1,5 @@
-import {
-  initializeDefaultCategories,
-  listCategories,
-} from "@bookkeeping/application/categories";
+import { initializeDefaultCategories } from "@bookkeeping/application/categories";
+import { listCategories } from "@bookkeeping/application/categories/reads";
 import { createTagForTest } from "@bookkeeping/application/testing/tag-fixture";
 import { createWalletForTest } from "@bookkeeping/application/testing/wallet-fixture";
 import type { Database } from "@bookkeeping/database/connection";
@@ -25,7 +23,7 @@ import {
 import {
   transactionCollectionResponseSchema,
   transactionResponseSchema,
-} from "./transaction.routes.js";
+} from "./transaction.schemas.js";
 
 const { withRollback } = setupTestDatabase();
 

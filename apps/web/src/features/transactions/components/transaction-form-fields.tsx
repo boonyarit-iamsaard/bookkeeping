@@ -10,10 +10,14 @@ import {
 import { useCategoryColors } from "@/features/categories/hooks/use-category-colors";
 import { refundAllowanceLabel } from "@/features/transactions/linked-expense";
 import type {
+  EditableTransaction,
   LinkedExpenseView,
   WalletOption,
 } from "@/features/transactions/transaction.types";
-import { TRANSACTION_TYPE_SIGNS } from "@/features/transactions/transaction-labels";
+import {
+  TRANSACTION_TYPE_LABELS,
+  TRANSACTION_TYPE_SIGNS,
+} from "@/features/transactions/transaction-labels";
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { Button } from "@/shared/components/ui/button";
@@ -32,9 +36,10 @@ import {
 } from "@/shared/components/ui/select";
 import { cn } from "@/shared/helpers/cn";
 
-// The capture form's pieces: its cards, fixed labels, chips, wallet choice,
-// and the readbacks of what Save will record and which expense a refund
-// returns. Only `TransactionForm` composes them.
+// The capture form's pieces: its cards, fixed labels, the type once it is
+// fixed, chips, wallet choice, and the readbacks of what Save will record and
+// which expense a refund returns. Only the capture form's components compose
+// them.
 
 interface SaveLabelProps {
   type: TransactionType;
@@ -194,6 +199,50 @@ export function LinkedExpenseChip({
       />
     </Link>
   );
+}
+
+interface TransactionTypeFieldProps {
+  fixedType: TransactionType | undefined;
+  linked: LinkedExpenseView | undefined;
+  editing: EditableTransaction | undefined;
+  children: React.ReactNode;
+}
+
+export function TransactionTypeField({
+  fixedType,
+  linked,
+  editing,
+  children,
+}: Readonly<TransactionTypeFieldProps>) {
+  if (linked) {
+    return (
+      <Field className="min-w-0">
+        <FixedLabel>Type</FixedLabel>
+        <p className="flex min-h-6 items-center font-semibold">Refund</p>
+        <LinkedExpenseChip expense={linked} />
+        <FieldDescription>
+          {editing
+            ? "The type and the linked expense are fixed once saved. To change them, delete this refund and record it again."
+            : "Money returned for this expense. It reduces expenses rather than counting as income."}
+        </FieldDescription>
+      </Field>
+    );
+  }
+  if (fixedType) {
+    return (
+      <Field>
+        <FixedLabel>Type</FixedLabel>
+        <p className="flex min-h-6 items-center font-semibold">
+          {TRANSACTION_TYPE_LABELS[fixedType]}
+        </p>
+        <FieldDescription>
+          The type is fixed once saved. To change it, delete this transaction
+          and record it again.
+        </FieldDescription>
+      </Field>
+    );
+  }
+  return children;
 }
 
 interface DateChipProps {

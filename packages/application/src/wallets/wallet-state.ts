@@ -39,6 +39,8 @@ export async function changeWalletState(
     if (!current) {
       return err(notFound());
     }
+    // Keep changes sequential: each resulting state becomes the next history
+    // entry's before-state, even when both fields change in one transaction.
     for (const change of requestedStateChanges(current, input)) {
       const updated = await updateWallet(tx, { id: input.id, set: change.set });
       await recordWalletChange(tx, {

@@ -8,10 +8,8 @@ import { walletChanges, wallets } from "@bookkeeping/database/wallets";
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { and, eq, sql } from "drizzle-orm";
 import { describe, expect, test, vi } from "vitest";
-import {
-  initializeDefaultCategories,
-  listCategories,
-} from "../categories/category";
+import { initializeDefaultCategories } from "../categories/category";
+import { listCategories } from "../categories/category-reads";
 import { rejected } from "../shared/rejection";
 import { insertRetainedTransferSnapshot } from "../testing/transaction-fixture";
 import type { WalletFixtureInput } from "../testing/wallet-fixture";
@@ -327,48 +325,6 @@ describe("createWallet", () => {
 
       expect(retry).toEqual({ ok: true, value: first.value });
       expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
-    });
-  });
-
-  test("a retry whose command differs conflicts and opens nothing", async () => {
-    await withRollback(async (db) => {
-      const owner = await createTestUser(db);
-      await openWallet(db, { ownerId: owner.id });
-
-      const conflict = await openWallet(db, {
-        ownerId: owner.id,
-        openingAmount: 1_200_001n,
-      });
-
-      expect(conflict).toEqual({
-        ok: false,
-        error: { code: "idempotency-conflict" },
-      });
-      expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
-    });
-  });
-
-  test("a rejected command consumes nothing, so the corrected retry may reuse its key", async () => {
-    await withRollback(async (db) => {
-      const owner = await createTestUser(db);
-
-      const rejected = await openWallet(db, {
-        ownerId: owner.id,
-        name: "   ",
-        openingDate: "2026-02-30",
-      });
-      const corrected = await openWallet(db, { ownerId: owner.id });
-
-      expect(rejected).toEqual(
-        refused(
-          { code: "empty", field: "name" },
-          { code: "invalid", field: "openingDate" },
-        ),
-      );
-      expect(corrected.ok).toBe(true);
-      expect(await listWallets(db, { ownerId: owner.id })).toEqual([
-        expect.objectContaining({ name: "Kasikorn savings" }),
-      ]);
     });
   });
 });

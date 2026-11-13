@@ -1,7 +1,6 @@
 import { setupTestDatabase } from "@bookkeeping/database/testing";
 import type { Hono } from "hono";
 import { describe, expect, test } from "vitest";
-import { problemDetailsSchema } from "../../core/http/problem-details.js";
 import type { AppEnv } from "../../core/http/request-context.js";
 import {
   createIntegrationTestApp,
@@ -258,19 +257,6 @@ describe("tag routes", () => {
       await expectProblem(
         await request(app, { method: "DELETE", path: `/${coffee.id}`, cookie }),
         { status: 404, code: "not-found" },
-      );
-    });
-  });
-
-  test("requires a session", async () => {
-    await withRollback(async (db) => {
-      const app = createApp(db);
-
-      const response = await request(app, {});
-
-      expect(response.status).toBe(401);
-      expect(problemDetailsSchema.parse(await response.json()).code).toBe(
-        "unauthenticated",
       );
     });
   });

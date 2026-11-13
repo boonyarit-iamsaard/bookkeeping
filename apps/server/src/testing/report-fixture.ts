@@ -1,7 +1,5 @@
-import {
-  initializeDefaultCategories,
-  listCategories,
-} from "@bookkeeping/application/categories";
+import { initializeDefaultCategories } from "@bookkeeping/application/categories";
+import { listCategories } from "@bookkeeping/application/categories/reads";
 import type { Database } from "@bookkeeping/database/connection";
 import { wallets } from "@bookkeeping/database/wallets";
 import { createOwnerSession } from "./create-test-auth-gateway.js";
