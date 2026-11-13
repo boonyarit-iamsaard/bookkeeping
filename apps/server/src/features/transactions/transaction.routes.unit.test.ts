@@ -3,7 +3,7 @@ import type * as z from "zod";
 import {
   createTransactionRequestSchema,
   updateTransactionRequestSchema,
-} from "./transaction.routes.js";
+} from "./transaction.schemas.js";
 
 type TransactionCreationBody = z.input<typeof createTransactionRequestSchema>;
 

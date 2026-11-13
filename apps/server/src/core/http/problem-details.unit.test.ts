@@ -1,7 +1,7 @@
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { describe, expect, it } from "vitest";
 import { categoryRemovalProblems } from "../../features/categories/category.routes.js";
-import { refundsExistProblem } from "../../features/transactions/transaction.routes.js";
+import { refundsExistProblem } from "../../features/transactions/transaction.schemas.js";
 import { historyRemainsProblem } from "../../features/wallets/wallet.routes.js";
 import {
   idempotencyConflictProblem,

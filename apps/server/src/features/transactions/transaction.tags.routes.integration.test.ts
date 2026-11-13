@@ -23,7 +23,7 @@ import {
 import {
   transactionCollectionResponseSchema,
   transactionResponseSchema,
-} from "./transaction.routes.js";
+} from "./transaction.schemas.js";
 
 const { withRollback } = setupTestDatabase();
 

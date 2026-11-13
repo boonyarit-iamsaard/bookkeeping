@@ -19,8 +19,8 @@ import {
   TRANSACTIONS_URL,
   UNKNOWN_TRANSACTION_ID,
 } from "../../testing/transaction-route-fixture.js";
-import type { updateTransactionRequestSchema } from "./transaction.routes.js";
-import { transactionResponseSchema } from "./transaction.routes.js";
+import type { updateTransactionRequestSchema } from "./transaction.schemas.js";
+import { transactionResponseSchema } from "./transaction.schemas.js";
 
 const { withRollback } = setupTestDatabase();
 

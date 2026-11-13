@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import type * as z from "zod";
 import type { AppEnv } from "../core/http/request-context.js";
-import type { createTransactionRequestSchema } from "../features/transactions/transaction.routes.js";
+import type { createTransactionRequestSchema } from "../features/transactions/transaction.schemas.js";
 import { TEST_API_ORIGIN } from "./create-integration-test-app.js";
 import { TEST_CLIENT_ORIGIN } from "./create-unit-test-app.js";
 import type { OwnerFixture as SharedOwnerFixture } from "./report-fixture.js";

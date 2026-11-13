@@ -17,7 +17,7 @@ import {
   refundBody,
   UNKNOWN_TRANSACTION_ID,
 } from "../../testing/transaction-route-fixture.js";
-import { transactionResponseSchema } from "./transaction.routes.js";
+import { transactionResponseSchema } from "./transaction.schemas.js";
 
 const { withRollback } = setupTestDatabase();
 
