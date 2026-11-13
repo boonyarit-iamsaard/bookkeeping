@@ -49,6 +49,13 @@ describe("parseMoneyInput", () => {
     });
   });
 
+  test("groups thousands more than once", () => {
+    expect(parseMoneyInput({ text: "1,234,567.89", currency: "THB" })).toEqual({
+      ok: true,
+      value: 123_456_789n,
+    });
+  });
+
   test("rejects more than two decimals instead of rounding", () => {
     expect(parseMoneyInput({ text: "1.005", currency: "THB" })).toEqual({
       ok: false,
@@ -83,6 +90,12 @@ describe("parseMoneyInput", () => {
       ok: false,
       error: "invalid",
     });
+  });
+
+  test("accepts the largest storable whole amount", () => {
+    expect(
+      parseMoneyInput({ text: "999999999999999", currency: "THB" }),
+    ).toEqual({ ok: true, value: 99_999_999_999_999_900n });
   });
 
   test("rejects amounts too large to store", () => {
@@ -137,5 +150,14 @@ describe("formatMoneyInput", () => {
     expect(
       formatMoneyInput({ amountInMinorUnits: 12_050n, currency: "THB" }),
     ).toBe("120.50");
+  });
+
+  test("marks negatives with a plain hyphen and leaves zero unsigned", () => {
+    expect(
+      formatMoneyInput({ amountInMinorUnits: -12_050n, currency: "THB" }),
+    ).toBe("-120.50");
+    expect(formatMoneyInput({ amountInMinorUnits: 0n, currency: "THB" })).toBe(
+      "0.00",
+    );
   });
 });

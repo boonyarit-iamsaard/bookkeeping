@@ -59,9 +59,7 @@ export function parseMoneyInput({
   return ok(sign ? -amountInMinorUnits : amountInMinorUnits);
 }
 
-const wholeAmountFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0,
-});
+const wholeAmountFormatter = new Intl.NumberFormat("en-US");
 
 export interface MoneyParts {
   /** "−" for negative amounts, otherwise "". */
