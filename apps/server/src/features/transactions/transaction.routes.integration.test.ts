@@ -1,6 +1,4 @@
-import { initializeDefaultCategories } from "@bookkeeping/application/categories";
 import { insertTransaction } from "@bookkeeping/application/testing/transaction-fixture";
-import { createWalletForTest } from "@bookkeeping/application/testing/wallet-fixture";
 import { categories } from "@bookkeeping/database/categories";
 import type { Database } from "@bookkeeping/database/connection";
 import { setupTestDatabase } from "@bookkeeping/database/testing";
@@ -13,15 +11,14 @@ import {
   createIntegrationTestApp,
   TEST_API_ORIGIN,
 } from "../../testing/create-integration-test-app.js";
-import {
-  createOwnerSession,
-  createTestAuthGateway,
-} from "../../testing/create-test-auth-gateway.js";
+import { createTestAuthGateway } from "../../testing/create-test-auth-gateway.js";
 import { TEST_CLIENT_ORIGIN } from "../../testing/create-unit-test-app.js";
 import {
   expectFieldErrors,
   expectProblem,
 } from "../../testing/expect-problem.js";
+import type { OwnerFixture as SharedOwnerFixture } from "../../testing/report-fixture.js";
+import { createOwner as createSharedOwner } from "../../testing/report-fixture.js";
 import type {
   createTransactionRequestSchema,
   updateTransactionRequestSchema,
@@ -39,42 +36,21 @@ const { withRollback } = setupTestDatabase();
 const TRANSACTIONS_URL = `${TEST_API_ORIGIN}/v1/transactions`;
 const UNKNOWN_TRANSACTION_ID = "01999999-0000-7000-8000-000000000000";
 
-interface OwnerFixture {
-  cookie: string;
-  ownerId: string;
-  cashId: string;
-  bankId: string;
+interface OwnerFixture extends SharedOwnerFixture {
   parentId: string;
   childId: string;
   incomeId: string;
 }
 
-interface OwnerRequest {
-  db: Database;
-}
-
-/** A fresh owner with two wallets and the default expense tree to file under. */
+/** The shared owner plus the default expense parent, its child, and Salary to file under. */
 async function createOwner({
   db,
-}: Readonly<OwnerRequest>): Promise<OwnerFixture> {
-  const { cookie, ownerId } = await createOwnerSession(db);
-  await initializeDefaultCategories(db, ownerId);
-  const { id: cashId } = await createWalletForTest(db, {
-    ownerId,
-    name: "Cash",
-    type: "cash",
-    openingAmount: 1_000_000n,
-  });
-  const { id: bankId } = await createWalletForTest(db, {
-    ownerId,
-    name: "Bank",
-    type: "bank_account",
-    openingAmount: 0n,
-  });
+}: Readonly<{ db: Database }>): Promise<OwnerFixture> {
+  const owner = await createSharedOwner({ db });
   const tree = await db
     .select({ id: categories.id, kind: categories.kind, name: categories.name })
     .from(categories)
-    .where(eq(categories.userId, ownerId));
+    .where(eq(categories.userId, owner.ownerId));
   const parent = tree.find((category) => category.name === "Food & Drink");
   const child = tree.find((category) => category.name === "Groceries");
   const income = tree.find(
@@ -84,10 +60,7 @@ async function createOwner({
     throw new Error("Missing default categories");
   }
   return {
-    cookie,
-    ownerId,
-    cashId,
-    bankId,
+    ...owner,
     parentId: parent.id,
     childId: child.id,
     incomeId: income.id,
