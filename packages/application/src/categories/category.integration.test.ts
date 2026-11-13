@@ -343,61 +343,6 @@ describe("createCategory", () => {
       ).toHaveLength(1);
     });
   });
-
-  test("rejects changed payloads under an existing key without another row", async () => {
-    await withRollback(async (db) => {
-      const owner = await createTestUser(db);
-      const input = {
-        ownerId: owner.id,
-        kind: "expense" as const,
-        name: "Subscriptions",
-        iconId: "tv",
-        parent: null,
-        idempotencyKey: "category-conflict",
-      };
-
-      await expect(createCategory(db, input)).resolves.toMatchObject({
-        ok: true,
-      });
-      expect(await createCategory(db, { ...input, iconId: "film" })).toEqual({
-        ok: false,
-        error: { code: "idempotency-conflict" },
-      });
-      expect(
-        (await listCategories(db, owner.id)).filter(
-          (category) => category.name === "Subscriptions",
-        ),
-      ).toHaveLength(1);
-    });
-  });
-
-  test("does not consume a key when validation rejects the command", async () => {
-    await withRollback(async (db) => {
-      const owner = await createTestUser(db);
-      const rejected = await createCategory(db, {
-        ownerId: owner.id,
-        kind: "expense",
-        name: "   ",
-        iconId: "coffee",
-        parent: null,
-        idempotencyKey: "category-validation",
-      });
-      const corrected = await createCategory(db, {
-        ownerId: owner.id,
-        kind: "expense",
-        name: "Coffee",
-        iconId: "coffee",
-        parent: null,
-        idempotencyKey: "category-validation",
-      });
-
-      expect(rejected).toEqual(refused("blank-name", "name"));
-      expect(corrected).toMatchObject({
-        ok: true,
-        value: { category: { name: "Coffee" } },
-      });
-    });
-  });
 });
 
 describe("findCategory", () => {

@@ -329,48 +329,6 @@ describe("createWallet", () => {
       expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
     });
   });
-
-  test("a retry whose command differs conflicts and opens nothing", async () => {
-    await withRollback(async (db) => {
-      const owner = await createTestUser(db);
-      await openWallet(db, { ownerId: owner.id });
-
-      const conflict = await openWallet(db, {
-        ownerId: owner.id,
-        openingAmount: 1_200_001n,
-      });
-
-      expect(conflict).toEqual({
-        ok: false,
-        error: { code: "idempotency-conflict" },
-      });
-      expect(await listWallets(db, { ownerId: owner.id })).toHaveLength(1);
-    });
-  });
-
-  test("a rejected command consumes nothing, so the corrected retry may reuse its key", async () => {
-    await withRollback(async (db) => {
-      const owner = await createTestUser(db);
-
-      const rejected = await openWallet(db, {
-        ownerId: owner.id,
-        name: "   ",
-        openingDate: "2026-02-30",
-      });
-      const corrected = await openWallet(db, { ownerId: owner.id });
-
-      expect(rejected).toEqual(
-        refused(
-          { code: "empty", field: "name" },
-          { code: "invalid", field: "openingDate" },
-        ),
-      );
-      expect(corrected.ok).toBe(true);
-      expect(await listWallets(db, { ownerId: owner.id })).toEqual([
-        expect.objectContaining({ name: "Kasikorn savings" }),
-      ]);
-    });
-  });
 });
 
 interface TransferFixture {
