@@ -1,8 +1,10 @@
 import { defineConfig } from "vitest/config";
+import { coverage } from "../../vitest.coverage";
 
 export default defineConfig({
   test: {
     fsModuleCachePath: "node_modules/.vitest-cache",
+    coverage,
     projects: [
       {
         test: {

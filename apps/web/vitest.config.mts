@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+import { coverage } from "../../vitest.coverage";
 
 export default defineConfig({
   resolve: {
@@ -7,6 +8,7 @@ export default defineConfig({
   },
   test: {
     fsModuleCachePath: "node_modules/.vitest-cache",
+    coverage,
     name: "unit",
     environment: "node",
     include: ["src/**/*.unit.test.ts"],
