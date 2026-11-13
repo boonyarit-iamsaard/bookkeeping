@@ -144,21 +144,22 @@ never write it into this file. The repository is public.
      ```
 
   2. Re-encrypt in a single pipe, so the plaintext never touches disk.
-     `pipefail` makes a failed decrypt fail the whole pipe:
+     `pipefail` makes a failed decrypt fail the whole pipe. Stop if `ok`
+     doesn't print:
 
      ```sh
      set -o pipefail
      age -d -i <OLD_KEY_FILE> <OLD_DUMP_FILE> \
-       | age -r <NEW_AGE_PUBLIC_KEY> -o <NEW_DUMP_FILE>
+       | age -r <NEW_AGE_PUBLIC_KEY> -o <NEW_DUMP_FILE> && echo ok
      ```
 
-  3. Check the two files decrypt to identical bytes. Both commands must exit
-     0, and the hash must not be `e3b0c442…`, the hash of empty input:
+  3. Check the two files decrypt to identical bytes. Each line must print
+     `ok`, and the hash must not be `e3b0c442…`, the hash of empty input:
 
      ```sh
      set -o pipefail
-     age -d -i <OLD_KEY_FILE> <OLD_DUMP_FILE> | sha256sum
-     age -d -i <NEW_KEY_FILE> <NEW_DUMP_FILE> | sha256sum
+     age -d -i <OLD_KEY_FILE> <OLD_DUMP_FILE> | sha256sum && echo ok
+     age -d -i <NEW_KEY_FILE> <NEW_DUMP_FILE> | sha256sum && echo ok
      ```
 
   4. Store the contents of `<NEW_KEY_FILE>` in your password manager and on an

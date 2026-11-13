@@ -58,7 +58,7 @@ never write it into this file. The repository is public.
 
 - [x] **Done**
 - **Goal:** A change set for a new `bookkeeping-backups` stack exists, and
-  it adds exactly four resources.
+  it adds exactly eleven resources.
 - **Why:** Your choice: review before anything permanent is created.
   `--no-execute-changeset` creates the change set and exits without applying
   it.

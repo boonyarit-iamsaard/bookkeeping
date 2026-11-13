@@ -16,8 +16,9 @@ never write it into this file. The repository is public.
 
 - [x] Steps 1 to 6 done: the Organization exists, centralized root access is
       on, and the `backups` account is created.
-- [x] AWS CLI v2, version 2.22.0 or later (PKCE sign-in is the default from
-      2.22.0). Not installed on this machine yet. Install it with the user-level
+- [x] AWS CLI v2, version 2.29.0 or later (PKCE sign-in is the default from
+      2.22.0, and the account `State` field in step 12 needs 2.29.0). Not
+      installed on this machine yet. Install it with the user-level
       script, then check the version:
 
   ```sh
