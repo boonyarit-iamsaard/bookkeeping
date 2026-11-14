@@ -28,7 +28,7 @@
     "generate:api": "pnpm --filter @bookkeeping/web generate:api",
     "lint": "biome check --error-on-warnings --no-errors-on-unmatched --files-ignore-unknown=true",
     "lint:md": "markdownlint \"**/*.md\" --ignore-path .gitignore",
-    "lint:sh": "git ls-files -z '*.sh' | xargs -0 docker run --rm --network none --volume \"$PWD:/mnt:ro\" --workdir /mnt koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d",
+    "lint:sh": "tsx scripts/lint-shell.ts",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" --ignore-path .gitignore",
     "password:reset": "pnpm --filter @bookkeeping/server password:reset",
     "prepare": "husky || true",
