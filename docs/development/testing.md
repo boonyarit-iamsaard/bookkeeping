@@ -22,6 +22,16 @@ suite. Every test runs inside a
 transaction that is rolled back, except concurrency checks that use committed
 writes isolated by owner. No local development database is used.
 
+PostgreSQL stamps recording times with its own clock, which is the Docker
+VM's, and one integration test allows only one second between that clock and
+the host's. On Docker Desktop for Windows the VM clock can drift seconds ahead,
+especially after sleep, and `wsl --shutdown` does not fix it. If the test
+"the recording time is the server instant" fails, resync the VM clock:
+
+```bash
+docker run --rm --privileged alpine ntpd -q -n -p time.windows.com
+```
+
 Browser tests live in `apps/web/tests/e2e/`. Install their browsers once:
 
 ```bash
