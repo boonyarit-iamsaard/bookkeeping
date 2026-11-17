@@ -16,7 +16,7 @@ ARG VITE_API_ORIGIN
 RUN test -n "$VITE_API_ORIGIN" || (echo "VITE_API_ORIGIN build argument is required" >&2 && exit 1)
 RUN pnpm --filter @bookkeeping/web build
 
-FROM caddy:2-alpine@sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9
+FROM caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
 RUN addgroup -S web && adduser -S -G web web \
     && chown -R web:web /config /data
 USER web
