@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Built from the repository root: docker build -f apps/server/Dockerfile .
-FROM node:24-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS base
+FROM node:24-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS base
 RUN corepack enable
 WORKDIR /repo
 
@@ -19,7 +19,7 @@ RUN pnpm install --frozen-lockfile --offline --filter @bookkeeping/server...
 RUN pnpm --filter @bookkeeping/server build
 RUN pnpm --filter @bookkeeping/server deploy --prod --legacy /out
 
-FROM node:24-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS runtime
+FROM node:24-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /out/package.json ./package.json
