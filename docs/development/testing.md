@@ -108,13 +108,36 @@ ever kill it (an equivalent mutant), on the line above, with the reason:
 // Stryker disable next-line EqualityOperator: on equal dates either argument is the answer
 ```
 
+## SonarQube Cloud
+
+SonarQube Cloud analyzes every pull request into `main` and every push to
+`main` in the `SonarQube Cloud` workflow
+([ADR 0015](../adr/0015-sonar-analysis-in-sonarqube-cloud.md)). Findings on a
+pull request's new code appear as an advisory check and a comment, never a merge
+gate. Pushes to `main` build the project's history and new-code baseline. The
+project is
+[`boonyarit-iamsaard_bookkeeping`](https://sonarcloud.io/project/overview?id=boonyarit-iamsaard_bookkeeping),
+configured by `sonar-project.properties`.
+
+- **Profile:** the Free plan keeps JavaScript and TypeScript on the default
+  **Sonar way core**, a smaller rule set than the local scan's comprehensive
+  profile. Rules outside core, possibly including S9382, show up only in a
+  local scan.
+- **Scope:** only pull requests targeting `main` are analyzed, so the upper pull
+  requests in a stack have no Sonar check.
+- **Secrets:** the scan needs the `SONAR_TOKEN` repository secret. Runs without
+  it, such as Dependabot and fork pull requests, skip the scan.
+- **Editor:** for feedback while editing, install SonarQube for IDE and bind it
+  in connected mode to the organization `boonyarit-iamsaard` and that project.
+  It runs natively, needs no Docker, and applies the project's Cloud rules.
+
 ## Local SonarQube
 
 SonarQube is an optional, on-demand analysis tool. Run it when the project owner
 requests a scan or when you choose to inspect code quality. Setup and scans are
 not required for local development, commits, pull requests, or completing project
-work. SonarQube is not part of `pnpm run ci`, GitHub Actions, or commit hooks;
-its quality gate does not block this project's workflow.
+work. The local scan is not part of `pnpm run ci`, GitHub Actions, or commit
+hooks; its quality gate does not block this project's workflow.
 
 Run one scan:
 
