@@ -53,7 +53,7 @@ browser test policy in [AGENTS.md](../../AGENTS.md).
 ## Coverage
 
 Coverage is an on-demand report, not part of `pnpm test` or `pnpm run ci`, and
-no threshold gates it yet:
+no required check gates it:
 
 ```bash
 pnpm test:coverage                                   # Every workspace's unit and integration tests, with coverage
@@ -67,6 +67,11 @@ workspace and are never merged into one total. The shared settings live in
 `vitest.coverage.ts`. They count every file under `src/`, so a module no test
 loads shows as uncovered, and they exclude tests, `src/testing/` helpers, and
 generated `*.gen.ts` files.
+
+The `SonarQube Cloud` workflow also runs `pnpm test:coverage` and uploads every
+`lcov.info`, whose paths are relative to the repository root. Its built-in
+quality gate asks for 80% coverage on new code; the check is advisory, and the
+root `scripts/` and config files are excluded from it.
 
 `apps/web` counts only its unit tests. The browser suite owns its screens and
 components, so a low web number is expected, not a gap. The root `scripts/`
@@ -127,6 +132,13 @@ configured by `sonar-project.properties`.
   requests in a stack have no Sonar check.
 - **Secrets:** the scan needs the `SONAR_TOKEN` repository secret. Runs without
   it, such as Dependabot and fork pull requests, skip the scan.
+- **Reports:** `pnpm sonar:report --pr <number>` or
+  `pnpm sonar:report --branch <name>` (default `main`) writes that scope's open
+  issues and security hotspots to `.sonar-reports/issues.json` and
+  `issues.md`, in the local scan's report shape, with repository-relative paths
+  and links to SonarQube Cloud. It reads the public API, so it needs no token
+  and no Docker. It is a light task, outside the exclusive-resource rule, and
+  may run alongside tests. It fails when the scope has no analysis yet.
 - **Editor:** for feedback while editing, install SonarQube for IDE and bind it
   in connected mode to the organization `boonyarit-iamsaard` and that project.
   It runs natively, needs no Docker, and applies the project's Cloud rules.

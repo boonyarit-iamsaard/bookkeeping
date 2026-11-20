@@ -71,12 +71,20 @@ interface PageOptions<T> {
   schema: z.ZodType<T>;
 }
 
-interface Report {
+/** Which analysis a report covers; SonarQube Cloud reports a scope, not a task. */
+export interface ReportAnalysis {
+  analysisId?: string;
+  taskId?: string;
+  /** A branch or pull request, such as `pull request 348`. */
+  scope?: string;
+  analysisDate?: string;
+  revision?: string;
+}
+
+interface Report extends ReportAnalysis {
   projectKey: string;
   exportedAt: string;
-  analysisId: string;
-  taskId: string;
-  /** Set only when the server is kept running after the scan. */
+  /** Set only when issues link to a reachable server. */
   dashboardUrl?: string;
   issues: z.infer<typeof issueSchema>[];
   rules: z.infer<typeof keyedSchema>[];
@@ -85,6 +93,14 @@ interface Report {
 }
 
 const reportDirectory = new URL("../../.sonar-reports/", import.meta.url);
+
+interface LinkedEntry {
+  kind: "issue" | "hotspot";
+  key: string;
+}
+
+/** Builds an entry's page URL, or nothing when the report has no server to link. */
+type EntryLink = (entry: Readonly<LinkedEntry>) => string;
 
 async function waitForAnalysis(server: Readonly<SonarServer>, taskId: string) {
   console.log("Waiting for SonarQube to process the submitted analysis...");
@@ -148,27 +164,26 @@ function text(value: string | number | undefined) {
     .replace(/\r?\n/g, " ");
 }
 
-interface DashboardLink {
-  label: string;
-  path: string;
+function link(label: string, url: string | undefined) {
+  return url === undefined ? [] : [`- [${label}](${url})`];
 }
 
-function link(
-  report: Readonly<Report>,
-  { label, path }: Readonly<DashboardLink>,
-) {
-  return report.dashboardUrl === undefined
-    ? []
-    : [`- [${label}](${new URL(path, report.dashboardUrl)})`];
+function analysisLabel(report: Readonly<Report>) {
+  return (
+    report.analysisId ??
+    [report.scope, report.revision, report.analysisDate]
+      .filter(Boolean)
+      .join(", ")
+  );
 }
 
-function markdown(report: Readonly<Report>) {
+function markdown(report: Readonly<Report>, linkTo?: EntryLink) {
   const lines = [
     "# Bookkeeping SonarQube report",
     "",
     `Exported: ${report.exportedAt}`,
     "",
-    `Analysis: ${report.analysisId}`,
+    `Analysis: ${analysisLabel(report)}`,
     "",
     `Issues: ${report.issues.length}. Security hotspots: ${report.hotspots.length}.`,
     "",
@@ -178,7 +193,7 @@ function markdown(report: Readonly<Report>) {
     "",
   ];
   for (const issue of report.issues) {
-    const file = issue.component.replace(/^bookkeeping:/, "");
+    const file = issue.component;
     const line = issue.line ? `:${issue.line}` : "";
     lines.push(
       `### ${text(file)}${line}`,
@@ -190,10 +205,7 @@ function markdown(report: Readonly<Report>) {
       `- Severity: ${text(issue.severity ?? "See impacts")}`,
       `- Type: ${text(issue.type ?? "See impacts")}`,
       `- Effort: ${text(issue.effort ?? "Unspecified")}`,
-      ...link(report, {
-        label: "View issue",
-        path: `/project/issues?id=bookkeeping&issues=${encodeURIComponent(issue.key)}`,
-      }),
+      ...link("View issue", linkTo?.({ kind: "issue", key: issue.key })),
     );
     for (const impact of issue.impacts ?? []) {
       lines.push(
@@ -222,10 +234,7 @@ function markdown(report: Readonly<Report>) {
       `- Rule: ${text(hotspot.rule?.key)}`,
       `- Status: ${text(hotspot.status)}`,
       `- Review priority: ${text(hotspot.rule?.vulnerabilityProbability)}`,
-      ...link(report, {
-        label: "View hotspot",
-        path: `/security_hotspots?id=bookkeeping&hotspots=${encodeURIComponent(hotspot.key)}`,
-      }),
+      ...link("View hotspot", linkTo?.({ kind: "hotspot", key: hotspot.key })),
       "",
     );
   }
@@ -235,27 +244,62 @@ function markdown(report: Readonly<Report>) {
   return lines.join("\n");
 }
 
-export interface ExportOptions {
-  server: SonarServer;
-  taskId: string;
-  /** Link issues to the dashboard, for a server kept running after the scan. */
-  linkDashboard: boolean;
+function withoutProject(component: string, projectKey: string) {
+  return component.startsWith(`${projectKey}:`)
+    ? component.slice(projectKey.length + 1)
+    : component;
 }
 
-/** Waits for the scan's processing, then writes `.sonar-reports/issues.*`. */
-export async function exportReport({
+/** Reports paths from the repository root, not under the project key. */
+function relativeIssue(
+  issue: Readonly<z.infer<typeof issueSchema>>,
+  projectKey: string,
+) {
+  return {
+    ...issue,
+    component: withoutProject(issue.component, projectKey),
+    flows: issue.flows?.map((flow) => ({
+      ...flow,
+      locations: flow.locations?.map((location) => ({
+        ...location,
+        component:
+          location.component && withoutProject(location.component, projectKey),
+      })),
+    })),
+  };
+}
+
+export interface ReportSource {
+  server: SonarServer;
+  projectKey: string;
+  /** `issues/search` and `hotspots/search` queries, which name the project differently on each server. */
+  issuesPath: string;
+  hotspotsPath: string;
+  analysis: ReportAnalysis;
+  dashboardUrl?: string;
+  linkTo?: EntryLink;
+  /** Defaults to `.sonar-reports/`. */
+  directory?: URL;
+}
+
+/** Reads every issue and hotspot, then writes `issues.json` and `issues.md`. */
+export async function writeReport({
   server,
-  taskId,
-  linkDashboard,
-}: Readonly<ExportOptions>): Promise<void> {
-  const task = await waitForAnalysis(server, taskId);
+  projectKey,
+  issuesPath,
+  hotspotsPath,
+  analysis,
+  dashboardUrl,
+  linkTo,
+  directory = reportDirectory,
+}: Readonly<ReportSource>): Promise<void> {
   const issues = await fetchPages(server, {
-    path: "issues/search?components=bookkeeping&additionalFields=_all",
+    path: issuesPath,
     field: "issues",
     schema: issueSchema,
   });
   const hotspots = await fetchPages(server, {
-    path: "hotspots/search?project=bookkeeping",
+    path: hotspotsPath,
     field: "hotspots",
     schema: keyedSchema,
   });
@@ -269,25 +313,56 @@ export async function exportReport({
     ),
   );
   const report: Report = {
-    projectKey: "bookkeeping",
+    projectKey,
     exportedAt: new Date().toISOString(),
-    analysisId: task.analysisId,
-    taskId,
-    ...(linkDashboard
-      ? { dashboardUrl: `${server.url}/dashboard?id=bookkeeping` }
-      : {}),
-    issues: issues.items,
+    ...analysis,
+    ...(dashboardUrl === undefined ? {} : { dashboardUrl }),
+    issues: issues.items.map((issue) => relativeIssue(issue, projectKey)),
     rules: issues.rules,
     components: issues.components,
     hotspots: hotspotDetails,
   };
-  await mkdir(reportDirectory, { recursive: true });
+  await mkdir(directory, { recursive: true });
   await writeFile(
-    new URL("issues.json", reportDirectory),
+    new URL("issues.json", directory),
     `${JSON.stringify(report, null, 2)}\n`,
   );
-  await writeFile(new URL("issues.md", reportDirectory), markdown(report));
+  await writeFile(new URL("issues.md", directory), markdown(report, linkTo));
   console.log(
     `Exported ${report.issues.length} issues and ${report.hotspots.length} security hotspots to .sonar-reports/issues.json and .sonar-reports/issues.md.`,
   );
+}
+
+const LOCAL_PROJECT_KEY = "bookkeeping";
+
+export interface ExportOptions {
+  server: SonarServer;
+  taskId: string;
+  /** Link issues to the dashboard, for a server kept running after the scan. */
+  linkDashboard: boolean;
+}
+
+/** Waits for the local scan's processing, then writes its report. */
+export async function exportReport({
+  server,
+  taskId,
+  linkDashboard,
+}: Readonly<ExportOptions>): Promise<void> {
+  const task = await waitForAnalysis(server, taskId);
+  const pages = { issue: "project/issues", hotspot: "security_hotspots" };
+  const param = { issue: "issues", hotspot: "hotspots" };
+  await writeReport({
+    server,
+    projectKey: LOCAL_PROJECT_KEY,
+    issuesPath: `issues/search?components=${LOCAL_PROJECT_KEY}&additionalFields=_all`,
+    hotspotsPath: `hotspots/search?project=${LOCAL_PROJECT_KEY}`,
+    analysis: { analysisId: task.analysisId, taskId },
+    ...(linkDashboard
+      ? {
+          dashboardUrl: `${server.url}/dashboard?id=${LOCAL_PROJECT_KEY}`,
+          linkTo: ({ kind, key }) =>
+            `${server.url}/${pages[kind]}?id=${LOCAL_PROJECT_KEY}&${param[kind]}=${encodeURIComponent(key)}`,
+        }
+      : {}),
+  });
 }
