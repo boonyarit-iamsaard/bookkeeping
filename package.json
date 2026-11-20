@@ -34,6 +34,7 @@
     "prepare": "husky || true",
     "security:audit": "pnpm audit --audit-level moderate && pnpm audit signatures",
     "sonar:clean": "tsx scripts/sonar-clean.ts",
+    "sonar:report": "tsx scripts/sonar-report.ts",
     "sonar:scan": "tsx scripts/sonar-scan.ts",
     "stack:build": "docker compose --profile stack build server && docker compose --profile stack build web",
     "stack:logs": "docker compose --profile stack logs --follow server web",

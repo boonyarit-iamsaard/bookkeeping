@@ -127,6 +127,13 @@ configured by `sonar-project.properties`.
   requests in a stack have no Sonar check.
 - **Secrets:** the scan needs the `SONAR_TOKEN` repository secret. Runs without
   it, such as Dependabot and fork pull requests, skip the scan.
+- **Reports:** `pnpm sonar:report --pr <number>` or
+  `pnpm sonar:report --branch <name>` (default `main`) writes that scope's open
+  issues and security hotspots to `.sonar-reports/issues.json` and
+  `issues.md`, in the local scan's report shape, with repository-relative paths
+  and links to SonarQube Cloud. It reads the public API, so it needs no token
+  and no Docker. It is a light task, outside the exclusive-resource rule, and
+  may run alongside tests. It fails when the scope has no analysis yet.
 - **Editor:** for feedback while editing, install SonarQube for IDE and bind it
   in connected mode to the organization `boonyarit-iamsaard` and that project.
   It runs natively, needs no Docker, and applies the project's Cloud rules.

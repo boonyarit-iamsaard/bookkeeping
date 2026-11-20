@@ -23,17 +23,20 @@ export interface SonarServer {
   ) => Promise<unknown>;
 }
 
-function createSonarServer(url: string, password: string): SonarServer {
-  const credentials = Buffer.from(`${DEFAULT_LOGIN}:${password}`).toString(
-    "base64",
-  );
-  const authorization = `Basic ${credentials}`;
+/** A client for `url`; without a password it reads only public projects. */
+export function createSonarServer(url: string, password?: string): SonarServer {
+  const headers: Record<string, string> =
+    password === undefined
+      ? {}
+      : {
+          authorization: `Basic ${Buffer.from(`${DEFAULT_LOGIN}:${password}`).toString("base64")}`,
+        };
   return {
     url,
     async request(path, options = {}) {
       const response = await fetch(`${url}/api/${path}`, {
         ...options,
-        headers: { authorization },
+        headers,
         signal: AbortSignal.timeout(30_000),
       });
       if (!response.ok) {
