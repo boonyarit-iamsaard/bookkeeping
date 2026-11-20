@@ -53,7 +53,7 @@ browser test policy in [AGENTS.md](../../AGENTS.md).
 ## Coverage
 
 Coverage is an on-demand report, not part of `pnpm test` or `pnpm run ci`, and
-no threshold gates it yet:
+no required check gates it:
 
 ```bash
 pnpm test:coverage                                   # Every workspace's unit and integration tests, with coverage
@@ -67,6 +67,11 @@ workspace and are never merged into one total. The shared settings live in
 `vitest.coverage.ts`. They count every file under `src/`, so a module no test
 loads shows as uncovered, and they exclude tests, `src/testing/` helpers, and
 generated `*.gen.ts` files.
+
+The `SonarQube Cloud` workflow also runs `pnpm test:coverage` and uploads every
+`lcov.info`, whose paths are relative to the repository root. Its built-in
+quality gate asks for 80% coverage on new code; the check is advisory, and the
+root `scripts/` and config files are excluded from it.
 
 `apps/web` counts only its unit tests. The browser suite owns its screens and
 components, so a low web number is expected, not a gap. The root `scripts/`
