@@ -22,4 +22,10 @@ services:
       SONAR_TOKEN: ${SONAR_TOKEN:-}
     volumes:
       - .:/usr/src:ro
-    command: ["-Dsonar.working.directory=/tmp/scannerwork"]
+    # The local server names its project `bookkeeping`, not the Cloud key in
+    # sonar-project.properties.
+    command:
+      [
+        "-Dsonar.working.directory=/tmp/scannerwork",
+        "-Dsonar.projectKey=bookkeeping",
+      ]

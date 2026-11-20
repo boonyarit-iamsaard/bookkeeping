@@ -1,0 +1,58 @@
+name: SonarQube Cloud
+
+# Advisory analysis, kept out of CI so a slow or failing scan never delays the
+# required checks. SonarQube Cloud's GitHub App decorates pull requests, so
+# the job needs no write permission. The Free plan analyzes only pull requests
+# into main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Every Action is pinned to a full commit SHA because tags are mutable.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sonar:
+    name: SonarQube Cloud
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      # Dependabot and fork pull requests get no secrets.
+      - name: Skip without SONAR_TOKEN
+        if: env.SONAR_TOKEN == ''
+        run: echo "::notice::SONAR_TOKEN is unavailable, so the SonarQube Cloud scan is skipped."
+
+      # Full history gives Sonar blame and the new-code period.
+      - if: env.SONAR_TOKEN != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Enable corepack
+        if: env.SONAR_TOKEN != ''
+        run: corepack enable
+
+      - if: env.SONAR_TOKEN != ''
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          check-latest: true
+          cache: pnpm
+
+      # Installed dependencies give the TypeScript analysis full type information.
+      - if: env.SONAR_TOKEN != ''
+        run: pnpm install --frozen-lockfile
+
+      - name: Scan
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8.5.0
