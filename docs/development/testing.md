@@ -64,14 +64,14 @@ It counts the same tests as `pnpm test` and needs Docker for the integration
 suites. Each workspace writes its own report to `<workspace>/coverage/`:
 `index.html` to browse and `lcov.info` for tools. The numbers are per
 workspace and are never merged into one total. The shared settings live in
-`vitest.coverage.ts`. They count every file under `src/`, so a module no test
+`vitest.coverage.mts`. They count every file under `src/`, so a module no test
 loads shows as uncovered, and they exclude tests, `src/testing/` helpers, and
 generated `*.gen.ts` files.
 
 The `SonarQube Cloud` workflow also runs `pnpm test:coverage` and uploads every
 `lcov.info`, whose paths are relative to the repository root. Its built-in
 quality gate asks for 80% coverage on new code; the check is advisory. Its
-exclusions match `vitest.coverage.ts` and also leave out the root `scripts/`,
+exclusions match `vitest.coverage.mts` and also leave out the root `scripts/`,
 config files, and the web code the browser suite owns.
 
 `apps/web` counts only its unit tests. The browser suite owns its screens,

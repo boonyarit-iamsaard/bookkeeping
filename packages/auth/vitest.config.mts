@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { coverage } from "../../vitest.coverage";
+import { coverage } from "../../vitest.coverage.mts";
 
 export default defineConfig({
   test: {

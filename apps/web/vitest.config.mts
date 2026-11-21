@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-import { coverage } from "../../vitest.coverage";
+import { coverage } from "../../vitest.coverage.mts";
 
 export default defineConfig({
   resolve: {
