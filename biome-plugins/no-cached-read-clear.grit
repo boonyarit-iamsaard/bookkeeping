@@ -1,0 +1,9 @@
+language js
+
+// shortcut: matches the receiver name, since Grit cannot see types and
+// Map.clear() shares the method name; a client held under another name slips
+// through. Upgrade when the app names its QueryClient differently.
+`$callee($args)` where {
+  $callee <: r".*[Qq]ueryClient(?:[(][)])?[?]?[.]clear",
+  register_diagnostic(span=$callee, severity="error", message="Only resetSessionCache in core/auth/session.ts clears every cached read. Call resetSessionCache on a session change.")
+}

@@ -135,8 +135,10 @@ clearing. Nothing else invalidates, removes, or overwrites cached reads; the
 GritQL plugin `biome-plugins/no-cached-read-writes.grit` reports calls to
 `invalidateQueries`, `removeQueries`, `resetQueries`, `setQueryData` and
 `setQueriesData` in `apps/web/src`, outside tests and `refresh-after-write.ts`.
-A screen may show the previous data briefly on its next visit while it
-re-reads; that is accepted.
+`biome-plugins/no-cached-read-clear.grit` reports `clear()` on a client named
+`queryClient`, outside tests and `core/auth/session.ts`, where
+`resetSessionCache` is the one allowed caller. A screen may show the previous
+data briefly on its next visit while it re-reads; that is accepted.
 
 ## Test ownership
 
