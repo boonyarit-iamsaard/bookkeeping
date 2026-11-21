@@ -121,12 +121,12 @@ The [resource limits](../../AGENTS.md#local-resource-limits) rest on these
 measurements, taken on 2026-11-16 on native Windows (23.7 GB RAM, 16 threads,
 about 15 GB already in use, caches off, each run alone):
 
-| Run                      | Time  | Peak added memory | Max CPU |
-| ------------------------ | ----- | ----------------- | ------- |
-| `pnpm test` (Turborepo)  | 115 s | +3.9 GB           | 100%    |
-| `ci:e2e`-style phone e2e | 309 s | +2.1 GB           | 86%     |
-| `pnpm build`             | 19 s  | +0.9 GB           | 77%     |
-| Stryker on `domain`      | 33 s  | +0.7 GB           | 85%     |
+| Run                            | Time  | Peak added memory | Max CPU |
+| ------------------------------ | ----- | ----------------- | ------- |
+| `pnpm test` (Turborepo)        | 115 s | +3.9 GB           | 100%    |
+| `test:e2e` on `phone-chromium` | 309 s | +2.1 GB           | 86%     |
+| `pnpm build`                   | 19 s  | +0.9 GB           | 77%     |
+| Stryker on `domain`            | 33 s  | +0.7 GB           | 85%     |
 
 Docker Desktop runs in a WSL VM capped at 4 GB, so the PostgreSQL containers
 of the integration tests and e2e, and the local SonarQube server, share that
