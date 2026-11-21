@@ -13,7 +13,11 @@ feature, infrastructure setup stays in `core`, and reusable code stays in
 `shared`. Create additional directories only when needed. `features` may
 import `core` and `shared`; `shared` may import `core/api` types and parsers,
 such as the shared `Money` component rendering API amounts, but never
-`features`.
+`features`, and `core` never imports `features` either. Biome enforces both
+through a `noRestrictedImports` override on `shared` and `core`; move the code
+into `shared` or pass it in from the feature. A feature may import another feature's modules (transactions use
+categories, tags and wallets; home uses reports), which Bulletproof React would
+forbid, because a transaction picks a category and the dependency is real.
 
 Vocabulary and exact value behavior that persistence and both apps need live in
 `@bookkeeping/domain` under feature directories such as `packages/domain/src/wallets/`,

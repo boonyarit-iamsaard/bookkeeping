@@ -1,13 +1,13 @@
 import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
-import { Money } from "@/shared/components/money";
-import { cn } from "@/shared/helpers/cn";
 import type {
   CategoryBreakdown,
   CategoryLine,
   CategoryRow,
-} from "../category-breakdown";
+} from "@/features/reports/category-breakdown";
+import { Money } from "@/shared/components/money";
+import { cn } from "@/shared/helpers/cn";
 
 interface SpendingByCategoryProps {
   breakdown: Readonly<CategoryBreakdown>;

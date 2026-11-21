@@ -4,6 +4,13 @@ import { formatMoney } from "@bookkeeping/domain/money";
 import type { ApiMoney } from "@/core/api/money";
 import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
+import { isBalanceSelectionKey } from "@/features/reports/balance-selection";
+import type {
+  BalanceDay,
+  BalancePoint,
+  BalanceTrend,
+} from "@/features/reports/balance-trend";
+import { useBalanceSelection } from "@/features/reports/hooks/use-balance-selection";
 import { ChartSwatch } from "@/shared/components/chart/chart-swatch";
 import { Money } from "@/shared/components/money";
 import {
@@ -15,9 +22,6 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { toPercent } from "@/shared/helpers/bar-scale";
-import { isBalanceSelectionKey } from "../balance-selection";
-import type { BalanceDay, BalancePoint, BalanceTrend } from "../balance-trend";
-import { useBalanceSelection } from "../hooks/use-balance-selection";
 
 type WalletSummary = components["schemas"]["Wallet"];
 

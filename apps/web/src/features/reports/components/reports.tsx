@@ -3,12 +3,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
+import { reportMonthOf } from "@/features/reports/report-month";
+import { useReportView } from "@/features/reports/report-reads";
+import type { ReportSearch } from "@/features/reports/report-schema";
 import { DatePicker } from "@/shared/components/date-picker";
 import { MonthPicker } from "@/shared/components/month-picker";
 import { useToday } from "@/shared/hooks/use-today";
-import { reportMonthOf } from "../report-month";
-import { useReportView } from "../report-reads";
-import type { ReportSearch } from "../report-schema";
 import { FinancialReport } from "./financial-report";
 import { ReportsLoading } from "./reports-loading";
 
