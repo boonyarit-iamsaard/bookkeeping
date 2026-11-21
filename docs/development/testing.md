@@ -70,12 +70,15 @@ generated `*.gen.ts` files.
 
 The `SonarQube Cloud` workflow also runs `pnpm test:coverage` and uploads every
 `lcov.info`, whose paths are relative to the repository root. Its built-in
-quality gate asks for 80% coverage on new code; the check is advisory, and the
-root `scripts/` and config files are excluded from it.
+quality gate asks for 80% coverage on new code; the check is advisory. Its
+exclusions match `vitest.coverage.ts` and also leave out the root `scripts/`,
+config files, and the web code the browser suite owns.
 
-`apps/web` counts only its unit tests. The browser suite owns its screens and
-components, so a low web number is expected, not a gap. The root `scripts/`
-suite is repo tooling and has no coverage report.
+`apps/web` counts only its unit tests. The browser suite owns its screens,
+components (`*.tsx`) and hooks (`use-*.ts`), so Sonar leaves those out of the
+coverage condition and judges web pull requests on their plain `.ts` logic.
+Keep logic that a unit test can reach in a plain module rather than a hook.
+The root `scripts/` suite is repo tooling and has no coverage report.
 
 ## Mutation testing
 
