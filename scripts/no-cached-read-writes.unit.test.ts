@@ -15,6 +15,7 @@ const forbidden = [
   "removeQueries",
   "resetQueries",
   "setQueryData",
+  "setQueriesData",
 ];
 const allowed = [
   "apps/web/src/core/query/refresh-after-write.ts",
@@ -38,6 +39,14 @@ it("reports cached-read writes in the web app except refresh-after-write and tes
             `queryClient.${method}();\n`,
           ] as const,
       ),
+      [
+        "apps/web/src/features/wallets/optional.ts",
+        "queryClient?.invalidateQueries();\n",
+      ] as const,
+      [
+        "apps/web/src/features/wallets/refetch.ts",
+        "queryClient.refetchQueries();\n",
+      ] as const,
       ...allowed.map(
         (path) => [path, "queryClient.invalidateQueries();\n"] as const,
       ),
@@ -60,6 +69,8 @@ it("reports cached-read writes in the web app except refresh-after-write and tes
     for (const method of forbidden) {
       expect(report, report).toContain(`${method}.ts:1:`);
     }
+    expect(report, report).toContain("optional.ts:1:");
+    expect(report).not.toContain("refetch.ts:");
     expect(report).toContain("refreshAfterWrite");
     expect(report).toContain("forgetReads");
     expect(report).not.toMatch(/^apps.web.src.core/m);
