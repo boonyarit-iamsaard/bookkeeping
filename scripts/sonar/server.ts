@@ -26,12 +26,11 @@ export interface SonarServer {
 
 /** A client for `url`; without a password it reads only public projects. */
 export function createSonarServer(url: string, password?: string): SonarServer {
+  const credentials = Buffer.from(`${DEFAULT_LOGIN}:${password}`).toString(
+    "base64",
+  );
   const headers: Record<string, string> =
-    password === undefined
-      ? {}
-      : {
-          authorization: `Basic ${Buffer.from(`${DEFAULT_LOGIN}:${password}`).toString("base64")}`,
-        };
+    password === undefined ? {} : { authorization: `Basic ${credentials}` };
   return {
     url,
     async request(path, options = {}) {
