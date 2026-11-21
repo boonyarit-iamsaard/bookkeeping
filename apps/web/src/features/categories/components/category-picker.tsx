@@ -51,6 +51,190 @@ type View =
       generation: number;
     };
 
+function CategoryRow({
+  category,
+  color,
+  isChild,
+  selected,
+  onSelect,
+  onKeyDown,
+}: Readonly<CategoryRowProps>) {
+  return (
+    <SheetOption
+      data-category-option={category.id}
+      aria-current={selected || undefined}
+      onClick={() => onSelect(category.id)}
+      onKeyDown={onKeyDown}
+      className={cn(
+        "aria-current:bg-secondary/60",
+        isChild ? "min-h-13 py-2" : "min-h-15 py-2.5",
+      )}
+    >
+      {isChild && <ChildMarker />}
+      <CategoryTile color={color} size={isChild ? "child" : "row"}>
+        <CategoryIcon iconId={category.iconId} />
+      </CategoryTile>
+      <span
+        className={cn(
+          "min-w-0 flex-1 leading-snug wrap-break-word",
+          isChild ? "font-medium" : "font-semibold",
+        )}
+      >
+        {category.name}
+      </span>
+      {selected && (
+        <Check
+          aria-hidden="true"
+          strokeWidth={2}
+          className="text-link size-5 shrink-0"
+        />
+      )}
+    </SheetOption>
+  );
+}
+
+/** A parent row, then its children indented beneath; both are choices. */
+function CategoryGroupRows({
+  group,
+  color,
+  value,
+  onSelect,
+  onOptionKeyDown,
+}: Readonly<CategoryGroupRowsProps>) {
+  return (
+    <li>
+      <CategoryRow
+        category={group.parent}
+        color={color}
+        selected={group.parent.id === value}
+        onSelect={onSelect}
+        onKeyDown={onOptionKeyDown}
+      />
+      {group.children.length > 0 && (
+        <ul aria-label={`${group.parent.name} children`}>
+          {group.children.map((child) => (
+            <li key={child.id}>
+              <CategoryRow
+                category={child}
+                color={color}
+                isChild
+                selected={child.id === value}
+                onSelect={onSelect}
+                onKeyDown={onOptionKeyDown}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+function SearchView({
+  kind,
+  colorOf,
+  categories,
+  value,
+  query,
+  onQueryChange,
+  onSelect,
+  onCreate,
+}: Readonly<SearchViewProps>) {
+  const { listRef, searchId, optionKeyDown, searchKeyDown } = useSheetOptions();
+  const trimmed = query.trim();
+  const { groups, exactMatch } = searchCategories({ categories, kind, query });
+  const offerCreate = trimmed.length > 0 && !exactMatch;
+  const nothingMatched = groups.length === 0;
+
+  // A query that fell inside exactly one parent's children most likely
+  // wants to join them; anything more ambiguous leaves the parent unset.
+  const impliedParent =
+    groups.length === 1 && !groups[0]?.parentMatches
+      ? groups[0]?.parent.id
+      : undefined;
+
+  const createRow = offerCreate && (
+    <SheetOption
+      onKeyDown={optionKeyDown}
+      onClick={() => onCreate(trimmed, impliedParent)}
+      className="min-h-15 py-2.5"
+    >
+      <CreateTile />
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold wrap-break-word">
+          Create “{trimmed}”
+        </span>
+        <span className="text-muted-foreground block text-sm">
+          New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
+        </span>
+      </span>
+    </SheetOption>
+  );
+
+  return (
+    <>
+      <SheetHeader>{CATEGORY_KIND_LABELS[kind]} category</SheetHeader>
+      <div className="shrink-0 px-5 pb-3 sm:px-6">
+        <div className="relative">
+          <Search
+            aria-hidden="true"
+            strokeWidth={1.75}
+            className="text-muted-foreground pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2"
+          />
+          <Input
+            id={searchId}
+            type="search"
+            autoComplete="off"
+            enterKeyHint="go"
+            placeholder="Search or create…"
+            aria-label="Search categories"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            onKeyDown={(event) => searchKeyDown(event)}
+            className="pl-11 [&::-webkit-search-cancel-button]:hidden"
+          />
+        </div>
+      </div>
+      <div
+        ref={listRef}
+        className="border-border/70 min-h-0 flex-1 overflow-y-auto overscroll-contain border-t pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      >
+        {nothingMatched && createRow}
+        {nothingMatched && !offerCreate && (
+          <p className="text-muted-foreground px-5 py-6 text-sm sm:px-6">
+            No categories yet.
+          </p>
+        )}
+        {groups.length > 0 && (
+          <ul aria-label="Categories" className="divide-border/70 divide-y">
+            {groups.map((group) => (
+              <CategoryGroupRows
+                key={group.parent.id}
+                group={group}
+                color={colorOf(group.parent.id)}
+                value={value}
+                onSelect={onSelect}
+                onOptionKeyDown={optionKeyDown}
+              />
+            ))}
+          </ul>
+        )}
+        {!nothingMatched && createRow}
+        {!offerCreate && (
+          <SheetOption
+            onKeyDown={optionKeyDown}
+            onClick={() => onCreate("")}
+            className="min-h-15 py-2.5"
+          >
+            <CreateTile />
+            <span className="font-semibold">New category</span>
+          </SheetOption>
+        )}
+      </div>
+    </>
+  );
+}
+
 /**
  * The Category row: a trigger that reads the current choice back, and one
  * panel with two views. Search over both levels of the active tree, or
@@ -205,154 +389,12 @@ interface SearchViewProps {
   onCreate: (initialName: string, initialParentId?: string) => void;
 }
 
-function SearchView({
-  kind,
-  colorOf,
-  categories,
-  value,
-  query,
-  onQueryChange,
-  onSelect,
-  onCreate,
-}: Readonly<SearchViewProps>) {
-  const { listRef, searchId, optionKeyDown, searchKeyDown } = useSheetOptions();
-  const trimmed = query.trim();
-  const { groups, exactMatch } = searchCategories({ categories, kind, query });
-  const offerCreate = trimmed.length > 0 && !exactMatch;
-  const nothingMatched = groups.length === 0;
-
-  // A query that fell inside exactly one parent's children most likely
-  // wants to join them; anything more ambiguous leaves the parent unset.
-  const impliedParent =
-    groups.length === 1 && !groups[0]?.parentMatches
-      ? groups[0]?.parent.id
-      : undefined;
-
-  const createRow = offerCreate && (
-    <SheetOption
-      onKeyDown={optionKeyDown}
-      onClick={() => onCreate(trimmed, impliedParent)}
-      className="min-h-15 py-2.5"
-    >
-      <CreateTile />
-      <span className="min-w-0 flex-1">
-        <span className="block font-semibold wrap-break-word">
-          Create “{trimmed}”
-        </span>
-        <span className="text-muted-foreground block text-sm">
-          New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
-        </span>
-      </span>
-    </SheetOption>
-  );
-
-  return (
-    <>
-      <SheetHeader>{CATEGORY_KIND_LABELS[kind]} category</SheetHeader>
-      <div className="shrink-0 px-5 pb-3 sm:px-6">
-        <div className="relative">
-          <Search
-            aria-hidden="true"
-            strokeWidth={1.75}
-            className="text-muted-foreground pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2"
-          />
-          <Input
-            id={searchId}
-            type="search"
-            autoComplete="off"
-            enterKeyHint="go"
-            placeholder="Search or create…"
-            aria-label="Search categories"
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-            onKeyDown={(event) => searchKeyDown(event)}
-            className="pl-11 [&::-webkit-search-cancel-button]:hidden"
-          />
-        </div>
-      </div>
-      <div
-        ref={listRef}
-        className="border-border/70 min-h-0 flex-1 overflow-y-auto overscroll-contain border-t pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-      >
-        {nothingMatched && createRow}
-        {nothingMatched && !offerCreate && (
-          <p className="text-muted-foreground px-5 py-6 text-sm sm:px-6">
-            No categories yet.
-          </p>
-        )}
-        {groups.length > 0 && (
-          <ul aria-label="Categories" className="divide-border/70 divide-y">
-            {groups.map((group) => (
-              <CategoryGroupRows
-                key={group.parent.id}
-                group={group}
-                color={colorOf(group.parent.id)}
-                value={value}
-                onSelect={onSelect}
-                onOptionKeyDown={optionKeyDown}
-              />
-            ))}
-          </ul>
-        )}
-        {!nothingMatched && createRow}
-        {!offerCreate && (
-          <SheetOption
-            onKeyDown={optionKeyDown}
-            onClick={() => onCreate("")}
-            className="min-h-15 py-2.5"
-          >
-            <CreateTile />
-            <span className="font-semibold">New category</span>
-          </SheetOption>
-        )}
-      </div>
-    </>
-  );
-}
-
 interface CategoryGroupRowsProps {
   group: CategoryGroup;
   color: CategoryColor;
   value: string;
   onSelect: (categoryId: string) => void;
   onOptionKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
-}
-
-/** A parent row, then its children indented beneath; both are choices. */
-function CategoryGroupRows({
-  group,
-  color,
-  value,
-  onSelect,
-  onOptionKeyDown,
-}: Readonly<CategoryGroupRowsProps>) {
-  return (
-    <li>
-      <CategoryRow
-        category={group.parent}
-        color={color}
-        selected={group.parent.id === value}
-        onSelect={onSelect}
-        onKeyDown={onOptionKeyDown}
-      />
-      {group.children.length > 0 && (
-        <ul aria-label={`${group.parent.name} children`}>
-          {group.children.map((child) => (
-            <li key={child.id}>
-              <CategoryRow
-                category={child}
-                color={color}
-                isChild
-                selected={child.id === value}
-                onSelect={onSelect}
-                onKeyDown={onOptionKeyDown}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
-    </li>
-  );
 }
 
 interface CategoryRowProps {
@@ -362,46 +404,4 @@ interface CategoryRowProps {
   selected: boolean;
   onSelect: (categoryId: string) => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
-}
-
-function CategoryRow({
-  category,
-  color,
-  isChild,
-  selected,
-  onSelect,
-  onKeyDown,
-}: Readonly<CategoryRowProps>) {
-  return (
-    <SheetOption
-      data-category-option={category.id}
-      aria-current={selected || undefined}
-      onClick={() => onSelect(category.id)}
-      onKeyDown={onKeyDown}
-      className={cn(
-        "aria-current:bg-secondary/60",
-        isChild ? "min-h-13 py-2" : "min-h-15 py-2.5",
-      )}
-    >
-      {isChild && <ChildMarker />}
-      <CategoryTile color={color} size={isChild ? "child" : "row"}>
-        <CategoryIcon iconId={category.iconId} />
-      </CategoryTile>
-      <span
-        className={cn(
-          "min-w-0 flex-1 leading-snug wrap-break-word",
-          isChild ? "font-medium" : "font-semibold",
-        )}
-      >
-        {category.name}
-      </span>
-      {selected && (
-        <Check
-          aria-hidden="true"
-          strokeWidth={2}
-          className="text-link size-5 shrink-0"
-        />
-      )}
-    </SheetOption>
-  );
 }

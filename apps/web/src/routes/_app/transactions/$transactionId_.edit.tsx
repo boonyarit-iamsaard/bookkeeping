@@ -27,48 +27,71 @@ import { buttonVariants } from "@/shared/components/ui/button";
 
 type Transaction = components["schemas"]["Transaction"];
 
-export const Route = createFileRoute("/_app/transactions/$transactionId_/edit")(
-  {
-    head: () => ({ meta: [{ title: "Edit transaction" }] }),
-    loader: async ({ context, params }) => {
-      const transaction = await loadOwnedTransaction(
-        context.queryClient,
-        params.transactionId,
-      );
+interface EditTransactionFormProps {
+  transaction: Transaction;
+  wallets: readonly WalletOption[];
+}
 
-      // A refund shows its expense; an expense shows what it has refunded.
-      const refundedExpenseId = transaction.refundOf?.id ?? transaction.id;
-      await Promise.all([
-        context.queryClient.ensureQueryData(walletQueries.list()),
-        context.queryClient.ensureQueryData(categoryQueries.list()),
-        carriesOwnTags(transaction)
-          ? context.queryClient.ensureQueryData(tagQueries.list())
-          : undefined,
-        transaction.refundOf
-          ? context.queryClient.ensureQueryData(
-              transactionQueries.detail(refundedExpenseId),
-            )
-          : undefined,
-        transaction.refundOf
-          ? context.queryClient.ensureQueryData(
-              transactionQueries.refunds(refundedExpenseId, {
-                excluding: transaction.id,
-              }),
-            )
-          : undefined,
-        transaction.type === "expense"
-          ? context.queryClient.ensureQueryData(
-              transactionQueries.refunds(transaction.id),
-            )
-          : undefined,
-      ]);
-    },
-    staticData: { form: true },
-    pendingComponent: HistoryLoading,
-    errorComponent: HistoryErrorBoundary,
-    component: EditTransactionPage,
-  },
-);
+interface EditRefundFormProps extends EditTransactionFormProps {
+  expenseId: string;
+}
+
+interface EditFormProps extends EditTransactionFormProps {
+  refundOf?: LinkedExpenseView;
+  refunds?: components["schemas"]["TransactionRefunds"];
+}
+
+function EditForm({
+  transaction,
+  wallets,
+  refundOf,
+  refunds,
+}: Readonly<EditFormProps>) {
+  return (
+    <TransactionForm
+      wallets={wallets}
+      mode={{
+        kind: "correct",
+        transaction: editableTransaction({ transaction, refundOf, refunds }),
+      }}
+    />
+  );
+}
+
+function EditRefundForm({
+  expenseId,
+  ...props
+}: Readonly<EditRefundFormProps>) {
+  const { data: expense } = useSuspenseQuery(
+    transactionQueries.detail(expenseId),
+  );
+  const { data: refunds } = useSuspenseQuery(
+    transactionQueries.refunds(expenseId, { excluding: props.transaction.id }),
+  );
+  return (
+    <EditForm {...props} refundOf={linkedExpenseView({ expense, refunds })} />
+  );
+}
+
+function EditExpenseForm(props: Readonly<EditTransactionFormProps>) {
+  const { data: refunds } = useSuspenseQuery(
+    transactionQueries.refunds(props.transaction.id),
+  );
+  return <EditForm {...props} refunds={refunds} />;
+}
+
+/** A refund shows its expense; an expense shows what it has refunded. */
+function EditTransactionForm(props: Readonly<EditTransactionFormProps>) {
+  if (props.transaction.refundOf) {
+    return (
+      <EditRefundForm {...props} expenseId={props.transaction.refundOf.id} />
+    );
+  }
+  if (props.transaction.type === "expense") {
+    return <EditExpenseForm {...props} />;
+  }
+  return <EditForm {...props} />;
+}
 
 function EditTransactionPage() {
   const { transactionId } = Route.useParams();
@@ -116,68 +139,45 @@ function EditTransactionPage() {
   );
 }
 
-interface EditTransactionFormProps {
-  transaction: Transaction;
-  wallets: readonly WalletOption[];
-}
+export const Route = createFileRoute("/_app/transactions/$transactionId_/edit")(
+  {
+    head: () => ({ meta: [{ title: "Edit transaction" }] }),
+    loader: async ({ context, params }) => {
+      const transaction = await loadOwnedTransaction(
+        context.queryClient,
+        params.transactionId,
+      );
 
-/** A refund shows its expense; an expense shows what it has refunded. */
-function EditTransactionForm(props: Readonly<EditTransactionFormProps>) {
-  if (props.transaction.refundOf) {
-    return (
-      <EditRefundForm {...props} expenseId={props.transaction.refundOf.id} />
-    );
-  }
-  if (props.transaction.type === "expense") {
-    return <EditExpenseForm {...props} />;
-  }
-  return <EditForm {...props} />;
-}
-
-interface EditRefundFormProps extends EditTransactionFormProps {
-  expenseId: string;
-}
-
-function EditRefundForm({
-  expenseId,
-  ...props
-}: Readonly<EditRefundFormProps>) {
-  const { data: expense } = useSuspenseQuery(
-    transactionQueries.detail(expenseId),
-  );
-  const { data: refunds } = useSuspenseQuery(
-    transactionQueries.refunds(expenseId, { excluding: props.transaction.id }),
-  );
-  return (
-    <EditForm {...props} refundOf={linkedExpenseView({ expense, refunds })} />
-  );
-}
-
-function EditExpenseForm(props: Readonly<EditTransactionFormProps>) {
-  const { data: refunds } = useSuspenseQuery(
-    transactionQueries.refunds(props.transaction.id),
-  );
-  return <EditForm {...props} refunds={refunds} />;
-}
-
-interface EditFormProps extends EditTransactionFormProps {
-  refundOf?: LinkedExpenseView;
-  refunds?: components["schemas"]["TransactionRefunds"];
-}
-
-function EditForm({
-  transaction,
-  wallets,
-  refundOf,
-  refunds,
-}: Readonly<EditFormProps>) {
-  return (
-    <TransactionForm
-      wallets={wallets}
-      mode={{
-        kind: "correct",
-        transaction: editableTransaction({ transaction, refundOf, refunds }),
-      }}
-    />
-  );
-}
+      // A refund shows its expense; an expense shows what it has refunded.
+      const refundedExpenseId = transaction.refundOf?.id ?? transaction.id;
+      await Promise.all([
+        context.queryClient.ensureQueryData(walletQueries.list()),
+        context.queryClient.ensureQueryData(categoryQueries.list()),
+        carriesOwnTags(transaction)
+          ? context.queryClient.ensureQueryData(tagQueries.list())
+          : undefined,
+        transaction.refundOf
+          ? context.queryClient.ensureQueryData(
+              transactionQueries.detail(refundedExpenseId),
+            )
+          : undefined,
+        transaction.refundOf
+          ? context.queryClient.ensureQueryData(
+              transactionQueries.refunds(refundedExpenseId, {
+                excluding: transaction.id,
+              }),
+            )
+          : undefined,
+        transaction.type === "expense"
+          ? context.queryClient.ensureQueryData(
+              transactionQueries.refunds(transaction.id),
+            )
+          : undefined,
+      ]);
+    },
+    staticData: { form: true },
+    pendingComponent: HistoryLoading,
+    errorComponent: HistoryErrorBoundary,
+    component: EditTransactionPage,
+  },
+);

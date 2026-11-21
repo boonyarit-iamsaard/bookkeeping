@@ -8,6 +8,65 @@ import type { Chevron, DayButton, Root } from "react-day-picker";
 import { DayPicker, getDefaultClassNames } from "react-day-picker";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 
+function CalendarRoot({
+  className,
+  rootRef,
+  ...props
+}: Readonly<React.ComponentProps<typeof Root>>) {
+  return (
+    <div
+      data-slot="calendar"
+      ref={rootRef}
+      className={cn(className)}
+      {...props}
+    />
+  );
+}
+
+function CalendarChevron({
+  className,
+  orientation,
+  ...props
+}: Readonly<React.ComponentProps<typeof Chevron>>) {
+  const Icon = orientation === "left" ? ChevronLeft : ChevronRight;
+  return (
+    <Icon strokeWidth={1.75} className={cn("size-4", className)} {...props} />
+  );
+}
+
+function CalendarDayButton({
+  className,
+  day,
+  modifiers,
+  ...props
+}: Readonly<React.ComponentProps<typeof DayButton>>) {
+  const defaultClassNames = getDefaultClassNames();
+
+  // Arrow keys move DayPicker's focused day; the button follows.
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (modifiers.focused) {
+      ref.current?.focus();
+    }
+  }, [modifiers.focused]);
+
+  return (
+    <Button
+      ref={ref}
+      variant="ghost"
+      size="icon"
+      data-day={day.date.toLocaleDateString()}
+      data-selected={modifiers.selected}
+      className={cn(
+        "data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground data-[selected=true]:hover:bg-primary data-[selected=true]:hover:text-primary-foreground group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) rounded-full border-0 text-sm leading-none font-normal tabular-nums group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[selected=true]:font-semibold",
+        defaultClassNames.day,
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 /**
  * One month of days as a grid of thumb-sized circles: the caption reads
  * "September 2026" between two ghost arrows, today sits on a tonal Iris
@@ -90,65 +149,6 @@ function Calendar({
         ...components,
       }}
       // biome-ignore-end lint/style/useNamingConvention: react-day-picker slots.
-      {...props}
-    />
-  );
-}
-
-function CalendarRoot({
-  className,
-  rootRef,
-  ...props
-}: Readonly<React.ComponentProps<typeof Root>>) {
-  return (
-    <div
-      data-slot="calendar"
-      ref={rootRef}
-      className={cn(className)}
-      {...props}
-    />
-  );
-}
-
-function CalendarChevron({
-  className,
-  orientation,
-  ...props
-}: Readonly<React.ComponentProps<typeof Chevron>>) {
-  const Icon = orientation === "left" ? ChevronLeft : ChevronRight;
-  return (
-    <Icon strokeWidth={1.75} className={cn("size-4", className)} {...props} />
-  );
-}
-
-function CalendarDayButton({
-  className,
-  day,
-  modifiers,
-  ...props
-}: Readonly<React.ComponentProps<typeof DayButton>>) {
-  const defaultClassNames = getDefaultClassNames();
-
-  // Arrow keys move DayPicker's focused day; the button follows.
-  const ref = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (modifiers.focused) {
-      ref.current?.focus();
-    }
-  }, [modifiers.focused]);
-
-  return (
-    <Button
-      ref={ref}
-      variant="ghost"
-      size="icon"
-      data-day={day.date.toLocaleDateString()}
-      data-selected={modifiers.selected}
-      className={cn(
-        "data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground data-[selected=true]:hover:bg-primary data-[selected=true]:hover:text-primary-foreground group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) rounded-full border-0 text-sm leading-none font-normal tabular-nums group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[selected=true]:font-semibold",
-        defaultClassNames.day,
-        className,
-      )}
       {...props}
     />
   );

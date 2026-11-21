@@ -159,27 +159,6 @@ export interface WalletOpeningFacts {
   earliestMovementDate: CalendarDate | null;
 }
 
-/**
- * Accepts an opening independently of how it arrived: the amount must fit
- * the stored range and the date must be real, no later than the supplied
- * today and no later than the earliest movement. Each field reports at most
- * one rejection, so a client can correct all refused fields at once.
- */
-export function acceptWalletOpening(
-  opening: Readonly<WalletOpening>,
-  facts: Readonly<WalletOpeningFacts>,
-): Result<WalletOpening, WalletOpeningRejected> {
-  const rejections = collectOpeningRejections(opening, facts);
-  const refused = rejectedOrNone(rejections);
-  if (refused) {
-    return err(refused);
-  }
-  return ok({
-    openingAmount: opening.openingAmount,
-    openingDate: opening.openingDate,
-  });
-}
-
 function collectOpeningRejections(
   opening: Readonly<WalletOpening>,
   facts: Readonly<WalletOpeningFacts>,
@@ -203,6 +182,27 @@ function collectOpeningRejections(
     rejections.push({ code: "movement-before-opening", field: "openingDate" });
   }
   return rejections;
+}
+
+/**
+ * Accepts an opening independently of how it arrived: the amount must fit
+ * the stored range and the date must be real, no later than the supplied
+ * today and no later than the earliest movement. Each field reports at most
+ * one rejection, so a client can correct all refused fields at once.
+ */
+export function acceptWalletOpening(
+  opening: Readonly<WalletOpening>,
+  facts: Readonly<WalletOpeningFacts>,
+): Result<WalletOpening, WalletOpeningRejected> {
+  const rejections = collectOpeningRejections(opening, facts);
+  const refused = rejectedOrNone(rejections);
+  if (refused) {
+    return err(refused);
+  }
+  return ok({
+    openingAmount: opening.openingAmount,
+    openingDate: opening.openingDate,
+  });
 }
 
 /** A wallet as a client asks for it, before the application accepts it. */
@@ -247,32 +247,6 @@ export interface CreateWalletInput extends WalletCreationCommand {
   idempotencyKey: string;
 }
 
-/**
- * Opens a wallet once per idempotency key. An invalid command is rejected
- * before the key is touched, so a corrected retry may reuse it; a retry with
- * the same accepted command replays the wallet as it was created.
- */
-export const createWallet: IdempotentCreator<
-  CreateWalletInput,
-  WalletSummary,
-  WalletRejected
-> = defineIdempotentCreation({
-  operation: "wallets.create",
-  prepare: (input: Readonly<CreateWalletInput>) =>
-    acceptWalletCreation(input, {
-      today: todayIn({ timeZone: APP_TIME_ZONE }),
-      earliestMovementDate: null,
-    }),
-  // The insert has no expected failure of its own; every rejection happens
-  // during acceptance.
-  insert: async (tx, { ownerId, command }) =>
-    ok(await insertWallet(tx, { ownerId, ...command })),
-});
-
-interface OwnedWalletCreation extends WalletCreationCommand {
-  ownerId: string;
-}
-
 async function insertWallet(
   db: Database,
   command: Readonly<OwnedWalletCreation>,
@@ -304,6 +278,32 @@ async function insertWallet(
     // Acceptance rejects future openings, so the opening is already in effect.
     balance: row.openingAmount,
   };
+}
+
+/**
+ * Opens a wallet once per idempotency key. An invalid command is rejected
+ * before the key is touched, so a corrected retry may reuse it; a retry with
+ * the same accepted command replays the wallet as it was created.
+ */
+export const createWallet: IdempotentCreator<
+  CreateWalletInput,
+  WalletSummary,
+  WalletRejected
+> = defineIdempotentCreation({
+  operation: "wallets.create",
+  prepare: (input: Readonly<CreateWalletInput>) =>
+    acceptWalletCreation(input, {
+      today: todayIn({ timeZone: APP_TIME_ZONE }),
+      earliestMovementDate: null,
+    }),
+  // The insert has no expected failure of its own; every rejection happens
+  // during acceptance.
+  insert: async (tx, { ownerId, command }) =>
+    ok(await insertWallet(tx, { ownerId, ...command })),
+});
+
+interface OwnedWalletCreation extends WalletCreationCommand {
+  ownerId: string;
 }
 
 export interface ReplaceWalletOpeningInput extends WalletRef, WalletOpening {}

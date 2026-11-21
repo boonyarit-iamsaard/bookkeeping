@@ -126,31 +126,6 @@ export interface TransactionFacts {
   current: CurrentTransactionFact | null;
 }
 
-/**
- * Judges a create or edit against the owner's records and returns the
- * command unchanged when every rule holds. Rules run in a fixed order so a
- * command with several faults is always refused for the same one first:
- * bounds, then shape, then the records it names, then dates, then what its
- * refunds allow.
- */
-export function acceptTransaction(
-  command: Readonly<TransactionCommand>,
-  facts: Readonly<TransactionFacts>,
-): Result<TransactionCommand, TransactionRejection> {
-  const rejection =
-    rejectValues(command) ??
-    rejectTransferShape(command) ??
-    rejectRefundShape(command) ??
-    rejectMissingExpense(command, facts) ??
-    rejectWallets(command, facts) ??
-    rejectCategory(command, facts) ??
-    rejectTags(command, facts) ??
-    rejectDate(command, facts) ??
-    rejectRefundAgainstExpense(command, facts) ??
-    rejectExpenseAgainstRefunds(command, facts);
-  return rejection ? err(rejection) : ok({ ...command });
-}
-
 function rejectValues(
   command: Readonly<TransactionCommand>,
 ): TransactionRejection | undefined {
@@ -318,6 +293,15 @@ export function sumOf(refunds: readonly RefundSummary[]): bigint {
   return refunds.reduce((total, refund) => total + refund.amount, 0n);
 }
 
+/** What an expense has left to refund once its refunds count against it; never negative. */
+export function refundAllowanceOf({
+  expenseAmount,
+  refunds,
+}: Readonly<RefundAllowanceInput>): bigint {
+  const refundAllowance = expenseAmount - sumOf(refunds);
+  return refundAllowance > 0n ? refundAllowance : 0n;
+}
+
 /**
  * The refunds that count against an expense: every one but the refund under
  * correction, which does not count its own old amount.
@@ -329,21 +313,6 @@ export function refundsCountingAgainst(
   return underCorrection === undefined
     ? refunds
     : refunds.filter((refund) => refund.id !== underCorrection);
-}
-
-export interface RefundAllowanceInput {
-  expenseAmount: bigint;
-  /** The refunds counting against the expense; see `refundsCountingAgainst`. */
-  refunds: readonly RefundSummary[];
-}
-
-/** What an expense has left to refund once its refunds count against it; never negative. */
-export function refundAllowanceOf({
-  expenseAmount,
-  refunds,
-}: Readonly<RefundAllowanceInput>): bigint {
-  const refundAllowance = expenseAmount - sumOf(refunds);
-  return refundAllowance > 0n ? refundAllowance : 0n;
 }
 
 function rejectRefundAgainstExpense(
@@ -394,6 +363,37 @@ function rejectExpenseAgainstRefunds(
     };
   }
   return undefined;
+}
+
+/**
+ * Judges a create or edit against the owner's records and returns the
+ * command unchanged when every rule holds. Rules run in a fixed order so a
+ * command with several faults is always refused for the same one first:
+ * bounds, then shape, then the records it names, then dates, then what its
+ * refunds allow.
+ */
+export function acceptTransaction(
+  command: Readonly<TransactionCommand>,
+  facts: Readonly<TransactionFacts>,
+): Result<TransactionCommand, TransactionRejection> {
+  const rejection =
+    rejectValues(command) ??
+    rejectTransferShape(command) ??
+    rejectRefundShape(command) ??
+    rejectMissingExpense(command, facts) ??
+    rejectWallets(command, facts) ??
+    rejectCategory(command, facts) ??
+    rejectTags(command, facts) ??
+    rejectDate(command, facts) ??
+    rejectRefundAgainstExpense(command, facts) ??
+    rejectExpenseAgainstRefunds(command, facts);
+  return rejection ? err(rejection) : ok({ ...command });
+}
+
+export interface RefundAllowanceInput {
+  expenseAmount: bigint;
+  /** The refunds counting against the expense; see `refundsCountingAgainst`. */
+  refunds: readonly RefundSummary[];
 }
 
 /**

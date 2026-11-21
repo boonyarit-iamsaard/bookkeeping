@@ -145,36 +145,6 @@ export interface RenameTagInput extends TagRef {
 
 export type RenameTagError = NotFound | TagRejected;
 
-/**
- * Renames one of the owner's tags. Renaming to the name another of the
- * owner's tags holds, ignoring case, merges this tag into that one: every
- * transaction carrying either carries the survivor, which takes the name as
- * typed, and the renamed tag goes. The survivor is returned, so a merge
- * answers a different id. Neither writes Change history on the transactions.
- */
-export async function renameTag(
-  db: Database,
-  input: Readonly<RenameTagInput>,
-): Promise<Result<TransactionTag, RenameTagError>> {
-  const name = validateTagName(input.name);
-  if (!name.ok) {
-    return name;
-  }
-  if (!isUuid(input.id)) {
-    return err(notFound());
-  }
-  try {
-    return await renameOrMerge(db, { ...input, name: name.value });
-  } catch (error) {
-    // A concurrent create took the name after it was looked up: the tag now
-    // exists, so the second attempt merges into it.
-    if (isTagNameViolation(error)) {
-      return renameOrMerge(db, { ...input, name: name.value });
-    }
-    throw error;
-  }
-}
-
 /** One locked attempt at a rename whose name is already valid. */
 function renameOrMerge(db: Database, input: Readonly<RenameTagInput>) {
   return db.transaction(
@@ -228,6 +198,36 @@ function renameOrMerge(db: Database, input: Readonly<RenameTagInput>) {
       return ok(row);
     },
   );
+}
+
+/**
+ * Renames one of the owner's tags. Renaming to the name another of the
+ * owner's tags holds, ignoring case, merges this tag into that one: every
+ * transaction carrying either carries the survivor, which takes the name as
+ * typed, and the renamed tag goes. The survivor is returned, so a merge
+ * answers a different id. Neither writes Change history on the transactions.
+ */
+export async function renameTag(
+  db: Database,
+  input: Readonly<RenameTagInput>,
+): Promise<Result<TransactionTag, RenameTagError>> {
+  const name = validateTagName(input.name);
+  if (!name.ok) {
+    return name;
+  }
+  if (!isUuid(input.id)) {
+    return err(notFound());
+  }
+  try {
+    return await renameOrMerge(db, { ...input, name: name.value });
+  } catch (error) {
+    // A concurrent create took the name after it was looked up: the tag now
+    // exists, so the second attempt merges into it.
+    if (isTagNameViolation(error)) {
+      return renameOrMerge(db, { ...input, name: name.value });
+    }
+    throw error;
+  }
 }
 
 export type DeleteTagError = NotFound;

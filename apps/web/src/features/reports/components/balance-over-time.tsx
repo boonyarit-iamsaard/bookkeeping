@@ -166,54 +166,6 @@ function WalletPicker({
   );
 }
 
-/**
- * The level 3 balance trend: the total Closing balance across the month as
- * one line, from the earliest opening date to the last day read, with one
- * chosen wallet optionally drawn beside it as a dashed line. The plot is a
- * slider over the days with a total, so the selected day can be moved by
- * pointer or keys, and its exact figures are read out beneath; a table
- * carries every day for assistive technology.
- */
-export function BalanceOverTime({
-  trend,
-  month,
-  reportMonth,
-  balanceDate,
-  ...comparison
-}: Readonly<BalanceOverTimeProps>) {
-  const selection = useBalanceSelection({
-    month: reportMonth,
-    balanceDate,
-    trend,
-  });
-  if (trend.kind === "future") {
-    return (
-      <p className="text-muted-foreground text-sm">Nothing yet in {month}.</p>
-    );
-  }
-  if (trend.kind === "untracked") {
-    return (
-      <p className="text-muted-foreground text-sm">
-        No wallets were open in {month}.
-      </p>
-    );
-  }
-  return (
-    <BalanceLine
-      trend={trend}
-      month={month}
-      selection={selection}
-      {...comparison}
-    />
-  );
-}
-
-interface BalanceLineProps extends WalletComparison {
-  trend: Readonly<Extract<BalanceTrend, { kind: "line" }>>;
-  month: string;
-  selection: ReturnType<typeof useBalanceSelection>;
-}
-
 function BalanceLine({
   trend,
   month,
@@ -398,4 +350,52 @@ function BalanceLine({
       </div>
     </div>
   );
+}
+
+/**
+ * The level 3 balance trend: the total Closing balance across the month as
+ * one line, from the earliest opening date to the last day read, with one
+ * chosen wallet optionally drawn beside it as a dashed line. The plot is a
+ * slider over the days with a total, so the selected day can be moved by
+ * pointer or keys, and its exact figures are read out beneath; a table
+ * carries every day for assistive technology.
+ */
+export function BalanceOverTime({
+  trend,
+  month,
+  reportMonth,
+  balanceDate,
+  ...comparison
+}: Readonly<BalanceOverTimeProps>) {
+  const selection = useBalanceSelection({
+    month: reportMonth,
+    balanceDate,
+    trend,
+  });
+  if (trend.kind === "future") {
+    return (
+      <p className="text-muted-foreground text-sm">Nothing yet in {month}.</p>
+    );
+  }
+  if (trend.kind === "untracked") {
+    return (
+      <p className="text-muted-foreground text-sm">
+        No wallets were open in {month}.
+      </p>
+    );
+  }
+  return (
+    <BalanceLine
+      trend={trend}
+      month={month}
+      selection={selection}
+      {...comparison}
+    />
+  );
+}
+
+interface BalanceLineProps extends WalletComparison {
+  trend: Readonly<Extract<BalanceTrend, { kind: "line" }>>;
+  month: string;
+  selection: ReturnType<typeof useBalanceSelection>;
 }

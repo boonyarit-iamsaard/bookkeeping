@@ -2,15 +2,6 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { readSession } from "@/core/auth/session";
 import { AppMark } from "@/core/shell/app-mark";
 
-export const Route = createFileRoute("/_auth")({
-  beforeLoad: async ({ context }) => {
-    if (await readSession(context.queryClient)) {
-      throw redirect({ to: "/" });
-    }
-  },
-  component: AuthLayout,
-});
-
 /**
  * The signed-out ground: the app mark and wordmark above one Card in the
  * 448px column. There is no shell, so nothing else competes with the form.
@@ -28,3 +19,12 @@ function AuthLayout() {
     </div>
   );
 }
+
+export const Route = createFileRoute("/_auth")({
+  beforeLoad: async ({ context }) => {
+    if (await readSession(context.queryClient)) {
+      throw redirect({ to: "/" });
+    }
+  },
+  component: AuthLayout,
+});

@@ -27,6 +27,16 @@ interface EditTagFormProps {
   onCancel: () => void;
 }
 
+/** The consequence in the product's own words, before any button. */
+function deletionExplanation(tag: Readonly<TagSummary>): string {
+  if (tag.transactionCount === 0) {
+    return `${tag.name} is not on any transaction. Deleting it changes nothing else.`;
+  }
+  const kept =
+    tag.transactionCount === 1 ? "That transaction stays" : "They stay";
+  return `Deleting ${tag.name} takes it off ${tagUsageLabel(tag.transactionCount)}. ${kept}, otherwise unchanged.`;
+}
+
 /**
  * The sheet behind a tag row: rename, which merges into another tag when
  * the name is already that tag's, and beneath a hairline, the deletion
@@ -203,14 +213,4 @@ export function EditTagForm({
       </div>
     </form>
   );
-}
-
-/** The consequence in the product's own words, before any button. */
-function deletionExplanation(tag: Readonly<TagSummary>): string {
-  if (tag.transactionCount === 0) {
-    return `${tag.name} is not on any transaction. Deleting it changes nothing else.`;
-  }
-  const kept =
-    tag.transactionCount === 1 ? "That transaction stays" : "They stay";
-  return `Deleting ${tag.name} takes it off ${tagUsageLabel(tag.transactionCount)}. ${kept}, otherwise unchanged.`;
 }

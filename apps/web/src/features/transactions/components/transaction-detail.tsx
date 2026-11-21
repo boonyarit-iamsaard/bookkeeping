@@ -39,6 +39,17 @@ function walletTerm(transaction: Readonly<ApiTransaction>) {
   return "Wallet";
 }
 
+function Row({ term, children }: Readonly<RowProps>) {
+  return (
+    <div className="flex min-h-16 flex-col justify-center gap-0.5 px-5 py-3 sm:flex-row sm:items-center sm:justify-start sm:gap-6 sm:px-7">
+      <dt className="text-muted-foreground text-sm sm:w-28 sm:shrink-0">
+        {term}
+      </dt>
+      <dd className="min-w-0 font-semibold wrap-break-word">{children}</dd>
+    </div>
+  );
+}
+
 export function TransactionDetailView({
   transaction,
 }: Readonly<TransactionDetailViewProps>) {
@@ -140,15 +151,4 @@ export function TransactionDetailView({
 interface RowProps {
   term: string;
   children: React.ReactNode;
-}
-
-function Row({ term, children }: Readonly<RowProps>) {
-  return (
-    <div className="flex min-h-16 flex-col justify-center gap-0.5 px-5 py-3 sm:flex-row sm:items-center sm:justify-start sm:gap-6 sm:px-7">
-      <dt className="text-muted-foreground text-sm sm:w-28 sm:shrink-0">
-        {term}
-      </dt>
-      <dd className="min-w-0 font-semibold wrap-break-word">{children}</dd>
-    </div>
-  );
 }

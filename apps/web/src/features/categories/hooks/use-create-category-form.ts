@@ -68,6 +68,36 @@ export function useCreateCategoryForm({
     iconId: false,
     parentIconId: false,
   });
+
+  function finishFromCatalog() {
+    const saved = savedCategory.current;
+    if (!saved) {
+      return;
+    }
+    const query = categoryQueries.list();
+    const collection = queryClient.getQueryData<CategoryCollection>(
+      query.queryKey,
+    );
+    const category = collection?.items.find(
+      (entry) => entry.id === saved.category.id,
+    );
+    const parent = category?.parentId
+      ? collection?.items.find((entry) => entry.id === category.parentId)
+      : undefined;
+    if (
+      queryClient.getQueryState(query.queryKey)?.status !== "success" ||
+      !category ||
+      (category.parentId && !parent)
+    ) {
+      setRecoveryError(LIST_NOT_REFRESHED);
+      return;
+    }
+    onCreated({
+      category,
+      ...(saved.includesNewParent && parent ? { createdParent: parent } : {}),
+    });
+  }
+
   const {
     submit,
     serverError: writeError,
@@ -114,35 +144,6 @@ export function useCreateCategoryForm({
     parentName: "",
     parentIconId: GENERIC_ICON_ID,
   };
-
-  function finishFromCatalog() {
-    const saved = savedCategory.current;
-    if (!saved) {
-      return;
-    }
-    const query = categoryQueries.list();
-    const collection = queryClient.getQueryData<CategoryCollection>(
-      query.queryKey,
-    );
-    const category = collection?.items.find(
-      (entry) => entry.id === saved.category.id,
-    );
-    const parent = category?.parentId
-      ? collection?.items.find((entry) => entry.id === category.parentId)
-      : undefined;
-    if (
-      queryClient.getQueryState(query.queryKey)?.status !== "success" ||
-      !category ||
-      (category.parentId && !parent)
-    ) {
-      setRecoveryError(LIST_NOT_REFRESHED);
-      return;
-    }
-    onCreated({
-      category,
-      ...(saved.includesNewParent && parent ? { createdParent: parent } : {}),
-    });
-  }
 
   async function retryRead() {
     if (!savedCategory.current || isRefreshing) {

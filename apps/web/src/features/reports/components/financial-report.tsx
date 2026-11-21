@@ -55,6 +55,57 @@ const SUMMARY_FIGURES = [
   "net",
 ] as const satisfies readonly ReportFigure[];
 
+function BalanceRow({
+  name,
+  walletId,
+  archived,
+  current,
+  dated,
+  asOf,
+}: Readonly<BalanceRowProps>) {
+  return (
+    <div
+      data-balance-row={name}
+      className="flex flex-col gap-3 py-4 first:pt-4"
+    >
+      <dt className="font-medium">
+        {walletId ? (
+          <Link
+            to="/wallets/$walletId"
+            params={{ walletId }}
+            className="focus-visible:outline-ring inline-flex min-h-11 min-w-11 items-center rounded-sm underline-offset-4 hover:underline focus-visible:outline-2"
+          >
+            {name}
+          </Link>
+        ) : (
+          name
+        )}
+        {archived && (
+          <span className="text-muted-foreground text-sm"> · Archived</span>
+        )}
+      </dt>
+      <dd className="grid grid-cols-2 gap-x-4">
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-muted-foreground text-sm">Current</span>
+          <Money amount={current} />
+        </span>
+        {/* The date column says something only when it differs from Current. */}
+        {dated !== null && current.value !== dated.value && (
+          <span
+            data-balance-total={walletId ? undefined : true}
+            className="flex min-w-0 flex-col gap-0.5"
+          >
+            <span className="text-muted-foreground text-sm">
+              {formatCalendarDate(asOf)}
+            </span>
+            <Money amount={dated} />
+          </span>
+        )}
+      </dd>
+    </div>
+  );
+}
+
 export function FinancialReport({
   summary,
   categoryBreakdown,
@@ -224,55 +275,4 @@ interface BalanceRowProps {
   /** The balance at the end of `asOf`; none before anything opened. */
   dated: ApiMoney | null;
   asOf: CalendarDate;
-}
-
-function BalanceRow({
-  name,
-  walletId,
-  archived,
-  current,
-  dated,
-  asOf,
-}: Readonly<BalanceRowProps>) {
-  return (
-    <div
-      data-balance-row={name}
-      className="flex flex-col gap-3 py-4 first:pt-4"
-    >
-      <dt className="font-medium">
-        {walletId ? (
-          <Link
-            to="/wallets/$walletId"
-            params={{ walletId }}
-            className="focus-visible:outline-ring inline-flex min-h-11 min-w-11 items-center rounded-sm underline-offset-4 hover:underline focus-visible:outline-2"
-          >
-            {name}
-          </Link>
-        ) : (
-          name
-        )}
-        {archived && (
-          <span className="text-muted-foreground text-sm"> · Archived</span>
-        )}
-      </dt>
-      <dd className="grid grid-cols-2 gap-x-4">
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-muted-foreground text-sm">Current</span>
-          <Money amount={current} />
-        </span>
-        {/* The date column says something only when it differs from Current. */}
-        {dated !== null && current.value !== dated.value && (
-          <span
-            data-balance-total={walletId ? undefined : true}
-            className="flex min-w-0 flex-col gap-0.5"
-          >
-            <span className="text-muted-foreground text-sm">
-              {formatCalendarDate(asOf)}
-            </span>
-            <Money amount={dated} />
-          </span>
-        )}
-      </dd>
-    </div>
-  );
 }

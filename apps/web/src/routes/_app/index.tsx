@@ -7,6 +7,19 @@ import { HomeLoading } from "@/features/home/components/home-loading";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
 import { historySearchSchema } from "@/features/transactions/history-schema";
 
+function HomeRoute() {
+  const { initialToday } = Route.useLoaderData();
+  const { created } = Route.useSearch();
+  const { session } = Route.useRouteContext();
+  return (
+    <Home
+      accountControl={<AccountSheet email={session.user.email} />}
+      initialToday={initialToday}
+      savedId={created}
+    />
+  );
+}
+
 export const Route = createFileRoute("/_app/")({
   head: () => ({ meta: [{ title: "Home" }] }),
   validateSearch: historySearchSchema.pick({ created: true }),
@@ -26,16 +39,3 @@ export const Route = createFileRoute("/_app/")({
   errorComponent: HomeErrorBoundary,
   component: HomeRoute,
 });
-
-function HomeRoute() {
-  const { initialToday } = Route.useLoaderData();
-  const { created } = Route.useSearch();
-  const { session } = Route.useRouteContext();
-  return (
-    <Home
-      accountControl={<AccountSheet email={session.user.email} />}
-      initialToday={initialToday}
-      savedId={created}
-    />
-  );
-}

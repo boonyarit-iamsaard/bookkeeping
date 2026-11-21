@@ -31,14 +31,6 @@ const secondMigrationFolder = fileURLToPath(
   new URL("testing/fixtures/second-migration", import.meta.url),
 );
 
-// Recreates production's untracked baseline without following today's schema.
-async function createUntrackedBaseline(url: string): Promise<void> {
-  await runStatement(
-    url,
-    readFileSync(join(baselineMigrationsFolder, "0000_baseline.sql"), "utf8"),
-  );
-}
-
 async function runStatement(url: string, statement: string): Promise<void> {
   const pool = new Pool({ connectionString: url });
   try {
@@ -46,6 +38,14 @@ async function runStatement(url: string, statement: string): Promise<void> {
   } finally {
     await pool.end();
   }
+}
+
+// Recreates production's untracked baseline without following today's schema.
+async function createUntrackedBaseline(url: string): Promise<void> {
+  await runStatement(
+    url,
+    readFileSync(join(baselineMigrationsFolder, "0000_baseline.sql"), "utf8"),
+  );
 }
 
 interface MigrationRow {

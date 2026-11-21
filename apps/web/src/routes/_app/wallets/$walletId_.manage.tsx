@@ -6,14 +6,6 @@ import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
 import { WalletManagement } from "@/features/wallets/components/wallet-management";
 
-export const Route = createFileRoute("/_app/wallets/$walletId_/manage")({
-  head: () => ({ meta: [{ title: "Manage wallet" }] }),
-  loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(walletQueries.detail(params.walletId)),
-  staticData: { form: true },
-  component: ManageWalletPage,
-});
-
 function ManageWalletPage() {
   const { walletId } = Route.useParams();
   const { data: wallet } = useSuspenseQuery(walletQueries.detail(walletId));
@@ -34,3 +26,11 @@ function ManageWalletPage() {
     </Page>
   );
 }
+
+export const Route = createFileRoute("/_app/wallets/$walletId_/manage")({
+  head: () => ({ meta: [{ title: "Manage wallet" }] }),
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(walletQueries.detail(params.walletId)),
+  staticData: { form: true },
+  component: ManageWalletPage,
+});

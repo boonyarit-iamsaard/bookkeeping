@@ -20,25 +20,6 @@ import { buildHistoryView } from "@/features/transactions/history-view";
 import { SavedNotice } from "@/shared/components/saved-notice";
 import { buttonVariants } from "@/shared/components/ui/button";
 
-export const Route = createFileRoute("/_app/transactions/")({
-  head: () => ({ meta: [{ title: "Transactions" }] }),
-  validateSearch: historySearchSchema,
-  loaderDeps: ({ search }) => ({ search }),
-  loader: async ({ context, deps }) => {
-    const view = buildHistoryView(deps.search);
-    await Promise.all([
-      view.state === "valid" &&
-        context.queryClient.ensureQueryData(transactionQueries.list(view.list)),
-      context.queryClient.ensureQueryData(walletQueries.list()),
-      context.queryClient.ensureQueryData(categoryQueries.list()),
-      context.queryClient.ensureQueryData(tagQueries.list()),
-    ]);
-  },
-  pendingComponent: HistoryLoading,
-  errorComponent: HistoryErrorBoundary,
-  component: TransactionsPage,
-});
-
 function TransactionsPage() {
   const search = Route.useSearch();
   const view = buildHistoryView(search);
@@ -106,3 +87,22 @@ function TransactionsPage() {
     </Page>
   );
 }
+
+export const Route = createFileRoute("/_app/transactions/")({
+  head: () => ({ meta: [{ title: "Transactions" }] }),
+  validateSearch: historySearchSchema,
+  loaderDeps: ({ search }) => ({ search }),
+  loader: async ({ context, deps }) => {
+    const view = buildHistoryView(deps.search);
+    await Promise.all([
+      view.state === "valid" &&
+        context.queryClient.ensureQueryData(transactionQueries.list(view.list)),
+      context.queryClient.ensureQueryData(walletQueries.list()),
+      context.queryClient.ensureQueryData(categoryQueries.list()),
+      context.queryClient.ensureQueryData(tagQueries.list()),
+    ]);
+  },
+  pendingComponent: HistoryLoading,
+  errorComponent: HistoryErrorBoundary,
+  component: TransactionsPage,
+});

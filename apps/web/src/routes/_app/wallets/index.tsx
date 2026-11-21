@@ -11,16 +11,6 @@ interface WalletsSearch {
   created?: string;
 }
 
-export const Route = createFileRoute("/_app/wallets/")({
-  head: () => ({ meta: [{ title: "Wallets" }] }),
-  validateSearch: (search): WalletsSearch => ({
-    created: typeof search.created === "string" ? search.created : undefined,
-  }),
-  loader: ({ context }) =>
-    context.queryClient.ensureQueryData(walletQueries.list()),
-  component: WalletsPage,
-});
-
 function WalletsPage() {
   const { data } = useSuspenseQuery(walletQueries.list());
   const { created } = Route.useSearch();
@@ -49,3 +39,13 @@ function WalletsPage() {
     </Page>
   );
 }
+
+export const Route = createFileRoute("/_app/wallets/")({
+  head: () => ({ meta: [{ title: "Wallets" }] }),
+  validateSearch: (search): WalletsSearch => ({
+    created: typeof search.created === "string" ? search.created : undefined,
+  }),
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(walletQueries.list()),
+  component: WalletsPage,
+});

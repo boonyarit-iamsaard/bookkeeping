@@ -25,6 +25,43 @@ function byName(tags: readonly TagSummary[]): TagSummary[] {
   );
 }
 
+/** One row, and the sheet it opens; focus comes back here on close. */
+function TagRow({ tag, others, onDone }: Readonly<TagRowProps>) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Trigger
+        data-tag-row={tag.id}
+        className="group/row hover:bg-accent/70 focus-visible:ring-ring/45 active:bg-accent flex min-h-16 w-full items-center gap-3.5 px-4 py-3 text-left transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none"
+      >
+        <span className="bg-muted text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-lg">
+          <Hash aria-hidden="true" strokeWidth={2} className="size-5" />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="leading-snug font-semibold wrap-break-word">
+            {tag.name}
+          </span>
+          <span className="text-muted-foreground text-sm">
+            {tagUsageLabel(tag.transactionCount)}
+          </span>
+        </span>
+      </Dialog.Trigger>
+      <SheetPortal className="sm:h-auto sm:max-h-144">
+        <SheetHeader subtitle={tag.name}>Edit tag</SheetHeader>
+        <EditTagForm
+          tag={tag}
+          others={others}
+          onDone={(outcome) => {
+            setOpen(false);
+            onDone(outcome);
+          }}
+          onCancel={() => setOpen(false)}
+        />
+      </SheetPortal>
+    </Dialog.Root>
+  );
+}
+
 /**
  * Every tag on one list card, each row a button to its edit sheet. The
  * list is server truth; every change re-reads it and says what happened
@@ -93,41 +130,4 @@ interface TagRowProps {
   tag: TagSummary;
   others: readonly TagSummary[];
   onDone: (outcome: EditTagOutcome) => void;
-}
-
-/** One row, and the sheet it opens; focus comes back here on close. */
-function TagRow({ tag, others, onDone }: Readonly<TagRowProps>) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger
-        data-tag-row={tag.id}
-        className="group/row hover:bg-accent/70 focus-visible:ring-ring/45 active:bg-accent flex min-h-16 w-full items-center gap-3.5 px-4 py-3 text-left transition-colors duration-150 outline-none focus-visible:ring-[3px] focus-visible:ring-inset motion-reduce:transition-none"
-      >
-        <span className="bg-muted text-muted-foreground flex size-11 shrink-0 items-center justify-center rounded-lg">
-          <Hash aria-hidden="true" strokeWidth={2} className="size-5" />
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="leading-snug font-semibold wrap-break-word">
-            {tag.name}
-          </span>
-          <span className="text-muted-foreground text-sm">
-            {tagUsageLabel(tag.transactionCount)}
-          </span>
-        </span>
-      </Dialog.Trigger>
-      <SheetPortal className="sm:h-auto sm:max-h-144">
-        <SheetHeader subtitle={tag.name}>Edit tag</SheetHeader>
-        <EditTagForm
-          tag={tag}
-          others={others}
-          onDone={(outcome) => {
-            setOpen(false);
-            onDone(outcome);
-          }}
-          onCancel={() => setOpen(false)}
-        />
-      </SheetPortal>
-    </Dialog.Root>
-  );
 }

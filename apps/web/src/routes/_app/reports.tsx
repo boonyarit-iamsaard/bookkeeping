@@ -6,6 +6,12 @@ import { ReportsLoading } from "@/features/reports/components/reports-loading";
 import { preloadReports } from "@/features/reports/report-reads";
 import { reportSearchSchema } from "@/features/reports/report-schema";
 
+function ReportsRoute() {
+  const search = Route.useSearch();
+  const { initialToday } = Route.useLoaderData();
+  return <Reports search={search} initialToday={initialToday} />;
+}
+
 export const Route = createFileRoute("/_app/reports")({
   head: () => ({ meta: [{ title: "Reports" }] }),
   validateSearch: reportSearchSchema,
@@ -23,9 +29,3 @@ export const Route = createFileRoute("/_app/reports")({
   errorComponent: ReportErrorBoundary,
   component: ReportsRoute,
 });
-
-function ReportsRoute() {
-  const search = Route.useSearch();
-  const { initialToday } = Route.useLoaderData();
-  return <Reports search={search} initialToday={initialToday} />;
-}

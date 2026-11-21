@@ -67,6 +67,104 @@ interface LockedRow extends Omit<LockedTransaction, "tagIds"> {
   deletedAt: Date | null;
 }
 
+/** Step 2: a refund's expense with its current refunds; null unless it is one of the owner's current expenses. */
+async function lockRefundedExpense(
+  tx: Database,
+  { ownerId, command }: Readonly<OwnedCommand>,
+): Promise<ExpenseFact | null> {
+  if (
+    command.type !== "refund" ||
+    !command.refundOfTransactionId ||
+    !isUuid(command.refundOfTransactionId)
+  ) {
+    return null;
+  }
+  const [expense] = await tx
+    .select({
+      id: transactions.id,
+      type: transactions.type,
+      amount: transactions.amount,
+      transactionDate: transactions.transactionDate,
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.id, command.refundOfTransactionId),
+        ownedCurrent(ownerId),
+      ),
+    )
+    .for("update");
+  if (expense?.type !== "expense") {
+    return null;
+  }
+  return {
+    id: expense.id,
+    amount: expense.amount,
+    transactionDate: expense.transactionDate,
+    refunds: await currentRefundsOf(tx, expense.id),
+  };
+}
+
+/** Step 3: the owner's wallets among those the command names. */
+async function lockOwnedWallets(
+  tx: Database,
+  { ownerId, command }: Readonly<OwnedCommand>,
+): Promise<WalletFact[]> {
+  const ids = walletIdsOf(command).filter(isUuid);
+  if (ids.length === 0) {
+    return [];
+  }
+  return tx
+    .select({
+      id: wallets.id,
+      openingDate: wallets.openingDate,
+      archivedAt: wallets.archivedAt,
+    })
+    .from(wallets)
+    .where(and(inArray(wallets.id, ids), eq(wallets.userId, ownerId)))
+    .orderBy(asc(wallets.id))
+    .for("share");
+}
+
+/** Step 4: the owner's category the command names. */
+async function lockOwnedCategory(
+  tx: Database,
+  { ownerId, command }: Readonly<OwnedCommand>,
+): Promise<CategoryFact | null> {
+  if (!command.categoryId || !isUuid(command.categoryId)) {
+    return null;
+  }
+  const [category] = await tx
+    .select({ id: categories.id, kind: categories.kind })
+    .from(categories)
+    .where(
+      and(
+        eq(categories.id, command.categoryId),
+        eq(categories.userId, ownerId),
+      ),
+    )
+    .for("share");
+  return category ?? null;
+}
+
+/** Steps 2 to 5 of the global order, then the pure judgement. */
+async function judgeAgainstLockedFacts(
+  tx: Database,
+  { ownerId, command, current }: Readonly<JudgementInput>,
+): Promise<Result<TransactionCommand, TransactionRejection>> {
+  const expense = await lockRefundedExpense(tx, { ownerId, command });
+  const owned = await lockOwnedWallets(tx, { ownerId, command });
+  const category = await lockOwnedCategory(tx, { ownerId, command });
+  return acceptTransaction(command, {
+    today: todayIn({ timeZone: APP_TIME_ZONE }),
+    wallets: owned,
+    tagIds: await lockOwnedTagIds(tx, { ownerId, tagIds: command.tagIds }),
+    category,
+    expense,
+    current,
+  });
+}
+
 /** Judges a new transaction against the owner's records, locked in the global order. */
 export function judgeNewTransaction(
   tx: Database,
@@ -97,6 +195,43 @@ export interface JudgedCorrection {
   current: LockedTransaction;
   /** The accepted correction, for the after snapshot. */
   command: TransactionCommand;
+}
+
+/**
+ * Step 1. The lock is owner-only, not limited to current records, so a
+ * repeated deletion finds its deleted row and succeeds again.
+ */
+async function lockRecord(
+  tx: Database,
+  { ownerId, id }: Readonly<RecordRef>,
+): Promise<LockedRow | undefined> {
+  if (!isUuid(id)) {
+    return undefined;
+  }
+  const [row] = await tx
+    .select({
+      id: transactions.id,
+      type: transactions.type,
+      walletId: transactions.walletId,
+      categoryId: transactions.categoryId,
+      destinationWalletId: transactions.destinationWalletId,
+      refundOfTransactionId: transactions.refundOfTransactionId,
+      amount: transactions.amount,
+      transactionDate: transactions.transactionDate,
+      note: transactions.note,
+      deletedAt: transactions.deletedAt,
+    })
+    .from(transactions)
+    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
+    .for("update");
+  return row;
+}
+
+async function withTags(
+  tx: Database,
+  row: Readonly<LockedRow>,
+): Promise<LockedTransaction> {
+  return { ...row, tagIds: await readTagIdsOf(tx, row.id) };
 }
 
 /**
@@ -178,139 +313,4 @@ export async function lockForDeletion(
 interface JudgementInput extends OwnedCommand {
   /** The record under correction, or null for a new one. */
   current: CurrentTransactionFact | null;
-}
-
-/** Steps 2 to 5 of the global order, then the pure judgement. */
-async function judgeAgainstLockedFacts(
-  tx: Database,
-  { ownerId, command, current }: Readonly<JudgementInput>,
-): Promise<Result<TransactionCommand, TransactionRejection>> {
-  const expense = await lockRefundedExpense(tx, { ownerId, command });
-  const owned = await lockOwnedWallets(tx, { ownerId, command });
-  const category = await lockOwnedCategory(tx, { ownerId, command });
-  return acceptTransaction(command, {
-    today: todayIn({ timeZone: APP_TIME_ZONE }),
-    wallets: owned,
-    tagIds: await lockOwnedTagIds(tx, { ownerId, tagIds: command.tagIds }),
-    category,
-    expense,
-    current,
-  });
-}
-
-/**
- * Step 1. The lock is owner-only, not limited to current records, so a
- * repeated deletion finds its deleted row and succeeds again.
- */
-async function lockRecord(
-  tx: Database,
-  { ownerId, id }: Readonly<RecordRef>,
-): Promise<LockedRow | undefined> {
-  if (!isUuid(id)) {
-    return undefined;
-  }
-  const [row] = await tx
-    .select({
-      id: transactions.id,
-      type: transactions.type,
-      walletId: transactions.walletId,
-      categoryId: transactions.categoryId,
-      destinationWalletId: transactions.destinationWalletId,
-      refundOfTransactionId: transactions.refundOfTransactionId,
-      amount: transactions.amount,
-      transactionDate: transactions.transactionDate,
-      note: transactions.note,
-      deletedAt: transactions.deletedAt,
-    })
-    .from(transactions)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, ownerId)))
-    .for("update");
-  return row;
-}
-
-async function withTags(
-  tx: Database,
-  row: Readonly<LockedRow>,
-): Promise<LockedTransaction> {
-  return { ...row, tagIds: await readTagIdsOf(tx, row.id) };
-}
-
-/** Step 2: a refund's expense with its current refunds; null unless it is one of the owner's current expenses. */
-async function lockRefundedExpense(
-  tx: Database,
-  { ownerId, command }: Readonly<OwnedCommand>,
-): Promise<ExpenseFact | null> {
-  if (
-    command.type !== "refund" ||
-    !command.refundOfTransactionId ||
-    !isUuid(command.refundOfTransactionId)
-  ) {
-    return null;
-  }
-  const [expense] = await tx
-    .select({
-      id: transactions.id,
-      type: transactions.type,
-      amount: transactions.amount,
-      transactionDate: transactions.transactionDate,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.id, command.refundOfTransactionId),
-        ownedCurrent(ownerId),
-      ),
-    )
-    .for("update");
-  if (expense?.type !== "expense") {
-    return null;
-  }
-  return {
-    id: expense.id,
-    amount: expense.amount,
-    transactionDate: expense.transactionDate,
-    refunds: await currentRefundsOf(tx, expense.id),
-  };
-}
-
-/** Step 3: the owner's wallets among those the command names. */
-async function lockOwnedWallets(
-  tx: Database,
-  { ownerId, command }: Readonly<OwnedCommand>,
-): Promise<WalletFact[]> {
-  const ids = walletIdsOf(command).filter(isUuid);
-  if (ids.length === 0) {
-    return [];
-  }
-  return tx
-    .select({
-      id: wallets.id,
-      openingDate: wallets.openingDate,
-      archivedAt: wallets.archivedAt,
-    })
-    .from(wallets)
-    .where(and(inArray(wallets.id, ids), eq(wallets.userId, ownerId)))
-    .orderBy(asc(wallets.id))
-    .for("share");
-}
-
-/** Step 4: the owner's category the command names. */
-async function lockOwnedCategory(
-  tx: Database,
-  { ownerId, command }: Readonly<OwnedCommand>,
-): Promise<CategoryFact | null> {
-  if (!command.categoryId || !isUuid(command.categoryId)) {
-    return null;
-  }
-  const [category] = await tx
-    .select({ id: categories.id, kind: categories.kind })
-    .from(categories)
-    .where(
-      and(
-        eq(categories.id, command.categoryId),
-        eq(categories.userId, ownerId),
-      ),
-    )
-    .for("share");
-  return category ?? null;
 }

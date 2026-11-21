@@ -34,6 +34,57 @@ export function iconLabel(icon: IconDefinition): string {
 }
 
 /**
+ * A native radio behind a 44px Mist tile. Arrow keys walk the group; the
+ * checked one becomes the category's own tile, in its hue, so it previews
+ * the row, and takes an Iris outline and a check badge, so selection is
+ * never the hue alone.
+ */
+function IconChoice({
+  icon,
+  groupName,
+  color,
+  checked,
+  disabled,
+  onPick,
+}: Readonly<IconChoiceProps>) {
+  const Glyph = icon.glyph;
+  const label = iconLabel(icon);
+  return (
+    <label data-hue={color} className="relative block size-11" title={label}>
+      <input
+        type="radio"
+        name={groupName}
+        value={icon.id}
+        checked={checked}
+        disabled={disabled}
+        onChange={() => onPick(icon.id)}
+        aria-label={label}
+        className="peer absolute inset-0 size-full cursor-pointer appearance-none rounded-lg disabled:cursor-not-allowed"
+      />
+      <span
+        aria-hidden="true"
+        className={cn(
+          "peer-focus-visible:ring-ring/45 pointer-events-none flex size-11 items-center justify-center rounded-lg transition-[background-color,color] duration-150 ease-out peer-focus-visible:ring-[3px] peer-disabled:opacity-50 motion-reduce:transition-none",
+          checked
+            ? "hue-tile outline-primary outline-2 outline-offset-2"
+            : "bg-muted text-foreground peer-hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]",
+        )}
+      >
+        <Glyph strokeWidth={1.75} className="size-5" />
+      </span>
+      {checked && (
+        <span
+          aria-hidden="true"
+          className="bg-primary text-primary-foreground ring-card pointer-events-none absolute -top-1.5 -right-1.5 flex size-4.5 items-center justify-center rounded-full ring-2"
+        >
+          <Check strokeWidth={3} className="size-3" />
+        </span>
+      )}
+    </label>
+  );
+}
+
+/**
  * Up to six local recommendations for the name, the current choice always
  * visible, and every catalog group behind a disclosure. The owner keeps the
  * value on the top recommendation until the user picks one here; when
@@ -148,55 +199,4 @@ interface IconChoiceProps {
   checked: boolean;
   disabled?: boolean;
   onPick: (iconId: string) => void;
-}
-
-/**
- * A native radio behind a 44px Mist tile. Arrow keys walk the group; the
- * checked one becomes the category's own tile, in its hue, so it previews
- * the row, and takes an Iris outline and a check badge, so selection is
- * never the hue alone.
- */
-function IconChoice({
-  icon,
-  groupName,
-  color,
-  checked,
-  disabled,
-  onPick,
-}: Readonly<IconChoiceProps>) {
-  const Glyph = icon.glyph;
-  const label = iconLabel(icon);
-  return (
-    <label data-hue={color} className="relative block size-11" title={label}>
-      <input
-        type="radio"
-        name={groupName}
-        value={icon.id}
-        checked={checked}
-        disabled={disabled}
-        onChange={() => onPick(icon.id)}
-        aria-label={label}
-        className="peer absolute inset-0 size-full cursor-pointer appearance-none rounded-lg disabled:cursor-not-allowed"
-      />
-      <span
-        aria-hidden="true"
-        className={cn(
-          "peer-focus-visible:ring-ring/45 pointer-events-none flex size-11 items-center justify-center rounded-lg transition-[background-color,color] duration-150 ease-out peer-focus-visible:ring-[3px] peer-disabled:opacity-50 motion-reduce:transition-none",
-          checked
-            ? "hue-tile outline-primary outline-2 outline-offset-2"
-            : "bg-muted text-foreground peer-hover:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_6%)]",
-        )}
-      >
-        <Glyph strokeWidth={1.75} className="size-5" />
-      </span>
-      {checked && (
-        <span
-          aria-hidden="true"
-          className="bg-primary text-primary-foreground ring-card pointer-events-none absolute -top-1.5 -right-1.5 flex size-4.5 items-center justify-center rounded-full ring-2"
-        >
-          <Check strokeWidth={3} className="size-3" />
-        </span>
-      )}
-    </label>
-  );
 }

@@ -21,31 +21,6 @@ function walletHistoryQuery(walletId: string, cursor: string | undefined) {
   return transactionQueries.list({ walletId, cursor });
 }
 
-export const Route = createFileRoute("/_app/wallets/$walletId")({
-  validateSearch: historySearchSchema.pick({ cursor: true, created: true }),
-  loaderDeps: ({ search }) => ({ cursor: search.cursor }),
-  loader: async ({ context, params, deps }) => {
-    const [wallet] = await Promise.all([
-      context.queryClient.ensureQueryData(
-        walletQueries.detail(params.walletId),
-      ),
-      context.queryClient.ensureQueryData(
-        walletHistoryQuery(params.walletId, deps.cursor),
-      ),
-      // Rows take their category color from this read.
-      context.queryClient.ensureQueryData(categoryQueries.list()),
-    ]);
-    return { walletName: wallet.name };
-  },
-  // After the loader, so its data is typed here.
-  head: ({ loaderData }) => ({
-    meta: [{ title: loaderData?.walletName ?? "Wallet" }],
-  }),
-  pendingComponent: WalletPageLoading,
-  errorComponent: WalletPageErrorBoundary,
-  component: WalletPage,
-});
-
 function WalletPage() {
   const { walletId } = Route.useParams();
   const { cursor, created } = Route.useSearch();
@@ -115,3 +90,28 @@ function WalletPage() {
     </Page>
   );
 }
+
+export const Route = createFileRoute("/_app/wallets/$walletId")({
+  validateSearch: historySearchSchema.pick({ cursor: true, created: true }),
+  loaderDeps: ({ search }) => ({ cursor: search.cursor }),
+  loader: async ({ context, params, deps }) => {
+    const [wallet] = await Promise.all([
+      context.queryClient.ensureQueryData(
+        walletQueries.detail(params.walletId),
+      ),
+      context.queryClient.ensureQueryData(
+        walletHistoryQuery(params.walletId, deps.cursor),
+      ),
+      // Rows take their category color from this read.
+      context.queryClient.ensureQueryData(categoryQueries.list()),
+    ]);
+    return { walletName: wallet.name };
+  },
+  // After the loader, so its data is typed here.
+  head: ({ loaderData }) => ({
+    meta: [{ title: loaderData?.walletName ?? "Wallet" }],
+  }),
+  pendingComponent: WalletPageLoading,
+  errorComponent: WalletPageErrorBoundary,
+  component: WalletPage,
+});
