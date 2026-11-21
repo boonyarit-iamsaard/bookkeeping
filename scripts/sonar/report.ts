@@ -2,8 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { setTimeout } from "node:timers/promises";
 
 import { z } from "zod";
-
 import type { SonarServer } from "./server";
+import { LOCAL_PROJECT_KEY } from "./server";
 
 const keyedSchema = z.looseObject({ key: z.string() });
 const issueSchema = z.looseObject({
@@ -332,8 +332,6 @@ export async function writeReport({
     `Exported ${report.issues.length} issues and ${report.hotspots.length} security hotspots to .sonar-reports/issues.json and .sonar-reports/issues.md.`,
   );
 }
-
-const LOCAL_PROJECT_KEY = "bookkeeping";
 
 export interface ExportOptions {
   server: SonarServer;

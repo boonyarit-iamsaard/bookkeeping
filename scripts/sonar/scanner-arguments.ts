@@ -1,3 +1,5 @@
+import { LOCAL_PROJECT_KEY } from "./server";
+
 interface ScannerRun {
   serverUrl: string;
   repository: string;
@@ -14,8 +16,6 @@ export function sonarScannerArguments({
   return [
     `-Dsonar.host.url=${serverUrl}`,
     `-Dsonar.projectBaseDir=${repository}`,
-    // The local server names its project `bookkeeping`, not the Cloud key in
-    // sonar-project.properties.
-    "-Dsonar.projectKey=bookkeeping",
+    `-Dsonar.projectKey=${LOCAL_PROJECT_KEY}`,
   ];
 }

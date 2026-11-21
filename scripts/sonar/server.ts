@@ -3,7 +3,8 @@ import { setTimeout } from "node:timers/promises";
 
 import { z } from "zod";
 
-const PROJECT_KEY = "bookkeeping";
+// The local server's project, not the Cloud key in sonar-project.properties.
+export const LOCAL_PROJECT_KEY = "bookkeeping";
 const DEFAULT_LOGIN = "admin";
 const DEFAULT_PASSWORD = "admin";
 
@@ -99,7 +100,7 @@ export async function provisionServer(url: string): Promise<ProvisionedServer> {
   await server.request("projects/create", {
     method: "POST",
     body: new URLSearchParams({
-      project: PROJECT_KEY,
+      project: LOCAL_PROJECT_KEY,
       name: "Bookkeeping",
       mainBranch: "main",
       visibility: "private",
@@ -112,7 +113,7 @@ export async function provisionServer(url: string): Promise<ProvisionedServer> {
       server.request("qualityprofiles/add_project", {
         method: "POST",
         body: new URLSearchParams({
-          project: PROJECT_KEY,
+          project: LOCAL_PROJECT_KEY,
           language,
           qualityProfile: "Sonar way comprehensive",
         }),
@@ -126,7 +127,7 @@ export async function provisionServer(url: string): Promise<ProvisionedServer> {
       body: new URLSearchParams({
         name: `bookkeeping-scan-${randomUUID()}`,
         type: "PROJECT_ANALYSIS_TOKEN",
-        projectKey: PROJECT_KEY,
+        projectKey: LOCAL_PROJECT_KEY,
       }),
     }),
   );

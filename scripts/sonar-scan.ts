@@ -25,8 +25,7 @@ function parseScanFlags(): ScanFlags {
       // Leave the server running to browse the dashboard; the next scan or
       // `pnpm sonar:clean` removes it.
       keep: { type: "boolean", default: false },
-      // Also remove the SonarQube and scanner images, which the next scan
-      // pulls again.
+      // Also remove the SonarQube image, which the next scan pulls again.
       "purge-images": { type: "boolean", default: false },
     },
   });
