@@ -131,9 +131,19 @@ delete passes its record's own reads as `retired`, navigates away, and then
 calls `forgetReads`. A session change (sign in, sign up, sign out, or a 401)
 clears every cached read through `resetSessionCache`; provisioning a new
 user's default categories needs no refresh because it runs before that
-clearing. Nothing else invalidates, removes, or overwrites cached reads. A
-screen may show the previous data briefly on its next visit while it re-reads;
-that is accepted.
+clearing. Nothing else invalidates, removes, or overwrites cached reads; the
+GritQL plugin `biome-plugins/no-cached-read-writes.grit` reports calls to
+`invalidateQueries`, `removeQueries`, `resetQueries`, `setQueryData` and
+`setQueriesData` in `apps/web/src`, outside tests and `refresh-after-write.ts`.
+`biome-plugins/no-cached-read-clear.grit` reports any `clear()` outside tests
+and `core/auth/session.ts`, where `resetSessionCache` is the one allowed
+caller; a `clear()` on something else, such as a `Map`, takes a
+`biome-ignore lint/plugin` comment with its reason. The plugins have two
+known gaps: they do not report a destructured call (`const { setQueryData } =
+queryClient`), which throws at runtime because the method loses `this`, and
+the `clear()` exemption covers all of `session.ts`, not only
+`resetSessionCache`. A screen may show the previous data briefly on its next
+visit while it re-reads; that is accepted.
 
 ## Test ownership
 

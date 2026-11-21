@@ -228,6 +228,24 @@
       }
     },
     {
+      "includes": [
+        "apps/web/src/**",
+        "!apps/web/src/**/*.test.ts",
+        "!apps/web/src/**/*.test.tsx",
+        "!apps/web/src/core/query/refresh-after-write.ts"
+      ],
+      "plugins": ["./biome-plugins/no-cached-read-writes.grit"]
+    },
+    {
+      "includes": [
+        "apps/web/src/**",
+        "!apps/web/src/**/*.test.ts",
+        "!apps/web/src/**/*.test.tsx",
+        "!apps/web/src/core/auth/session.ts"
+      ],
+      "plugins": ["./biome-plugins/no-cached-read-clear.grit"]
+    },
+    {
       "includes": ["apps/web/src/features/**"],
       "plugins": ["./biome-plugins/no-feature-timers.grit"],
       "linter": {
