@@ -1,0 +1,11 @@
+language js
+
+`$client.$method($args)` where {
+  $method <: or {
+    `invalidateQueries`,
+    `removeQueries`,
+    `resetQueries`,
+    `setQueryData`
+  },
+  register_diagnostic(span=$method, severity="error", message="Only refreshAfterWrite and forgetReads in core/query/refresh-after-write.ts change cached reads. Call refreshAfterWrite after a write, or forgetReads for a deleted record's retired reads.")
+}

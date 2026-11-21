@@ -131,9 +131,12 @@ delete passes its record's own reads as `retired`, navigates away, and then
 calls `forgetReads`. A session change (sign in, sign up, sign out, or a 401)
 clears every cached read through `resetSessionCache`; provisioning a new
 user's default categories needs no refresh because it runs before that
-clearing. Nothing else invalidates, removes, or overwrites cached reads. A
-screen may show the previous data briefly on its next visit while it re-reads;
-that is accepted.
+clearing. Nothing else invalidates, removes, or overwrites cached reads; the
+GritQL plugin `biome-plugins/no-cached-read-writes.grit` reports calls to
+`invalidateQueries`, `removeQueries`, `resetQueries` and `setQueryData` in
+`apps/web/src`, outside tests and `refresh-after-write.ts`. A screen may show
+the previous data briefly on its next visit while it re-reads; that is
+accepted.
 
 ## Test ownership
 
