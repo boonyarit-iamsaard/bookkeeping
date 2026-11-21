@@ -138,8 +138,12 @@ GritQL plugin `biome-plugins/no-cached-read-writes.grit` reports calls to
 `biome-plugins/no-cached-read-clear.grit` reports any `clear()` outside tests
 and `core/auth/session.ts`, where `resetSessionCache` is the one allowed
 caller; a `clear()` on something else, such as a `Map`, takes a
-`biome-ignore lint/plugin` comment with its reason. A screen may show the
-previous data briefly on its next visit while it re-reads; that is accepted.
+`biome-ignore lint/plugin` comment with its reason. The plugins have two
+known gaps: they do not report a destructured call (`const { setQueryData } =
+queryClient`), which throws at runtime because the method loses `this`, and
+the `clear()` exemption covers all of `session.ts`, not only
+`resetSessionCache`. A screen may show the previous data briefly on its next
+visit while it re-reads; that is accepted.
 
 ## Test ownership
 
