@@ -6,7 +6,7 @@ import type {
   CategorySummary,
 } from "@bookkeeping/domain/categories";
 import { LockKeyhole, Plus } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { TitleBar } from "@/core/shell/title-bar";
 import type { CategoryColor } from "@/features/categories/category-color";
 import { createCategoryColors } from "@/features/categories/category-color";
@@ -54,13 +54,12 @@ export function CategoryManagement({
 }: Readonly<CategoryManagementProps>) {
   const [kind, setKind] = useState<CategoryKind>("expense");
   const [creating, setCreating] = useState(false);
-  const [notice, setNotice] = useState("");
-  const noticeRef = useRef<HTMLOutputElement>(null);
+  const [notice, setNotice] = useState({ message: "", takesFocus: false });
   const { groups } = searchCategories({ categories, kind, query: "" });
   const colorOf = createCategoryColors(categories);
 
   function announce(message: string) {
-    setNotice(message);
+    setNotice({ message, takesFocus: false });
   }
 
   function finishEdit({ category, removal, outcome }: Readonly<EditResult>) {
@@ -73,13 +72,14 @@ export function CategoryManagement({
       return;
     }
     const destination = removal.parentName ?? "Uncategorized";
-    announce(
-      outcome.reassigned === 0
-        ? `${category.name} removed.`
-        : `${category.name} removed. ${capitalize(entriesLabel(outcome.reassigned))} moved to ${destination}.`,
-    );
-    // The row that had focus is gone; the announcement takes it.
-    requestAnimationFrame(() => noticeRef.current?.focus());
+    setNotice({
+      message:
+        outcome.reassigned === 0
+          ? `${category.name} removed.`
+          : `${category.name} removed. ${capitalize(entriesLabel(outcome.reassigned))} moved to ${destination}.`,
+      // The row that had focus is gone; the announcement takes it.
+      takesFocus: true,
+    });
   }
 
   return (
@@ -116,11 +116,10 @@ export function CategoryManagement({
       />
 
       <SavedNotice
-        ref={noticeRef}
-        tabIndex={-1}
-        className={cn(!notice && "sr-only")}
+        takeFocusOn={notice.takesFocus ? notice : undefined}
+        className={cn(!notice.message && "sr-only")}
       >
-        {notice}
+        {notice.message}
       </SavedNotice>
 
       <div>
