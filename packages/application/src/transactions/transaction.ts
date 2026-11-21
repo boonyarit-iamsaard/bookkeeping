@@ -67,22 +67,6 @@ export interface CreateTransactionInput {
 /** The refused inputs of a transaction command, in the shared envelope. */
 export type TransactionRejected = Rejected<TransactionRejection>;
 
-/**
- * Creates one transaction and its durable result snapshot per idempotency key.
- * Every rule is judged inside the same transaction as the financial insert,
- * with the records it names locked; a refused command never consumes the key.
- */
-export const createTransaction: IdempotentCreator<
-  CreateTransactionInput,
-  TransactionDetail,
-  TransactionRejected
-> = defineIdempotentCreation({
-  operation: "transactions.create",
-  prepare: (input: Readonly<CreateTransactionInput>) =>
-    ok(toTransactionCommand(input)),
-  insert: insertTransaction,
-});
-
 function toTransactionCommand(
   input: Readonly<
     Pick<
@@ -148,11 +132,37 @@ async function insertTransaction(
   return ok(await toOneDetail(tx, detailRow));
 }
 
+/**
+ * Creates one transaction and its durable result snapshot per idempotency key.
+ * Every rule is judged inside the same transaction as the financial insert,
+ * with the records it names locked; a refused command never consumes the key.
+ */
+export const createTransaction: IdempotentCreator<
+  CreateTransactionInput,
+  TransactionDetail,
+  TransactionRejected
+> = defineIdempotentCreation({
+  operation: "transactions.create",
+  prepare: (input: Readonly<CreateTransactionInput>) =>
+    ok(toTransactionCommand(input)),
+  insert: insertTransaction,
+});
+
 export interface UpdateTransactionInput
   extends TransactionRef,
     TransactionCorrection {}
 
 export type UpdateTransactionError = NotFound | TransactionRejected;
+
+async function recordChange(tx: Database, input: Readonly<RecordChangeInput>) {
+  await tx.insert(transactionChanges).values({
+    userId: input.ownerId,
+    transactionId: input.transactionId,
+    action: input.action,
+    before: input.before,
+    after: input.after,
+  });
+}
 
 /**
  * Corrects a transaction in place. The type and its refund link are fixed;
@@ -262,14 +272,4 @@ interface RecordChangeInput {
   action: TransactionChangeAction;
   before: TransactionSnapshot;
   after: TransactionSnapshot | null;
-}
-
-async function recordChange(tx: Database, input: Readonly<RecordChangeInput>) {
-  await tx.insert(transactionChanges).values({
-    userId: input.ownerId,
-    transactionId: input.transactionId,
-    action: input.action,
-    before: input.before,
-    after: input.after,
-  });
 }

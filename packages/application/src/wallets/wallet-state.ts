@@ -22,6 +22,29 @@ export interface ChangeWalletStateInput extends WalletRef {
 
 export type ChangeWalletStateError = NotFound;
 
+function* requestedStateChanges(
+  current: Readonly<Pick<WalletSummary, "archivedAt" | "savings">>,
+  input: Readonly<ChangeWalletStateInput>,
+) {
+  if (
+    input.archived !== undefined &&
+    Boolean(current.archivedAt) !== input.archived
+  ) {
+    yield {
+      set: { archivedAt: input.archived ? new Date() : null },
+      action: input.archived ? ("archive" as const) : ("unarchive" as const),
+    };
+  }
+  if (input.savings !== undefined && current.savings !== input.savings) {
+    yield {
+      set: { savings: input.savings },
+      action: input.savings
+        ? ("mark-savings" as const)
+        : ("unmark-savings" as const),
+    };
+  }
+}
+
 /**
  * Applies partial wallet state under one exclusive lock and transaction.
  * Each changed field records its own before/after history; unchanged fields
@@ -53,27 +76,4 @@ export async function changeWalletState(
     }
     return ok(await readWalletSummaryAfterChange(tx, input));
   });
-}
-
-function* requestedStateChanges(
-  current: Readonly<Pick<WalletSummary, "archivedAt" | "savings">>,
-  input: Readonly<ChangeWalletStateInput>,
-) {
-  if (
-    input.archived !== undefined &&
-    Boolean(current.archivedAt) !== input.archived
-  ) {
-    yield {
-      set: { archivedAt: input.archived ? new Date() : null },
-      action: input.archived ? ("archive" as const) : ("unarchive" as const),
-    };
-  }
-  if (input.savings !== undefined && current.savings !== input.savings) {
-    yield {
-      set: { savings: input.savings },
-      action: input.savings
-        ? ("mark-savings" as const)
-        : ("unmark-savings" as const),
-    };
-  }
 }

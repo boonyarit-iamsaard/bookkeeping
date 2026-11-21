@@ -12,17 +12,6 @@ const SUBSTRING_SCORE = 4;
 const MIN_PREFIX_LENGTH = 3;
 const MIN_SUBSTRING_LENGTH = 4;
 
-/** Lowercase ASCII words, diacritics stripped, punctuation dropped. */
-function normalize(text: string): string[] {
-  return text
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter((token) => token.length > 0)
-    .map(stem);
-}
-
 /** A light plural fold so "groceries" and "grocery" compare equal. */
 function stem(token: string): string {
   if (token.length > 4 && token.endsWith("ies")) {
@@ -38,6 +27,17 @@ function stem(token: string): string {
     return token.slice(0, -1);
   }
   return token;
+}
+
+/** Lowercase ASCII words, diacritics stripped, punctuation dropped. */
+function normalize(text: string): string[] {
+  return text
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((token) => token.length > 0)
+    .map(stem);
 }
 
 interface IndexedIcon {

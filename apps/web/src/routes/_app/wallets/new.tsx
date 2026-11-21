@@ -4,12 +4,6 @@ import { TitleBar } from "@/core/shell/title-bar";
 import { CreateWalletForm } from "@/features/wallets/components/create-wallet-form";
 import { buttonVariants } from "@/shared/components/ui/button";
 
-export const Route = createFileRoute("/_app/wallets/new")({
-  head: () => ({ meta: [{ title: "New wallet" }] }),
-  staticData: { form: true },
-  component: NewWalletPage,
-});
-
 function NewWalletPage() {
   return (
     <Page layout="entry">
@@ -32,3 +26,9 @@ function NewWalletPage() {
     </Page>
   );
 }
+
+export const Route = createFileRoute("/_app/wallets/new")({
+  head: () => ({ meta: [{ title: "New wallet" }] }),
+  staticData: { form: true },
+  component: NewWalletPage,
+});

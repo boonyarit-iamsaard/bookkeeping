@@ -1,6 +1,10 @@
 import { apiClient } from "@/core/api/client";
 import { readApiResponse } from "@/core/api/problem";
 
+function reportProvisioningFailure(error: unknown) {
+  console.error("Fresh-user provisioning retry failed", { error });
+}
+
 /**
  * Completes an interrupted provisioning right after sign-in or sign-up. The
  * account is usable either way, so a failure here is not surfaced and does
@@ -17,8 +21,4 @@ export async function completeProvisioning(): Promise<void> {
   } catch (error: unknown) {
     reportProvisioningFailure(error);
   }
-}
-
-function reportProvisioningFailure(error: unknown) {
-  console.error("Fresh-user provisioning retry failed", { error });
 }

@@ -47,140 +47,6 @@ function toggled(value: readonly string[], tagId: string): string[] {
     : [...value];
 }
 
-/**
- * The Tags row: a field that reads the chosen tags back, the most recent
- * tags as one-tap chips beneath it, and a sheet to search, choose several,
- * or create one from the typed text. Choosing a tag fills in nothing else.
- */
-export function TagPicker({
-  id,
-  value,
-  onChange,
-  invalid,
-  disabled,
-  "aria-labelledby": labelledBy,
-  "aria-describedby": describedBy,
-}: Readonly<TagPickerProps>) {
-  const tags = useTagCatalog();
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const valueId = `${id}-value`;
-  const chosen = value.flatMap((tagId) => {
-    const tag = tags.find((candidate) => candidate.id === tagId);
-    return tag ? [tag] : [];
-  });
-  const quick = tags.slice(0, QUICK_TAG_COUNT);
-  const full = value.length >= MAX_TAGS_PER_TRANSACTION;
-
-  function openSheet(next: boolean) {
-    if (next) {
-      setQuery("");
-    }
-    setOpen(next);
-  }
-
-  return (
-    <div className="flex flex-col gap-2.5">
-      <Dialog.Root open={open} onOpenChange={openSheet}>
-        <Dialog.Trigger
-          id={id}
-          disabled={disabled}
-          aria-labelledby={`${labelledBy} ${valueId}`}
-          aria-describedby={describedBy}
-          aria-invalid={invalid}
-          className={cn(
-            fieldControlClass,
-            "flex h-auto min-h-11 items-center gap-3 py-1.5 pr-3.5 pl-1.5 text-left disabled:cursor-not-allowed sm:h-auto sm:min-h-10",
-          )}
-        >
-          <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
-            <Hash aria-hidden="true" strokeWidth={2} className="size-4" />
-          </span>
-          <span id={valueId} className="min-w-0 flex-1">
-            {chosen.length === 0 ? (
-              <span className="text-muted-foreground">Add tags</span>
-            ) : (
-              <span className="flex flex-wrap gap-1.5 py-0.5">
-                <span className="sr-only">
-                  {chosen.length === 1 ? "1 tag:" : `${chosen.length} tags:`}
-                </span>
-                {chosen.map((tag) => (
-                  <TagChip
-                    key={tag.id}
-                    name={tag.name}
-                    className="bg-secondary text-secondary-foreground pl-2.5 [&_svg]:hidden"
-                  />
-                ))}
-              </span>
-            )}
-          </span>
-          <ChevronDown
-            aria-hidden="true"
-            strokeWidth={1.75}
-            className="text-muted-foreground size-4 shrink-0"
-          />
-        </Dialog.Trigger>
-
-        <SheetPortal>
-          <TagSheet
-            tags={tags}
-            value={value}
-            query={query}
-            onQueryChange={setQuery}
-            onChange={onChange}
-            onDone={() => setOpen(false)}
-          />
-        </SheetPortal>
-      </Dialog.Root>
-
-      {quick.length > 0 && (
-        <ul aria-label="Recent tags" className="flex flex-wrap gap-2">
-          {quick.map((tag) => {
-            const selected = value.includes(tag.id);
-            return (
-              <li key={tag.id} className="flex max-w-full">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  aria-pressed={selected}
-                  disabled={disabled || (full && !selected)}
-                  onClick={() => onChange(toggled(value, tag.id))}
-                  className={cn(
-                    "h-auto min-h-11 max-w-full px-3.5 py-2 wrap-break-word whitespace-normal",
-                    selected &&
-                      "bg-secondary text-secondary-foreground hover:bg-secondary border-transparent",
-                  )}
-                >
-                  {selected ? (
-                    <Check aria-hidden="true" strokeWidth={2.25} />
-                  ) : (
-                    <Hash
-                      aria-hidden="true"
-                      strokeWidth={2}
-                      className="text-muted-foreground"
-                    />
-                  )}
-                  {tag.name}
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-interface TagSheetProps {
-  tags: readonly TagSummary[];
-  value: readonly string[];
-  query: string;
-  onQueryChange: (query: string) => void;
-  onChange: (tagIds: string[]) => void;
-  onDone: () => void;
-}
-
 /** Search, toggle several, or create; every change applies at once. */
 function TagSheet({
   tags,
@@ -353,4 +219,138 @@ function TagSheet({
       </div>
     </>
   );
+}
+
+/**
+ * The Tags row: a field that reads the chosen tags back, the most recent
+ * tags as one-tap chips beneath it, and a sheet to search, choose several,
+ * or create one from the typed text. Choosing a tag fills in nothing else.
+ */
+export function TagPicker({
+  id,
+  value,
+  onChange,
+  invalid,
+  disabled,
+  "aria-labelledby": labelledBy,
+  "aria-describedby": describedBy,
+}: Readonly<TagPickerProps>) {
+  const tags = useTagCatalog();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const valueId = `${id}-value`;
+  const chosen = value.flatMap((tagId) => {
+    const tag = tags.find((candidate) => candidate.id === tagId);
+    return tag ? [tag] : [];
+  });
+  const quick = tags.slice(0, QUICK_TAG_COUNT);
+  const full = value.length >= MAX_TAGS_PER_TRANSACTION;
+
+  function openSheet(next: boolean) {
+    if (next) {
+      setQuery("");
+    }
+    setOpen(next);
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <Dialog.Root open={open} onOpenChange={openSheet}>
+        <Dialog.Trigger
+          id={id}
+          disabled={disabled}
+          aria-labelledby={`${labelledBy} ${valueId}`}
+          aria-describedby={describedBy}
+          aria-invalid={invalid}
+          className={cn(
+            fieldControlClass,
+            "flex h-auto min-h-11 items-center gap-3 py-1.5 pr-3.5 pl-1.5 text-left disabled:cursor-not-allowed sm:h-auto sm:min-h-10",
+          )}
+        >
+          <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
+            <Hash aria-hidden="true" strokeWidth={2} className="size-4" />
+          </span>
+          <span id={valueId} className="min-w-0 flex-1">
+            {chosen.length === 0 ? (
+              <span className="text-muted-foreground">Add tags</span>
+            ) : (
+              <span className="flex flex-wrap gap-1.5 py-0.5">
+                <span className="sr-only">
+                  {chosen.length === 1 ? "1 tag:" : `${chosen.length} tags:`}
+                </span>
+                {chosen.map((tag) => (
+                  <TagChip
+                    key={tag.id}
+                    name={tag.name}
+                    className="bg-secondary text-secondary-foreground pl-2.5 [&_svg]:hidden"
+                  />
+                ))}
+              </span>
+            )}
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            strokeWidth={1.75}
+            className="text-muted-foreground size-4 shrink-0"
+          />
+        </Dialog.Trigger>
+
+        <SheetPortal>
+          <TagSheet
+            tags={tags}
+            value={value}
+            query={query}
+            onQueryChange={setQuery}
+            onChange={onChange}
+            onDone={() => setOpen(false)}
+          />
+        </SheetPortal>
+      </Dialog.Root>
+
+      {quick.length > 0 && (
+        <ul aria-label="Recent tags" className="flex flex-wrap gap-2">
+          {quick.map((tag) => {
+            const selected = value.includes(tag.id);
+            return (
+              <li key={tag.id} className="flex max-w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  aria-pressed={selected}
+                  disabled={disabled || (full && !selected)}
+                  onClick={() => onChange(toggled(value, tag.id))}
+                  className={cn(
+                    "h-auto min-h-11 max-w-full px-3.5 py-2 wrap-break-word whitespace-normal",
+                    selected &&
+                      "bg-secondary text-secondary-foreground hover:bg-secondary border-transparent",
+                  )}
+                >
+                  {selected ? (
+                    <Check aria-hidden="true" strokeWidth={2.25} />
+                  ) : (
+                    <Hash
+                      aria-hidden="true"
+                      strokeWidth={2}
+                      className="text-muted-foreground"
+                    />
+                  )}
+                  {tag.name}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+interface TagSheetProps {
+  tags: readonly TagSummary[];
+  value: readonly string[];
+  query: string;
+  onQueryChange: (query: string) => void;
+  onChange: (tagIds: string[]) => void;
+  onDone: () => void;
 }

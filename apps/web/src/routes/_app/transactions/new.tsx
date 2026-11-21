@@ -23,20 +23,29 @@ import {
 import { EmptyState } from "@/shared/components/empty-state";
 import { buttonVariants } from "@/shared/components/ui/button";
 
-export const Route = createFileRoute("/_app/transactions/new")({
-  head: () => ({ meta: [{ title: "New transaction" }] }),
-  validateSearch: captureSearchSchema,
-  loader: async ({ context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(walletQueries.list()),
-      context.queryClient.ensureQueryData(categoryQueries.list()),
-      context.queryClient.ensureQueryData(tagQueries.list()),
-      context.queryClient.ensureQueryData(transactionQueries.entryDefaults()),
-    ]);
-  },
-  staticData: { form: true },
-  component: NewTransactionPage,
-});
+function NoWallet() {
+  return (
+    <EmptyState
+      icon={WalletIcon}
+      headingId="no-wallet-heading"
+      title="No active wallets"
+      description="Every transaction belongs to a wallet. Add the cash, bank account, or e-wallet the money moved through, then come back to record it."
+      action={
+        <>
+          <Link
+            to="/wallets"
+            className={buttonVariants({ variant: "outline", size: "lg" })}
+          >
+            Create or unarchive a wallet
+          </Link>
+          <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
+            Create a wallet
+          </Link>
+        </>
+      }
+    />
+  );
+}
 
 function NewTransactionPage() {
   const router = useRouter();
@@ -99,26 +108,17 @@ function NewTransactionPage() {
   );
 }
 
-function NoWallet() {
-  return (
-    <EmptyState
-      icon={WalletIcon}
-      headingId="no-wallet-heading"
-      title="No active wallets"
-      description="Every transaction belongs to a wallet. Add the cash, bank account, or e-wallet the money moved through, then come back to record it."
-      action={
-        <>
-          <Link
-            to="/wallets"
-            className={buttonVariants({ variant: "outline", size: "lg" })}
-          >
-            Create or unarchive a wallet
-          </Link>
-          <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
-            Create a wallet
-          </Link>
-        </>
-      }
-    />
-  );
-}
+export const Route = createFileRoute("/_app/transactions/new")({
+  head: () => ({ meta: [{ title: "New transaction" }] }),
+  validateSearch: captureSearchSchema,
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(walletQueries.list()),
+      context.queryClient.ensureQueryData(categoryQueries.list()),
+      context.queryClient.ensureQueryData(tagQueries.list()),
+      context.queryClient.ensureQueryData(transactionQueries.entryDefaults()),
+    ]);
+  },
+  staticData: { form: true },
+  component: NewTransactionPage,
+});

@@ -143,17 +143,17 @@ export function answerRemoval<Blocker extends Refusal>(
   return c.body(null, 204);
 }
 
+/** Maps the blocker of a removal nothing can block: the type is `never`, so it never runs. */
+function refuseNothing(blocker: never): never {
+  return blocker;
+}
+
 /** Answers the removal of a resource whose own state never refuses it: 404 or an empty 204. */
 export function answerUnblockedRemoval(
   c: Context,
   { result }: Readonly<UnblockedRemovalAnswer>,
 ) {
   return answerRemoval(c, { result, toBlockerProblem: refuseNothing });
-}
-
-/** Maps the blocker of a removal nothing can block: the type is `never`, so it never runs. */
-function refuseNothing(blocker: never): never {
-  return blocker;
 }
 
 /** The documented responses `answerCreation` produces for one resource schema. */

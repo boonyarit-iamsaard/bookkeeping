@@ -48,6 +48,42 @@ export function entriesLabel(count: number): string {
   return count === 1 ? "1 entry" : `${count} entries`;
 }
 
+/** The consequence in the product's own words, before any button. */
+function removalExplanation(
+  category: Readonly<CategorySummary>,
+  removal: Readonly<RemovalContext>,
+): string {
+  if (category.isProtected) {
+    return "Uncategorized cannot be removed or renamed. Removed parents hand their entries here, so it always exists. Its icon can change.";
+  }
+  if (removal.childCount > 0) {
+    const children =
+      removal.childCount === 1
+        ? "1 child category"
+        : `${removal.childCount} child categories`;
+    return `A parent with children stays. Remove its ${children} first; each one's entries move up to ${category.name} as you go.`;
+  }
+  if (removal.entries === 0) {
+    return `${category.name} has no entries. Removing it changes nothing else.`;
+  }
+  const destination = removal.parentName ?? "Uncategorized";
+  return `Removing ${category.name} moves its ${entriesLabel(removal.entries)}, and any refunds linked to them, to ${destination}.`;
+}
+
+/** Why this category stays, on a Mist panel led by the reason's pictogram. */
+function RemovalPanel({ icon: Icon, children }: Readonly<RemovalPanelProps>) {
+  return (
+    <p className="bg-muted text-foreground flex items-start gap-3 rounded-xl p-4 text-sm leading-normal">
+      <Icon
+        aria-hidden="true"
+        strokeWidth={1.75}
+        className="text-muted-foreground mt-0.5 size-4 shrink-0"
+      />
+      {children}
+    </p>
+  );
+}
+
 /**
  * The sheet behind a category row: rename and re-icon in one save, and
  * beneath a hairline, the removal with its consequence spelled out before
@@ -276,40 +312,4 @@ export function EditCategoryForm({
 interface RemovalPanelProps {
   icon: LucideIcon;
   children: React.ReactNode;
-}
-
-/** Why this category stays, on a Mist panel led by the reason's pictogram. */
-function RemovalPanel({ icon: Icon, children }: Readonly<RemovalPanelProps>) {
-  return (
-    <p className="bg-muted text-foreground flex items-start gap-3 rounded-xl p-4 text-sm leading-normal">
-      <Icon
-        aria-hidden="true"
-        strokeWidth={1.75}
-        className="text-muted-foreground mt-0.5 size-4 shrink-0"
-      />
-      {children}
-    </p>
-  );
-}
-
-/** The consequence in the product's own words, before any button. */
-function removalExplanation(
-  category: Readonly<CategorySummary>,
-  removal: Readonly<RemovalContext>,
-): string {
-  if (category.isProtected) {
-    return "Uncategorized cannot be removed or renamed. Removed parents hand their entries here, so it always exists. Its icon can change.";
-  }
-  if (removal.childCount > 0) {
-    const children =
-      removal.childCount === 1
-        ? "1 child category"
-        : `${removal.childCount} child categories`;
-    return `A parent with children stays. Remove its ${children} first; each one's entries move up to ${category.name} as you go.`;
-  }
-  if (removal.entries === 0) {
-    return `${category.name} has no entries. Removing it changes nothing else.`;
-  }
-  const destination = removal.parentName ?? "Uncategorized";
-  return `Removing ${category.name} moves its ${entriesLabel(removal.entries)}, and any refunds linked to them, to ${destination}.`;
 }

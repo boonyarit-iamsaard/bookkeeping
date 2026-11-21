@@ -19,31 +19,60 @@ import { toWalletOptions } from "@/features/transactions/wallet-options";
 import { EmptyState } from "@/shared/components/empty-state";
 import { buttonVariants } from "@/shared/components/ui/button";
 
-export const Route = createFileRoute(
-  "/_app/transactions/$transactionId_/refund",
-)({
-  head: () => ({ meta: [{ title: "Record refund" }] }),
-  loader: async ({ context, params }) => {
-    const expense = await loadOwnedTransaction(
-      context.queryClient,
-      params.transactionId,
-    );
-    if (expense.type !== "expense") {
-      throw notFound();
-    }
-    await Promise.all([
-      context.queryClient.ensureQueryData(
-        transactionQueries.refunds(params.transactionId),
-      ),
-      context.queryClient.ensureQueryData(walletQueries.list()),
-      context.queryClient.ensureQueryData(categoryQueries.list()),
-    ]);
-  },
-  staticData: { form: true },
-  pendingComponent: HistoryLoading,
-  errorComponent: HistoryErrorBoundary,
-  component: RefundPage,
-});
+interface NoReceivingWalletProps {
+  expenseId: string;
+  originalWallet: components["schemas"]["TransactionWallet"];
+}
+
+function NoReceivingWallet({
+  expenseId,
+  originalWallet,
+}: Readonly<NoReceivingWalletProps>) {
+  return (
+    <EmptyState
+      icon={WalletIcon}
+      headingId="no-wallet-heading"
+      title="No active wallets"
+      description={
+        <>
+          A refund lands in an active wallet.{" "}
+          {originalWallet.archived
+            ? `${originalWallet.name}, the expense’s wallet, is archived: unarchive it, or create another wallet, then record the refund.`
+            : "Create a wallet or unarchive one, then record the refund."}
+        </>
+      }
+      action={
+        <>
+          {originalWallet.archived && (
+            <Link
+              to="/wallets/$walletId/manage"
+              params={{ walletId: originalWallet.id }}
+              className={buttonVariants({ size: "lg" })}
+            >
+              Unarchive {originalWallet.name}
+            </Link>
+          )}
+          <Link
+            to="/wallets/new"
+            className={buttonVariants({
+              variant: originalWallet.archived ? "outline" : "default",
+              size: "lg",
+            })}
+          >
+            Create a wallet
+          </Link>
+          <Link
+            to="/transactions/$transactionId"
+            params={{ transactionId: expenseId }}
+            className={buttonVariants({ variant: "ghost", size: "lg" })}
+          >
+            Back to the expense
+          </Link>
+        </>
+      }
+    />
+  );
+}
 
 function RefundPage() {
   const { transactionId } = Route.useParams();
@@ -103,57 +132,28 @@ function RefundPage() {
   );
 }
 
-interface NoReceivingWalletProps {
-  expenseId: string;
-  originalWallet: components["schemas"]["TransactionWallet"];
-}
-
-function NoReceivingWallet({
-  expenseId,
-  originalWallet,
-}: Readonly<NoReceivingWalletProps>) {
-  return (
-    <EmptyState
-      icon={WalletIcon}
-      headingId="no-wallet-heading"
-      title="No active wallets"
-      description={
-        <>
-          A refund lands in an active wallet.{" "}
-          {originalWallet.archived
-            ? `${originalWallet.name}, the expense’s wallet, is archived: unarchive it, or create another wallet, then record the refund.`
-            : "Create a wallet or unarchive one, then record the refund."}
-        </>
-      }
-      action={
-        <>
-          {originalWallet.archived && (
-            <Link
-              to="/wallets/$walletId/manage"
-              params={{ walletId: originalWallet.id }}
-              className={buttonVariants({ size: "lg" })}
-            >
-              Unarchive {originalWallet.name}
-            </Link>
-          )}
-          <Link
-            to="/wallets/new"
-            className={buttonVariants({
-              variant: originalWallet.archived ? "outline" : "default",
-              size: "lg",
-            })}
-          >
-            Create a wallet
-          </Link>
-          <Link
-            to="/transactions/$transactionId"
-            params={{ transactionId: expenseId }}
-            className={buttonVariants({ variant: "ghost", size: "lg" })}
-          >
-            Back to the expense
-          </Link>
-        </>
-      }
-    />
-  );
-}
+export const Route = createFileRoute(
+  "/_app/transactions/$transactionId_/refund",
+)({
+  head: () => ({ meta: [{ title: "Record refund" }] }),
+  loader: async ({ context, params }) => {
+    const expense = await loadOwnedTransaction(
+      context.queryClient,
+      params.transactionId,
+    );
+    if (expense.type !== "expense") {
+      throw notFound();
+    }
+    await Promise.all([
+      context.queryClient.ensureQueryData(
+        transactionQueries.refunds(params.transactionId),
+      ),
+      context.queryClient.ensureQueryData(walletQueries.list()),
+      context.queryClient.ensureQueryData(categoryQueries.list()),
+    ]);
+  },
+  staticData: { form: true },
+  pendingComponent: HistoryLoading,
+  errorComponent: HistoryErrorBoundary,
+  component: RefundPage,
+});

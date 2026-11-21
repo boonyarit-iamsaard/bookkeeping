@@ -12,22 +12,6 @@ import { AccountMenu } from "@/features/auth/components/account-menu";
 import { captureSearchForLocation } from "@/features/transactions/capture-origin";
 import { cn } from "@/shared/helpers/cn";
 
-/**
- * The signed-in half of the app. The cached session is the optimistic check;
- * every API call is still authenticated by the cookie, and a refusal sends
- * the app back through here.
- */
-export const Route = createFileRoute("/_app")({
-  beforeLoad: async ({ context }) => {
-    const session = await readSession(context.queryClient);
-    if (!session) {
-      throw redirect({ to: "/sign-in" });
-    }
-    return { session };
-  },
-  component: AppLayout,
-});
-
 function AppLayout() {
   const { session } = Route.useRouteContext();
   const isFormScreen = useIsFormScreen();
@@ -57,3 +41,19 @@ function AppLayout() {
     </>
   );
 }
+
+/**
+ * The signed-in half of the app. The cached session is the optimistic check;
+ * every API call is still authenticated by the cookie, and a refusal sends
+ * the app back through here.
+ */
+export const Route = createFileRoute("/_app")({
+  beforeLoad: async ({ context }) => {
+    const session = await readSession(context.queryClient);
+    if (!session) {
+      throw redirect({ to: "/sign-in" });
+    }
+    return { session };
+  },
+  component: AppLayout,
+});

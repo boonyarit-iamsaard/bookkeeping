@@ -78,6 +78,43 @@ function SelectTrigger({
   );
 }
 
+function SelectScrollUpButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollUpArrow>) {
+  return (
+    <SelectPrimitive.ScrollUpArrow
+      data-slot="select-scroll-up-button"
+      className={cn(
+        // 44px overflow arrows below 640px; 28px from 640px.
+        "from-popover text-muted-foreground top-0 z-10 flex h-11 w-full cursor-default items-center justify-center rounded-t-xl bg-linear-to-b from-55% to-transparent sm:h-7 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    >
+      <ChevronUp aria-hidden="true" strokeWidth={1.75} />
+    </SelectPrimitive.ScrollUpArrow>
+  );
+}
+
+function SelectScrollDownButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollDownArrow>) {
+  return (
+    <SelectPrimitive.ScrollDownArrow
+      data-slot="select-scroll-down-button"
+      className={cn(
+        "from-popover text-muted-foreground bottom-0 z-10 flex h-11 w-full cursor-default items-center justify-center rounded-b-xl bg-linear-to-t from-55% to-transparent sm:h-7 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    >
+      <ChevronDown aria-hidden="true" strokeWidth={1.75} />
+    </SelectPrimitive.ScrollDownArrow>
+  );
+}
+
 function SelectContent({
   className,
   children,
@@ -186,43 +223,6 @@ function SelectSeparator({
       className={cn("bg-border pointer-events-none -mx-1 my-1 h-px", className)}
       {...props}
     />
-  );
-}
-
-function SelectScrollUpButton({
-  className,
-  ...props
-}: React.ComponentProps<typeof SelectPrimitive.ScrollUpArrow>) {
-  return (
-    <SelectPrimitive.ScrollUpArrow
-      data-slot="select-scroll-up-button"
-      className={cn(
-        // 44px overflow arrows below 640px; 28px from 640px.
-        "from-popover text-muted-foreground top-0 z-10 flex h-11 w-full cursor-default items-center justify-center rounded-t-xl bg-linear-to-b from-55% to-transparent sm:h-7 [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
-      {...props}
-    >
-      <ChevronUp aria-hidden="true" strokeWidth={1.75} />
-    </SelectPrimitive.ScrollUpArrow>
-  );
-}
-
-function SelectScrollDownButton({
-  className,
-  ...props
-}: React.ComponentProps<typeof SelectPrimitive.ScrollDownArrow>) {
-  return (
-    <SelectPrimitive.ScrollDownArrow
-      data-slot="select-scroll-down-button"
-      className={cn(
-        "from-popover text-muted-foreground bottom-0 z-10 flex h-11 w-full cursor-default items-center justify-center rounded-b-xl bg-linear-to-t from-55% to-transparent sm:h-7 [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
-      {...props}
-    >
-      <ChevronDown aria-hidden="true" strokeWidth={1.75} />
-    </SelectPrimitive.ScrollDownArrow>
   );
 }
 

@@ -14,23 +14,27 @@ import { loadOwnedTransaction } from "@/features/transactions/owned-transaction"
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { buttonVariants } from "@/shared/components/ui/button";
 
-export const Route = createFileRoute("/_app/transactions/$transactionId")({
-  head: () => ({ meta: [{ title: "Transaction" }] }),
-  loader: async ({ context, params }) => {
-    const [transaction] = await Promise.all([
-      loadOwnedTransaction(context.queryClient, params.transactionId),
-      context.queryClient.ensureQueryData(categoryQueries.list()),
-    ]);
-    if (transaction.type === "expense") {
-      await context.queryClient.ensureQueryData(
-        transactionQueries.refunds(params.transactionId),
-      );
-    }
-  },
-  pendingComponent: TransactionDetailLoading,
-  errorComponent: HistoryErrorBoundary,
-  component: TransactionDetailPage,
-});
+interface ExpenseRefundsSectionProps {
+  transactionId: string;
+  categoryId: string | undefined;
+}
+
+function ExpenseRefundsSection({
+  transactionId,
+  categoryId,
+}: Readonly<ExpenseRefundsSectionProps>) {
+  const colorOf = useCategoryColors();
+  const { data: refunds } = useSuspenseQuery(
+    transactionQueries.refunds(transactionId),
+  );
+  return (
+    <ExpenseRefundsView
+      expense={{ id: transactionId }}
+      refunds={refunds}
+      color={categoryId ? colorOf(categoryId) : "neutral"}
+    />
+  );
+}
 
 function TransactionDetailPage() {
   const { transactionId } = Route.useParams();
@@ -65,24 +69,20 @@ function TransactionDetailPage() {
   );
 }
 
-interface ExpenseRefundsSectionProps {
-  transactionId: string;
-  categoryId: string | undefined;
-}
-
-function ExpenseRefundsSection({
-  transactionId,
-  categoryId,
-}: Readonly<ExpenseRefundsSectionProps>) {
-  const colorOf = useCategoryColors();
-  const { data: refunds } = useSuspenseQuery(
-    transactionQueries.refunds(transactionId),
-  );
-  return (
-    <ExpenseRefundsView
-      expense={{ id: transactionId }}
-      refunds={refunds}
-      color={categoryId ? colorOf(categoryId) : "neutral"}
-    />
-  );
-}
+export const Route = createFileRoute("/_app/transactions/$transactionId")({
+  head: () => ({ meta: [{ title: "Transaction" }] }),
+  loader: async ({ context, params }) => {
+    const [transaction] = await Promise.all([
+      loadOwnedTransaction(context.queryClient, params.transactionId),
+      context.queryClient.ensureQueryData(categoryQueries.list()),
+    ]);
+    if (transaction.type === "expense") {
+      await context.queryClient.ensureQueryData(
+        transactionQueries.refunds(params.transactionId),
+      );
+    }
+  },
+  pendingComponent: TransactionDetailLoading,
+  errorComponent: HistoryErrorBoundary,
+  component: TransactionDetailPage,
+});

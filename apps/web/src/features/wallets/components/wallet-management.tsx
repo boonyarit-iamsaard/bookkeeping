@@ -35,6 +35,16 @@ const NO_OUTCOME = { error: "", notice: "" };
 const manageCardClass =
   "flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-card sm:p-7";
 
+function savingsButtonLabel({
+  pending,
+  savings,
+}: Readonly<SavingsButtonState>) {
+  if (pending) {
+    return "Saving…";
+  }
+  return savings ? "Unmark as a Savings wallet" : "Mark as a Savings wallet";
+}
+
 export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
   const navigate = useNavigate();
   const [amount, setAmount] = useState(() =>
@@ -381,14 +391,4 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
 interface SavingsButtonState {
   pending: boolean;
   savings: boolean;
-}
-
-function savingsButtonLabel({
-  pending,
-  savings,
-}: Readonly<SavingsButtonState>) {
-  if (pending) {
-    return "Saving…";
-  }
-  return savings ? "Unmark as a Savings wallet" : "Mark as a Savings wallet";
 }

@@ -5,11 +5,6 @@ import {
 } from "@tanstack/react-router";
 import type { RouterContext } from "@/core/router/router";
 
-export const Route = createRootRouteWithContext<RouterContext>()({
-  head: () => ({ meta: [{ title: "Bookkeeping" }] }),
-  component: RootLayout,
-});
-
 function RootLayout() {
   return (
     <>
@@ -18,3 +13,8 @@ function RootLayout() {
     </>
   );
 }
+
+export const Route = createRootRouteWithContext<RouterContext>()({
+  head: () => ({ meta: [{ title: "Bookkeeping" }] }),
+  component: RootLayout,
+});

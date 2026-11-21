@@ -61,6 +61,19 @@ export interface CategoryUpdateCommand {
   iconId: string;
 }
 
+function validateName(
+  name: string,
+  field: "name" | "parentName",
+): NameRejection | undefined {
+  if (name.length === 0) {
+    return { code: "blank-name", field };
+  }
+  if (name.length > MAX_CATEGORY_NAME_LENGTH) {
+    return { code: "name-too-long", field };
+  }
+  return undefined;
+}
+
 /** Normalizes and validates presentation data before the row is touched. */
 export function validateCategoryUpdate(
   command: Readonly<CategoryUpdateCommand>,
@@ -74,6 +87,16 @@ export function validateCategoryUpdate(
     return err(rejected({ code: "unknown-icon", field: "iconId" }));
   }
   return ok({ name, iconId: command.iconId });
+}
+
+/** Whether a write tripped either scoped name index: tree-level or per-parent. */
+function isScopedNameViolation(error: unknown): boolean {
+  const cause = databaseError(error);
+  return (
+    cause?.code === UNIQUE_VIOLATION &&
+    (cause.constraint === CATEGORY_PARENT_NAME_INDEX ||
+      cause.constraint === CATEGORY_CHILD_NAME_INDEX)
+  );
 }
 
 /**
@@ -303,19 +326,6 @@ type NameRejection = Extract<
   { code: "blank-name" | "name-too-long" }
 >;
 
-function validateName(
-  name: string,
-  field: "name" | "parentName",
-): NameRejection | undefined {
-  if (name.length === 0) {
-    return { code: "blank-name", field };
-  }
-  if (name.length > MAX_CATEGORY_NAME_LENGTH) {
-    return { code: "name-too-long", field };
-  }
-  return undefined;
-}
-
 /** Normalizes and validates command data before it can consume an idempotency key. */
 export function validateCategoryCreation(
   input: Readonly<CategoryCreationCommand>,
@@ -358,71 +368,77 @@ export function validateCategoryCreation(
 }
 
 /**
- * Creates a parent, a child under an existing parent, or a child together
- * with its missing parent, once per idempotency key.
+ * A share lock holds the parent's removal until this child lands, and a
+ * removal already under way makes the parent vanish here.
  */
-export const createCategory: IdempotentCreator<
-  CreateCategoryInput,
-  CreateCategoryData,
-  CategoryRejected
-> = defineIdempotentCreation({
-  operation: "categories.create",
-  prepare: (input: Readonly<CreateCategoryInput>) =>
-    validateCategoryCreation(input),
-  insert: (tx, { ownerId, command }) =>
-    createCategoryRows({ db: tx, ownerId, command }),
-});
-
-interface CreateCategoryRowsOptions {
-  db: Database;
-  ownerId: string;
-  command: Readonly<CategoryCreationCommand>;
-}
-
-async function createCategoryRows({
+async function lockParent({
   db,
   ownerId,
-  command,
-}: Readonly<CreateCategoryRowsOptions>): Promise<
-  Result<CreateCategoryData, CategoryRejected>
+  kind,
+  existingId,
+}: Readonly<LockParentOptions>): Promise<
+  Result<CategorySummary, ParentResolutionError>
 > {
-  const resolved = await resolveParent({ db, ownerId, command });
-  if (!resolved.ok) {
-    return resolved;
+  if (!isUuid(existingId)) {
+    return err(rejected({ code: "parent-not-found", field: "parent" }));
   }
-  let category: CategorySummary;
-  try {
-    category = await insertCategory(db, {
-      ownerId,
-      kind: command.kind,
-      name: command.name,
-      iconId: command.iconId,
-      parentId:
-        resolved.value.kind === "none" ? null : resolved.value.parent.id,
-    });
-  } catch (error) {
-    if (isScopedNameViolation(error)) {
-      return err(rejected({ code: "duplicate-name", field: "name" }));
-    }
-    throw error;
+  const [row] = await db
+    .select(categorySummaryColumns)
+    .from(categories)
+    .where(
+      and(
+        eq(categories.id, existingId),
+        eq(categories.userId, ownerId),
+        eq(categories.kind, kind),
+      ),
+    )
+    .for("share");
+  if (!row) {
+    return err(rejected({ code: "parent-not-found", field: "parent" }));
   }
-  return ok(
-    resolved.value.kind === "created"
-      ? { category, createdParent: resolved.value.parent }
-      : { category },
-  );
+  if (row.parentId !== null) {
+    return err(rejected({ code: "parent-is-child", field: "parent" }));
+  }
+  if (row.isProtected) {
+    return err(rejected({ code: "parent-protected", field: "parent" }));
+  }
+  return ok(row);
 }
 
-type ParentResolutionError = CategoryRejected;
-
-/**
- * Where the new category lands: top level, under a locked existing row, or
- * under a row this same save created.
- */
-type ResolvedParent =
-  | { kind: "none" }
-  | { kind: "existing"; parent: CategorySummary }
-  | { kind: "created"; parent: CategorySummary };
+/** Appends after the last sibling in picker order. */
+async function insertCategory(
+  db: Database,
+  { ownerId, kind, name, iconId, parentId }: Readonly<InsertCategoryValues>,
+): Promise<CategorySummary> {
+  const scope = parentId
+    ? eq(categories.parentId, parentId)
+    : and(
+        eq(categories.userId, ownerId),
+        eq(categories.kind, kind),
+        isNull(categories.parentId),
+      );
+  const [last] = await db
+    .select({
+      sortOrder: sql<number>`coalesce(max(${categories.sortOrder}), 0)`,
+    })
+    .from(categories)
+    .where(scope);
+  const [row] = await db
+    .insert(categories)
+    .values({
+      userId: ownerId,
+      kind,
+      parentId,
+      name,
+      iconId,
+      sortOrder: (last?.sortOrder ?? 0) + 1,
+    })
+    .returning(categorySummaryColumns);
+  if (!row) {
+    throw new Error("Category insert returned no row");
+  }
+  return row;
+}
 
 /** Locks an existing parent or inserts the requested one, per the command. */
 async function resolveParent({
@@ -461,49 +477,78 @@ async function resolveParent({
   }
 }
 
+async function createCategoryRows({
+  db,
+  ownerId,
+  command,
+}: Readonly<CreateCategoryRowsOptions>): Promise<
+  Result<CreateCategoryData, CategoryRejected>
+> {
+  const resolved = await resolveParent({ db, ownerId, command });
+  if (!resolved.ok) {
+    return resolved;
+  }
+  let category: CategorySummary;
+  try {
+    category = await insertCategory(db, {
+      ownerId,
+      kind: command.kind,
+      name: command.name,
+      iconId: command.iconId,
+      parentId:
+        resolved.value.kind === "none" ? null : resolved.value.parent.id,
+    });
+  } catch (error) {
+    if (isScopedNameViolation(error)) {
+      return err(rejected({ code: "duplicate-name", field: "name" }));
+    }
+    throw error;
+  }
+  return ok(
+    resolved.value.kind === "created"
+      ? { category, createdParent: resolved.value.parent }
+      : { category },
+  );
+}
+
+/**
+ * Creates a parent, a child under an existing parent, or a child together
+ * with its missing parent, once per idempotency key.
+ */
+export const createCategory: IdempotentCreator<
+  CreateCategoryInput,
+  CreateCategoryData,
+  CategoryRejected
+> = defineIdempotentCreation({
+  operation: "categories.create",
+  prepare: (input: Readonly<CreateCategoryInput>) =>
+    validateCategoryCreation(input),
+  insert: (tx, { ownerId, command }) =>
+    createCategoryRows({ db: tx, ownerId, command }),
+});
+
+interface CreateCategoryRowsOptions {
+  db: Database;
+  ownerId: string;
+  command: Readonly<CategoryCreationCommand>;
+}
+
+type ParentResolutionError = CategoryRejected;
+
+/**
+ * Where the new category lands: top level, under a locked existing row, or
+ * under a row this same save created.
+ */
+type ResolvedParent =
+  | { kind: "none" }
+  | { kind: "existing"; parent: CategorySummary }
+  | { kind: "created"; parent: CategorySummary };
+
 interface LockParentOptions {
   db: Database;
   ownerId: string;
   kind: CategoryKind;
   existingId: string;
-}
-
-/**
- * A share lock holds the parent's removal until this child lands, and a
- * removal already under way makes the parent vanish here.
- */
-async function lockParent({
-  db,
-  ownerId,
-  kind,
-  existingId,
-}: Readonly<LockParentOptions>): Promise<
-  Result<CategorySummary, ParentResolutionError>
-> {
-  if (!isUuid(existingId)) {
-    return err(rejected({ code: "parent-not-found", field: "parent" }));
-  }
-  const [row] = await db
-    .select(categorySummaryColumns)
-    .from(categories)
-    .where(
-      and(
-        eq(categories.id, existingId),
-        eq(categories.userId, ownerId),
-        eq(categories.kind, kind),
-      ),
-    )
-    .for("share");
-  if (!row) {
-    return err(rejected({ code: "parent-not-found", field: "parent" }));
-  }
-  if (row.parentId !== null) {
-    return err(rejected({ code: "parent-is-child", field: "parent" }));
-  }
-  if (row.isProtected) {
-    return err(rejected({ code: "parent-protected", field: "parent" }));
-  }
-  return ok(row);
 }
 
 interface InsertCategoryValues {
@@ -514,87 +559,9 @@ interface InsertCategoryValues {
   parentId: string | null;
 }
 
-/** Appends after the last sibling in picker order. */
-async function insertCategory(
-  db: Database,
-  { ownerId, kind, name, iconId, parentId }: Readonly<InsertCategoryValues>,
-): Promise<CategorySummary> {
-  const scope = parentId
-    ? eq(categories.parentId, parentId)
-    : and(
-        eq(categories.userId, ownerId),
-        eq(categories.kind, kind),
-        isNull(categories.parentId),
-      );
-  const [last] = await db
-    .select({
-      sortOrder: sql<number>`coalesce(max(${categories.sortOrder}), 0)`,
-    })
-    .from(categories)
-    .where(scope);
-  const [row] = await db
-    .insert(categories)
-    .values({
-      userId: ownerId,
-      kind,
-      parentId,
-      name,
-      iconId,
-      sortOrder: (last?.sortOrder ?? 0) + 1,
-    })
-    .returning(categorySummaryColumns);
-  if (!row) {
-    throw new Error("Category insert returned no row");
-  }
-  return row;
-}
-
-/** Whether a write tripped either scoped name index: tree-level or per-parent. */
-function isScopedNameViolation(error: unknown): boolean {
-  const cause = databaseError(error);
-  return (
-    cause?.code === UNIQUE_VIOLATION &&
-    (cause.constraint === CATEGORY_PARENT_NAME_INDEX ||
-      cause.constraint === CATEGORY_CHILD_NAME_INDEX)
-  );
-}
-
 export interface ProvisioningOutcome {
   /** The trees this call created; empty when the owner was already provisioned. */
   seededKinds: readonly CategoryKind[];
-}
-
-/**
- * Gives the owner an editable copy of the default trees, once. Each tree is
- * seeded only while it has no protected Uncategorized; an existing tree is
- * left exactly as the user has customized it. Both trees land in one
- * transaction, serialized per owner so concurrent calls cannot both seed.
- */
-export async function initializeDefaultCategories(
-  db: Database,
-  ownerId: string,
-): Promise<ProvisioningOutcome> {
-  return db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${ownerId}))`);
-    const existing = await tx
-      .select({ kind: categories.kind })
-      .from(categories)
-      .where(
-        and(eq(categories.userId, ownerId), eq(categories.isProtected, true)),
-      );
-    const seededKinds = CATEGORY_KINDS.filter(
-      (kind) => !existing.some((tree) => tree.kind === kind),
-    );
-    if (seededKinds.length > 0) {
-      await seedTrees(tx, { ownerId, kinds: seededKinds });
-    }
-    return { seededKinds };
-  });
-}
-
-interface SeedTreesOptions {
-  ownerId: string;
-  kinds: readonly CategoryKind[];
 }
 
 /** Runs inside the provisioning transaction, after the owner lock is held. */
@@ -640,4 +607,37 @@ async function seedTrees(
   if (children.length > 0) {
     await tx.insert(categories).values(children);
   }
+}
+
+/**
+ * Gives the owner an editable copy of the default trees, once. Each tree is
+ * seeded only while it has no protected Uncategorized; an existing tree is
+ * left exactly as the user has customized it. Both trees land in one
+ * transaction, serialized per owner so concurrent calls cannot both seed.
+ */
+export async function initializeDefaultCategories(
+  db: Database,
+  ownerId: string,
+): Promise<ProvisioningOutcome> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${ownerId}))`);
+    const existing = await tx
+      .select({ kind: categories.kind })
+      .from(categories)
+      .where(
+        and(eq(categories.userId, ownerId), eq(categories.isProtected, true)),
+      );
+    const seededKinds = CATEGORY_KINDS.filter(
+      (kind) => !existing.some((tree) => tree.kind === kind),
+    );
+    if (seededKinds.length > 0) {
+      await seedTrees(tx, { ownerId, kinds: seededKinds });
+    }
+    return { seededKinds };
+  });
+}
+
+interface SeedTreesOptions {
+  ownerId: string;
+  kinds: readonly CategoryKind[];
 }

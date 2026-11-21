@@ -21,6 +21,14 @@ export type StoredCreationResult =
 const BIGINT_TAG = "$bigint";
 const DATE_TAG = "$date";
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
 /**
  * Turns an application result into receipt JSON without knowing its shape:
  * bigint and Date become tagged objects, undefined members are dropped as
@@ -61,12 +69,6 @@ export function encodeStoredResult(value: unknown): StoredCreationResult {
   throw new TypeError("Stored results hold JSON, bigint, and Date values only");
 }
 
-/** Reverses `encodeStoredResult`; the receipt was written by this module, so its shape is trusted. */
-export function decodeStoredResult<T>(stored: unknown): T {
-  // biome-ignore lint/nursery/noUnsafeTypeAssertion: a receipt only has to survive its replay window, so it holds what encodeStoredResult wrote for T unless a deploy changed T inside that window; such a shape change may make a straddling replay conflict or fail, but never creates twice. No runtime schema exists for an arbitrary T.
-  return decodeStored(stored) as T;
-}
-
 function decodeStored(stored: unknown): unknown {
   if (Array.isArray(stored)) {
     return stored.map(decodeStored);
@@ -91,12 +93,10 @@ function decodeStored(stored: unknown): unknown {
   return decoded;
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
+/** Reverses `encodeStoredResult`; the receipt was written by this module, so its shape is trusted. */
+export function decodeStoredResult<T>(stored: unknown): T {
+  // biome-ignore lint/nursery/noUnsafeTypeAssertion: a receipt only has to survive its replay window, so it holds what encodeStoredResult wrote for T unless a deploy changed T inside that window; such a shape change may make a straddling replay conflict or fail, but never creates twice. No runtime schema exists for an arbitrary T.
+  return decodeStored(stored) as T;
 }
 
 export interface IdempotencyConflict {
@@ -152,6 +152,95 @@ export interface IdempotentCreationDefinition<
     tx: Database,
     creation: Readonly<{ ownerId: string; command: Command }>,
   ) => Promise<Result<Created, InsertRejection>>;
+}
+
+function canonicalize(value: unknown): string {
+  if (value === null) {
+    return '["null"]';
+  }
+  if (typeof value === "boolean") {
+    return JSON.stringify(["boolean", value]);
+  }
+  if (typeof value === "string") {
+    return JSON.stringify(["string", value]);
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new TypeError("Validated payload numbers must be finite");
+    }
+    return JSON.stringify(["number", Object.is(value, -0) ? "-0" : value]);
+  }
+  if (typeof value === "bigint") {
+    return JSON.stringify(["bigint", value.toString()]);
+  }
+  if (Array.isArray(value)) {
+    return `["array",${value.map(canonicalize).join(",")}]`;
+  }
+  if (!isPlainObject(value)) {
+    throw new TypeError("Validated payloads hold JSON and bigint values only");
+  }
+  const entries = Object.keys(value)
+    .sort((a, b) => {
+      if (a < b) {
+        return -1;
+      }
+      if (a > b) {
+        return 1;
+      }
+      return 0;
+    })
+    .map((key) => JSON.stringify([key, canonicalize(value[key])]));
+  return `["object",${entries.join(",")}]`;
+}
+
+/**
+ * A deterministic SHA-256 over a complete prepared command: JSON scalars,
+ * bigint, arrays, and plain objects. Anything else is refused.
+ */
+export function fingerprintValidatedPayload(payload: unknown): string {
+  return createHash("sha256").update(canonicalize(payload)).digest("hex");
+}
+
+async function lockCreationScope(
+  db: Database,
+  { ownerId, operation, key }: Readonly<ReceiptScope>,
+): Promise<void> {
+  const scope = JSON.stringify([ownerId, operation, key]);
+  await db.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${scope}, 0))`,
+  );
+}
+
+/**
+ * Deletes the owner's receipts past their window, so an expired key counts as
+ * absent. This key's own expired receipt goes first and is awaited, since the
+ * creation needs it gone. The owner-wide sweep that follows runs under a
+ * per-key lock, so it takes only rows nobody else holds: a concurrent
+ * creation under another key sweeps the rest, and no two wait on each
+ * other's rows.
+ */
+async function purgeExpiredReceipts(
+  db: Database,
+  { ownerId, operation, key }: Readonly<ReceiptScope>,
+): Promise<void> {
+  await db
+    .delete(creationReceipts)
+    .where(
+      and(
+        eq(creationReceipts.userId, ownerId),
+        eq(creationReceipts.operation, operation),
+        eq(creationReceipts.key, key),
+        receiptIsExpired,
+      ),
+    );
+  const unclaimed = db
+    .select({ id: creationReceipts.id })
+    .from(creationReceipts)
+    .where(and(eq(creationReceipts.userId, ownerId), receiptIsExpired))
+    .for("update", { skipLocked: true });
+  await db
+    .delete(creationReceipts)
+    .where(inArray(creationReceipts.id, unclaimed));
 }
 
 /**
@@ -246,93 +335,4 @@ interface ReceiptScope {
   key: string;
 }
 
-async function lockCreationScope(
-  db: Database,
-  { ownerId, operation, key }: Readonly<ReceiptScope>,
-): Promise<void> {
-  const scope = JSON.stringify([ownerId, operation, key]);
-  await db.execute(
-    sql`select pg_advisory_xact_lock(hashtextextended(${scope}, 0))`,
-  );
-}
-
 const receiptIsExpired = sql`${creationReceipts.createdAt} < now() - make_interval(hours => ${CREATION_REPLAY_WINDOW_HOURS})`;
-
-/**
- * Deletes the owner's receipts past their window, so an expired key counts as
- * absent. This key's own expired receipt goes first and is awaited, since the
- * creation needs it gone. The owner-wide sweep that follows runs under a
- * per-key lock, so it takes only rows nobody else holds: a concurrent
- * creation under another key sweeps the rest, and no two wait on each
- * other's rows.
- */
-async function purgeExpiredReceipts(
-  db: Database,
-  { ownerId, operation, key }: Readonly<ReceiptScope>,
-): Promise<void> {
-  await db
-    .delete(creationReceipts)
-    .where(
-      and(
-        eq(creationReceipts.userId, ownerId),
-        eq(creationReceipts.operation, operation),
-        eq(creationReceipts.key, key),
-        receiptIsExpired,
-      ),
-    );
-  const unclaimed = db
-    .select({ id: creationReceipts.id })
-    .from(creationReceipts)
-    .where(and(eq(creationReceipts.userId, ownerId), receiptIsExpired))
-    .for("update", { skipLocked: true });
-  await db
-    .delete(creationReceipts)
-    .where(inArray(creationReceipts.id, unclaimed));
-}
-
-/**
- * A deterministic SHA-256 over a complete prepared command: JSON scalars,
- * bigint, arrays, and plain objects. Anything else is refused.
- */
-export function fingerprintValidatedPayload(payload: unknown): string {
-  return createHash("sha256").update(canonicalize(payload)).digest("hex");
-}
-
-function canonicalize(value: unknown): string {
-  if (value === null) {
-    return '["null"]';
-  }
-  if (typeof value === "boolean") {
-    return JSON.stringify(["boolean", value]);
-  }
-  if (typeof value === "string") {
-    return JSON.stringify(["string", value]);
-  }
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      throw new TypeError("Validated payload numbers must be finite");
-    }
-    return JSON.stringify(["number", Object.is(value, -0) ? "-0" : value]);
-  }
-  if (typeof value === "bigint") {
-    return JSON.stringify(["bigint", value.toString()]);
-  }
-  if (Array.isArray(value)) {
-    return `["array",${value.map(canonicalize).join(",")}]`;
-  }
-  if (!isPlainObject(value)) {
-    throw new TypeError("Validated payloads hold JSON and bigint values only");
-  }
-  const entries = Object.keys(value)
-    .sort((a, b) => {
-      if (a < b) {
-        return -1;
-      }
-      if (a > b) {
-        return 1;
-      }
-      return 0;
-    })
-    .map((key) => JSON.stringify([key, canonicalize(value[key])]));
-  return `["object",${entries.join(",")}]`;
-}

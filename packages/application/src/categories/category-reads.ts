@@ -63,6 +63,10 @@ export interface CategoryUsage {
   children: number;
 }
 
+function countRows() {
+  return sql<number>`count(*)::int`;
+}
+
 /**
  * The usage of one owned category, or `null` when the owner has no category
  * with that id. Refunds carry no category, so only the transactions and
@@ -135,8 +139,4 @@ export async function listCategoryUsage(
     }
   }
   return usage;
-}
-
-function countRows() {
-  return sql<number>`count(*)::int`;
 }

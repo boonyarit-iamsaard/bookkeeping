@@ -72,8 +72,11 @@ async function main() {
   const apiServer = startApiServer({ port, clientOrigin, environment });
   // The container client can hold the event loop open, so exit explicitly.
   function stopAndExit(code: number) {
+    // declaration-order-ignore: the listeners call stopAndExit back
     process.off("SIGTERM", stopOnSignal);
+    // declaration-order-ignore: the listeners call stopAndExit back
     process.off("SIGINT", stopOnSignal);
+    // declaration-order-ignore: the listeners call stopAndExit back
     apiServer.off("exit", stopOnApiExit);
     stopApiServer(apiServer)
       .finally(() => container.stop())

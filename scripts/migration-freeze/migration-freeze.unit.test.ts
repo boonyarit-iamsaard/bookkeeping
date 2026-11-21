@@ -6,6 +6,17 @@ import {
 
 const baseline = "packages/database/drizzle/0000_baseline.sql";
 
+function journal(
+  entries: readonly object[],
+  header: Readonly<Record<string, string>> = {},
+): string {
+  return JSON.stringify(
+    { version: "7", dialect: "postgresql", ...header, entries },
+    null,
+    2,
+  );
+}
+
 describe("findMigrationFreezeViolations", () => {
   it("names a modified committed migration", () => {
     expect(
@@ -103,14 +114,3 @@ describe("findMigrationFreezeViolations", () => {
     });
   });
 });
-
-function journal(
-  entries: readonly object[],
-  header: Readonly<Record<string, string>> = {},
-): string {
-  return JSON.stringify(
-    { version: "7", dialect: "postgresql", ...header, entries },
-    null,
-    2,
-  );
-}
