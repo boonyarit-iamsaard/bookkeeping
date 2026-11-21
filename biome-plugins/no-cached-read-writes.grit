@@ -1,7 +1,8 @@
 language js
 
 // A regex on the callee text, because Biome's Grit cannot compile `?.` patterns.
+// The bracket form `client["removeQueries"]()` is matched too.
 `$callee($args)` where {
-  $callee <: r".*[.](?:invalidateQueries|removeQueries|resetQueries|setQueryData|setQueriesData)",
+  $callee <: r".*(?:[.]|\[[\"'])(?:invalidateQueries|removeQueries|resetQueries|setQueryData|setQueriesData)(?:[\"']\])?",
   register_diagnostic(span=$callee, severity="error", message="Only refreshAfterWrite and forgetReads in core/query/refresh-after-write.ts change cached reads. Call refreshAfterWrite after a write, or forgetReads for a deleted record's retired reads.")
 }

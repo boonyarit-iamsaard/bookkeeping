@@ -20,6 +20,7 @@ const forbidden = [
 const allowed = [
   "apps/web/src/core/query/refresh-after-write.ts",
   "apps/web/src/core/query/refresh-after-write.unit.test.ts",
+  "apps/web/src/core/query/seed.unit.test.tsx",
 ];
 
 it("reports cached-read writes in the web app except refresh-after-write and tests", async () => {
@@ -42,6 +43,10 @@ it("reports cached-read writes in the web app except refresh-after-write and tes
       [
         "apps/web/src/features/wallets/optional.ts",
         "queryClient?.invalidateQueries();\n",
+      ] as const,
+      [
+        "apps/web/src/features/wallets/bracket.ts",
+        'queryClient["removeQueries"]();\n',
       ] as const,
       [
         "apps/web/src/features/wallets/refetch.ts",
@@ -70,6 +75,7 @@ it("reports cached-read writes in the web app except refresh-after-write and tes
       expect(report, report).toContain(`${method}.ts:1:`);
     }
     expect(report, report).toContain("optional.ts:1:");
+    expect(report, report).toContain("bracket.ts:1:");
     expect(report).not.toContain("refetch.ts:");
     expect(report).toContain("refreshAfterWrite");
     expect(report).toContain("forgetReads");
