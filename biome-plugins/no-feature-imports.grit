@@ -1,0 +1,15 @@
+language js
+
+// Grit sees each import and export form as its own syntax, so all are listed.
+or {
+  `import $_ from $source`,
+  `import $source`,
+  `import($source)`,
+  `export { $_ } from $source`,
+  `export type { $_ } from $source`,
+  `export * from $source`,
+  `export * as $_ from $source`
+} where {
+  $source <: r"[\"']@/features(?:/.*)?[\"']",
+  register_diagnostic(span=$source, severity="error", message="shared and core never import features. Move the code into shared, or pass it in from the feature.")
+}

@@ -13,9 +13,10 @@ feature, infrastructure setup stays in `core`, and reusable code stays in
 `shared`. Create additional directories only when needed. `features` may
 import `core` and `shared`; `shared` may import `core/api` types and parsers,
 such as the shared `Money` component rendering API amounts, but never
-`features`, and `core` never imports `features` either. Biome enforces both
-through a `noRestrictedImports` override on `shared` and `core`; move the code
-into `shared` or pass it in from the feature. A feature may import another feature's modules (transactions use
+`features`, and `core` never imports `features` either. The GritQL plugin
+`biome-plugins/no-feature-imports.grit` enforces both, and
+[Import paths](#import-paths) keeps that check sound; move the code into
+`shared` or pass it in from the feature. A feature may import another feature's modules (transactions use
 categories, tags and wallets; home uses reports), which Bulletproof React would
 forbid, because a transaction picks a category and the dependency is real.
 
@@ -30,6 +31,24 @@ as `wallet.types.ts`. Shared shapes, literal value sets, and their presentation
 labels can live together there. Database code and browser code import those
 declarations directly; persistence files and forwarding exports do not own the
 vocabulary. Keep operation-specific inputs and errors beside their functions.
+
+## Import paths
+
+In `apps/web`, import a module in the same directory with `./` and everything
+else through the `@/` alias, tests included. A parent path (`../`) is never
+used: one spelling per module keeps imports consistent, and an `@/features/`
+path is what the `shared` and `core` boundary check reads. The GritQL plugin
+`biome-plugins/no-parent-imports.grit` reports `../` in `apps/web/src`, and the
+root `noRestrictedImports` rule keeps project imports named. Neither plugin
+reads path strings in `vi.mock()` or `import.meta.glob()`.
+
+`apps/server` and `packages/*` use relative paths and no alias. Other
+workspaces compile their source: packages export `src` files directly, and
+`apps/web/scripts/generate-api.ts` imports server source. A TypeScript `paths`
+alias there would resolve against the consumer's configuration, so it breaks;
+Turborepo's TypeScript guide warns against it for such packages. If a package
+needs an alias, use a Node.js subpath import (`package.json` `imports`), and
+give the server `@/` only once no workspace imports its source.
 
 ## Filenames and symbols
 
