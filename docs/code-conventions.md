@@ -158,6 +158,12 @@ it. A browser test is redundant, and is removed, when its assertions are all
 HTTP-level ones that a route integration test already makes, or when another
 browser test asserts a superset of it through the same code path.
 
+Propose the first component test when a component's states can only be reached
+through slow browser setup, when the browser suite turns slow or flaky, or when
+logic that cannot move to a plain `.ts` module piles up in components or hooks.
+That proposal also narrows the `*.tsx` and `use-*.ts` coverage exclusions in
+`sonar-project.properties`.
+
 Browser specs run on the narrowest phone project. Tag a test `@matrix` only
 when its behavior differs by viewport, such as layout, navigation guards, or
 the service worker; the desktop project runs only those tests.
