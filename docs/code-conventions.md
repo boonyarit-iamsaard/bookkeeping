@@ -222,6 +222,14 @@ Tests obey the same safety rules. External property keys and domain value keys
 retain their established spelling, including environment variables, snake-case
 wallet types, and library names such as `baseURL`.
 
+`pnpm check:declaration-order` keeps code reading top-down: a `function`
+declaration sits above every reference to it in its module, at any depth,
+including JSX and `typeof`. Self-recursion is allowed. Mutual recursion, or
+another reference that must stay above, needs
+`// declaration-order-ignore: <reason>` (a block comment in JSX) on its line
+or the line before.
+Generated `*.gen.ts` files are exempt.
+
 Review the rules that require semantic judgment:
 
 - Use named object contracts and `interface extends` for compatible composition;
