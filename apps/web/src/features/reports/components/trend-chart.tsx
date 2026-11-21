@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { presentApiMoney } from "@/core/api/money";
+import {
+  formatReportMonth,
+  formatReportMonthShort,
+} from "@/features/reports/report-month";
+import type { TrendPoint } from "@/features/reports/trend-series";
 import { chartMarkClass } from "@/shared/components/chart/chart-series";
 import { ChartSwatch } from "@/shared/components/chart/chart-swatch";
 import { Money } from "@/shared/components/money";
 import { scaleBars, toPercent } from "@/shared/helpers/bar-scale";
 import { cn } from "@/shared/helpers/cn";
-import { formatReportMonth, formatReportMonthShort } from "../report-month";
-import type { TrendPoint } from "../trend-series";
 
 interface TrendChartProps {
   points: readonly TrendPoint[];

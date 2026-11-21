@@ -2,11 +2,11 @@ import { useState } from "react";
 import type {
   BalanceSelectionMovement,
   ResolveBalanceSelectionOptions,
-} from "../balance-selection";
+} from "@/features/reports/balance-selection";
 import {
   moveBalanceSelection,
   resolveBalanceSelection,
-} from "../balance-selection";
+} from "@/features/reports/balance-selection";
 
 /** Reconcile during render so stale figures cannot appear for even one frame. */
 export function useBalanceSelection(
