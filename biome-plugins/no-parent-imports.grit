@@ -1,0 +1,17 @@
+language js
+
+// Grit sees each import and export form as its own syntax, so all are listed.
+// shortcut: path strings in vi.mock() and import.meta.glob() are not checked;
+// upgrade when one of them needs a parent path.
+or {
+  `import $_ from $source`,
+  `import $source`,
+  `import($source)`,
+  `export { $_ } from $source`,
+  `export type { $_ } from $source`,
+  `export * from $source`,
+  `export * as $_ from $source`
+} where {
+  $source <: r"[\"'][.][.](?:/.*)?[\"']",
+  register_diagnostic(span=$source, severity="error", message="Use ./ for a module in the same directory and the @/ alias for anything else.")
+}

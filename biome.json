@@ -200,32 +200,11 @@
     },
     {
       "includes": ["apps/web/src/shared/**", "apps/web/src/core/**"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noRestrictedImports": {
-              "level": "error",
-              "options": {
-                "patterns": [
-                  {
-                    "group": ["@/**", "./**", "../**", "node:*"],
-                    "importNamePattern": "(\\*|default)",
-                    "message": "Use named imports for project modules and Node builtins."
-                  },
-                  {
-                    "group": ["@/features/**"],
-                    "message": "shared and core never import features. Move the code into shared, or pass it in from the feature."
-                  },
-                  {
-                    "group": ["../**"],
-                    "message": "Use the @/ alias instead of a parent-relative import, so the features boundary stays checkable."
-                  }
-                ]
-              }
-            }
-          }
-        }
-      }
+      "plugins": ["./biome-plugins/no-feature-imports.grit"]
+    },
+    {
+      "includes": ["apps/web/src/**"],
+      "plugins": ["./biome-plugins/no-parent-imports.grit"]
     },
     {
       "includes": [
