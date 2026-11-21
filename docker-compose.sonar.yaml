@@ -1,6 +1,7 @@
-# One-off SonarQube stack for `pnpm sonar:scan`. Each run starts it under its
-# own Compose project name and removes every container, volume, and network
-# afterwards, so nothing here is named globally or persisted.
+# One-off SonarQube server for `pnpm sonar:scan`, which runs the scanner
+# natively against it. Each run starts it under its own Compose project name
+# and removes every container, volume, and network afterwards, so nothing here
+# is named globally or persisted.
 
 services:
   sonarqube:
@@ -13,19 +14,3 @@ services:
     ports:
       # A free loopback port, so a run never collides with anything else.
       - "127.0.0.1::9000"
-
-  scanner:
-    image: sonarsource/sonar-scanner-cli:latest
-    profiles: ["scan"]
-    environment:
-      SONAR_HOST_URL: http://sonarqube:9000
-      SONAR_TOKEN: ${SONAR_TOKEN:-}
-    volumes:
-      - .:/usr/src:ro
-    # The local server names its project `bookkeeping`, not the Cloud key in
-    # sonar-project.properties.
-    command:
-      [
-        "-Dsonar.working.directory=/tmp/scannerwork",
-        "-Dsonar.projectKey=bookkeeping",
-      ]

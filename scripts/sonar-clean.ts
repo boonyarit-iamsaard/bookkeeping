@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
 
 import { formatError, scriptArguments } from "./sonar/arguments";
-import { removeAllScanProjects, removeScannerImages } from "./sonar/stack";
+import { removeAllScanProjects, removeServerImage } from "./sonar/stack";
 
 try {
   const { values: flags } = parseArgs({
@@ -13,7 +13,7 @@ try {
     `Removed ${removed} SonarQube containers, volumes, and networks.`,
   );
   if (flags["purge-images"]) {
-    removeScannerImages();
+    removeServerImage();
   }
 } catch (error) {
   console.error(`Clean-up failed: ${formatError(error)}`);

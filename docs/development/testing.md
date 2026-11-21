@@ -126,8 +126,8 @@ configured by `sonar-project.properties`.
 
 - **Profile:** the Free plan keeps JavaScript and TypeScript on the default
   **Sonar way core**, a smaller rule set than the local scan's comprehensive
-  profile. Rules outside core, possibly including S9382, show up only in a
-  local scan.
+  profile. Rules outside core, including S9382, show up only in a
+  [local scan](#local-sonarqube).
 - **Scope:** only pull requests targeting `main` are analyzed, so the upper pull
   requests in a stack have no Sonar check.
 - **Secrets:** the scan needs the `SONAR_TOKEN` repository secret. Runs without
@@ -145,11 +145,12 @@ configured by `sonar-project.properties`.
 
 ## Local SonarQube
 
-SonarQube is an optional, on-demand analysis tool. Run it when the project owner
-requests a scan or when you choose to inspect code quality. Setup and scans are
-not required for local development, commits, pull requests, or completing project
-work. The local scan is not part of `pnpm run ci`, GitHub Actions, or commit
-hooks; its quality gate does not block this project's workflow.
+The local scan is the comprehensive sweep beside SonarQube Cloud: it runs the
+**Sonar way comprehensive** profile, including S9382 (sequential awaits in
+loops), which the Free plan's core profile leaves out. It is optional and on
+demand. Run it when the project owner requests a sweep or when you choose to
+inspect code quality; it is not part of `pnpm run ci`, GitHub Actions, or commit
+hooks, and its quality gate blocks nothing.
 
 Run one scan:
 
@@ -160,17 +161,20 @@ pnpm sonar:scan
 Each scan is one-off. It removes anything an earlier scan left behind, starts a
 SonarQube Community Build container on a free loopback port, replaces the
 default admin password with a random one, creates the private `bookkeeping`
-project and an analysis token, runs the scanner, and waits for the server to
-process the analysis. JavaScript and TypeScript use the explicit **Sonar way
-comprehensive** profile, including S9382 (sequential awaits in loops), rather
-than the server's smaller default core profile. It then writes the issues and
-detailed security hotspots
-to `.sonar-reports/issues.json` and `.sonar-reports/issues.md`, and removes
-every container, volume, and network it created, also when the scan fails or
-you interrupt it. No credentials are saved; without `--keep`, nothing but the
-reports outlives the run (`pnpm sonar:clean` removes a kept stack). Run one
-scan at a time: a new scan first removes any other scan's stack, including one
-still running. The run needs no environment file.
+project with the comprehensive profile and an analysis token, and runs the
+scanner. The scanner is the npm-distributed `@sonar/scan`, run natively on the
+host, not in a container: a bind-mounted scanner container reads every
+`node_modules` file through Docker Desktop's file share and stalls on native
+Windows. On its first run it downloads a JRE and the scanner engine from the
+server into `~/.sonar/cache`, so no Java install is needed. The scan then waits
+for the server to process the analysis, writes the issues and detailed
+security hotspots to `.sonar-reports/issues.json` and
+`.sonar-reports/issues.md`, and removes every container, volume, and network it
+created, also when the scan fails or you interrupt it. No credentials are
+saved; without `--keep`, nothing but the reports and the scanner's
+`.scannerwork/` directory outlives the run (`pnpm sonar:clean` removes a kept
+stack). Run one scan at a time: a new scan first removes any other scan's
+stack, including one still running. The run needs no environment file.
 
 Reports are Git-ignored and overwritten by the next scan. Because every scan
 starts from an empty server, they list the issues in the scanned code only:
@@ -181,25 +185,22 @@ provides a readable list.
 | Flag             | Effect                                                                                                |
 | ---------------- | ----------------------------------------------------------------------------------------------------- |
 | `--keep`         | Leave SonarQube running after the export and print its URL and admin password; the reports link to it |
-| `--purge-images` | Also remove the SonarQube and scanner images, which the next scan downloads again                     |
+| `--purge-images` | Also remove the SonarQube image, which the next scan downloads again                                  |
 
 Pass a flag after the script name, as in `pnpm sonar:scan --keep`.
 `pnpm sonar:clean` removes a kept or abandoned stack without scanning, and
 also accepts `--purge-images`.
 
-The scanner analyzes
-`apps/web/src/`, `apps/server/src/`, `packages/domain/src/`,
-`packages/database/src/`, `packages/application/src/`, `packages/auth/src/`,
-and `infra/aws/`, and classifies colocated Vitest tests and `apps/web/tests/`
-as test code; it
-skips the generated route tree. It does
-not run tests or import coverage, and it skips the `coverage/` reports.
+The scan reads the same `sonar-project.properties` as SonarQube Cloud, only
+under the local project key. It classifies colocated Vitest tests and
+`apps/web/tests/` as test code and skips the generated route tree and API
+client. It does not run tests or import coverage.
 
-The stack uses SonarQube's embedded database, which is meant for evaluation
+The server uses SonarQube's embedded database, which is meant for evaluation
 only and suits a server that never outlives one scan. It disables
-Elasticsearch bootstrap checks for local development. The images use moving
-tags; pin versions before relying on this setup in CI or running a shared
+Elasticsearch bootstrap checks for local development. The server image uses a
+moving tag; pin it before relying on this setup in CI or running a shared
 server.
 
 See the official [Docker setup](https://docs.sonarsource.com/sonarqube-community-build/server-installation/from-docker-image/set-up-and-start-container)
-and [scanner guide](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/sonarscanner).
+and [npm scanner guide](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/npm/introduction).
