@@ -52,13 +52,14 @@ it("reports cached-read writes in the web app except refresh-after-write and tes
         "apps/web/src/features/wallets/refetch.ts",
         "queryClient.refetchQueries();\n",
       ] as const,
-      [
-        "apps/web/src/features/wallets/clear.ts",
-        "queryClient.clear();\n",
-      ] as const,
+      ["apps/web/src/features/wallets/clear.ts", "client.clear();\n"] as const,
       [
         "apps/web/src/features/wallets/seen.ts",
         "new Map().clear();\n",
+      ] as const,
+      [
+        "apps/web/src/features/wallets/suppressed.ts",
+        "// biome-ignore lint/plugin: a local Map, not the query cache\nnew Map().clear();\n",
       ] as const,
       ["apps/web/src/core/auth/session.ts", "queryClient.clear();\n"] as const,
       ...allowed.map(
@@ -87,7 +88,8 @@ it("reports cached-read writes in the web app except refresh-after-write and tes
     expect(report, report).toContain("bracket.ts:1:");
     expect(report, report).toContain("clear.ts:1:");
     expect(report).not.toContain("refetch.ts:");
-    expect(report).not.toContain("seen.ts:");
+    expect(report, report).toContain("seen.ts:1:");
+    expect(report).not.toContain("suppressed.ts");
     expect(report).toContain("refreshAfterWrite");
     expect(report).toContain("forgetReads");
     expect(report).not.toMatch(/^apps.web.src.core/m);

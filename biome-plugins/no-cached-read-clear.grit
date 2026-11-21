@@ -1,9 +1,8 @@
 language js
 
-// shortcut: matches the receiver name, since Grit cannot see types and
-// Map.clear() shares the method name; a client held under another name slips
-// through. Upgrade when the app names its QueryClient differently.
+// Matches any `.clear()`: Grit cannot see types, so Map.clear() is reported
+// too. Suppress it with `// biome-ignore lint/plugin: <reason>`.
 `$callee($args)` where {
-  $callee <: r".*[Qq]ueryClient(?:[(][)])?[?]?[.]clear",
-  register_diagnostic(span=$callee, severity="error", message="Only resetSessionCache in core/auth/session.ts clears every cached read. Call resetSessionCache on a session change.")
+  $callee <: r".*[.]clear",
+  register_diagnostic(span=$callee, severity="error", message="Only resetSessionCache in core/auth/session.ts clears every cached read. Call resetSessionCache on a session change. For a clear() on something else, add // biome-ignore lint/plugin: <reason>.")
 }
