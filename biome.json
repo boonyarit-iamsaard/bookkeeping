@@ -200,6 +200,7 @@
     },
     {
       "includes": ["apps/web/src/features/**"],
+      "plugins": ["./biome-plugins/no-feature-timers.grit"],
       "linter": {
         "rules": {
           "style": {
