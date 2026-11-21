@@ -4,17 +4,18 @@
 
 ### Local resource limits
 
-Docker Desktop runs in a WSL VM capped at 4 GB, shared by the PostgreSQL
-containers of the integration tests and e2e and by the local SonarQube server.
-Overlapping runs there have exhausted memory and nearly crashed the machine.
+This machine runs out of memory before CPU. About 15–20 GB of its 23.7 GB is
+already in use, and every container shares Docker Desktop's VM, capped at
+4 GB. Overlapping runs have exhausted memory and nearly crashed the machine.
 Two rules follow:
 
 - A local Sonar scan (`pnpm sonar:scan`) runs alone, never alongside any test
-  suite, e2e, build, mutation run, or another scan.
+  suite, e2e, build, mutation run, or another scan: it alone nearly fills both
+  the host and the VM.
 - The test suites with integration tests (`pnpm test`, `pnpm test:coverage`,
   or a workspace suite that uses PostgreSQL), e2e (`test:e2e`, `ci:e2e`), and
-  Docker image builds (`stack:build`, `stack:start`) never run concurrently,
-  with each other or with a second copy of themselves.
+  Docker image builds (`stack:build`, `stack:start`) each add 2–4 GB on the
+  host, so never run two at once, nor two copies of one.
 
 Everything else may run in parallel, including the production build, Stryker
 on `domain` (`test:mutation`), Turborepo task parallelism, and reads and

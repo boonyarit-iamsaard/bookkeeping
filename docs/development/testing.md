@@ -118,24 +118,29 @@ ever kill it (an equivalent mutant), on the line above, with the reason:
 ## Local resource cost
 
 The [resource limits](../../AGENTS.md#local-resource-limits) rest on these
-measurements, taken on 2026-11-16 on native Windows (23.7 GB RAM, 16 threads,
-about 15 GB already in use, caches off, each run alone). The `ci:e2e` row was
-measured the same way on 2026-11-21, with about 18.6 GB in use: a production
-build and both browser projects, 75 tests on 2 workers:
+measurements on native Windows (23.7 GB RAM, 16 threads), each run alone with
+caches off. "Host" is the memory a run adds on Windows; "VM peak" is the used
+memory of the Docker Desktop VM, which runs every container; `.wslconfig` caps
+it at 4 GB, of which 3.8 GB is usable. The first four rows date from 2026-11-16 (about 15 GB already
+in use) and have no VM figure; the rest from 2026-11-21 (about 19–20 GB in use).
 
-| Run                            | Time  | Peak added memory | Max CPU |
-| ------------------------------ | ----- | ----------------- | ------- |
-| `pnpm test` (Turborepo)        | 115 s | +3.9 GB           | 100%    |
-| `test:e2e` on `phone-chromium` | 309 s | +2.1 GB           | 86%     |
-| `pnpm build`                   | 19 s  | +0.9 GB           | 77%     |
-| Stryker on `domain`            | 33 s  | +0.7 GB           | 85%     |
-| `pnpm run ci:e2e`              | 142 s | +1.9 GB           | 82%     |
+| Run                               | Time  | Host    | VM peak | Max CPU |
+| --------------------------------- | ----- | ------- | ------- | ------- |
+| `pnpm test` (Turborepo)           | 115 s | +3.9 GB |         | 100%    |
+| `test:e2e` on `phone-chromium`    | 309 s | +2.1 GB |         | 86%     |
+| `pnpm build`                      | 19 s  | +0.9 GB |         | 77%     |
+| Stryker on `domain`               | 33 s  | +0.7 GB |         | 85%     |
+| `pnpm test` (Turborepo)           | 101 s |         | 0.95 GB |         |
+| `pnpm run ci:e2e`                 | 142 s | +1.9 GB | 0.81 GB | 82%     |
+| `stack:build` without layer cache | 300 s | +2.0 GB | 2.13 GB | 94%     |
+| `pnpm sonar:scan`                 | 653 s | +3.3 GB | 3.07 GB | 85%     |
 
-Docker Desktop runs in a WSL VM capped at 4 GB, so the PostgreSQL containers
-of the integration tests and e2e, and the local SonarQube server, share that
-cap; the test suite also saturates the CPU. That is why those runs stay
-exclusive while the build and Stryker run freely. Remeasure when Stryker grows
-past `domain`.
+`ci:e2e` is a production build and both browser projects, 75 tests on 2
+workers. The VM leaves room for the test suite, e2e, and an image build
+together, but the host does not: any two of them add 4–6 GB to a machine
+already 15–20 GB full. The Sonar scan alone takes the VM within 0.75 GB of its
+cap and the host within 0.4 GB. The build and Stryker add under 1 GB each.
+Remeasure when Stryker grows past `domain`.
 
 ## SonarQube Cloud
 
