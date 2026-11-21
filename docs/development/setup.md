@@ -137,8 +137,10 @@ in `docker-compose.yaml`. The browser opens the web container at
 | `pnpm stack:stop`  | Stop and remove both app containers, leaving PostgreSQL running                          |
 | `pnpm stack:logs`  | Follow both app containers' output                                                       |
 
-Building an image is a heavy task, so `stack:build` builds one at a time. Stop
-`pnpm dev:server` and `pnpm dev:web` first, since they use the same ports.
+Building an image adds about 2 GB on the host and in the Docker VM, so
+`stack:build` builds one at a time and never runs beside the integration tests
+or e2e. Stop `pnpm dev:server` and `pnpm dev:web` first, since they use the
+same ports.
 
 PostgreSQL stores its initialized credentials in the persistent data volume, so
 editing `POSTGRES_PASSWORD` in `docker-compose.yaml` does not change an already

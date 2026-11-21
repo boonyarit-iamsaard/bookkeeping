@@ -16,6 +16,6 @@ export const strykerBase = {
   // resolve unchanged; naming no tsconfig stops Stryker rewriting its `extends`.
   tempDirName: "../../.stryker-tmp",
   tsconfigFile: "",
-  // Stryker runs exclusively on this machine; each worker is a Vitest process.
+  // Each worker is a Vitest process.
   concurrency: 2,
 };

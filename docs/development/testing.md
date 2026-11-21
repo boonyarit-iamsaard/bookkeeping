@@ -93,10 +93,9 @@ pnpm --filter @bookkeeping/domain test:mutation           # Retests only mutants
 pnpm --filter @bookkeeping/domain test:mutation --force   # Retests every mutant
 ```
 
-A run is a heavy task: run it alone, per the resource limits in
-[AGENTS.md](../../AGENTS.md). It uses unit tests only, and `concurrency` is 2;
-on the development machine a full domain run takes about 50 seconds and peaks
-near 900 MB, and 4 workers were slower. Reports land in the workspace's
+It uses unit tests only and needs no Docker, so it may run alongside anything
+but a Sonar scan (see [local resource cost](#local-resource-cost)). `concurrency` is 2;
+4 workers were slower. Reports land in the workspace's
 `reports/mutation/` (`mutation.html` to browse, `mutation.json` for tools),
 beside the incremental results file `reports/stryker-incremental.json`.
 Nothing is sent to the Stryker dashboard. After changing which files are
@@ -115,6 +114,33 @@ ever kill it (an equivalent mutant), on the line above, with the reason:
 ```ts
 // Stryker disable next-line EqualityOperator: on equal dates either argument is the answer
 ```
+
+## Local resource cost
+
+The [resource limits](../../AGENTS.md#local-resource-limits) rest on these
+measurements on native Windows (23.7 GB RAM, 16 threads), each run alone with
+caches off. "Host" is the memory a run adds on Windows; "VM peak" is the used
+memory of the Docker Desktop VM, which runs every container; `.wslconfig` caps
+it at 4 GB, of which 3.8 GB is usable. The first four rows date from 2026-11-16 (about 15 GB already
+in use) and have no VM figure; the rest from 2026-11-21 (about 19–20 GB in use).
+
+| Run                               | Time  | Host    | VM peak | Max CPU |
+| --------------------------------- | ----- | ------- | ------- | ------- |
+| `pnpm test` (Turborepo)           | 115 s | +3.9 GB |         | 100%    |
+| `test:e2e` on `phone-chromium`    | 309 s | +2.1 GB |         | 86%     |
+| `pnpm build`                      | 19 s  | +0.9 GB |         | 77%     |
+| Stryker on `domain`               | 33 s  | +0.7 GB |         | 85%     |
+| `pnpm test` (Turborepo)           | 101 s |         | 0.95 GB |         |
+| `pnpm run ci:e2e`                 | 142 s | +1.9 GB | 0.81 GB | 82%     |
+| `stack:build` without layer cache | 300 s | +2.0 GB | 2.13 GB | 94%     |
+| `pnpm sonar:scan`                 | 653 s | +3.3 GB | 3.07 GB | 85%     |
+
+`ci:e2e` is a production build and both browser projects, 75 tests on 2
+workers. The VM leaves room for the test suite, e2e, and an image build
+together, but the host does not: any two of them add 4–6 GB to a machine
+already 15–20 GB full. The Sonar scan alone takes the VM within 0.75 GB of its
+cap and the host within 0.4 GB. The build and Stryker add under 1 GB each.
+Remeasure when Stryker grows past `domain`.
 
 ## SonarQube Cloud
 
