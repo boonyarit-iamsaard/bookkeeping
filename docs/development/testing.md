@@ -119,7 +119,9 @@ ever kill it (an equivalent mutant), on the line above, with the reason:
 
 The [resource limits](../../AGENTS.md#local-resource-limits) rest on these
 measurements, taken on 2026-11-16 on native Windows (23.7 GB RAM, 16 threads,
-about 15 GB already in use, caches off, each run alone):
+about 15 GB already in use, caches off, each run alone). The `ci:e2e` row was
+measured the same way on 2026-11-21, with about 18.6 GB in use: a production
+build and both browser projects, 75 tests on 2 workers:
 
 | Run                            | Time  | Peak added memory | Max CPU |
 | ------------------------------ | ----- | ----------------- | ------- |
@@ -127,6 +129,7 @@ about 15 GB already in use, caches off, each run alone):
 | `test:e2e` on `phone-chromium` | 309 s | +2.1 GB           | 86%     |
 | `pnpm build`                   | 19 s  | +0.9 GB           | 77%     |
 | Stryker on `domain`            | 33 s  | +0.7 GB           | 85%     |
+| `pnpm run ci:e2e`              | 142 s | +1.9 GB           | 82%     |
 
 Docker Desktop runs in a WSL VM capped at 4 GB, so the PostgreSQL containers
 of the integration tests and e2e, and the local SonarQube server, share that
