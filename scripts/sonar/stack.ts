@@ -1,19 +1,21 @@
 import { execFileSync, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { sonarScannerArguments } from "./scanner-arguments";
 
 const PROJECT_PREFIX = "bookkeeping-sonar";
 const PROJECT_LABEL = "com.docker.compose.project";
-// Resolved from this file, so the scan works from any working directory;
-// Compose resolves the scanner's `.` mount against the file's directory.
+// Resolved from this file, so the scan works from any working directory.
 const COMPOSE_FILE = fileURLToPath(
   new URL("../../docker-compose.sonar.yaml", import.meta.url),
 );
-const SCANNER_IMAGES = [
-  "sonarqube:community",
-  "sonarsource/sonar-scanner-cli:latest",
-];
+const REPOSITORY = fileURLToPath(new URL("../..", import.meta.url));
+const SERVER_IMAGE = "sonarqube:community";
 
 type ResourceKind = "container" | "volume" | "network";
 
@@ -93,13 +95,11 @@ export function removeScanProject(project: string): number {
   return removeProjects((name) => name === project);
 }
 
-export function removeScannerImages(): void {
-  for (const image of SCANNER_IMAGES) {
-    try {
-      docker(["image", "rm", image]);
-    } catch {
-      // The image was never pulled or another container still uses it.
-    }
+export function removeServerImage(): void {
+  try {
+    docker(["image", "rm", SERVER_IMAGE]);
+  } catch {
+    // The image was never pulled or another container still uses it.
   }
 }
 
@@ -141,38 +141,40 @@ export function printServerDiagnostics(project: string): void {
 }
 
 /**
- * Runs the scanner and returns the scan's server-side task ID. It runs
- * asynchronously so the event loop keeps servicing signals and notices the
- * server closing idle connections during the minutes a scan takes.
+ * Runs the npm-distributed scanner natively, with the JRE it provisions from
+ * the server, and returns the scan's server-side task ID. A scanner container
+ * would read the repository through a bind mount, which stalls on native
+ * Windows. It runs asynchronously so the event loop keeps servicing signals
+ * and notices the server closing idle connections during the minutes a scan
+ * takes.
  */
 export async function runScanner(
   stack: Readonly<ScanStack>,
   token: string,
 ): Promise<string> {
-  const container = `${stack.project}-scanner`;
+  const scannerBin = createRequire(import.meta.url).resolve(
+    "@sonar/scan/bin/sonar-scanner.js",
+  );
   const scanner = spawn(
-    "docker",
-    composeArgs(stack.project, [
-      "run",
-      "--name",
-      container,
-      "--no-deps",
-      "scanner",
-    ]),
+    process.execPath,
+    [
+      scannerBin,
+      ...sonarScannerArguments({
+        serverUrl: stack.serverUrl,
+        repository: REPOSITORY,
+      }),
+    ],
     { env: { ...process.env, SONAR_TOKEN: token }, stdio: "inherit" },
   );
   const [exitCode] = await once(scanner, "exit");
   if (exitCode !== 0) {
     throw new Error(`The scanner exited with ${exitCode}.`);
   }
-  // `docker cp` to `-` streams a tar archive; the file is small and plain
-  // text, so its first matching line is enough.
-  const archive = docker([
-    "cp",
-    `${container}:/tmp/scannerwork/report-task.txt`,
-    "-",
-  ]);
-  const taskId = /^ceTaskId=(.+)$/m.exec(archive)?.[1]?.trim();
+  const report = await readFile(
+    join(REPOSITORY, ".scannerwork", "report-task.txt"),
+    "utf8",
+  );
+  const taskId = /^ceTaskId=(.+)$/m.exec(report)?.[1]?.trim();
   if (!taskId) {
     throw new Error("The scanner did not report a task ID.");
   }

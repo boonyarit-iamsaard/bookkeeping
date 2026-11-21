@@ -7,8 +7,8 @@ import {
   createScanProject,
   printServerDiagnostics,
   removeAllScanProjects,
-  removeScannerImages,
   removeScanProject,
+  removeServerImage,
   runScanner,
   startScanStack,
 } from "./sonar/stack";
@@ -52,7 +52,7 @@ async function scan() {
     try {
       removeScanProject(project);
       if (flags.purgeImages) {
-        removeScannerImages();
+        removeServerImage();
       }
     } catch (error) {
       console.error(
