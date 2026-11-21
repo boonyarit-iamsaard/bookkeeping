@@ -213,7 +213,7 @@
                     "message": "Use named imports for project modules and Node builtins."
                   },
                   {
-                    "group": ["@/features/**"],
+                    "group": ["@/features/**", "**/features/**"],
                     "message": "shared and core never import features. Move the code into shared, or pass it in from the feature."
                   }
                 ]
