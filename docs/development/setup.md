@@ -137,7 +137,8 @@ in `docker-compose.yaml`. The browser opens the web container at
 | `pnpm stack:stop`  | Stop and remove both app containers, leaving PostgreSQL running                          |
 | `pnpm stack:logs`  | Follow both app containers' output                                                       |
 
-Building an image is a heavy task, so `stack:build` builds one at a time. Stop
+Building an image fills the capped Docker VM, so `stack:build` builds one at a
+time and never runs beside the integration tests or e2e. Stop
 `pnpm dev:server` and `pnpm dev:web` first, since they use the same ports.
 
 PostgreSQL stores its initialized credentials in the persistent data volume, so

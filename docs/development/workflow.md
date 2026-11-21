@@ -54,10 +54,11 @@ pnpm test:e2e
 `pnpm run ci` runs the routine check sequence without browser tests: formatting,
 linting, every workspace type check, the package and app suites (unit,
 PostgreSQL integration, and the Hono contract tests), and then both app builds
-as a separate step, so a production build never runs beside the test suites.
+as a separate step.
 The explicit `pnpm run ci:e2e` gate builds the client and runs the full
-browser matrix against `vite preview`; run it on its own, never beside another
-heavy task.
+browser matrix against `vite preview`; never run it beside the integration
+tests or a Sonar scan (see the
+[resource limits](../../AGENTS.md#local-resource-limits)).
 `pnpm build`, `pnpm test`, and `pnpm types:check` run through Turborepo, which
 caches and parallelizes per-workspace tasks (see
 [ADR 0002](../adr/0002-turborepo-monorepo.md)).

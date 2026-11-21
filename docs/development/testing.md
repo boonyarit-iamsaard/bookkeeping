@@ -93,10 +93,9 @@ pnpm --filter @bookkeeping/domain test:mutation           # Retests only mutants
 pnpm --filter @bookkeeping/domain test:mutation --force   # Retests every mutant
 ```
 
-A run is a heavy task: run it alone, per the resource limits in
-[AGENTS.md](../../AGENTS.md). It uses unit tests only, and `concurrency` is 2;
-on the development machine a full domain run takes about 50 seconds and peaks
-near 900 MB, and 4 workers were slower. Reports land in the workspace's
+It uses unit tests only and needs no Docker, so it may run alongside anything
+but a Sonar scan (see [local resource cost](#local-resource-cost)). `concurrency` is 2;
+4 workers were slower. Reports land in the workspace's
 `reports/mutation/` (`mutation.html` to browse, `mutation.json` for tools),
 beside the incremental results file `reports/stryker-incremental.json`.
 Nothing is sent to the Stryker dashboard. After changing which files are
@@ -115,6 +114,25 @@ ever kill it (an equivalent mutant), on the line above, with the reason:
 ```ts
 // Stryker disable next-line EqualityOperator: on equal dates either argument is the answer
 ```
+
+## Local resource cost
+
+The [resource limits](../../AGENTS.md#local-resource-limits) rest on these
+measurements, taken on 2026-11-16 on native Windows (23.7 GB RAM, 16 threads,
+about 15 GB already in use, caches off, each run alone):
+
+| Run                      | Time  | Peak added memory | Max CPU |
+| ------------------------ | ----- | ----------------- | ------- |
+| `pnpm test` (Turborepo)  | 115 s | +3.9 GB           | 100%    |
+| `ci:e2e`-style phone e2e | 309 s | +2.1 GB           | 86%     |
+| `pnpm build`             | 19 s  | +0.9 GB           | 77%     |
+| Stryker on `domain`      | 33 s  | +0.7 GB           | 85%     |
+
+Docker Desktop runs in a WSL VM capped at 4 GB, so the PostgreSQL containers
+of the integration tests and e2e, and the local SonarQube server, share that
+cap; the test suite also saturates the CPU. That is why those runs stay
+exclusive while the build and Stryker run freely. Remeasure when Stryker grows
+past `domain`.
 
 ## SonarQube Cloud
 
