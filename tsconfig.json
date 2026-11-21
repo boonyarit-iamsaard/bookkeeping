@@ -7,7 +7,7 @@
     "scripts/**/*.ts",
     "commitlint.config.ts",
     "vitest.config.mts",
-    "vitest.coverage.ts",
+    "vitest.coverage.mts",
     ".railway/railway.ts"
   ],
   "exclude": ["node_modules"]
