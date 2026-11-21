@@ -1,0 +1,16 @@
+language js
+
+// noRestrictedGlobals only sees bare names; this closes the prefixed ones.
+`$host.$timer($args)` where {
+  $host <: or {
+    `window`,
+    `globalThis`,
+    `self`
+  },
+  $timer <: or {
+    `setTimeout`,
+    `setInterval`,
+    `requestAnimationFrame`
+  },
+  register_diagnostic(span=$timer, message="Timers in feature code hide ordering workarounds. To move focus to a saved notice, pass takeFocusOn to SavedNotice.")
+}

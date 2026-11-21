@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Hash } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { TitleBar } from "@/core/shell/title-bar";
 import { EditTagForm } from "@/features/tags/components/edit-tag-form";
 import type { EditTagOutcome } from "@/features/tags/hooks/use-edit-tag-form";
@@ -31,26 +31,26 @@ function byName(tags: readonly TagSummary[]): TagSummary[] {
  * in the notice beneath the title.
  */
 export function TagManagement({ tags }: Readonly<TagManagementProps>) {
-  const [notice, setNotice] = useState("");
-  const noticeRef = useRef<HTMLOutputElement>(null);
+  const [notice, setNotice] = useState({ message: "", takesFocus: false });
 
   function finish(tag: Readonly<TagSummary>, outcome: EditTagOutcome) {
     if (outcome.operation === "rename") {
-      setNotice(
-        outcome.merged
+      setNotice({
+        message: outcome.merged
           ? `${tag.name} merged into ${outcome.tag.name}.`
           : `${tag.name} is now ${outcome.tag.name}.`,
-      );
+        // A merged row is gone; the announcement takes its focus.
+        takesFocus: outcome.merged,
+      });
     } else {
-      setNotice(
-        tag.transactionCount === 0
-          ? `${tag.name} deleted.`
-          : `${tag.name} deleted and taken off its ${tagUsageLabel(tag.transactionCount)}.`,
-      );
-    }
-    // A merged or deleted row is gone; the announcement takes its focus.
-    if (outcome.operation === "delete" || outcome.merged) {
-      requestAnimationFrame(() => noticeRef.current?.focus());
+      setNotice({
+        message:
+          tag.transactionCount === 0
+            ? `${tag.name} deleted.`
+            : `${tag.name} deleted and taken off its ${tagUsageLabel(tag.transactionCount)}.`,
+        // The deleted row is gone; the announcement takes its focus.
+        takesFocus: true,
+      });
     }
   }
 
@@ -59,11 +59,10 @@ export function TagManagement({ tags }: Readonly<TagManagementProps>) {
       <TitleBar title="Tags" />
 
       <SavedNotice
-        ref={noticeRef}
-        tabIndex={-1}
-        className={cn(!notice && "sr-only")}
+        takeFocusOn={notice.takesFocus ? notice : undefined}
+        className={cn(!notice.message && "sr-only")}
       >
-        {notice}
+        {notice.message}
       </SavedNotice>
 
       {tags.length === 0 ? (

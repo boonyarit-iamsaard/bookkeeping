@@ -197,6 +197,26 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/web/src/features/**"],
+      "plugins": ["./biome-plugins/no-feature-timers.grit"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "requestAnimationFrame": "Timers in feature code hide ordering workarounds. To move focus to a saved notice, pass takeFocusOn to SavedNotice.",
+                  "setTimeout": "Timers in feature code hide ordering workarounds. To move focus to a saved notice, pass takeFocusOn to SavedNotice.",
+                  "setInterval": "Timers in feature code hide ordering workarounds. To move focus to a saved notice, pass takeFocusOn to SavedNotice."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

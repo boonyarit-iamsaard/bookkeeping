@@ -1,11 +1,14 @@
 import { Check } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/shared/helpers/cn";
 
 interface SavedNoticeProps {
   children: React.ReactNode;
-  /** Lets a screen move focus here once the control that had it is gone. */
-  ref?: React.Ref<HTMLOutputElement>;
-  tabIndex?: number;
+  /**
+   * Takes focus each time a new object is passed, even when the message
+   * repeats, for when the control that had it is gone.
+   */
+  takeFocusOn?: object;
   className?: string;
 }
 
@@ -15,14 +18,21 @@ interface SavedNoticeProps {
  */
 export function SavedNotice({
   children,
-  ref,
-  tabIndex,
+  takeFocusOn,
   className,
 }: Readonly<SavedNoticeProps>) {
+  const ref = useRef<HTMLOutputElement>(null);
+
+  useEffect(() => {
+    if (takeFocusOn) {
+      ref.current?.focus();
+    }
+  }, [takeFocusOn]);
+
   return (
     <output
       ref={ref}
-      tabIndex={tabIndex}
+      tabIndex={takeFocusOn ? -1 : undefined}
       className={cn(
         "bg-secondary text-secondary-foreground focus-visible:ring-ring/45 flex items-start gap-3 rounded-2xl px-4 py-3 text-sm leading-normal outline-none focus-visible:ring-[3px]",
         className,
