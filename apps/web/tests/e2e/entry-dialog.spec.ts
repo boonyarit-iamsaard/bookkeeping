@@ -1,6 +1,7 @@
 import { APP_TIME_ZONE, addDays, todayIn } from "@bookkeeping/domain/dates";
 import { expect, test } from "@playwright/test";
 import { createWalletThroughForm } from "./helpers/create-wallet";
+import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 import { isDesktop } from "./helpers/viewport";
 
@@ -105,4 +106,80 @@ test("the entry dialog ignores the scrim once changed and scopes Escape to a pic
   await dialog.getByRole("button", { name: "Close" }).click();
   await expect(dialog).toHaveCount(0);
   expect(new URL(page.url()).pathname).toBe("/");
+});
+
+test("from 1024px Edit, Record refund and New wallet open over their screens", {
+  tag: "@matrix",
+}, async ({ page }) => {
+  test.skip(!isDesktop(page), "The entry dialog is desktop-only");
+  await signUpFreshUser(page);
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "1000",
+    openingDate: addDays(todayIn({ timeZone: APP_TIME_ZONE }), -3),
+  });
+  await page.goto("/transactions/new");
+  await page.getByLabel("Amount").fill("500");
+  await page.getByRole("button", { name: "Save −฿500.00 · Cash" }).click();
+  await expectSavedRecord(page);
+  await page.locator("[data-transaction-row]").getByRole("link").click();
+  await expect(page.getByText("None recorded")).toBeVisible();
+  const detailUrl = page.url();
+  const main = page.locator("main");
+
+  // Edit closes onto the detail with its new values.
+  await main.getByRole("link", { name: "Edit" }).click();
+  const edit = page.getByRole("dialog", { name: "Edit expense" });
+  await expect(edit).toBeVisible();
+  expect(page.url()).toBe(detailUrl);
+  await edit.getByLabel("Amount").fill("450");
+  await edit.getByRole("button", { name: "Save −฿450.00 · Cash" }).click();
+  await expect(edit).toHaveCount(0);
+  await expect(page.getByText("Changes saved.")).toBeVisible();
+  expect(page.url()).toBe(detailUrl);
+  await expect(main.getByText("450.00").first()).toBeVisible();
+
+  // Record refund closes onto the detail with the refund listed.
+  await main.getByRole("link", { name: "Record refund" }).click();
+  const refund = page.getByRole("dialog", { name: "Record refund" });
+  await refund.getByLabel("Amount").fill("50");
+  await refund.getByRole("button", { name: "Save +฿50.00 · Cash" }).click();
+  await expect(refund).toHaveCount(0);
+  await expect(page.getByText("Refund saved.")).toBeVisible();
+  expect(page.url()).toBe(detailUrl);
+  await expect(
+    main.getByRole("list", { name: "Linked refunds" }),
+  ).toContainText("50.00");
+
+  // A direct load of either is still the page.
+  for (const [path, title] of [
+    ["edit", "Edit expense"],
+    ["refund", "Record refund"],
+  ]) {
+    await page.goto(`${detailUrl}/${path}`);
+    await expect(
+      page.getByRole("heading", { name: title, level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
+
+  // New wallet stays on Wallets, which lists it after Save.
+  await page.goto("/wallets");
+  await page.getByRole("link", { name: "New wallet" }).click();
+  const wallet = page.getByRole("dialog", { name: "New wallet" });
+  await wallet.getByLabel("Name").fill("Bank");
+  await wallet.getByLabel("Opening balance").fill("200");
+  await wallet.getByRole("button", { name: "Create wallet" }).click();
+  await expect(wallet).toHaveCount(0);
+  await expect(page.getByText("Wallet created.")).toBeVisible();
+  await expect(page).toHaveURL(/\/wallets$/);
+  await expect(
+    page.locator("[data-wallet-row]").filter({ hasText: "Bank" }),
+  ).toBeVisible();
+
+  await page.goto("/wallets/new");
+  await expect(
+    page.getByRole("heading", { name: "New wallet", level: 1 }),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });

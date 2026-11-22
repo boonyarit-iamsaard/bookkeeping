@@ -3,6 +3,7 @@ import {
   parseCalendarDate,
 } from "@bookkeeping/domain/dates";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
+import { useStore } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useCreateWalletForm } from "@/features/wallets/hooks/use-create-wallet-form";
@@ -10,6 +11,7 @@ import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { ErrorNotice } from "@/shared/components/error-notice";
 import { AmountInput } from "@/shared/components/form/amount-input";
+import type { EntryDialogHost } from "@/shared/components/form/entry-dialog";
 import {
   EntryFormBody,
   EntrySaveBar,
@@ -44,10 +46,21 @@ function describeOpeningDate(value: string): string {
   return `The balance above is what the wallet held at the start of ${date}. Tracking begins there.`;
 }
 
-export function CreateWalletForm() {
+interface CreateWalletFormProps {
+  /** Set inside an entry dialog, which owns closing and the outcome of a save. */
+  host?: EntryDialogHost;
+}
+
+export function CreateWalletForm({ host }: Readonly<CreateWalletFormProps>) {
   const navigate = useNavigate();
-  const { form, today, serverError, serverFieldErrors } = useCreateWalletForm();
+  const { form, today, serverError, serverFieldErrors } = useCreateWalletForm({
+    onSaved: host?.onSaved,
+  });
   const formRef = useRef<HTMLFormElement>(null);
+  const hosted = Boolean(host);
+  const dirty = useStore(form.store, (state) => state.isDirty);
+  const onDirtyChange = host?.onDirtyChange;
+  useEffect(() => onDirtyChange?.(dirty), [onDirtyChange, dirty]);
 
   useEffect(() => {
     const element = formRef.current;
@@ -58,7 +71,8 @@ export function CreateWalletForm() {
     formElement.dataset.ready = "true";
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape" && event.target instanceof Node) {
-        if (!formElement.contains(event.target)) {
+        // A dialog closes on Escape itself and has no page to cancel to.
+        if (hosted || !formElement.contains(event.target)) {
           return;
         }
         event.preventDefault();
@@ -67,7 +81,7 @@ export function CreateWalletForm() {
     }
     formElement.addEventListener("keydown", handleEscape);
     return () => formElement.removeEventListener("keydown", handleEscape);
-  }, [navigate]);
+  }, [navigate, hosted]);
 
   return (
     <form

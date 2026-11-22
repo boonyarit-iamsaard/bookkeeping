@@ -2,7 +2,6 @@
 import { carriesOwnTags } from "@bookkeeping/domain/transactions";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import type { components } from "@/core/api/openapi.gen";
 import {
   categoryQueries,
   tagQueries,
@@ -11,108 +10,25 @@ import {
 } from "@/core/api/queries";
 import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
+import {
+  EditTransaction,
+  editTransactionTitle,
+} from "@/features/transactions/components/edit-transaction";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
-import { TransactionForm } from "@/features/transactions/components/transaction-form";
-import { editableTransaction } from "@/features/transactions/editable-transaction";
-import { linkedExpenseView } from "@/features/transactions/linked-expense";
 import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
-import type {
-  LinkedExpenseView,
-  WalletOption,
-} from "@/features/transactions/transaction.types";
-import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
-import { toWalletOptions } from "@/features/transactions/wallet-options";
 import { buttonVariants } from "@/shared/components/ui/button";
-
-type Transaction = components["schemas"]["Transaction"];
-
-interface EditTransactionFormProps {
-  transaction: Transaction;
-  wallets: readonly WalletOption[];
-}
-
-interface EditRefundFormProps extends EditTransactionFormProps {
-  expenseId: string;
-}
-
-interface EditFormProps extends EditTransactionFormProps {
-  refundOf?: LinkedExpenseView;
-  refunds?: components["schemas"]["TransactionRefunds"];
-}
-
-function EditForm({
-  transaction,
-  wallets,
-  refundOf,
-  refunds,
-}: Readonly<EditFormProps>) {
-  return (
-    <TransactionForm
-      wallets={wallets}
-      mode={{
-        kind: "correct",
-        transaction: editableTransaction({ transaction, refundOf, refunds }),
-      }}
-    />
-  );
-}
-
-function EditRefundForm({
-  expenseId,
-  ...props
-}: Readonly<EditRefundFormProps>) {
-  const { data: expense } = useSuspenseQuery(
-    transactionQueries.detail(expenseId),
-  );
-  const { data: refunds } = useSuspenseQuery(
-    transactionQueries.refunds(expenseId, { excluding: props.transaction.id }),
-  );
-  return (
-    <EditForm {...props} refundOf={linkedExpenseView({ expense, refunds })} />
-  );
-}
-
-function EditExpenseForm(props: Readonly<EditTransactionFormProps>) {
-  const { data: refunds } = useSuspenseQuery(
-    transactionQueries.refunds(props.transaction.id),
-  );
-  return <EditForm {...props} refunds={refunds} />;
-}
-
-/** A refund shows its expense; an expense shows what it has refunded. */
-function EditTransactionForm(props: Readonly<EditTransactionFormProps>) {
-  if (props.transaction.refundOf) {
-    return (
-      <EditRefundForm {...props} expenseId={props.transaction.refundOf.id} />
-    );
-  }
-  if (props.transaction.type === "expense") {
-    return <EditExpenseForm {...props} />;
-  }
-  return <EditForm {...props} />;
-}
 
 function EditTransactionPage() {
   const { transactionId } = Route.useParams();
   const { data: transaction } = useSuspenseQuery(
     transactionQueries.detail(transactionId),
   );
-  const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
-
-  const wallets = toWalletOptions(walletCollection.items, {
-    retainedWalletIds: [
-      transaction.wallet.id,
-      ...(transaction.destinationWallet
-        ? [transaction.destinationWallet.id]
-        : []),
-    ],
-  });
 
   return (
     <Page layout="entry">
       <TitleBar
-        title={`Edit ${TRANSACTION_TYPE_LABELS[transaction.type].toLowerCase()}`}
+        title={editTransactionTitle(transaction.type)}
         back={
           <BackLink
             to="/transactions/$transactionId"
@@ -134,7 +50,7 @@ function EditTransactionPage() {
           </Link>
         }
       />
-      <EditTransactionForm transaction={transaction} wallets={wallets} />
+      <EditTransaction transactionId={transaction.id} />
     </Page>
   );
 }
