@@ -4,15 +4,16 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Hash } from "lucide-react";
 import { useState } from "react";
 import { TitleBar } from "@/core/shell/title-bar";
-import { EditTagForm } from "@/features/tags/components/edit-tag-form";
+import { EditTagSheet } from "@/features/tags/components/edit-tag-sheet";
+import { TagTable } from "@/features/tags/components/tag-table";
 import type { EditTagOutcome } from "@/features/tags/hooks/use-edit-tag-form";
 import type { TagSummary } from "@/features/tags/tag-search";
 import { tagUsageLabel } from "@/features/tags/tag-search";
 import { EmptyState } from "@/shared/components/empty-state";
 import { listCardClass } from "@/shared/components/list-section";
 import { SavedNotice } from "@/shared/components/saved-notice";
-import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/helpers/cn";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 interface TagManagementProps {
   tags: readonly TagSummary[];
@@ -46,18 +47,15 @@ function TagRow({ tag, others, onDone }: Readonly<TagRowProps>) {
           </span>
         </span>
       </Dialog.Trigger>
-      <SheetPortal className="sm:h-auto sm:max-h-144">
-        <SheetHeader subtitle={tag.name}>Edit tag</SheetHeader>
-        <EditTagForm
-          tag={tag}
-          others={others}
-          onDone={(outcome) => {
-            setOpen(false);
-            onDone(outcome);
-          }}
-          onCancel={() => setOpen(false)}
-        />
-      </SheetPortal>
+      <EditTagSheet
+        tag={tag}
+        others={others}
+        onDone={(outcome) => {
+          setOpen(false);
+          onDone(outcome);
+        }}
+        onCancel={() => setOpen(false)}
+      />
     </Dialog.Root>
   );
 }
@@ -68,6 +66,7 @@ function TagRow({ tag, others, onDone }: Readonly<TagRowProps>) {
  * in the notice beneath the title.
  */
 export function TagManagement({ tags }: Readonly<TagManagementProps>) {
+  const desktop = useIsDesktop();
   const [notice, setNotice] = useState({ message: "", takesFocus: false });
 
   function finish(tag: Readonly<TagSummary>, outcome: EditTagOutcome) {
@@ -103,12 +102,18 @@ export function TagManagement({ tags }: Readonly<TagManagementProps>) {
       </SavedNotice>
 
       {tags.length === 0 ? (
-        <EmptyState
-          icon={Hash}
-          headingId="empty-tags-heading"
-          title="No tags yet"
-          description="Tags name what recurs across transactions without being a category, like a shop or a game. Add them from the Tags field when you record income or an expense."
-        />
+        <div className="lg:w-1/2">
+          <EmptyState
+            icon={Hash}
+            headingId="empty-tags-heading"
+            title="No tags yet"
+            description="Tags name what recurs across transactions without being a category, like a shop or a game. Add them from the Tags field when you record income or an expense."
+          />
+        </div>
+      ) : desktop ? (
+        <div className="bg-card shadow-card rounded-2xl p-6 lg:w-1/2">
+          <TagTable tags={byName(tags)} onDone={finish} />
+        </div>
       ) : (
         <ul aria-label="Tags" className={listCardClass}>
           {byName(tags).map((tag) => (

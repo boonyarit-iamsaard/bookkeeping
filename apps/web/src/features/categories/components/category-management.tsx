@@ -11,25 +11,27 @@ import { TitleBar } from "@/core/shell/title-bar";
 import type { CategoryColor } from "@/features/categories/category-color";
 import { createCategoryColors } from "@/features/categories/category-color";
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
-import type { ManageCategoryOutcome } from "@/features/categories/category-mutations";
 import { searchCategories } from "@/features/categories/category-search";
 import {
   CategoryIcon,
   CategoryTile,
   ChildMarker,
 } from "@/features/categories/components/category-icon";
+import { CategoryTable } from "@/features/categories/components/category-table";
 import { CreateCategoryForm } from "@/features/categories/components/create-category-form";
 import type { RemovalContext } from "@/features/categories/components/edit-category-form";
-import {
-  EditCategoryForm,
-  entriesLabel,
-} from "@/features/categories/components/edit-category-form";
+import { entriesLabel } from "@/features/categories/components/edit-category-form";
+import type { EditResult } from "@/features/categories/components/edit-category-sheet";
+import { EditCategorySheet } from "@/features/categories/components/edit-category-sheet";
+import { DashboardCard } from "@/shared/components/dashboard-card";
+import { DashboardRow } from "@/shared/components/dashboard-row";
 import { listCardClass } from "@/shared/components/list-section";
 import { SavedNotice } from "@/shared/components/saved-notice";
 import { Button } from "@/shared/components/ui/button";
 import { SegmentedControl } from "@/shared/components/ui/segmented-control";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/helpers/cn";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 interface CategoryManagementProps {
   categories: readonly CategorySummary[];
@@ -102,27 +104,16 @@ function CategoryRow({
           )}
         </span>
       </Dialog.Trigger>
-      <SheetPortal className="sm:h-auto sm:max-h-144">
-        <SheetHeader
-          subtitle={
-            removal.parentName
-              ? `${CATEGORY_KIND_LABELS[category.kind]} · ${removal.parentName} › ${category.name}`
-              : `${CATEGORY_KIND_LABELS[category.kind]} · ${category.name}`
-          }
-        >
-          Edit category
-        </SheetHeader>
-        <EditCategoryForm
-          category={category}
-          color={color}
-          removal={removal}
-          onDone={(outcome) => {
-            setOpen(false);
-            onDone({ category, removal, outcome });
-          }}
-          onCancel={() => setOpen(false)}
-        />
-      </SheetPortal>
+      <EditCategorySheet
+        category={category}
+        color={color}
+        removal={removal}
+        onDone={(result) => {
+          setOpen(false);
+          onDone(result);
+        }}
+        onCancel={() => setOpen(false)}
+      />
     </Dialog.Root>
   );
 }
@@ -137,6 +128,7 @@ export function CategoryManagement({
   categories,
   usage,
 }: Readonly<CategoryManagementProps>) {
+  const desktop = useIsDesktop();
   const [kind, setKind] = useState<CategoryKind>("expense");
   const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState({ message: "", takesFocus: false });
@@ -173,10 +165,28 @@ export function CategoryManagement({
         title="Categories"
         actions={
           <Dialog.Root open={creating} onOpenChange={setCreating}>
-            <Dialog.Trigger render={<Button variant="outline" size="lg" />}>
-              <Plus data-icon="inline-start" />
-              New category
-            </Dialog.Trigger>
+            {desktop ? (
+              // Both trees are on show, so each button names its own.
+              KIND_OPTIONS.map((option) => (
+                <Button
+                  key={option.value}
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    setKind(option.value);
+                    setCreating(true);
+                  }}
+                >
+                  <Plus data-icon="inline-start" />
+                  New {option.label.toLowerCase()} category
+                </Button>
+              ))
+            ) : (
+              <Dialog.Trigger render={<Button variant="outline" size="lg" />}>
+                <Plus data-icon="inline-start" />
+                New category
+              </Dialog.Trigger>
+            )}
             <SheetPortal className="sm:h-auto sm:max-h-144">
               <SheetHeader>
                 New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
@@ -207,71 +217,92 @@ export function CategoryManagement({
         {notice.message}
       </SavedNotice>
 
-      <div>
-        <span id="category-tree-label" className="sr-only">
-          Category tree
-        </span>
-        <SegmentedControl
-          aria-labelledby="category-tree-label"
-          options={KIND_OPTIONS}
-          value={kind}
-          onValueChange={setKind}
-        />
-      </div>
-
-      <ul
-        className="flex flex-col gap-3 sm:gap-4"
-        aria-label={`${CATEGORY_KIND_LABELS[kind]} categories`}
-      >
-        {groups.map((group) => {
-          const color = colorOf(group.parent.id);
-          return (
-            <li key={group.parent.id} className={listCardClass}>
-              <CategoryRow
-                category={group.parent}
-                color={color}
-                removal={{
-                  parentName: null,
-                  childCount: group.children.length,
-                  entries: usage[group.parent.id] ?? 0,
-                }}
+      {desktop ? (
+        <DashboardRow className="lg:grid-cols-2">
+          {KIND_OPTIONS.map((option) => (
+            <DashboardCard
+              key={option.value}
+              headingId={`${option.value}-categories-heading`}
+              heading={option.label}
+            >
+              <CategoryTable
+                label={`${option.label} categories`}
+                groups={
+                  searchCategories({
+                    categories,
+                    kind: option.value,
+                    query: "",
+                  }).groups
+                }
+                colorOf={colorOf}
+                usage={usage}
                 onDone={finishEdit}
               />
-              {group.children.length > 0 && (
-                <ul
-                  aria-label={`${group.parent.name} children`}
-                  className="divide-border/70 divide-y"
-                >
-                  {group.children.map((child) => (
-                    <li key={child.id}>
-                      <CategoryRow
-                        category={child}
-                        color={color}
-                        isChild
-                        removal={{
-                          parentName: group.parent.name,
-                          childCount: 0,
-                          entries: usage[child.id] ?? 0,
-                        }}
-                        onDone={finishEdit}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+            </DashboardCard>
+          ))}
+        </DashboardRow>
+      ) : (
+        <>
+          <div>
+            <span id="category-tree-label" className="sr-only">
+              Category tree
+            </span>
+            <SegmentedControl
+              aria-labelledby="category-tree-label"
+              options={KIND_OPTIONS}
+              value={kind}
+              onValueChange={setKind}
+            />
+          </div>
+
+          <ul
+            className="flex flex-col gap-3 sm:gap-4"
+            aria-label={`${CATEGORY_KIND_LABELS[kind]} categories`}
+          >
+            {groups.map((group) => {
+              const color = colorOf(group.parent.id);
+              return (
+                <li key={group.parent.id} className={listCardClass}>
+                  <CategoryRow
+                    category={group.parent}
+                    color={color}
+                    removal={{
+                      parentName: null,
+                      childCount: group.children.length,
+                      entries: usage[group.parent.id] ?? 0,
+                    }}
+                    onDone={finishEdit}
+                  />
+                  {group.children.length > 0 && (
+                    <ul
+                      aria-label={`${group.parent.name} children`}
+                      className="divide-border/70 divide-y"
+                    >
+                      {group.children.map((child) => (
+                        <li key={child.id}>
+                          <CategoryRow
+                            category={child}
+                            color={color}
+                            isChild
+                            removal={{
+                              parentName: group.parent.name,
+                              childCount: 0,
+                              entries: usage[child.id] ?? 0,
+                            }}
+                            onDone={finishEdit}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
     </div>
   );
-}
-
-/** What a sheet finished with, and the row it belonged to. */
-interface EditResult {
-  category: CategorySummary;
-  removal: RemovalContext;
-  outcome: ManageCategoryOutcome;
 }
 
 interface CategoryRowProps {

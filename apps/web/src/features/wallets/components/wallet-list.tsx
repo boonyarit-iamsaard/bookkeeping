@@ -2,16 +2,19 @@ import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Plus, Wallet } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
+import { WalletTable } from "@/features/wallets/components/wallet-table";
 import { WalletTile } from "@/features/wallets/components/wallet-tile";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
 import { walletCaption } from "@/features/wallets/wallet-labels";
 import { walletMorphName } from "@/features/wallets/wallet-morph";
+import { DashboardCard } from "@/shared/components/dashboard-card";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { ARRIVAL_CLASS } from "@/shared/helpers/arrival";
 import { cn } from "@/shared/helpers/cn";
 import { morphProps } from "@/shared/helpers/morph";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 type WalletSummary = components["schemas"]["Wallet"];
 type TotalBalanceSplit = components["schemas"]["TotalBalanceSplit"];
@@ -46,8 +49,21 @@ export function WalletList({
   balance,
   createdId,
 }: Readonly<WalletListProps>) {
+  const desktop = useIsDesktop();
   if (wallets.length === 0) {
-    return <EmptyWallets />;
+    return (
+      <div className="lg:max-w-2xl">
+        <EmptyWallets />
+      </div>
+    );
+  }
+  if (desktop) {
+    // From 1024px the table carries the total in its footer, so no hero.
+    return (
+      <DashboardCard headingId="wallets-heading" heading="Wallets">
+        <WalletTable wallets={wallets} total={balance.total} captionArchived />
+      </DashboardCard>
+    );
   }
 
   return (
