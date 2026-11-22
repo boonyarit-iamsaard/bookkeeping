@@ -59,7 +59,7 @@ export function TabBar({ captureSearch }: Readonly<TabBarProps>) {
     <nav
       aria-label="Primary"
       data-shell="tab-bar"
-      className="bg-chrome/95 supports-backdrop-filter:bg-chrome/85 fixed inset-x-0 bottom-0 z-20 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden"
+      className="bg-chrome/95 supports-backdrop-filter:bg-chrome/85 fixed inset-x-0 bottom-0 z-20 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-md"
     >
       <div className="mx-auto flex h-14 w-full max-w-2xl items-stretch px-1">
         <TabHalf destinations={DESTINATIONS.slice(0, CENTRE)} />

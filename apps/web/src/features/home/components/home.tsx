@@ -56,7 +56,7 @@ function Arrival({ order, animate, children }: Readonly<ArrivalProps>) {
 }
 
 interface HomeProps {
-  /** The phone account control the route supplies; the header has its own from 640px. */
+  /** The phone account control the route supplies; the top bar has its own from 1024px. */
   accountControl: React.ReactNode;
   initialToday: CalendarDate;
   savedId?: string;
@@ -119,7 +119,7 @@ export function Home({
     <Page layout="dashboard">
       <TitleBar
         title="Home"
-        actions={<div className="sm:hidden">{accountControl}</div>}
+        actions={<div className="lg:hidden">{accountControl}</div>}
       />
       {wallets.length === 0 ? (
         <EmptyWallets />

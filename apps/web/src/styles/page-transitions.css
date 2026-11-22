@@ -56,11 +56,15 @@
   [data-shell="header"] {
     view-transition-name: app-header;
   }
+  [data-shell="sidebar"] {
+    view-transition-name: app-sidebar;
+  }
   [data-shell="tab-bar"] {
     view-transition-name: tab-bar;
   }
 }
 ::view-transition-group(app-header),
+::view-transition-group(app-sidebar),
 ::view-transition-group(tab-bar) {
   animation-duration: 150ms;
 }

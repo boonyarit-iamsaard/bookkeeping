@@ -181,6 +181,8 @@ spacing:
   title-bar: "3.5rem"
   tab-bar: "3.5rem"
   header: "4rem"
+  sidebar: "15rem"
+  sidebar-collapsed: "3.5rem"
   column: "42rem"
   column-wide: "64rem"
   column-narrow: "28rem"
@@ -359,7 +361,7 @@ A violet-blue family on tinted neutrals: Iris acts, Midnight holds the figure, a
 ### Secondary
 
 - **Midnight** (`{colors.midnight}`, `{colors.midnight-dark}` in dark): the hero card that holds a screen's one display figure. Dark keeps it deep rather than lifting it, so it stays inky against the near-black ground. Its text is **Midnight Ink** (`{colors.midnight-ink}`) and its label and caption are **Midnight Muted** (`{colors.midnight-muted}`, `{colors.midnight-muted-dark}` in dark).
-- **Mark Midnight and Mark Coin** (`{colors.mark-midnight}`, `{colors.mark-coin}`): the app icon's fixed sRGB ground and coin, used by the icon, the header's app mark, the maskable and Apple icon padding, and the hero's faint coin. These are asset colors, not theme tokens; they do not change with the scheme.
+- **Mark Midnight and Mark Coin** (`{colors.mark-midnight}`, `{colors.mark-coin}`): the app icon's fixed sRGB ground and coin, used by the icon, the sidebar's app mark, the maskable and Apple icon padding, and the hero's faint coin. These are asset colors, not theme tokens; they do not change with the scheme.
 
 ### Tertiary
 
@@ -369,7 +371,7 @@ A violet-blue family on tinted neutrals: Iris acts, Midnight holds the figure, a
 ### Neutral
 
 - **Ground** (`{colors.ground}`, `{colors.ground-dark}` in dark): the page behind the cards; a soft lavender in light, near-black indigo in dark.
-- **Chrome** (`{colors.chrome}`, `{colors.chrome-dark}` in dark): the phone title bar, the tab bar, and the desktop header; `theme-color` follows it per shown scheme (`#ffffff` and `#14141c`) so the status bar continues the title bar.
+- **Chrome** (`{colors.chrome}`, `{colors.chrome-dark}` in dark): the phone title bar, the tab bar, and the desktop sidebar and top bar; `theme-color` follows it per shown scheme (`#ffffff` and `#14141c`) so the status bar continues the title bar.
 - **Card** (`{colors.card}`, `{colors.card-dark}` in dark): cards, list cards, sheets, fields in light, and the segmented indicator. Floating surfaces use Card in light and the lifted **Popover Dark** (`{colors.popover-dark}`) in dark.
 - **Ink** (`{colors.ink}`, `{colors.ink-dark}` in dark): headings, body, row titles, and every figure off the hero.
 - **Slate** (`{colors.slate}`, `{colors.slate-dark}` in dark): captions, metadata, placeholders, inactive tabs and nav links, and trailing chevrons.
@@ -384,7 +386,7 @@ A violet-blue family on tinted neutrals: Iris acts, Midnight holds the figure, a
 
 ### Named Rules
 
-**The One Iris Action Rule.** A screen has one Iris-filled action. On phone it is the tab bar's ＋; from 640px it is New transaction in the header. An empty state or a load error may fill its own action when it is the screen's sole next step. Selection is separate: the chosen day or month may be Iris, and Iris Text marks links, the current tab, and a chosen option.
+**The One Iris Action Rule.** A screen has one Iris-filled action. Below 1024px it is the tab bar's ＋; from 1024px it is New transaction in the top bar. An empty state or a load error may fill its own action when it is the screen's sole next step. Selection is separate: the chosen day or month may be Iris, and Iris Text marks links, the current tab, and a chosen option.
 
 **The Hue Is Identity Rule.** A category's hue comes from a stable hash of its parent's id, so adding, removing, or reordering categories never recolors another; a child takes its parent's hue. Uncategorized, transfers, and unknown ids are neutral. Hue identifies a category and never carries type, sign, direction, or validity.
 
@@ -430,9 +432,9 @@ A violet-blue family on tinted neutrals: Iris acts, Midnight holds the figure, a
 
 Content is one centred column with 16px phone gutters. Home, lists, details, and reports use the 672px column; single-record management and forms use the 448px column, and entry forms leave 224px below the fields on phone, room for the fixed Save bar and for the last field to clear the sticky title bar. Blocks are 24px apart on phone and 32px from 640px. Cards pad 20px on phone and 24 to 28px from 640px. Rows are at least 64px tall, padded 12px by 16px, with 14px between the tile, the text, and the figure.
 
-Below 640px each screen begins with a sticky Chrome title bar, 56px plus the status-area inset, which gains a bottom Hairline only once the page scrolls under it. The tab bar is fixed above the home indicator: 56px plus the bottom safe area, a top Hairline, Chrome at 85 to 95% with backdrop blur. Home and Transactions share one equal half, Wallets and Reports the other, with the 48px ＋ exactly centred between them and rising above the bar. From 640px the tab bar and title bar give way to the 64px desktop header (Chrome at 90%, blurred, bottom Hairline), and content starts 32px below it.
+Below 1024px each screen begins with a sticky Chrome title bar, 56px plus the status-area inset, whose ground reaches both window edges and which gains a bottom Hairline only once the page scrolls under it. The tab bar is fixed above the home indicator: 56px plus the bottom safe area, a top Hairline, Chrome at 85 to 95% with backdrop blur. Home and Transactions share one equal half, Wallets and Reports the other, with the 48px ＋ exactly centred between them and rising above the bar. From 1024px the desktop shell replaces both: a Chrome sidebar on the left behind a right Hairline, 240px wide or 56px collapsed to its icons, and a sticky 64px top bar (Chrome at 90%, blurred, bottom Hairline) over the content, which starts 32px below it. A screen without a desktop composition shows its phone column, centred, in the content area.
 
-Home's dashboard layout is the 672px column until 1024px, then widens to the header's 1024px width and splits 5:7: the hero, the summary strip (Today first) and the Wallets card (its heading links to Wallets) on the left, and Recent transactions on the right.
+Home's dashboard layout is the 672px column until 1024px, then widens to 1024px and splits 5:7: the hero, the summary strip (Today first) and the Wallets card (its heading links to Wallets) on the left, and Recent transactions on the right.
 
 A transaction row's title wraps beside its figure; the date, wallet, and note run the full width beneath it, with the date never shrinking and the wallet truncating first.
 
@@ -455,7 +457,7 @@ Depth is soft and tinted. Cards rest on the ground with a faint iris shadow, flo
 
 ## Shapes
 
-Corners scale with the surface: 14px for controls, fields, and tiles; 16px for floating surfaces; 20px for cards; 24px for the hero card and sheets. A phone sheet rounds only its top corners; from 640px the dialog rounds all four. Smaller pieces use 10px (nav links, the segmented indicator and segments, menu and Select items, summary arrow tiles, skeletons) and circles (the ＋, the account disc, calendar days, the title bar's ‹, the sheet's ✕).
+Corners scale with the surface: 14px for controls, fields, and tiles; 16px for floating surfaces; 20px for cards; 24px for the hero card and sheets. A phone sheet rounds only its top corners; from 640px the dialog rounds all four. Smaller pieces use 10px (sidebar items, the segmented indicator and segments, menu and Select items, summary arrow tiles, skeletons) and circles (the ＋, the account disc, calendar days, the title bar's ‹, the sheet's ✕).
 
 Category and row tiles are 44px rounded squares, never circles; a child category's tile in a tree steps down to 36px, and a tile inside a field or Select option to 28 or 32px, at 10px corners. Summary arrow tiles are 28px. Lucide pictograms draw at stroke 1.75 in rows, fields, chrome, and menus; small arrows in tiles and links use 2 to 2.25, as do small marks such as a chosen option's check, a caption's lock, and the ＋ in a create tile; the 12px check in the icon picker's badge uses 3. The current phone tab thickens its icon to 2.25.
 
@@ -568,8 +570,9 @@ The offline page is static, because the service worker serves it when a launch c
 ### Navigation
 
 - **Phone tab bar:** Home, Transactions, New, Wallets, and Reports. Each destination is a 24px Lucide icon over its Tab Label; current is Iris Text with a 2.25 stroke, the rest Slate, and the word always names it. New is a 48px Iris circle with a white ＋, the capture glow, and a 4px Chrome ring, rising above the bar with its word aligned to the others.
-- **Phone title bar:** the Headline on one line, truncating with an ellipsis so a long name never lengthens the bar (from 640px the in-page heading wraps instead), an optional 44px ‹ to the logical parent (accessibly named, never browser history), and actions on the right at the `lg` size. Home places the 32px account disc there.
-- **Desktop header:** the 32px app mark with the Bookkeeping wordmark (the word appears from 768px), then Home, Transactions, Wallets, and Reports as 40px nav links (Slate, Wash on hover, the current one an Iris Tonal pill), New transaction as the Iris primary at `lg`, and the account trigger.
+- **Phone title bar:** the Headline on one line, truncating with an ellipsis so a long name never lengthens the bar (from 1024px the in-page heading wraps instead), an optional 44px ‹ to the logical parent (accessibly named, never browser history), and actions on the right at the `lg` size. Home places the 32px account disc there.
+- **Desktop sidebar:** the 32px app mark with the Bookkeeping wordmark, which leads Home but is never current; then Home, Transactions, Wallets, and Reports, and below them, set apart, Categories and Tags. Each is a 40px item with a 16px Lucide icon and its semibold label (Slate, Wash on hover, the current one an Iris Tonal pill). Collapsed, only the icons remain and each names itself in a tooltip on hover or focus. The top bar's panel trigger, Ctrl or ⌘ B, and the sidebar's edge collapse and expand it, and the device remembers the choice.
+- **Desktop top bar:** the sidebar trigger at the window's left edge, then "Today · 22 Nov 2026" in Slate, New transaction as the Iris primary at `lg`, and the account trigger, aligned to the content column.
 - **Account controls:** the initial sits on an Iris Tonal disc. On desktop a 40px ghost circle opens a Float menu naming "Signed in as" and the email, then Categories and Tags, an Appearance group, and Sign out. On phone Home a 44px trigger around the 32px disc opens the Account sheet with the email as its caption and Categories, Tags, and Sign out as rows on a Ground-filled inset list with 36px Mist tiles, with the Appearance Segmented Control before Sign out. Categories and Tags are separate management pages, not tabs.
 - **Appearance:** System, Light, or Dark, remembered per device, System by default. System follows the OS setting live. On desktop the choice is three menu radio items under an "Appearance" group label, the current one checked like a chosen Select option, and choosing keeps the menu open; on phone it is a labelled Segmented Control. The choice applies before first paint on every screen, signed-out and offline included, and switches instantly with color transitions suppressed for that frame. Signed-out screens show no control.
 

@@ -30,7 +30,7 @@ interface AccountMenuProps {
 /**
  * The desktop account control: who is signed in, the categories they file
  * under, this device's Appearance, and the way out. The trigger is the
- * initial disc alone, so the header keeps room for its destinations and New
+ * initial disc alone, so the desktop top bar keeps room for its date and New
  * transaction; the menu names the full email, so signing out still says which
  * account it ends.
  */

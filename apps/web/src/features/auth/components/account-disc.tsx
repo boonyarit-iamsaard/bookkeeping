@@ -3,7 +3,7 @@ import { cn } from "@/shared/helpers/cn";
 
 interface AccountDiscProps {
   email: string;
-  /** The disc's size; the header's is 36px, Home's title bar's 32px. */
+  /** The disc's size; the desktop top bar's is 36px, Home's title bar's 32px. */
   className: string;
 }
 
