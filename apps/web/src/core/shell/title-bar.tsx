@@ -50,10 +50,10 @@ interface TitleBarProps {
 }
 
 /**
- * A screen's title and actions. On phone it is the bar at the top: clear of
- * the status bar, pinned while the page scrolls under it, and ruled only once
- * there is something beneath to separate from. From 640px the desktop header
- * leads, so this is the in-page h1 with the actions beside it.
+ * A screen's title and actions. Below 1024px it is the bar at the top: clear
+ * of the status bar, pinned while the page scrolls under it, and ruled only
+ * once there is something beneath to separate from. From 1024px the desktop
+ * top bar leads, so this is the in-page h1 with the actions beside it.
  */
 export function TitleBar({ title, back, actions }: Readonly<TitleBarProps>) {
   const scrolled = useSyncExternalStore(
@@ -63,12 +63,14 @@ export function TitleBar({ title, back, actions }: Readonly<TitleBarProps>) {
   );
 
   return (
+    // The bar's ground and rule reach both window edges even where the
+    // column is narrower; the layout clips the overflow sideways.
     <div
       data-scrolled={scrolled || undefined}
-      className="bg-chrome data-scrolled:border-border sticky top-0 z-10 -mx-4 flex min-h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-2 border-b border-transparent px-4 pt-[env(safe-area-inset-top)] sm:static sm:mx-0 sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0"
+      className="before:bg-chrome data-scrolled:before:border-border sticky top-0 z-10 -mx-4 flex min-h-[calc(3.5rem+env(safe-area-inset-top))] items-center gap-2 px-4 pt-[env(safe-area-inset-top)] before:absolute before:-inset-x-[100vmax] before:inset-y-0 before:-z-10 before:border-b before:border-transparent lg:static lg:mx-0 lg:min-h-0 lg:px-0 lg:pt-0 lg:before:hidden"
     >
       {back}
-      <h1 className="min-w-0 flex-1 truncate text-[1.625rem] leading-tight font-bold tracking-[-0.02em] sm:overflow-visible sm:text-3xl sm:wrap-break-word sm:text-clip sm:whitespace-normal">
+      <h1 className="min-w-0 flex-1 truncate text-[1.625rem] leading-tight font-bold tracking-[-0.02em] sm:text-3xl lg:overflow-visible lg:wrap-break-word lg:text-clip lg:whitespace-normal">
         {title}
       </h1>
       {actions && (

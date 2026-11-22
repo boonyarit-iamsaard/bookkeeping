@@ -54,7 +54,7 @@ export function Page({ layout, loading, children }: Readonly<PageProps>) {
       aria-busy={loading || undefined}
       aria-label={loading ? "Loading" : undefined}
       className={cn(
-        "mx-auto flex w-full flex-col gap-6 px-4 sm:gap-8 sm:pt-8",
+        "mx-auto flex w-full flex-col gap-6 px-4 sm:gap-8 lg:pt-8",
         PAGE_LAYOUTS[layout],
         crossfade &&
           "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200 motion-safe:ease-out",

@@ -27,8 +27,8 @@ const ROW_TILE_CLASS =
 /**
  * The phone account control in Home's title bar: the initial disc opens a
  * sheet naming the signed-in email, then Categories, this device's
- * Appearance, and Sign out. From 640px the header's account menu does this
- * job instead.
+ * Appearance, and Sign out. From 1024px the desktop top bar's account menu
+ * does this job instead.
  */
 export function AccountSheet({ email }: Readonly<AccountSheetProps>) {
   const [open, setOpen] = useState(false);

@@ -6,7 +6,7 @@ import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 import { expectNoOverlappingTouchTargets } from "./helpers/touch-targets";
 import { isDesktop } from "./helpers/viewport";
 
-test("the tab bar navigates on phone and the header from 640px", {
+test("the tab bar navigates on phone and the sidebar from 1024px", {
   tag: "@matrix",
 }, async ({ page }) => {
   await page.goto("/sign-in");
@@ -24,7 +24,7 @@ test("the tab bar navigates on phone and the header from 640px", {
   if (isDesktop(page)) {
     // The wordmark leads Home too, but only the destination is current.
     await expect(
-      page.getByRole("banner").getByRole("link", { name: "Bookkeeping" }),
+      page.getByRole("link", { name: "Bookkeeping" }),
     ).not.toHaveAttribute("aria-current");
   } else {
     // Two equal halves put ＋ at the bar's exact centre.
@@ -51,12 +51,35 @@ test("the tab bar navigates on phone and the header from 640px", {
   if (isDesktop(page)) {
     const header = page.getByRole("banner");
     await expectNoOverlappingTouchTargets(header);
-    await expect(
-      header.getByRole("link", { name: "Bookkeeping" }),
-    ).toBeVisible();
-    for (const name of ["Home", "Transactions", "Wallets", "Reports"]) {
+    const destinations = [
+      "Home",
+      "Transactions",
+      "Wallets",
+      "Reports",
+      "Categories",
+      "Tags",
+    ];
+    for (const name of destinations) {
       await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
     }
+
+    // Collapsed, the sidebar keeps its icons as links, and the device
+    // remembers the choice.
+    const expandedWidth = (await nav.boundingBox())?.width ?? 0;
+    await header.getByRole("button", { name: "Collapse sidebar" }).click();
+    await expect
+      .poll(async () => (await nav.boundingBox())?.width ?? 0)
+      .toBeLessThan(expandedWidth / 2);
+    await page.reload();
+    await expect(
+      header.getByRole("button", { name: "Expand sidebar" }),
+    ).toBeVisible();
+    await expect(wallets).toHaveAttribute("aria-current", "page");
+    await page.keyboard.press("ControlOrMeta+b");
+    await expect(
+      header.getByRole("button", { name: "Collapse sidebar" }),
+    ).toBeVisible();
+
     await header.getByRole("link", { name: "New transaction" }).click();
   } else {
     await expect(page.getByRole("banner")).toHaveCount(0);

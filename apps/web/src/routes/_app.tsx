@@ -5,15 +5,17 @@ import {
   useLocation,
 } from "@tanstack/react-router";
 import { readSession } from "@/core/auth/session";
-import { AppHeader } from "@/core/shell/app-header";
+import { DesktopShell } from "@/core/shell/desktop-shell";
 import { useIsFormScreen } from "@/core/shell/form-screen";
 import { TabBar } from "@/core/shell/tab-bar";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import { captureSearchForLocation } from "@/features/transactions/capture-origin";
 import { cn } from "@/shared/helpers/cn";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function AppLayout() {
   const { session } = Route.useRouteContext();
+  const isDesktop = useIsDesktop();
   const isFormScreen = useIsFormScreen();
   const location = useLocation();
   const captureSearch = captureSearchForLocation({
@@ -21,18 +23,27 @@ function AppLayout() {
     searchStr: location.searchStr,
   });
 
-  return (
-    <>
-      <AppHeader
+  if (isDesktop) {
+    return (
+      <DesktopShell
         accountMenu={<AccountMenu email={session.user.email} />}
         captureSearch={captureSearch}
-      />
-      {/* On phone the page ends above the tab bar, so nothing hides behind it. */}
+      >
+        <Outlet />
+      </DesktopShell>
+    );
+  }
+
+  return (
+    <>
+      {/*
+       * The page ends above the tab bar, so nothing hides behind it, and
+       * clips the title bar's full-bleed ground without breaking its pin.
+       */}
       <div
         className={cn(
-          "flex flex-1 flex-col",
-          !isFormScreen &&
-            "max-sm:pb-[calc(3.5rem+env(safe-area-inset-bottom))]",
+          "flex flex-1 flex-col overflow-x-clip",
+          !isFormScreen && "pb-[calc(3.5rem+env(safe-area-inset-bottom))]",
         )}
       >
         <Outlet />
