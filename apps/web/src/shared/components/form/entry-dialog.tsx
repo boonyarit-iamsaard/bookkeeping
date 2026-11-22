@@ -2,7 +2,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { CatchBoundary, useLocation } from "@tanstack/react-router";
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { ErrorNotice } from "@/shared/components/error-notice";
 import { SavedNotice } from "@/shared/components/saved-notice";
 import { Skeleton } from "@/shared/components/skeleton";
@@ -29,6 +29,9 @@ export function useEntryDialog<T = void>() {
   const [openOn, setOpenOn] = useState<string | null>(null);
   const [savedOn, setSavedOn] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  // A save still pending when its dialog closed must not close a later opening.
+  const [opening, setOpening] = useState(0);
+  const latestOpening = useRef(0);
   if (openOn !== null && openOn !== href) {
     setOpenOn(null);
   }
@@ -44,6 +47,8 @@ export function useEntryDialog<T = void>() {
       setDirty(false);
       setSavedOn(null);
       setOpenOn(href);
+      latestOpening.current = opening + 1;
+      setOpening(opening + 1);
     },
     dialog: {
       open: openOn !== null,
@@ -56,6 +61,9 @@ export function useEntryDialog<T = void>() {
     },
     host: {
       onSaved: () => {
+        if (latestOpening.current !== opening) {
+          return;
+        }
         setOpenOn(null);
         setSavedOn(href);
       },
