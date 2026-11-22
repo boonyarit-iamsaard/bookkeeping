@@ -39,7 +39,7 @@ interface HistoryFiltersProps extends HistoryFilterNamesProps {
 }
 
 /** Each tree as a group: parents first, their children indented beneath. */
-function categoryGroups(
+export function categoryGroups(
   categories: readonly ApiCategory[],
 ): FilterOptionGroup[] {
   return (["expense", "income"] as const).flatMap((kind) => {
@@ -76,13 +76,19 @@ function filtersFromForm(form: HTMLFormElement): HistoryFilterValues {
 interface TagFilterProps {
   tags: readonly ApiTag[];
   chosen: readonly string[];
+  /** Makes the chips controlled by `chosen`: each toggle goes here, not to a form. */
+  onToggle?: (tagId: string) => void;
 }
 
 /**
  * Tags as toggle chips, one checkbox each under one name, so choosing
  * several sends them all and matches a transaction carrying any of them.
  */
-function TagFilter({ tags, chosen }: Readonly<TagFilterProps>) {
+export function TagFilter({
+  tags,
+  chosen,
+  onToggle,
+}: Readonly<TagFilterProps>) {
   return (
     <fieldset className="flex min-w-0 flex-col gap-2 sm:col-span-2">
       <legend className="mb-2 text-sm font-semibold">Tags</legend>
@@ -101,7 +107,12 @@ function TagFilter({ tags, chosen }: Readonly<TagFilterProps>) {
                 type="checkbox"
                 name="tagId"
                 value={tag.id}
-                defaultChecked={chosen.includes(tag.id)}
+                {...(onToggle
+                  ? {
+                      checked: chosen.includes(tag.id),
+                      onChange: () => onToggle(tag.id),
+                    }
+                  : { defaultChecked: chosen.includes(tag.id) })}
                 className="peer sr-only"
               />
               <Hash

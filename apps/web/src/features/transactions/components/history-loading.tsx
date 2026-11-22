@@ -1,10 +1,12 @@
 import { Page } from "@/core/shell/page";
+import { TitleBar } from "@/core/shell/title-bar";
 import { listCardClass } from "@/shared/components/list-section";
 import {
   HeroSkeleton,
   RowSkeleton,
   Skeleton,
 } from "@/shared/components/skeleton";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 /**
  * The loading shape every transaction route shares, in neutral blocks: a
@@ -27,6 +29,39 @@ export function HistoryLoading() {
             <RowSkeleton />
           </div>
         </div>
+      </div>
+    </Page>
+  );
+}
+
+/** The table's stand-in from 1024px: a card of rows under the filter bar, with no figure. */
+export function TableSkeleton() {
+  return (
+    <div className="bg-card shadow-card flex flex-col gap-3 rounded-2xl p-6">
+      <Skeleton className="h-6 w-40" />
+      {["first", "second", "third", "fourth", "fifth"].map((row) => (
+        <Skeleton key={row} className="h-10" />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The transaction list's loading shape: the title, then the phone's list or,
+ * from 1024px, the filter bar over a table.
+ */
+export function TransactionsLoading() {
+  const desktop = useIsDesktop();
+  if (!desktop) {
+    return <HistoryLoading />;
+  }
+  return (
+    <Page layout="dashboard" loading>
+      <TitleBar title="Transactions" />
+      <output className="sr-only">Loading your records…</output>
+      <div aria-hidden="true" className="contents">
+        <Skeleton className="h-16" />
+        <TableSkeleton />
       </div>
     </Page>
   );

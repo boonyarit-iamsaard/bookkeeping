@@ -42,7 +42,7 @@ interface TransferWalletsOptions {
 }
 
 /** A transfer's wallets, naming only the other side on either wallet's page. */
-function transferWallets({
+export function transferWallets({
   source,
   destination,
   pageWalletId,

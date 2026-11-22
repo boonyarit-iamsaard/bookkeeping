@@ -9,19 +9,22 @@ import {
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
+import { HistoryFilterBar } from "@/features/transactions/components/history-filter-bar";
 import {
   HistoryFilterChips,
   HistoryFilters,
 } from "@/features/transactions/components/history-filters";
-import { HistoryLoading } from "@/features/transactions/components/history-loading";
+import { TransactionsLoading } from "@/features/transactions/components/history-loading";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
 import { historySearchSchema } from "@/features/transactions/history-schema";
 import { buildHistoryView } from "@/features/transactions/history-view";
 import { SavedNotice } from "@/shared/components/saved-notice";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function TransactionsPage() {
   const search = Route.useSearch();
+  const desktop = useIsDesktop();
   const view = buildHistoryView(search);
   const listQuery =
     view.state === "valid" ? transactionQueries.list(view.list) : null;
@@ -40,25 +43,39 @@ function TransactionsPage() {
   const filterErrors = view.state === "invalid" ? view.errors : [];
 
   return (
-    <Page layout="wide">
+    <Page layout="dashboard">
       <TitleBar
         title="Transactions"
         actions={
-          <HistoryFilters
+          desktop ? undefined : (
+            <HistoryFilters
+              wallets={walletCollection.items}
+              categories={categoryCollection.items}
+              tags={tagCollection.items}
+              values={view.values}
+              errors={filterErrors}
+            />
+          )
+        }
+      />
+      {desktop ? (
+        // An empty ledger has nothing to narrow.
+        (view.hasFilters || transactions.length > 0) && (
+          <HistoryFilterBar
             wallets={walletCollection.items}
             categories={categoryCollection.items}
             tags={tagCollection.items}
             values={view.values}
-            errors={filterErrors}
           />
-        }
-      />
-      <HistoryFilterChips
-        wallets={walletCollection.items}
-        categories={categoryCollection.items}
-        tags={tagCollection.items}
-        view={view}
-      />
+        )
+      ) : (
+        <HistoryFilterChips
+          wallets={walletCollection.items}
+          categories={categoryCollection.items}
+          tags={tagCollection.items}
+          view={view}
+        />
+      )}
       {justDeleted && (
         <SavedNotice>
           <span className="font-semibold">Transaction deleted.</span> It no
@@ -70,6 +87,7 @@ function TransactionsPage() {
         filterErrors={filterErrors}
         filtered={view.hasFilters}
         savedId={search.created}
+        table={desktop}
       />
       {nextCursor && (
         <Link
@@ -102,7 +120,7 @@ export const Route = createFileRoute("/_app/transactions/")({
       context.queryClient.ensureQueryData(tagQueries.list()),
     ]);
   },
-  pendingComponent: HistoryLoading,
+  pendingComponent: TransactionsLoading,
   errorComponent: HistoryErrorBoundary,
   component: TransactionsPage,
 });

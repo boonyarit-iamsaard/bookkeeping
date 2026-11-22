@@ -31,6 +31,8 @@ interface FilterSelectProps {
   /** The first, null-valued choice that lifts the filter. */
   allLabel: string;
   groups: readonly FilterOptionGroup[];
+  /** Makes the Select controlled by `defaultValue`: each choice goes here, "" for "All …". */
+  onValueChange?: (value: string) => void;
 }
 
 /**
@@ -44,6 +46,7 @@ export function FilterSelect({
   defaultValue,
   allLabel,
   groups,
+  onValueChange,
 }: Readonly<FilterSelectProps>) {
   const labels = new Map(
     groups.flatMap((group) =>
@@ -53,7 +56,15 @@ export function FilterSelect({
   const unknownValue =
     defaultValue && !labels.has(defaultValue) ? defaultValue : null;
   return (
-    <Select name={name} defaultValue={defaultValue || null}>
+    <Select
+      name={name}
+      {...(onValueChange
+        ? {
+            value: defaultValue || null,
+            onValueChange: (next: string | null) => onValueChange(next ?? ""),
+          }
+        : { defaultValue: defaultValue || null })}
+    >
       <SelectTrigger id={id}>
         <SelectValue>
           {(selected: string | null) => {
