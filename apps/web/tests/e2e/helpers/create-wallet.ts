@@ -24,6 +24,7 @@ export async function createWalletThroughForm(
   await parkPointer(page);
   await expect(page).toHaveURL(/\/wallets(\?.*)?$/);
   await expect(
-    page.getByRole("listitem").filter({ hasText: name }),
+    // A card on phone, a table row from 1024px.
+    page.locator("[data-wallet-row]").filter({ hasText: name }),
   ).toBeVisible();
 }

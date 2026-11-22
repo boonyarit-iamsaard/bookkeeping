@@ -1,6 +1,8 @@
 import type { components } from "@/core/api/openapi.gen";
 import { MonthSections } from "@/features/transactions/components/month-sections";
 import { TransactionList } from "@/features/transactions/components/transaction-list";
+import { TransactionTable } from "@/features/transactions/components/transaction-table";
+import { TableCard } from "@/shared/components/dashboard-card";
 import { ErrorNotice } from "@/shared/components/error-notice";
 
 type ApiTransaction = components["schemas"]["Transaction"];
@@ -11,6 +13,8 @@ interface TransactionHistoryProps {
   filterErrors: readonly string[];
   filtered: boolean;
   savedId?: string;
+  /** From 1024px the months are header rows of one table, not a list each. */
+  table?: boolean;
 }
 
 export function TransactionHistory({
@@ -18,6 +22,7 @@ export function TransactionHistory({
   filterErrors,
   filtered,
   savedId,
+  table = false,
 }: Readonly<TransactionHistoryProps>) {
   if (filterErrors.length > 0) {
     return (
@@ -50,6 +55,18 @@ export function TransactionHistory({
 
   if (transactions.length === 0) {
     return <TransactionList transactions={transactions} />;
+  }
+
+  if (table) {
+    return (
+      <TableCard>
+        <TransactionTable
+          transactions={transactions}
+          savedId={savedId}
+          groupByMonth
+        />
+      </TableCard>
+    );
   }
 
   return (

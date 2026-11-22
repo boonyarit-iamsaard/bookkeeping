@@ -5,6 +5,7 @@ import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
+import { isDesktop } from "./helpers/viewport";
 
 test.setTimeout(120_000);
 
@@ -20,6 +21,10 @@ test.afterEach(async ({ page }) => {
 test("filters apply through the address and open the saved record", {
   tag: "@matrix",
 }, async ({ page }) => {
+  test.skip(
+    isDesktop(page),
+    "Desktop filters live in the bar, covered by desktop-transactions.spec.ts",
+  );
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {
     name: "Cash",

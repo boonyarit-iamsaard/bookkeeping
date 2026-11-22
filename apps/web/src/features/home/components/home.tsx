@@ -1,59 +1,22 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
+import { DesktopHome } from "@/features/home/components/desktop-home";
+import {
+  Arrival,
+  useFirstShowing,
+} from "@/features/home/components/home-arrival";
 import { RecentTransactions } from "@/features/home/components/recent-transactions";
 import { SummaryCard } from "@/features/home/components/summary-card";
-import type { SummaryStripCard } from "@/features/home/components/summary-strip";
 import { SummaryStrip } from "@/features/home/components/summary-strip";
 import { WalletBalances } from "@/features/home/components/wallet-balances";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
 import { EmptyWallets } from "@/features/wallets/components/wallet-list";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 import { useToday } from "@/shared/hooks/use-today";
-
-/** From 1024px the figures hold the left column and the rows the right. */
-export const HOME_COLUMNS_CLASS =
-  "flex flex-col gap-6 sm:gap-8 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start";
-
-// Home's first showing after the app opens lets its cards arrive one by one;
-// every later visit shows them at once, until the app is opened again.
-let homeHasArrived = false;
-
-// A Home with no wallets has no cards yet, so it leaves the arrival for the
-// first showing that does.
-function useFirstShowing(hasCards: boolean) {
-  const [first] = useState(() => !homeHasArrived);
-  useEffect(() => {
-    if (hasCards) {
-      homeHasArrived = true;
-    }
-  }, [hasCards]);
-  return first;
-}
-
-interface ArrivalProps {
-  /** Its place in the sequence; each card follows the last by 40ms. */
-  order: number;
-  animate: boolean;
-  children: React.ReactNode;
-}
-
-function Arrival({ order, animate, children }: Readonly<ArrivalProps>) {
-  if (!animate) {
-    return children;
-  }
-  return (
-    <div
-      className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:fill-mode-backwards motion-safe:ease-out-expo motion-safe:duration-300"
-      style={{ animationDelay: `${order * 40}ms` }}
-    >
-      {children}
-    </div>
-  );
-}
 
 interface HomeProps {
   /** The phone account control the route supplies; the top bar has its own from 1024px. */
@@ -62,13 +25,17 @@ interface HomeProps {
   savedId?: string;
 }
 
-/** How much there is, how today and the month are going, and what was just recorded. */
+/**
+ * How much there is, how today and the month are going, and what was just
+ * recorded: one column on phone, a dashboard grid from 1024px.
+ */
 export function Home({
   accountControl,
   initialToday,
   savedId,
 }: Readonly<HomeProps>) {
   const today = useToday(initialToday);
+  const desktop = useIsDesktop();
   const plan = createHomeQueryPlan(today);
   const { data: walletCollection } = useSuspenseQuery(plan.wallets);
   const { data: daily } = useSuspenseQuery(plan.daily);
@@ -76,44 +43,77 @@ export function Home({
   const { data: recent } = useSuspenseQuery(plan.recent);
   const wallets = walletCollection.items;
   const arrive = useFirstShowing(wallets.length > 0);
-  const summaryCards: [SummaryStripCard, SummaryStripCard] = [
-    {
-      name: "Today",
-      content: (
-        <SummaryCard
-          heading="Today"
-          report={daily}
-          renderLink={({ className, children }) => (
-            <Link
-              to="/transactions"
-              search={{ from: daily.date, to: daily.date }}
-              className={className}
-            >
-              {children}
-            </Link>
-          )}
-        />
-      ),
-    },
-    {
-      name: "This month",
-      content: (
-        <SummaryCard
-          heading="This month"
-          report={report}
-          renderLink={({ className, children }) => (
-            <Link
-              to="/reports"
-              search={{ month: report.month }}
-              className={className}
-            >
-              {children}
-            </Link>
-          )}
-        />
-      ),
-    },
-  ];
+  const dayCard = (
+    <SummaryCard
+      heading="Today"
+      report={daily}
+      renderLink={({ className, children }) => (
+        <Link
+          to="/transactions"
+          search={{ from: daily.date, to: daily.date }}
+          className={className}
+        >
+          {children}
+        </Link>
+      )}
+    />
+  );
+  const monthCard = (
+    <SummaryCard
+      heading="This month"
+      report={report}
+      renderLink={({ className, children }) => (
+        <Link
+          to="/reports"
+          search={{ month: report.month }}
+          className={className}
+        >
+          {children}
+        </Link>
+      )}
+    />
+  );
+
+  let content: React.ReactNode;
+  if (wallets.length === 0) {
+    content = <EmptyWallets />;
+  } else if (desktop) {
+    content = (
+      <DesktopHome
+        today={today}
+        walletCollection={walletCollection}
+        summaryCards={[dayCard, monthCard]}
+        recent={recent.items}
+        savedId={savedId}
+        arrive={arrive}
+      />
+    );
+  } else {
+    content = (
+      <>
+        <Arrival order={0} animate={arrive}>
+          <WalletsTotal balance={walletCollection.balance} lead="spendable" />
+        </Arrival>
+        <Arrival order={1} animate={arrive}>
+          <SummaryStrip
+            cards={[
+              { name: "Today", content: dayCard },
+              { name: "This month", content: monthCard },
+            ]}
+          />
+        </Arrival>
+        {/* With one wallet the card would only repeat the total. */}
+        {wallets.length > 1 && (
+          <Arrival order={2} animate={arrive}>
+            <WalletBalances wallets={wallets} />
+          </Arrival>
+        )}
+        <Arrival order={3} animate={arrive}>
+          <RecentTransactions transactions={recent.items} savedId={savedId} />
+        </Arrival>
+      </>
+    );
+  }
 
   return (
     <Page layout="dashboard">
@@ -121,32 +121,7 @@ export function Home({
         title="Home"
         actions={<div className="lg:hidden">{accountControl}</div>}
       />
-      {wallets.length === 0 ? (
-        <EmptyWallets />
-      ) : (
-        <div className={HOME_COLUMNS_CLASS}>
-          <div className="flex flex-col gap-6 sm:gap-8">
-            <Arrival order={0} animate={arrive}>
-              <WalletsTotal
-                balance={walletCollection.balance}
-                lead="spendable"
-              />
-            </Arrival>
-            <Arrival order={1} animate={arrive}>
-              <SummaryStrip cards={summaryCards} />
-            </Arrival>
-            {/* With one wallet the card would only repeat the total. */}
-            {wallets.length > 1 && (
-              <Arrival order={2} animate={arrive}>
-                <WalletBalances wallets={wallets} />
-              </Arrival>
-            )}
-          </div>
-          <Arrival order={3} animate={arrive}>
-            <RecentTransactions transactions={recent.items} savedId={savedId} />
-          </Arrival>
-        </div>
-      )}
+      {content}
     </Page>
   );
 }

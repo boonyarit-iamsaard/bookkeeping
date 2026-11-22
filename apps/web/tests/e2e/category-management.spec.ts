@@ -168,11 +168,7 @@ test("the category editor is a bottom sheet on phone and a centred dialog from 6
 }, async ({ page }) => {
   await signUpFreshUser(page);
   await page.goto("/categories");
-  await page
-    .getByRole("list", { name: "Expense categories" })
-    .getByRole("button")
-    .first()
-    .click();
+  await page.locator("[data-category-row]").first().click();
   const sheet = page.getByRole("dialog", { name: "Edit category" });
   await expect(sheet.getByLabel("Name")).toHaveValue("Uncategorized");
   const viewport = page.viewportSize();

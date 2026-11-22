@@ -59,7 +59,7 @@ export function DisplayFigure({
     <section
       {...(morphName && morphProps(morphName))}
       aria-labelledby={headingId}
-      className="bg-hero text-hero-foreground shadow-hero relative isolate flex min-h-44 flex-col overflow-hidden rounded-3xl px-5 pt-6 pb-6 sm:min-h-48 sm:px-7 sm:pt-7 sm:pb-7"
+      className="bg-hero text-hero-foreground shadow-hero relative isolate flex h-full min-h-44 flex-col overflow-hidden rounded-3xl px-5 pt-6 pb-6 sm:min-h-48 sm:px-7 sm:pt-7 sm:pb-7"
     >
       <HeroCoin />
       <h2 id={headingId} className="text-hero-muted text-sm font-medium">

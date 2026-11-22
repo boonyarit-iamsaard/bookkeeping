@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { categoryQueries } from "@/core/api/queries";
 import { Page } from "@/core/shell/page";
+import { CategoriesLoading } from "@/features/categories/components/categories-loading";
 import { CategoryManagement } from "@/features/categories/components/category-management";
 
 function CategoriesPage() {
@@ -15,7 +16,7 @@ function CategoriesPage() {
   );
 
   return (
-    <Page layout="wide">
+    <Page layout="dashboard">
       <CategoryManagement categories={categoryCollection.items} usage={usage} />
     </Page>
   );
@@ -29,5 +30,6 @@ export const Route = createFileRoute("/_app/categories/")({
       context.queryClient.ensureQueryData(categoryQueries.usage()),
     ]);
   },
+  pendingComponent: CategoriesLoading,
   component: CategoriesPage,
 });

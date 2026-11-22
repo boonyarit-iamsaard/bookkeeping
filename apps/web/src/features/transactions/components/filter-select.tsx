@@ -27,10 +27,12 @@ interface FilterSelectProps {
   id: string;
   name: string;
   /** The URL's current value; "" is the unfiltered "All …" choice. */
-  defaultValue: string;
+  value: string;
   /** The first, null-valued choice that lifts the filter. */
   allLabel: string;
   groups: readonly FilterOptionGroup[];
+  /** Makes the Select controlled by `value`: each choice goes here, "" for "All …". */
+  onValueChange?: (value: string) => void;
 }
 
 /**
@@ -41,19 +43,27 @@ interface FilterSelectProps {
 export function FilterSelect({
   id,
   name,
-  defaultValue,
+  value,
   allLabel,
   groups,
+  onValueChange,
 }: Readonly<FilterSelectProps>) {
   const labels = new Map(
     groups.flatMap((group) =>
       group.options.map((option) => [option.value, option] as const),
     ),
   );
-  const unknownValue =
-    defaultValue && !labels.has(defaultValue) ? defaultValue : null;
+  const unknownValue = value && !labels.has(value) ? value : null;
   return (
-    <Select name={name} defaultValue={defaultValue || null}>
+    <Select
+      name={name}
+      {...(onValueChange
+        ? {
+            value: value || null,
+            onValueChange: (next: string | null) => onValueChange(next ?? ""),
+          }
+        : { defaultValue: value || null })}
+    >
       <SelectTrigger id={id}>
         <SelectValue>
           {(selected: string | null) => {

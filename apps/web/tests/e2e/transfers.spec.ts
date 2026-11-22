@@ -154,10 +154,10 @@ test(
     await expect(page.getByText("Category", { exact: true })).toHaveCount(0);
     await page.goto("/wallets");
     await expect(
-      page.getByRole("listitem").filter({ hasText: /^Cash/ }),
+      page.locator("[data-wallet-row]").filter({ hasText: /^Cash/ }),
     ).toContainText("฿13,000.01");
     await expect(
-      page.getByRole("listitem").filter({ hasText: /^Savings/ }),
+      page.locator("[data-wallet-row]").filter({ hasText: /^Savings/ }),
     ).toContainText("−฿1,000.01");
   },
 );

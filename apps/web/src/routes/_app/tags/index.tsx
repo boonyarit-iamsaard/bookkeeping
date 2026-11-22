@@ -3,11 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { tagQueries } from "@/core/api/queries";
 import { Page } from "@/core/shell/page";
 import { TagManagement } from "@/features/tags/components/tag-management";
+import { TagsLoading } from "@/features/tags/components/tags-loading";
 
 function TagsPage() {
   const { data } = useSuspenseQuery(tagQueries.list());
   return (
-    <Page layout="wide">
+    <Page layout="dashboard">
       <TagManagement tags={data.items} />
     </Page>
   );
@@ -18,5 +19,6 @@ export const Route = createFileRoute("/_app/tags/")({
   loader: async ({ context }) => {
     await context.queryClient.ensureQueryData(tagQueries.list());
   },
+  pendingComponent: TagsLoading,
   component: TagsPage,
 });
