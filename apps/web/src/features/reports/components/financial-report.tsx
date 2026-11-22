@@ -12,9 +12,12 @@ import { TREND_HEADING } from "@/features/reports/trend-series";
 import { FlowBars } from "@/shared/components/chart/flow-bars";
 import type { WalletShare } from "@/shared/components/chart/wallet-share-chart";
 import { WalletShareChart } from "@/shared/components/chart/wallet-share-chart";
+import { DashboardCard } from "@/shared/components/dashboard-card";
+import { DashboardRow } from "@/shared/components/dashboard-row";
 import { DisplayFigure } from "@/shared/components/display-figure";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 import { BalanceOverTime } from "./balance-over-time";
 import { SpendingByCategory } from "./spending-by-category";
 import { TrendChart } from "./trend-chart";
@@ -54,6 +57,37 @@ const SUMMARY_FIGURES = [
   "netExpenses",
   "net",
 ] as const satisfies readonly ReportFigure[];
+
+interface ReportCardProps {
+  headingId: string;
+  heading: React.ReactNode;
+  desktop: boolean;
+  children: React.ReactNode;
+}
+
+/** A report section: the dashboard card from 1024px, the phone card below. */
+function ReportCard({
+  headingId,
+  heading,
+  desktop,
+  children,
+}: Readonly<ReportCardProps>) {
+  if (desktop) {
+    return (
+      <DashboardCard headingId={headingId} heading={heading}>
+        {children}
+      </DashboardCard>
+    );
+  }
+  return (
+    <section aria-labelledby={headingId} className={CARD_CLASS}>
+      <h2 id={headingId} className={CARD_HEADING_CLASS}>
+        {heading}
+      </h2>
+      {children}
+    </section>
+  );
+}
 
 function BalanceRow({
   name,
@@ -128,141 +162,183 @@ export function FinancialReport({
     currentWallets.map((wallet) => [wallet.id, wallet.balance]),
   );
   const month = formatReportMonth(summary.month);
+  const desktop = useIsDesktop();
+
+  const net = (
+    <DisplayFigure
+      amount={summary.net}
+      heading="Net"
+      headingId="report-net-heading"
+      caption={`${month} · income − net expenses`}
+    />
+  );
+  const monthCard = (
+    <ReportCard
+      headingId="monthly-totals-heading"
+      heading={month}
+      desktop={desktop}
+    >
+      {summary.transactionCount > 0 && (
+        <fieldset className="m-0 min-w-0 border-0 p-0">
+          <legend className="sr-only">Income against net expenses</legend>
+          <FlowBars
+            income={summary.income}
+            netExpenses={summary.netExpenses}
+            showAmounts={false}
+          />
+        </fieldset>
+      )}
+      <dl className="divide-border/70 divide-y">
+        {SUMMARY_FIGURES.map((key) => (
+          <div
+            key={key}
+            data-summary={key}
+            className={`flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0 ${key === "net" ? "font-semibold" : ""}`}
+          >
+            <dt>{REPORT_FIGURE_LABELS[key]}</dt>
+            <dd>
+              <Money amount={summary[key]} className="text-lg" />
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="text-muted-foreground text-sm leading-normal">
+        Net expenses = gross expenses − refunds. Net = income − net expenses.
+        Openings and transfers are excluded; refunds count in their own month.
+      </p>
+      {summary.transactionCount === 0 && (
+        <p className="text-muted-foreground text-sm">
+          No income, expenses or refunds recorded this month.
+        </p>
+      )}
+    </ReportCard>
+  );
+  const categories = (
+    <ReportCard
+      headingId="category-spending-heading"
+      heading="Spending by category"
+      desktop={desktop}
+    >
+      <SpendingByCategory breakdown={categoryBreakdown} month={month} />
+    </ReportCard>
+  );
+  const trendCard = (
+    <ReportCard
+      headingId="trend-heading"
+      heading={TREND_HEADING}
+      desktop={desktop}
+    >
+      <TrendChart key={summary.month} points={trend} />
+    </ReportCard>
+  );
+  const balances = (
+    <ReportCard
+      headingId="wallet-balances-heading"
+      heading="Wallet balances"
+      desktop={desktop}
+    >
+      {balanceDate}
+      <p className="text-muted-foreground text-sm">
+        End of day {formatCalendarDate(asOf)} · Bangkok. Archived holdings are
+        included; wallets appear from their opening date.
+      </p>
+      {currentTotal === null ? (
+        <div className="flex flex-col items-start gap-3">
+          <p>Add a wallet to begin tracking balances.</p>
+          <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
+            Create wallet
+          </Link>
+        </div>
+      ) : (
+        <>
+          {datedTotal === null ? (
+            <p>No wallet was open on {formatCalendarDate(asOf)}.</p>
+          ) : (
+            <>
+              <WalletShareChart shares={shares} />
+              <p
+                data-share-total
+                className="flex flex-wrap items-baseline justify-between gap-x-3 border-t pt-4 font-semibold"
+              >
+                Total
+                <Money amount={datedTotal} className="text-lg" />
+              </p>
+            </>
+          )}
+          <dl className="divide-border/70 divide-y border-t">
+            <BalanceRow
+              name="Total balance"
+              current={currentTotal}
+              dated={datedTotal}
+              asOf={asOf}
+            />
+            {shares.flatMap(({ wallet, balance }) => {
+              const current = currentBalances.get(wallet.id);
+              return current
+                ? [
+                    <BalanceRow
+                      key={wallet.id}
+                      name={wallet.name}
+                      walletId={wallet.id}
+                      archived={Boolean(wallet.archivedAt)}
+                      current={current}
+                      asOf={asOf}
+                      dated={balance}
+                    />,
+                  ]
+                : [];
+            })}
+          </dl>
+        </>
+      )}
+    </ReportCard>
+  );
+  const overTime = (
+    <ReportCard
+      headingId="balance-trend-heading"
+      heading="Balance over time"
+      desktop={desktop}
+    >
+      <BalanceOverTime
+        reportMonth={summary.month}
+        balanceDate={asOf}
+        trend={balanceTrend}
+        month={month}
+        wallets={currentWallets}
+        comparedWalletId={comparedWalletId}
+        onCompareWallet={onCompareWallet}
+      />
+    </ReportCard>
+  );
+
+  // From 1024px the cards pair up, 4 + 8, 6 + 6 and 5 + 7 of twelve columns.
+  if (desktop) {
+    return (
+      <>
+        <DashboardRow className="lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)]">
+          {net}
+          {monthCard}
+        </DashboardRow>
+        <DashboardRow className="lg:grid-cols-2">
+          {categories}
+          {trendCard}
+        </DashboardRow>
+        <DashboardRow className="lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          {balances}
+          {overTime}
+        </DashboardRow>
+      </>
+    );
+  }
 
   return (
     <>
-      <DisplayFigure
-        amount={summary.net}
-        heading="Net"
-        headingId="report-net-heading"
-        caption={`${month} · income − net expenses`}
-      />
-      <section aria-labelledby="monthly-totals-heading" className={CARD_CLASS}>
-        <h2 id="monthly-totals-heading" className={CARD_HEADING_CLASS}>
-          {month}
-        </h2>
-        {summary.transactionCount > 0 && (
-          <fieldset className="m-0 min-w-0 border-0 p-0">
-            <legend className="sr-only">Income against net expenses</legend>
-            <FlowBars
-              income={summary.income}
-              netExpenses={summary.netExpenses}
-              showAmounts={false}
-            />
-          </fieldset>
-        )}
-        <dl className="divide-border/70 divide-y">
-          {SUMMARY_FIGURES.map((key) => (
-            <div
-              key={key}
-              data-summary={key}
-              className={`flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0 ${key === "net" ? "font-semibold" : ""}`}
-            >
-              <dt>{REPORT_FIGURE_LABELS[key]}</dt>
-              <dd>
-                <Money amount={summary[key]} className="text-lg" />
-              </dd>
-            </div>
-          ))}
-        </dl>
-        <p className="text-muted-foreground text-sm leading-normal">
-          Net expenses = gross expenses − refunds. Net = income − net expenses.
-          Openings and transfers are excluded; refunds count in their own month.
-        </p>
-        {summary.transactionCount === 0 && (
-          <p className="text-muted-foreground text-sm">
-            No income, expenses or refunds recorded this month.
-          </p>
-        )}
-      </section>
-      <section
-        aria-labelledby="category-spending-heading"
-        className={CARD_CLASS}
-      >
-        <h2 id="category-spending-heading" className={CARD_HEADING_CLASS}>
-          Spending by category
-        </h2>
-        <SpendingByCategory breakdown={categoryBreakdown} month={month} />
-      </section>
-      <section aria-labelledby="trend-heading" className={CARD_CLASS}>
-        <h2 id="trend-heading" className={CARD_HEADING_CLASS}>
-          {TREND_HEADING}
-        </h2>
-        <TrendChart key={summary.month} points={trend} />
-      </section>
-      <section aria-labelledby="wallet-balances-heading" className={CARD_CLASS}>
-        <h2 id="wallet-balances-heading" className={CARD_HEADING_CLASS}>
-          Wallet balances
-        </h2>
-        {balanceDate}
-        <p className="text-muted-foreground text-sm">
-          End of day {formatCalendarDate(asOf)} · Bangkok. Archived holdings are
-          included; wallets appear from their opening date.
-        </p>
-        {currentTotal === null ? (
-          <div className="flex flex-col items-start gap-3">
-            <p>Add a wallet to begin tracking balances.</p>
-            <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
-              Create wallet
-            </Link>
-          </div>
-        ) : (
-          <>
-            {datedTotal === null ? (
-              <p>No wallet was open on {formatCalendarDate(asOf)}.</p>
-            ) : (
-              <>
-                <WalletShareChart shares={shares} />
-                <p
-                  data-share-total
-                  className="flex flex-wrap items-baseline justify-between gap-x-3 border-t pt-4 font-semibold"
-                >
-                  Total
-                  <Money amount={datedTotal} className="text-lg" />
-                </p>
-              </>
-            )}
-            <dl className="divide-border/70 divide-y border-t">
-              <BalanceRow
-                name="Total balance"
-                current={currentTotal}
-                dated={datedTotal}
-                asOf={asOf}
-              />
-              {shares.flatMap(({ wallet, balance }) => {
-                const current = currentBalances.get(wallet.id);
-                return current
-                  ? [
-                      <BalanceRow
-                        key={wallet.id}
-                        name={wallet.name}
-                        walletId={wallet.id}
-                        archived={Boolean(wallet.archivedAt)}
-                        current={current}
-                        asOf={asOf}
-                        dated={balance}
-                      />,
-                    ]
-                  : [];
-              })}
-            </dl>
-          </>
-        )}
-      </section>
-      <section aria-labelledby="balance-trend-heading" className={CARD_CLASS}>
-        <h2 id="balance-trend-heading" className={CARD_HEADING_CLASS}>
-          Balance over time
-        </h2>
-        <BalanceOverTime
-          reportMonth={summary.month}
-          balanceDate={asOf}
-          trend={balanceTrend}
-          month={month}
-          wallets={currentWallets}
-          comparedWalletId={comparedWalletId}
-          onCompareWallet={onCompareWallet}
-        />
-      </section>
+      {net}
+      {monthCard}
+      {categories}
+      {trendCard}
+      {balances}
+      {overTime}
     </>
   );
 }

@@ -58,7 +58,7 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
   );
 
   return (
-    <Page layout="wide">
+    <Page layout="dashboard">
       <TitleBar
         title="Reports"
         actions={
