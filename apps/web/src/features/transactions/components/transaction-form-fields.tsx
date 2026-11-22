@@ -21,12 +21,7 @@ import {
 import { WalletTypeIcon } from "@/features/wallets/components/wallet-type-icon";
 import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { Button } from "@/shared/components/ui/button";
-import { Card } from "@/shared/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-} from "@/shared/components/ui/field";
+import { Field, FieldDescription } from "@/shared/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -91,19 +86,6 @@ export function SaveLabel({
       </span>
       <span className="min-w-0 truncate">{walletName}</span>
     </span>
-  );
-}
-
-interface FormCardProps {
-  children: React.ReactNode;
-}
-
-/** One group of fields on a card over the ground. */
-export function FormCard({ children }: Readonly<FormCardProps>) {
-  return (
-    <Card className="px-5 sm:px-7 sm:py-7">
-      <FieldGroup>{children}</FieldGroup>
-    </Card>
   );
 }
 
@@ -264,7 +246,7 @@ export function DateChip({
       aria-pressed={selected}
       onClick={onClick}
       className={cn(
-        "h-11 px-4",
+        "h-11 px-4 sm:h-10",
         selected &&
           "bg-secondary text-secondary-foreground hover:bg-secondary border-transparent",
       )}

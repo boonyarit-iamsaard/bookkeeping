@@ -80,28 +80,32 @@ test("the tab bar navigates on phone and the sidebar from 1024px", {
       header.getByRole("button", { name: "Collapse sidebar" }),
     ).toBeVisible();
 
+    // From 1024px New transaction opens over the screen, which stays put.
+    const urlBefore = page.url();
     await header.getByRole("link", { name: "New transaction" }).click();
-  } else {
-    await expect(page.getByRole("banner")).toHaveCount(0);
-    for (const name of [
-      "Home",
-      "Transactions",
-      "New transaction",
-      "Wallets",
-      "Reports",
-    ]) {
-      await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
-    }
-    await nav.getByRole("link", { name: "Transactions", exact: true }).click();
-    await expect(page).toHaveURL(/\/transactions$/);
     await expect(
-      nav.getByRole("link", { name: "Transactions", exact: true }),
-    ).toHaveAttribute("aria-current", "page");
-    await expect(wallets).not.toHaveAttribute("aria-current");
-    await nav
-      .getByRole("link", { name: "New transaction", exact: true })
-      .click();
+      page.getByRole("dialog", { name: "New transaction" }),
+    ).toBeVisible();
+    expect(page.url()).toBe(urlBefore);
+    return;
   }
+  await expect(page.getByRole("banner")).toHaveCount(0);
+  for (const name of [
+    "Home",
+    "Transactions",
+    "New transaction",
+    "Wallets",
+    "Reports",
+  ]) {
+    await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  }
+  await nav.getByRole("link", { name: "Transactions", exact: true }).click();
+  await expect(page).toHaveURL(/\/transactions$/);
+  await expect(
+    nav.getByRole("link", { name: "Transactions", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(wallets).not.toHaveAttribute("aria-current");
+  await nav.getByRole("link", { name: "New transaction", exact: true }).click();
 
   await expect(page).toHaveURL(/\/transactions\/new\?origin=/);
   await expect(

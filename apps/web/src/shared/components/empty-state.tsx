@@ -13,6 +13,7 @@ interface EmptyStateProps {
 /**
  * A place with nothing in it yet: a card leading with a tonal Iris tile,
  * the title, a sentence that teaches what belongs here, and the next step.
+ * Inside an entry dialog it drops its card: the dialog is the card.
  */
 export function EmptyState({
   icon: Icon,
@@ -24,7 +25,7 @@ export function EmptyState({
   return (
     <section
       aria-labelledby={headingId}
-      className="bg-card shadow-card flex flex-col items-start gap-4 rounded-2xl p-5 sm:p-7"
+      className="bg-card shadow-card flex flex-col items-start gap-4 rounded-2xl p-5 in-data-entry-dialog:rounded-none in-data-entry-dialog:bg-transparent in-data-entry-dialog:px-6 in-data-entry-dialog:pt-2 in-data-entry-dialog:pb-6 in-data-entry-dialog:shadow-none sm:p-7"
     >
       <span className="bg-secondary text-secondary-foreground flex size-12 items-center justify-center rounded-lg">
         <Icon aria-hidden="true" strokeWidth={2} className="size-6" />

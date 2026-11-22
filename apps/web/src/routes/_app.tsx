@@ -10,6 +10,7 @@ import { useIsFormScreen } from "@/core/shell/form-screen";
 import { TabBar } from "@/core/shell/tab-bar";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import { captureSearchForLocation } from "@/features/transactions/capture-origin";
+import { RecordTransactionDialog } from "@/features/transactions/components/record-transaction-dialog";
 import { cn } from "@/shared/helpers/cn";
 import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
@@ -25,12 +26,20 @@ function AppLayout() {
 
   if (isDesktop) {
     return (
-      <DesktopShell
-        accountMenu={<AccountMenu email={session.user.email} />}
-        captureSearch={captureSearch}
-      >
-        <Outlet />
-      </DesktopShell>
+      <RecordTransactionDialog captureSearch={captureSearch}>
+        {(openRecord) => (
+          <DesktopShell
+            accountMenu={<AccountMenu email={session.user.email} />}
+            captureSearch={captureSearch}
+            // On the New transaction page itself ＋ stays, keeping its origin.
+            onNewTransaction={
+              location.pathname === "/transactions/new" ? undefined : openRecord
+            }
+          >
+            <Outlet />
+          </DesktopShell>
+        )}
+      </RecordTransactionDialog>
     );
   }
 

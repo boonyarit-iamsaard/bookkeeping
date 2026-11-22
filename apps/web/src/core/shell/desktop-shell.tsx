@@ -20,6 +20,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/shared/components/ui/sidebar";
+import { isPlainClick } from "@/shared/helpers/plain-click";
 import { useToday } from "@/shared/hooks/use-today";
 
 interface WordmarkAnchorProps extends React.ComponentPropsWithRef<"a"> {}
@@ -62,6 +63,8 @@ interface DesktopShellProps {
   /** The account control the signed-in layout supplies; the shell owns no feature. */
   accountMenu: React.ReactNode;
   captureSearch: CaptureLinkSearch;
+  /** Opens New transaction over the current screen instead of navigating. */
+  onNewTransaction?: () => void;
   children: React.ReactNode;
 }
 
@@ -74,6 +77,7 @@ interface DesktopShellProps {
 export function DesktopShell({
   accountMenu,
   captureSearch,
+  onNewTransaction,
   children,
 }: Readonly<DesktopShellProps>) {
   const today = useToday();
@@ -117,6 +121,12 @@ export function DesktopShell({
             <Link
               to="/transactions/new"
               search={captureSearch}
+              onClick={(event) => {
+                if (onNewTransaction && isPlainClick(event)) {
+                  event.preventDefault();
+                  onNewTransaction();
+                }
+              }}
               className={buttonVariants({ size: "lg" })}
             >
               New transaction

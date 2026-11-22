@@ -9,6 +9,7 @@ import {
 } from "@/features/categories/components/category-icon";
 import { useCategoryColors } from "@/features/categories/hooks/use-category-colors";
 import { TagChipList } from "@/features/tags/components/tag-chip";
+import { useOpenRecordDialog } from "@/features/transactions/components/record-transaction-dialog";
 import {
   TRANSACTION_TYPE_LABELS,
   TRANSACTION_TYPE_SIGNS,
@@ -19,6 +20,7 @@ import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { ARRIVAL_CLASS } from "@/shared/helpers/arrival";
 import { cn } from "@/shared/helpers/cn";
+import { isPlainClick } from "@/shared/helpers/plain-click";
 
 type ApiTransaction = components["schemas"]["Transaction"];
 type ApiTransactionWallet = components["schemas"]["TransactionWallet"];
@@ -57,6 +59,7 @@ export function transferWallets({
 }
 
 function EmptyTransactions() {
+  const openRecord = useOpenRecordDialog();
   return (
     <EmptyState
       icon={ReceiptText}
@@ -64,7 +67,16 @@ function EmptyTransactions() {
       title="Nothing recorded yet"
       description="Record income and expenses as they happen. Each one moves the balance of the wallet it belongs to."
       action={
-        <Link to="/transactions/new" className={buttonVariants({ size: "lg" })}>
+        <Link
+          to="/transactions/new"
+          onClick={(event) => {
+            if (openRecord && isPlainClick(event)) {
+              event.preventDefault();
+              openRecord();
+            }
+          }}
+          className={buttonVariants({ size: "lg" })}
+        >
           <Plus data-icon="inline-start" />
           Record a transaction
         </Link>
