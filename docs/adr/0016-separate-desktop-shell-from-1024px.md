@@ -7,7 +7,8 @@ app now renders a separate desktop shell: a shadcn Sidebar that collapses to
 icons and a 64px top bar with today's date, New transaction, and the account
 menu. Below 1024px, tablets included, the phone chrome (title bar and tab
 bar) applies; the 640px density step and sheets becoming dialogs stay where
-they were.
+they were. This amends ADR 0006's phone-first stance: phones still lead, but
+desktop is a first-class layout rather than the phone column widened.
 
 ## Considered options
 

@@ -100,26 +100,28 @@ export function DesktopShell({
         <SidebarRail />
       </Sidebar>
       <div className="flex min-w-0 flex-1 flex-col">
+        {/*
+         * The trigger keeps the window's left edge; the rest lines up with
+         * the 96rem content column inside its 32px gutters, and clears the
+         * trigger when the column is wider than the window.
+         */}
         <header
           data-shell="header"
-          className="bg-chrome/90 sticky top-0 z-20 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-md"
+          className="bg-chrome/90 sticky top-0 z-20 flex h-16 items-center gap-3 border-b pr-[max(2rem,calc((100%-96rem)/2+2rem))] pl-[max(4.5rem,calc((100%-96rem)/2+2rem))] backdrop-blur-md"
         >
-          <SidebarTrigger />
-          {/* Lines up with the 96rem content column, inside its 32px gutters. */}
-          <div className="mx-auto flex w-full max-w-[92rem] items-center gap-3">
-            <p className="text-muted-foreground text-sm font-medium">
-              Today · {formatCalendarDate(today)}
-            </p>
-            <div className="ml-auto flex items-center gap-2">
-              <Link
-                to="/transactions/new"
-                search={captureSearch}
-                className={buttonVariants({ size: "lg" })}
-              >
-                New transaction
-              </Link>
-              {accountMenu}
-            </div>
+          <SidebarTrigger className="absolute top-1/2 left-4 -translate-y-1/2" />
+          <p className="text-muted-foreground text-sm font-medium">
+            Today · {formatCalendarDate(today)}
+          </p>
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              to="/transactions/new"
+              search={captureSearch}
+              className={buttonVariants({ size: "lg" })}
+            >
+              New transaction
+            </Link>
+            {accountMenu}
           </div>
         </header>
         {children}
