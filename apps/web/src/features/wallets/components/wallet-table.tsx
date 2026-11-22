@@ -13,6 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  tableRowLinkClass,
 } from "@/shared/components/ui/table";
 
 type WalletSummary = components["schemas"]["Wallet"];
@@ -45,15 +46,20 @@ export function WalletTable({
       </TableHeader>
       <TableBody>
         {wallets.map((wallet) => (
-          <TableRow key={wallet.id} data-wallet-row>
+          <TableRow
+            key={wallet.id}
+            data-wallet-row
+            className="has-[a:hover]:bg-accent/70"
+          >
             <TableCell className="font-semibold">
               <Link
                 to="/wallets/$walletId"
                 params={{ walletId: wallet.id }}
-                className="focus-visible:ring-ring/45 -my-2 inline-flex min-h-11 items-center rounded-sm underline-offset-4 outline-none hover:underline focus-visible:ring-[3px]"
+                className={tableRowLinkClass}
               >
                 {wallet.name}
               </Link>
+              {/* A caption is text, not a link: the row is the link. */}
               {captionArchived && wallet.archivedAt && (
                 <span className="text-muted-foreground block text-sm font-normal">
                   Archived

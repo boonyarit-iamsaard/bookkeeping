@@ -9,6 +9,7 @@ import { TagTable } from "@/features/tags/components/tag-table";
 import type { EditTagOutcome } from "@/features/tags/hooks/use-edit-tag-form";
 import type { TagSummary } from "@/features/tags/tag-search";
 import { tagUsageLabel } from "@/features/tags/tag-search";
+import { TableCard } from "@/shared/components/dashboard-card";
 import { EmptyState } from "@/shared/components/empty-state";
 import { listCardClass } from "@/shared/components/list-section";
 import { SavedNotice } from "@/shared/components/saved-notice";
@@ -111,9 +112,9 @@ export function TagManagement({ tags }: Readonly<TagManagementProps>) {
           />
         </div>
       ) : desktop ? (
-        <div className="bg-card shadow-card rounded-2xl p-6 lg:w-1/2">
+        <TableCard className="lg:w-1/2">
           <TagTable tags={byName(tags)} onDone={finish} />
-        </div>
+        </TableCard>
       ) : (
         <ul aria-label="Tags" className={listCardClass}>
           {byName(tags).map((tag) => (

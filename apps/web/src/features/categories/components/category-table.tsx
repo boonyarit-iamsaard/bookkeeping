@@ -1,24 +1,16 @@
-import { Dialog } from "@base-ui/react/dialog";
 import type { CategorySummary } from "@bookkeeping/domain/categories";
-import { LockKeyhole } from "lucide-react";
-import { useState } from "react";
 import type { CategoryColor } from "@/features/categories/category-color";
 import type { CategoryGroup } from "@/features/categories/category-search";
-import {
-  CategoryIcon,
-  CategoryTile,
-} from "@/features/categories/components/category-icon";
 import type { EditResult } from "@/features/categories/components/edit-category-sheet";
 import { EditCategorySheet } from "@/features/categories/components/edit-category-sheet";
+import { SheetTableRow } from "@/shared/components/sheet-table-row";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { cn } from "@/shared/helpers/cn";
 
 interface CategoryTableProps {
   /** Names the table, e.g. "Expense categories". */
@@ -39,7 +31,7 @@ interface CategoryTableRowProps {
   onDone: (result: Readonly<EditResult>) => void;
 }
 
-/** One row, and the sheet it opens; its name is the button, stretched over the row. */
+/** One row, and the edit sheet it opens; a child sits one step in under its parent. */
 function CategoryTableRow({
   category,
   color,
@@ -48,49 +40,25 @@ function CategoryTableRow({
   entries,
   onDone,
 }: Readonly<CategoryTableRowProps>) {
-  const [open, setOpen] = useState(false);
-  const isChild = parentName !== null;
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <TableRow className="has-[button:hover]:bg-accent/70">
-        <TableCell className={cn(isChild && "pl-8!")}>
-          <Dialog.Trigger
-            data-category-row={category.id}
-            className="group/row focus-visible:after:ring-ring/45 flex items-center gap-3 text-left outline-none after:absolute after:inset-0 focus-visible:after:ring-[3px] focus-visible:after:ring-inset"
-          >
-            <CategoryTile color={color} size="child">
-              <CategoryIcon iconId={category.iconId} />
-            </CategoryTile>
-            <span className={cn(!isChild && "font-semibold")}>
-              {category.name}
-            </span>
-            {category.isProtected && (
-              <span className="text-muted-foreground inline-flex items-center gap-1">
-                <LockKeyhole
-                  aria-hidden="true"
-                  strokeWidth={2}
-                  className="size-3.5"
-                />
-                Protected
-              </span>
-            )}
-          </Dialog.Trigger>
-        </TableCell>
-        <TableCell className="text-muted-foreground text-right tabular-nums">
-          {entries}
-        </TableCell>
-      </TableRow>
-      <EditCategorySheet
-        category={category}
-        color={color}
-        removal={{ parentName, childCount, entries }}
-        onDone={(result) => {
-          setOpen(false);
-          onDone(result);
-        }}
-        onCancel={() => setOpen(false)}
-      />
-    </Dialog.Root>
+    <SheetTableRow
+      marker={{ "data-category-row": category.id }}
+      name={category.name}
+      nameClassName={parentName === null ? "font-semibold" : "pl-8!"}
+      count={entries}
+      sheet={(close) => (
+        <EditCategorySheet
+          category={category}
+          color={color}
+          removal={{ parentName, childCount, entries }}
+          onDone={(result) => {
+            close();
+            onDone(result);
+          }}
+          onCancel={close}
+        />
+      )}
+    />
   );
 }
 

@@ -9,7 +9,7 @@ function subscribe(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
-export function isDesktopViewport() {
+function isDesktopViewport() {
   return window.matchMedia(DESKTOP_QUERY).matches;
 }
 

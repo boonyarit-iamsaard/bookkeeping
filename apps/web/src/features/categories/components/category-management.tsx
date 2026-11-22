@@ -44,6 +44,28 @@ const KIND_OPTIONS = (
   ["expense", "income"] as const satisfies readonly CategoryKind[]
 ).map((value) => ({ value, label: CATEGORY_KIND_LABELS[value] }));
 
+interface KindSwitchProps {
+  kind: CategoryKind;
+  onChange: (kind: CategoryKind) => void;
+}
+
+/** Expense or Income: the phone's tree switch, and the desktop sheet's choice of tree. */
+function KindSwitch({ kind, onChange }: Readonly<KindSwitchProps>) {
+  return (
+    <div>
+      <span id="category-tree-label" className="sr-only">
+        Category tree
+      </span>
+      <SegmentedControl
+        aria-labelledby="category-tree-label"
+        options={KIND_OPTIONS}
+        value={kind}
+        onValueChange={onChange}
+      />
+    </div>
+  );
+}
+
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -165,33 +187,22 @@ export function CategoryManagement({
         title="Categories"
         actions={
           <Dialog.Root open={creating} onOpenChange={setCreating}>
-            {desktop ? (
-              // Both trees are on show, so each button names its own.
-              KIND_OPTIONS.map((option) => (
-                <Button
-                  key={option.value}
-                  variant="outline"
-                  size="lg"
-                  onClick={() => {
-                    setKind(option.value);
-                    setCreating(true);
-                  }}
-                >
-                  <Plus data-icon="inline-start" />
-                  New {option.label.toLowerCase()} category
-                </Button>
-              ))
-            ) : (
-              <Dialog.Trigger render={<Button variant="outline" size="lg" />}>
-                <Plus data-icon="inline-start" />
-                New category
-              </Dialog.Trigger>
-            )}
+            <Dialog.Trigger render={<Button variant="outline" size="lg" />}>
+              <Plus data-icon="inline-start" />
+              New category
+            </Dialog.Trigger>
             <SheetPortal className="sm:h-auto sm:max-h-144">
               <SheetHeader>
                 New {CATEGORY_KIND_LABELS[kind].toLowerCase()} category
               </SheetHeader>
+              {desktop && (
+                // Both trees are on show, so the sheet asks which one.
+                <div className="px-4 pb-2 sm:px-6">
+                  <KindSwitch kind={kind} onChange={setKind} />
+                </div>
+              )}
               <CreateCategoryForm
+                key={kind}
                 kind={kind}
                 categories={categories}
                 initialName=""
@@ -243,17 +254,7 @@ export function CategoryManagement({
         </DashboardRow>
       ) : (
         <>
-          <div>
-            <span id="category-tree-label" className="sr-only">
-              Category tree
-            </span>
-            <SegmentedControl
-              aria-labelledby="category-tree-label"
-              options={KIND_OPTIONS}
-              value={kind}
-              onValueChange={setKind}
-            />
-          </div>
+          <KindSwitch kind={kind} onChange={setKind} />
 
           <ul
             className="flex flex-col gap-3 sm:gap-4"

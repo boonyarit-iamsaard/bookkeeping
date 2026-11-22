@@ -6,6 +6,7 @@ import {
   HeroSkeleton,
   RowSkeleton,
   Skeleton,
+  TableCardSkeleton,
 } from "@/shared/components/skeleton";
 import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
@@ -37,17 +38,6 @@ function PhoneSkeleton() {
         </div>
       </div>
     </>
-  );
-}
-
-function TableCardSkeleton() {
-  return (
-    <div className="bg-card shadow-card flex flex-col gap-4 rounded-2xl p-6">
-      <Skeleton className="h-6 w-48" />
-      <Skeleton className="h-10" />
-      <Skeleton className="h-10" />
-      <Skeleton className="h-10" />
-    </div>
   );
 }
 

@@ -6,7 +6,6 @@ import { HomeErrorBoundary } from "@/features/home/components/home-error-boundar
 import { HomeLoading } from "@/features/home/components/home-loading";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
 import { historySearchSchema } from "@/features/transactions/history-schema";
-import { isDesktopViewport } from "@/shared/hooks/use-is-desktop";
 
 function HomeRoute() {
   const { initialToday } = Route.useLoaderData();
@@ -33,8 +32,7 @@ export const Route = createFileRoute("/_app/")({
       context.queryClient.ensureQueryData(plan.monthly),
       context.queryClient.ensureQueryData(plan.recent),
       context.queryClient.ensureQueryData(plan.categories),
-      isDesktopViewport() &&
-        context.queryClient.ensureQueryData(plan.categorySpending),
+      context.queryClient.ensureQueryData(plan.categorySpending),
     ]);
     return { initialToday };
   },

@@ -216,7 +216,10 @@ test("loads without sample money, then reads an empty ledger as empty", {
     .getByRole("link", { name: "Home", exact: true })
     .click();
   await expect(page.getByText("Loading your records…")).toBeAttached();
-  await expect(page.getByText(/฿/)).toHaveCount(0);
+  // React keeps the page left behind mounted but hidden while the fallback shows.
+  await expect(
+    page.getByRole("main", { name: "Loading" }).getByText(/฿/),
+  ).toHaveCount(0);
 
   const day = page.getByRole("region", { name: "Today" });
   await expect(day).toContainText("Income฿0.00");

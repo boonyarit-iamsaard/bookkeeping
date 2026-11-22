@@ -16,6 +16,7 @@ import { WalletBalance } from "@/features/wallets/components/wallet-balance";
 import { WalletDesktopHeader } from "@/features/wallets/components/wallet-desktop-header";
 import { WalletPageErrorBoundary } from "@/features/wallets/components/wallet-page-error-boundary";
 import { WalletPageLoading } from "@/features/wallets/components/wallet-page-loading";
+import { TableCard } from "@/shared/components/dashboard-card";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
@@ -75,14 +76,14 @@ function WalletPage() {
             No transactions yet
           </p>
         ) : desktop ? (
-          <div className="bg-card shadow-card rounded-2xl px-6 pb-2">
+          <TableCard>
             <TransactionTable
               transactions={page.items}
               savedId={created}
               groupByMonth
               pageWalletId={wallet.id}
             />
-          </div>
+          </TableCard>
         ) : (
           <MonthSections
             transactions={page.items}

@@ -1,10 +1,10 @@
 import { Page } from "@/core/shell/page";
-import { TableSkeleton } from "@/features/transactions/components/history-loading";
 import { listCardClass } from "@/shared/components/list-section";
 import {
   HeroSkeleton,
   RowSkeleton,
   Skeleton,
+  TableCardSkeleton,
 } from "@/shared/components/skeleton";
 import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
@@ -15,7 +15,7 @@ function DesktopSkeleton() {
         <Skeleton className="h-9 w-64" />
         <Skeleton className="h-14 w-56" />
       </div>
-      <TableSkeleton />
+      <TableCardSkeleton rows={5} />
     </>
   );
 }

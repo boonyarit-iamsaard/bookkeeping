@@ -18,6 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  tableRowLinkClass,
 } from "@/shared/components/ui/table";
 import { ARRIVAL_CLASS } from "@/shared/helpers/arrival";
 import { cn } from "@/shared/helpers/cn";
@@ -74,7 +75,7 @@ function TransactionRow({
         <Link
           to="/transactions/$transactionId"
           params={{ transactionId: transaction.id }}
-          className="focus-visible:after:ring-ring/45 inline-flex items-center gap-1.5 outline-none after:absolute after:inset-0 focus-visible:after:ring-[3px] focus-visible:after:ring-inset"
+          className={cn("inline-flex items-center gap-1.5", tableRowLinkClass)}
         >
           {transfer && (
             <ArrowRightLeft

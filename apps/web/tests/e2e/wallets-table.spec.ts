@@ -59,8 +59,12 @@ test("Wallets lists every wallet in a table, archived ones captioned", {
     0,
   );
 
-  await oldCard.getByRole("link", { name: "Old card" }).click();
+  // The link is stretched over the row, so a click beside the name opens it too.
+  await oldCard.click({ position: { x: 500, y: 10 } });
   await expect(page).toHaveURL(/\/wallets\/[0-9a-f-]+$/);
+  await expect(
+    page.getByRole("heading", { name: "Old card", level: 1 }),
+  ).toBeVisible();
 
   await page.goto("/wallets");
   await page.getByRole("link", { name: "New wallet" }).click();

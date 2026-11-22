@@ -1,6 +1,5 @@
 import type { components } from "@/core/api/openapi.gen";
 import { BackLink } from "@/core/shell/title-bar";
-import { walletCaption } from "@/features/wallets/wallet-labels";
 import { Money } from "@/shared/components/money";
 
 type Wallet = components["schemas"]["Wallet"];
@@ -41,7 +40,6 @@ export function WalletDesktopHeader({
         <p className="text-4xl leading-tight font-bold tracking-[-0.025em]">
           <Money amount={wallet.balance} display className="font-bold" />
         </p>
-        <p className="text-muted-foreground text-sm">{walletCaption(wallet)}</p>
       </section>
     </div>
   );

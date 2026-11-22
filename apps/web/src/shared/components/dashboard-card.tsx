@@ -1,3 +1,5 @@
+import { cn } from "@/shared/helpers/cn";
+
 interface DashboardCardProps {
   /** Labels the card's region. */
   headingId: string;
@@ -31,5 +33,17 @@ export function DashboardCard({
       </div>
       {children}
     </section>
+  );
+}
+
+/** A desktop table's card: the table's own header row is its top. */
+export function TableCard({
+  className,
+  children,
+}: Readonly<{ className?: string; children: React.ReactNode }>) {
+  return (
+    <div className={cn("bg-card shadow-card rounded-2xl px-6 pb-2", className)}>
+      {children}
+    </div>
   );
 }

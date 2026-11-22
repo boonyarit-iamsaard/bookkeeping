@@ -216,7 +216,7 @@ export function HistoryFilters({
                 <FilterSelect
                   id="history-walletId"
                   name="walletId"
-                  defaultValue={value("walletId")}
+                  value={value("walletId")}
                   allLabel="All wallets"
                   groups={[
                     {
@@ -234,7 +234,7 @@ export function HistoryFilters({
                 <FilterSelect
                   id="history-categoryId"
                   name="categoryId"
-                  defaultValue={value("categoryId")}
+                  value={value("categoryId")}
                   allLabel="All categories"
                   groups={categoryGroups(categories)}
                 />
@@ -244,7 +244,7 @@ export function HistoryFilters({
                 <FilterSelect
                   id="history-type"
                   name="type"
-                  defaultValue={value("type")}
+                  value={value("type")}
                   allLabel="All types"
                   groups={[
                     {

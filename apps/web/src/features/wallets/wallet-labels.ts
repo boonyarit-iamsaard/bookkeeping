@@ -1,5 +1,6 @@
 import type { WalletType } from "@bookkeeping/domain/wallets";
 import type { components } from "@/core/api/openapi.gen";
+import { pluralize } from "@/shared/helpers/pluralize";
 
 export const WALLET_TYPE_LABELS: Record<WalletType, string> = {
   cash: "Cash",
@@ -9,7 +10,7 @@ export const WALLET_TYPE_LABELS: Record<WalletType, string> = {
 
 /** "1 wallet", "3 wallets": what a total covers. */
 export function walletCountLabel(count: number): string {
-  return count === 1 ? "1 wallet" : `${count} wallets`;
+  return pluralize(count, "wallet");
 }
 
 type Wallet = components["schemas"]["Wallet"];

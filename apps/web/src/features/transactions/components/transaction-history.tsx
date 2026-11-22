@@ -2,6 +2,7 @@ import type { components } from "@/core/api/openapi.gen";
 import { MonthSections } from "@/features/transactions/components/month-sections";
 import { TransactionList } from "@/features/transactions/components/transaction-list";
 import { TransactionTable } from "@/features/transactions/components/transaction-table";
+import { TableCard } from "@/shared/components/dashboard-card";
 import { ErrorNotice } from "@/shared/components/error-notice";
 
 type ApiTransaction = components["schemas"]["Transaction"];
@@ -58,13 +59,13 @@ export function TransactionHistory({
 
   if (table) {
     return (
-      <div className="bg-card shadow-card rounded-2xl px-6 pb-2">
+      <TableCard>
         <TransactionTable
           transactions={transactions}
           savedId={savedId}
           groupByMonth
         />
-      </div>
+      </TableCard>
     );
   }
 

@@ -7,7 +7,7 @@ import { WalletTile } from "@/features/wallets/components/wallet-tile";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
 import { walletCaption } from "@/features/wallets/wallet-labels";
 import { walletMorphName } from "@/features/wallets/wallet-morph";
-import { DashboardCard } from "@/shared/components/dashboard-card";
+import { TableCard } from "@/shared/components/dashboard-card";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
@@ -29,18 +29,20 @@ interface WalletListProps {
 /** A new account holder's first step: create a wallet. */
 export function EmptyWallets() {
   return (
-    <EmptyState
-      icon={Wallet}
-      headingId="empty-wallets-heading"
-      title="No wallets yet"
-      description="Add the cash, bank accounts, and e-wallets you want to track. Each one starts from an opening balance on the date its history begins."
-      action={
-        <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
-          <Plus data-icon="inline-start" />
-          Create your first wallet
-        </Link>
-      }
-    />
+    <div className="lg:max-w-2xl">
+      <EmptyState
+        icon={Wallet}
+        headingId="empty-wallets-heading"
+        title="No wallets yet"
+        description="Add the cash, bank accounts, and e-wallets you want to track. Each one starts from an opening balance on the date its history begins."
+        action={
+          <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
+            <Plus data-icon="inline-start" />
+            Create your first wallet
+          </Link>
+        }
+      />
+    </div>
   );
 }
 
@@ -51,18 +53,14 @@ export function WalletList({
 }: Readonly<WalletListProps>) {
   const desktop = useIsDesktop();
   if (wallets.length === 0) {
-    return (
-      <div className="lg:max-w-2xl">
-        <EmptyWallets />
-      </div>
-    );
+    return <EmptyWallets />;
   }
   if (desktop) {
     // From 1024px the table carries the total in its footer, so no hero.
     return (
-      <DashboardCard headingId="wallets-heading" heading="Wallets">
+      <TableCard>
         <WalletTable wallets={wallets} total={balance.total} captionArchived />
-      </DashboardCard>
+      </TableCard>
     );
   }
 

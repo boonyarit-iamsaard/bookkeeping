@@ -15,6 +15,7 @@ import { WalletsTotal } from "@/features/wallets/components/wallet-total";
 import { DashboardCard } from "@/shared/components/dashboard-card";
 import { DashboardRow } from "@/shared/components/dashboard-row";
 import { sectionLinkClass } from "@/shared/components/list-section";
+import { pluralize } from "@/shared/helpers/pluralize";
 
 type WalletCollection = components["schemas"]["WalletCollection"];
 type ApiTransaction = components["schemas"]["Transaction"];
@@ -30,8 +31,8 @@ interface DesktopHomeProps {
   arrive: boolean;
 }
 
-function archivedNote(count: number) {
-  return `${count} archived ${count === 1 ? "wallet" : "wallets"} not shown`;
+function LinkArrow() {
+  return <ArrowRight aria-hidden="true" strokeWidth={2} className="size-3.5" />;
 }
 
 function CategoriesCard({ today }: Readonly<Pick<DesktopHomeProps, "today">>) {
@@ -46,7 +47,6 @@ function CategoriesCard({ today }: Readonly<Pick<DesktopHomeProps, "today">>) {
     <DashboardCard
       headingId="home-categories-heading"
       heading="Spending by category"
-      action={<span className="text-muted-foreground text-sm">{month}</span>}
     >
       <SpendingByCategory breakdown={breakdown} month={month} />
       {hiddenCount > 0 && (
@@ -55,9 +55,9 @@ function CategoriesCard({ today }: Readonly<Pick<DesktopHomeProps, "today">>) {
           search={{ month: data.month }}
           className={`${sectionLinkClass} mt-auto self-start`}
         >
-          {hiddenCount} more {hiddenCount === 1 ? "category" : "categories"} in{" "}
+          {pluralize(hiddenCount, ["more category", "more categories"])} in{" "}
           {month}
-          <ArrowRight aria-hidden="true" strokeWidth={2} className="size-3.5" />
+          <LinkArrow />
         </Link>
       )}
     </DashboardCard>
@@ -98,27 +98,14 @@ export function DesktopHome({
           <CategoriesCard today={today} />
         </Arrival>
         <Arrival order={4} animate={arrive}>
-          <DashboardCard
-            headingId="home-wallets-heading"
-            heading="Wallets"
-            action={
-              <Link to="/wallets" className={sectionLinkClass}>
-                All wallets
-                <ArrowRight
-                  aria-hidden="true"
-                  strokeWidth={2}
-                  className="size-3.5"
-                />
-              </Link>
-            }
-          >
+          <DashboardCard headingId="home-wallets-heading" heading="Wallets">
             <WalletTable
               wallets={activeWallets}
               total={walletCollection.balance.total}
             />
             {archivedCount > 0 && (
               <p className="text-muted-foreground mt-auto text-sm">
-                {archivedNote(archivedCount)}
+                {pluralize(archivedCount, "archived wallet")} not shown
               </p>
             )}
           </DashboardCard>
@@ -132,11 +119,7 @@ export function DesktopHome({
             recent.length > 0 && (
               <Link to="/transactions" className={sectionLinkClass}>
                 All transactions
-                <ArrowRight
-                  aria-hidden="true"
-                  strokeWidth={2}
-                  className="size-3.5"
-                />
+                <LinkArrow />
               </Link>
             )
           }

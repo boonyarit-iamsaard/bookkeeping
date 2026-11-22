@@ -122,14 +122,16 @@ test("desktop Categories shows both trees as tables and Tags one table", {
     expense.getByRole("button", { name: /Supermarket/ }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "New expense category" }).click();
+  await page.getByRole("button", { name: "New category" }).click();
   const create = page.getByRole("dialog", { name: "New expense category" });
   await create.getByLabel("Name", { exact: true }).fill("Pets");
   await create.getByRole("button", { name: "Save category" }).click();
   await expect(create).toBeHidden(ROUND_TRIP);
   await expect(expense.getByRole("button", { name: /Pets/ })).toBeVisible();
 
-  await page.getByRole("button", { name: "New income category" }).click();
+  await page.getByRole("button", { name: "New category" }).click();
+  // The one New button asks which tree in its sheet.
+  await page.getByRole("radio", { name: "Income" }).click();
   const createIncome = page.getByRole("dialog", {
     name: "New income category",
   });

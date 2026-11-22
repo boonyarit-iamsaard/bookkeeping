@@ -27,6 +27,34 @@ export function RowSkeleton() {
   );
 }
 
+const ROW_KEYS = ["first", "second", "third", "fourth", "fifth"];
+
+interface TableCardSkeletonProps {
+  /** How many rows, up to five. */
+  rows?: number;
+  className?: string;
+}
+
+/** A table's card in waiting: a heading bar, then rows. It holds no figure. */
+export function TableCardSkeleton({
+  rows = 3,
+  className,
+}: Readonly<TableCardSkeletonProps>) {
+  return (
+    <div
+      className={cn(
+        "bg-card shadow-card flex flex-col gap-4 rounded-2xl p-6",
+        className,
+      )}
+    >
+      <Skeleton className="h-6 w-40" />
+      {ROW_KEYS.slice(0, rows).map((key) => (
+        <Skeleton key={key} className="h-10" />
+      ))}
+    </div>
+  );
+}
+
 interface HeroSkeletonProps {
   /** Width classes for the caption bar under the figure. */
   captionClassName?: string;

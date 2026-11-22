@@ -1,6 +1,10 @@
 import type * as React from "react";
 import { cn } from "@/shared/helpers/cn";
 
+/** A row's link or button, stretched over the whole row; its focus ring is the row's. */
+export const tableRowLinkClass =
+  "focus-visible:after:ring-ring/45 outline-none after:absolute after:inset-0 focus-visible:after:ring-[3px] focus-visible:after:ring-inset";
+
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
