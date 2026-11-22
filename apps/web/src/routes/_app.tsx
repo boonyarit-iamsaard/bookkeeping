@@ -31,10 +31,8 @@ function AppLayout() {
           <DesktopShell
             accountMenu={<AccountMenu email={session.user.email} />}
             captureSearch={captureSearch}
-            // On the New transaction page itself ＋ stays, keeping its origin.
-            onNewTransaction={
-              location.pathname === "/transactions/new" ? undefined : openRecord
-            }
+            // On a form page ＋ navigates, so two forms never share field ids.
+            onNewTransaction={isFormScreen ? undefined : openRecord}
           >
             <Outlet />
           </DesktopShell>
