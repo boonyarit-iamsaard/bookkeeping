@@ -5,6 +5,7 @@ import { walletQueries } from "@/core/api/queries";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { WalletList } from "@/features/wallets/components/wallet-list";
+import { WalletsLoading } from "@/features/wallets/components/wallets-loading";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 interface WalletsSearch {
@@ -16,7 +17,7 @@ function WalletsPage() {
   const { created } = Route.useSearch();
 
   return (
-    <Page layout="wide">
+    <Page layout="dashboard">
       <TitleBar
         title="Wallets"
         actions={
@@ -47,5 +48,6 @@ export const Route = createFileRoute("/_app/wallets/")({
   }),
   loader: ({ context }) =>
     context.queryClient.ensureQueryData(walletQueries.list()),
+  pendingComponent: WalletsLoading,
   component: WalletsPage,
 });
