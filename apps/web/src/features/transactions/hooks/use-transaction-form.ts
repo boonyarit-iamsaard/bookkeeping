@@ -33,6 +33,8 @@ interface UseTransactionFormOptions {
   wallets: readonly WalletOption[];
   categories: readonly CategoryOption[];
   today: CalendarDate;
+  /** Replaces the page's return after a save, as inside an entry dialog. */
+  onSaved?: () => void;
 }
 
 type CreateTransactionRequest =
@@ -62,6 +64,7 @@ export function useTransactionForm({
   wallets,
   categories,
   today,
+  onSaved,
 }: Readonly<UseTransactionFormOptions>) {
   const { captureOrigin, limits } = entry;
   const navigate = useNavigate();
@@ -99,7 +102,8 @@ export function useTransactionForm({
           describeFieldError: describeTransactionFieldError,
           describeRejection,
           refreshOnRejection,
-          onDone: (created: Transaction) => returnFrom(created),
+          onDone: (created: Transaction) =>
+            onSaved ? onSaved() : returnFrom(created),
         },
         update: {
           kind: "change",
@@ -111,7 +115,8 @@ export function useTransactionForm({
           describeFieldError: describeTransactionFieldError,
           describeRejection,
           refreshOnRejection,
-          onDone: (updated: Transaction) => returnFrom(updated),
+          onDone: (updated: Transaction) =>
+            onSaved ? onSaved() : returnFrom(updated),
         },
       },
     });

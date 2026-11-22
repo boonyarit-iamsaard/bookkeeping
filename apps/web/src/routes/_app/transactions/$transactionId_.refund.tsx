@@ -1,8 +1,5 @@
 // biome-ignore lint/style/useFilenamingConvention: TanStack Router dynamic params must be valid JavaScript identifiers.
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Wallet as WalletIcon } from "lucide-react";
-import type { components } from "@/core/api/openapi.gen";
 import {
   categoryQueries,
   transactionQueries,
@@ -12,85 +9,12 @@ import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
-import { TransactionForm } from "@/features/transactions/components/transaction-form";
-import { linkedExpenseView } from "@/features/transactions/linked-expense";
+import { RecordRefund } from "@/features/transactions/components/record-refund";
 import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
-import { toWalletOptions } from "@/features/transactions/wallet-options";
-import { EmptyState } from "@/shared/components/empty-state";
 import { buttonVariants } from "@/shared/components/ui/button";
-
-interface NoReceivingWalletProps {
-  expenseId: string;
-  originalWallet: components["schemas"]["TransactionWallet"];
-}
-
-function NoReceivingWallet({
-  expenseId,
-  originalWallet,
-}: Readonly<NoReceivingWalletProps>) {
-  return (
-    <EmptyState
-      icon={WalletIcon}
-      headingId="no-wallet-heading"
-      title="No active wallets"
-      description={
-        <>
-          A refund lands in an active wallet.{" "}
-          {originalWallet.archived
-            ? `${originalWallet.name}, the expense’s wallet, is archived: unarchive it, or create another wallet, then record the refund.`
-            : "Create a wallet or unarchive one, then record the refund."}
-        </>
-      }
-      action={
-        <>
-          {originalWallet.archived && (
-            <Link
-              to="/wallets/$walletId/manage"
-              params={{ walletId: originalWallet.id }}
-              className={buttonVariants({ size: "lg" })}
-            >
-              Unarchive {originalWallet.name}
-            </Link>
-          )}
-          <Link
-            to="/wallets/new"
-            className={buttonVariants({
-              variant: originalWallet.archived ? "outline" : "default",
-              size: "lg",
-            })}
-          >
-            Create a wallet
-          </Link>
-          <Link
-            to="/transactions/$transactionId"
-            params={{ transactionId: expenseId }}
-            className={buttonVariants({ variant: "ghost", size: "lg" })}
-          >
-            Back to the expense
-          </Link>
-        </>
-      }
-    />
-  );
-}
 
 function RefundPage() {
   const { transactionId } = Route.useParams();
-  const { data: expense } = useSuspenseQuery(
-    transactionQueries.detail(transactionId),
-  );
-  const { data: refunds } = useSuspenseQuery(
-    transactionQueries.refunds(transactionId),
-  );
-  const { data: walletCollection } = useSuspenseQuery(walletQueries.list());
-  if (expense.type !== "expense") {
-    throw notFound();
-  }
-
-  const wallets = toWalletOptions(walletCollection.items);
-  const defaultWalletId =
-    wallets.find((wallet) => wallet.id === expense.wallet.id)?.id ?? "";
-  const linked = linkedExpenseView({ expense, refunds });
 
   return (
     <Page layout="entry">
@@ -99,14 +23,14 @@ function RefundPage() {
         back={
           <BackLink
             to="/transactions/$transactionId"
-            params={{ transactionId: expense.id }}
+            params={{ transactionId }}
             aria-label="Back to transaction"
           />
         }
         actions={
           <Link
             to="/transactions/$transactionId"
-            params={{ transactionId: expense.id }}
+            params={{ transactionId }}
             className={buttonVariants({
               variant: "ghost",
               size: "lg",
@@ -117,17 +41,7 @@ function RefundPage() {
           </Link>
         }
       />
-      {wallets.length > 0 ? (
-        <TransactionForm
-          wallets={wallets}
-          mode={{ kind: "refund", expense: linked, defaultWalletId }}
-        />
-      ) : (
-        <NoReceivingWallet
-          expenseId={expense.id}
-          originalWallet={expense.wallet}
-        />
-      )}
+      <RecordRefund expenseId={transactionId} />
     </Page>
   );
 }

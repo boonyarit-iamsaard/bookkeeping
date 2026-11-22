@@ -3,6 +3,7 @@ import {
   parseCalendarDate,
 } from "@bookkeeping/domain/dates";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
+import { useStore } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useCreateWalletForm } from "@/features/wallets/hooks/use-create-wallet-form";
@@ -10,13 +11,17 @@ import { WALLET_TYPE_LABELS } from "@/features/wallets/wallet-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { ErrorNotice } from "@/shared/components/error-notice";
 import { AmountInput } from "@/shared/components/form/amount-input";
+import type { EntryDialogHost } from "@/shared/components/form/entry-dialog";
+import {
+  EntryFormBody,
+  EntrySaveBar,
+  FormCard,
+} from "@/shared/components/form/entry-form";
 import { FieldErrors } from "@/shared/components/form/field-errors";
 import { Button } from "@/shared/components/ui/button";
-import { Card } from "@/shared/components/ui/card";
 import {
   Field,
   FieldDescription,
-  FieldGroup,
   FieldLabel,
 } from "@/shared/components/ui/field";
 import { Input } from "@/shared/components/ui/input";
@@ -41,10 +46,21 @@ function describeOpeningDate(value: string): string {
   return `The balance above is what the wallet held at the start of ${date}. Tracking begins there.`;
 }
 
-export function CreateWalletForm() {
+interface CreateWalletFormProps {
+  /** Set inside an entry dialog, which owns closing and the outcome of a save. */
+  host?: EntryDialogHost;
+}
+
+export function CreateWalletForm({ host }: Readonly<CreateWalletFormProps>) {
   const navigate = useNavigate();
-  const { form, today, serverError, serverFieldErrors } = useCreateWalletForm();
+  const { form, today, serverError, serverFieldErrors } = useCreateWalletForm({
+    onSaved: host?.onSaved,
+  });
   const formRef = useRef<HTMLFormElement>(null);
+  const hosted = Boolean(host);
+  const dirty = useStore(form.store, (state) => state.isDirty);
+  const onDirtyChange = host?.onDirtyChange;
+  useEffect(() => onDirtyChange?.(dirty), [onDirtyChange, dirty]);
 
   useEffect(() => {
     const element = formRef.current;
@@ -55,7 +71,8 @@ export function CreateWalletForm() {
     formElement.dataset.ready = "true";
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape" && event.target instanceof Node) {
-        if (!formElement.contains(event.target)) {
+        // A dialog closes on Escape itself and has no page to cancel to.
+        if (hosted || !formElement.contains(event.target)) {
           return;
         }
         event.preventDefault();
@@ -64,23 +81,23 @@ export function CreateWalletForm() {
     }
     formElement.addEventListener("keydown", handleEscape);
     return () => formElement.removeEventListener("keydown", handleEscape);
-  }, [navigate]);
+  }, [navigate, hosted]);
 
   return (
     <form
       ref={formRef}
       noValidate
-      className="flex flex-col gap-6 sm:gap-8"
+      className="flex flex-col gap-6 in-data-entry-dialog:min-h-0 in-data-entry-dialog:flex-auto in-data-entry-dialog:gap-0 sm:gap-8"
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
         void form.handleSubmit();
       }}
     >
-      {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
+      <EntryFormBody>
+        {serverError && <ErrorNotice>{serverError}</ErrorNotice>}
 
-      <Card className="px-5 sm:px-7 sm:py-7">
-        <FieldGroup>
+        <FormCard>
           <form.Field name="name">
             {(field) => {
               const invalid =
@@ -168,11 +185,9 @@ export function CreateWalletForm() {
               );
             }}
           </form.Field>
-        </FieldGroup>
-      </Card>
+        </FormCard>
 
-      <Card className="px-5 sm:px-7 sm:py-7">
-        <FieldGroup>
+        <FormCard>
           <form.Field name="openingAmount">
             {(field) => {
               const invalid =
@@ -234,23 +249,21 @@ export function CreateWalletForm() {
               );
             }}
           </form.Field>
-        </FieldGroup>
-      </Card>
+        </FormCard>
+      </EntryFormBody>
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
-          <div className="border-border bg-chrome/95 supports-backdrop-filter:bg-chrome/85 fixed inset-x-0 bottom-0 z-20 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-            <div className="mx-auto flex w-full max-w-md flex-col gap-3 sm:max-w-none">
-              <Button
-                type="submit"
-                size="lg"
-                disabled={isSubmitting}
-                className="h-12 w-full text-base"
-              >
-                {isSubmitting ? "Saving…" : "Create wallet"}
-              </Button>
-            </div>
-          </div>
+          <EntrySaveBar>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={isSubmitting}
+              className="h-12 w-full text-base"
+            >
+              {isSubmitting ? "Saving…" : "Create wallet"}
+            </Button>
+          </EntrySaveBar>
         )}
       </form.Subscribe>
     </form>

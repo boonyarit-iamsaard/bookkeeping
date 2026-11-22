@@ -264,10 +264,10 @@ export function TagPicker({
           aria-invalid={invalid}
           className={cn(
             fieldControlClass,
-            "flex h-auto min-h-11 items-center gap-3 py-1.5 pr-3.5 pl-1.5 text-left disabled:cursor-not-allowed sm:h-auto sm:min-h-10",
+            "flex h-auto min-h-11 items-center gap-3 py-1 pr-3.5 pl-1.5 text-left disabled:cursor-not-allowed sm:h-auto sm:min-h-10",
           )}
         >
-          <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md">
+          <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-md sm:size-7">
             <Hash aria-hidden="true" strokeWidth={2} className="size-4" />
           </span>
           <span id={valueId} className="min-w-0 flex-1">
@@ -321,7 +321,7 @@ export function TagPicker({
                   disabled={disabled || (full && !selected)}
                   onClick={() => onChange(toggled(value, tag.id))}
                   className={cn(
-                    "h-auto min-h-11 max-w-full px-3.5 py-2 wrap-break-word whitespace-normal",
+                    "h-auto min-h-11 max-w-full px-3.5 py-2 wrap-break-word whitespace-normal sm:min-h-10 sm:py-1.5",
                     selected &&
                       "bg-secondary text-secondary-foreground hover:bg-secondary border-transparent",
                   )}

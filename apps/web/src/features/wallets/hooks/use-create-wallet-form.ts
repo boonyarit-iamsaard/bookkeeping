@@ -21,7 +21,14 @@ const WALLET_FORM_FIELDS = [
   "openingDate",
 ] as const satisfies readonly (keyof WalletFormInput)[];
 
-export function useCreateWalletForm() {
+interface UseCreateWalletFormOptions {
+  /** Replaces the return to Wallets, for a host that stays on its screen. */
+  onSaved?: () => void;
+}
+
+export function useCreateWalletForm({
+  onSaved,
+}: Readonly<UseCreateWalletFormOptions> = {}) {
   const today = useToday();
   const schema = useMemo(() => createWalletFormSchema({ today }), [today]);
   const navigate = useNavigate();
@@ -37,7 +44,9 @@ export function useCreateWalletForm() {
           }),
         ...WALLET_REFUSAL_WORDING,
         onDone: (created: Wallet) =>
-          navigate({ to: "/wallets", search: { created: created.id } }),
+          onSaved
+            ? onSaved()
+            : navigate({ to: "/wallets", search: { created: created.id } }),
       },
     },
   });

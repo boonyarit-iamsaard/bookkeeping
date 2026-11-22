@@ -68,7 +68,8 @@ test("Wallets lists every wallet in a table, archived ones captioned", {
 
   await page.goto("/wallets");
   await page.getByRole("link", { name: "New wallet" }).click();
-  await expect(page).toHaveURL(/\/wallets\/new$/);
+  await expect(page.getByRole("dialog", { name: "New wallet" })).toBeVisible();
+  await expect(page).toHaveURL(/\/wallets$/);
 });
 
 test("Wallets loads without sample money, then offers only wallet creation when empty", {
@@ -91,5 +92,6 @@ test("Wallets loads without sample money, then offers only wallet creation when 
   await expect(page.getByText(/฿/)).toHaveCount(0);
   await expect(page.getByRole("table")).toHaveCount(0);
   await page.getByRole("link", { name: "Create your first wallet" }).click();
-  await expect(page).toHaveURL(/\/wallets\/new$/);
+  await expect(page.getByRole("dialog", { name: "New wallet" })).toBeVisible();
+  await expect(page).toHaveURL(/\/wallets$/);
 });

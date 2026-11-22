@@ -90,7 +90,7 @@ export function SourceWalletField({
           <Button
             type="button"
             variant="outline"
-            className="h-11 w-11 shrink-0"
+            className="size-11 shrink-0 sm:size-10"
             aria-label="Swap wallets"
             onClick={onSwap}
           >

@@ -303,12 +303,12 @@ export function CategoryPicker({
         aria-invalid={invalid}
         className={cn(
           fieldControlClass,
-          "flex h-auto min-h-11 items-center gap-3 py-1.5 pr-3.5 pl-1.5 text-left disabled:cursor-not-allowed sm:h-auto sm:min-h-10",
+          "flex h-auto min-h-11 items-center gap-3 py-1 pr-3.5 pl-1.5 text-left disabled:cursor-not-allowed sm:h-auto sm:min-h-10",
         )}
       >
         <CategoryTile
           color={selected ? colorOf(selected.id) : "neutral"}
-          className="size-8 rounded-md [&_svg]:size-4"
+          className="size-8 rounded-md sm:size-7 [&_svg]:size-4"
         >
           <CategoryIcon iconId={selected?.iconId ?? "generic"} />
         </CategoryTile>

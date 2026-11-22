@@ -11,7 +11,6 @@ import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { resumePage } from "./helpers/resume-page";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
-import { isDesktop } from "./helpers/viewport";
 
 test.setTimeout(120_000);
 
@@ -207,38 +206,6 @@ test("capture returns to its opening screen, preserves filters, and chooses the 
     page.getByRole("heading", { name: "Home", level: 1 }),
   ).toBeVisible();
   expect(new URL(page.url()).pathname).toBe("/");
-});
-
-test("the desktop header opens capture from its screen, even from capture itself", {
-  tag: "@matrix",
-}, async ({ page }) => {
-  // Phone projects render the tab bar and do not have a desktop header.
-  test.skip(!isDesktop(page), "The header is desktop-only");
-  await signUpFreshUser(page);
-  await createWalletThroughForm(page, {
-    name: "Cash",
-    openingAmount: "1000",
-    openingDate: addDays(todayIn({ timeZone: APP_TIME_ZONE }), -3),
-  });
-
-  const header = page.getByRole("banner");
-  await page.goto("/transactions?type=expense");
-  await header.getByRole("link", { name: "New transaction" }).click();
-  await expect(page.getByLabel("Amount")).toBeVisible();
-  // The header stays on capture; opening it again keeps the first origin.
-  await header.getByRole("link", { name: "New transaction" }).click();
-  const entryUrl = new URL(page.url());
-  expect(entryUrl.pathname).toBe("/transactions/new");
-  expect(entryUrl.searchParams.get("origin")).toBe(
-    "/transactions?type=expense",
-  );
-
-  await page.getByLabel("Amount").fill("14");
-  await page.getByRole("button", { name: /^Save −/ }).click();
-  await expectSavedRecord(page);
-  const transactionsUrl = new URL(page.url());
-  expect(transactionsUrl.pathname).toBe("/transactions");
-  expect(transactionsUrl.searchParams.get("type")).toBe("expense");
 });
 
 test("validation keeps values, rejects a date before opening, and shows server errors", async ({

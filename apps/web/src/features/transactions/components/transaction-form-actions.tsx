@@ -5,6 +5,7 @@ import type {
   EditableTransaction,
   WalletOption,
 } from "@/features/transactions/transaction.types";
+import { EntrySaveBar } from "@/shared/components/form/entry-form";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
 
@@ -39,35 +40,33 @@ export function TransactionSaveBar({
   destinationWalletId,
 }: Readonly<TransactionSaveBarProps>) {
   return (
-    <div className="border-border bg-chrome/95 supports-backdrop-filter:bg-chrome/85 fixed inset-x-0 bottom-0 z-20 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-      <div className="mx-auto flex w-full max-w-md flex-col gap-3 sm:max-w-none">
-        <Button
-          type="submit"
-          size="lg"
-          disabled={
-            pending ||
-            isSubmitting ||
-            (type === "transfer" && wallets.length < 2) ||
-            (type === "refund" && !walletId)
-          }
-          className={cn(
-            "min-h-12 w-full text-base",
-            type === "transfer" ? "h-auto" : "h-12",
-          )}
-        >
-          {isSubmitting || pending ? (
-            "Saving…"
-          ) : (
-            <SaveLabel
-              type={type}
-              amountText={amount}
-              walletName={walletNameOf(wallets, walletId)}
-              destinationWalletName={walletNameOf(wallets, destinationWalletId)}
-            />
-          )}
-        </Button>
-      </div>
-    </div>
+    <EntrySaveBar>
+      <Button
+        type="submit"
+        size="lg"
+        disabled={
+          pending ||
+          isSubmitting ||
+          (type === "transfer" && wallets.length < 2) ||
+          (type === "refund" && !walletId)
+        }
+        className={cn(
+          "min-h-12 w-full text-base",
+          type === "transfer" ? "h-auto" : "h-12",
+        )}
+      >
+        {isSubmitting || pending ? (
+          "Saving…"
+        ) : (
+          <SaveLabel
+            type={type}
+            amountText={amount}
+            walletName={walletNameOf(wallets, walletId)}
+            destinationWalletName={walletNameOf(wallets, destinationWalletId)}
+          />
+        )}
+      </Button>
+    </EntrySaveBar>
   );
 }
 
@@ -83,7 +82,7 @@ export function TransactionEditFooter({
   pending,
 }: Readonly<TransactionEditFooterProps>) {
   return (
-    <footer className="flex flex-col gap-6 border-t pt-6">
+    <footer className="flex flex-col gap-6 border-t pt-6 sm:order-last">
       <p className="text-muted-foreground text-sm leading-normal">
         Recorded {transaction.recordedLabel} Bangkok time. Editing keeps this
         original recording time.

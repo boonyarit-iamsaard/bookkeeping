@@ -14,12 +14,18 @@ import { buttonVariants } from "@/shared/components/ui/button";
 import { ARRIVAL_CLASS } from "@/shared/helpers/arrival";
 import { cn } from "@/shared/helpers/cn";
 import { morphProps } from "@/shared/helpers/morph";
+import { openInPlace } from "@/shared/helpers/plain-click";
 import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 type WalletSummary = components["schemas"]["Wallet"];
 type TotalBalanceSplit = components["schemas"]["TotalBalanceSplit"];
 
-interface WalletListProps {
+interface EmptyWalletsProps {
+  /** Opens New wallet over this screen instead of navigating, from 1024px. */
+  onCreateWallet?: (() => void) | null;
+}
+
+interface WalletListProps extends EmptyWalletsProps {
   wallets: readonly WalletSummary[];
   balance: Readonly<TotalBalanceSplit>;
   /** The wallet just created, if any; it alone arrives with a rise. */
@@ -27,7 +33,7 @@ interface WalletListProps {
 }
 
 /** A new account holder's first step: create a wallet. */
-export function EmptyWallets() {
+export function EmptyWallets({ onCreateWallet }: Readonly<EmptyWalletsProps>) {
   return (
     <div className="lg:max-w-2xl">
       <EmptyState
@@ -36,7 +42,11 @@ export function EmptyWallets() {
         title="No wallets yet"
         description="Add the cash, bank accounts, and e-wallets you want to track. Each one starts from an opening balance on the date its history begins."
         action={
-          <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
+          <Link
+            to="/wallets/new"
+            onClick={openInPlace(onCreateWallet)}
+            className={buttonVariants({ size: "lg" })}
+          >
             <Plus data-icon="inline-start" />
             Create your first wallet
           </Link>
@@ -50,10 +60,11 @@ export function WalletList({
   wallets,
   balance,
   createdId,
+  onCreateWallet,
 }: Readonly<WalletListProps>) {
   const desktop = useIsDesktop();
   if (wallets.length === 0) {
-    return <EmptyWallets />;
+    return <EmptyWallets onCreateWallet={onCreateWallet} />;
   }
   if (desktop) {
     // From 1024px the table carries the total in its footer, so no hero.

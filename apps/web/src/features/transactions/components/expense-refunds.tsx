@@ -8,6 +8,7 @@ import { canRecordRefund } from "@/features/transactions/linked-expense";
 import { ListSection, listCardClass } from "@/shared/components/list-section";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { openInPlace } from "@/shared/helpers/plain-click";
 
 type ApiTransactionRefunds = components["schemas"]["TransactionRefunds"];
 
@@ -16,6 +17,8 @@ interface ExpenseRefundsViewProps {
   refunds: ApiTransactionRefunds;
   /** The expense's category hue, which its refunds follow. */
   color: CategoryColor;
+  /** Opens Record refund over this screen instead of navigating, from 1024px. */
+  onRecordRefund?: (() => void) | null;
 }
 
 /** Shows linked refunds and the allowance returned by the API for an expense. */
@@ -23,6 +26,7 @@ export function ExpenseRefundsView({
   expense,
   refunds,
   color,
+  onRecordRefund,
 }: Readonly<ExpenseRefundsViewProps>) {
   return (
     <ListSection
@@ -33,6 +37,7 @@ export function ExpenseRefundsView({
           <Link
             to="/transactions/$transactionId/refund"
             params={{ transactionId: expense.id }}
+            onClick={openInPlace(onRecordRefund)}
             className={buttonVariants({ variant: "outline", size: "lg" })}
           >
             <Undo2 data-icon="inline-start" strokeWidth={1.75} />
