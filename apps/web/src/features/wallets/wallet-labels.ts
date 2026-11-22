@@ -14,6 +14,13 @@ export function walletCountLabel(count: number): string {
 
 type Wallet = components["schemas"]["Wallet"];
 
+/** How a wallet's balance counts: Spendable, or Set aside when it is Savings. */
+export function walletHeldAsLabel({
+  savings,
+}: Readonly<Pick<Wallet, "savings">>): string {
+  return savings ? "Set aside" : "Spendable";
+}
+
 /** A wallet's type, then Savings and Archived markers when applicable. */
 export function walletCaption({
   type,

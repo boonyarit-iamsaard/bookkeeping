@@ -18,6 +18,8 @@ export function createHomeQueryPlan(today: CalendarDate) {
     wallets: walletQueries.list(),
     daily: reportQueries.daily(today),
     monthly: reportQueries.monthly(reportMonthOf(today)),
+    // Only the desktop grid shows it.
+    categorySpending: reportQueries.categorySpending(reportMonthOf(today)),
     recent: transactionQueries.list({ limit: RECENT_TRANSACTION_LIMIT }),
   };
 }

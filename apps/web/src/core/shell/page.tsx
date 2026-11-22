@@ -3,10 +3,10 @@ import { cn } from "@/shared/helpers/cn";
 
 // Wide carries lists, details and reports; narrow, a single record's
 // management; entry is narrow with room beneath the fields for the phone's
-// fixed Save bar. Dashboard is wide until 1024px, then spans the header's
-// width for a two-column overview.
+// fixed Save bar. Dashboard is wide until 1024px, then opens to the shell's
+// 96rem content column for a grid of cards.
 const PAGE_LAYOUTS = {
-  dashboard: "max-w-2xl pb-8 lg:max-w-5xl lg:px-6",
+  dashboard: "max-w-2xl pb-8 lg:max-w-384 lg:px-8",
   wide: "max-w-2xl pb-8",
   narrow: "max-w-md pb-8",
   entry: "max-w-md pb-56 sm:pb-12",
