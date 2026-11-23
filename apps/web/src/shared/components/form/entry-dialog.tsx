@@ -2,7 +2,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { CatchBoundary, useLocation } from "@tanstack/react-router";
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useCallback, useRef, useState } from "react";
 import { ErrorNotice } from "@/shared/components/error-notice";
 import { SavedNotice } from "@/shared/components/saved-notice";
 import { Skeleton } from "@/shared/components/skeleton";
@@ -38,11 +38,10 @@ export function useEntryDialog<T = void>() {
   if (savedOn !== null && savedOn !== href) {
     setSavedOn(null);
   }
-
-  return {
-    entry,
-    saved: savedOn !== null,
-    open(next: T) {
+  // Changes only when an entry opens or the address changes, so a context
+  // value built from it does not churn on every render.
+  const open = useCallback(
+    (next: T) => {
       setEntry(next);
       setDirty(false);
       setSavedOn(null);
@@ -50,6 +49,13 @@ export function useEntryDialog<T = void>() {
       latestOpening.current = opening + 1;
       setOpening(opening + 1);
     },
+    [href, opening],
+  );
+
+  return {
+    entry,
+    saved: savedOn !== null,
+    open,
     dialog: {
       open: openOn !== null,
       onOpenChange: (open: boolean) => {
@@ -75,8 +81,7 @@ export function useEntryDialog<T = void>() {
 /** The dialog body while its reads load: busy, and without sample money. */
 function EntryLoading() {
   return (
-    <div
-      role="status"
+    <output
       aria-busy="true"
       aria-label="Loading"
       className="flex flex-col gap-6 border-t px-6 py-6"
@@ -84,7 +89,7 @@ function EntryLoading() {
       <Skeleton className="h-16 rounded-lg" />
       <Skeleton className="h-10 rounded-lg" />
       <Skeleton className="h-10 rounded-lg" />
-    </div>
+    </output>
   );
 }
 

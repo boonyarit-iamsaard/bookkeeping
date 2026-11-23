@@ -16,7 +16,7 @@ interface SheetTableRowProps {
   /** The right-hand count. */
   count: number;
   /** The sheet this row opens; `close` shuts it, for when it is done. */
-  sheet: (close: () => void) => React.ReactNode;
+  renderSheet: (close: () => void) => React.ReactNode;
 }
 
 /** A table row that opens a sheet: its name is the button, stretched over the row. */
@@ -25,7 +25,7 @@ export function SheetTableRow({
   name,
   nameClassName,
   count,
-  sheet,
+  renderSheet,
 }: Readonly<SheetTableRowProps>) {
   const [open, setOpen] = useState(false);
   return (
@@ -43,7 +43,7 @@ export function SheetTableRow({
           {count}
         </TableCell>
       </TableRow>
-      {sheet(() => setOpen(false))}
+      {renderSheet(() => setOpen(false))}
     </Dialog.Root>
   );
 }

@@ -91,6 +91,24 @@ export function TagManagement({ tags }: Readonly<TagManagementProps>) {
     }
   }
 
+  const tagList = desktop ? (
+    <TableCard className="lg:w-1/2">
+      <TagTable tags={byName(tags)} onDone={finish} />
+    </TableCard>
+  ) : (
+    <ul aria-label="Tags" className={listCardClass}>
+      {byName(tags).map((tag) => (
+        <li key={tag.id}>
+          <TagRow
+            tag={tag}
+            others={tags.filter((other) => other.id !== tag.id)}
+            onDone={(outcome) => finish(tag, outcome)}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       <TitleBar title="Tags" />
@@ -111,22 +129,8 @@ export function TagManagement({ tags }: Readonly<TagManagementProps>) {
             description="Tags name what recurs across transactions without being a category, like a shop or a game. Add them from the Tags field when you record income or an expense."
           />
         </div>
-      ) : desktop ? (
-        <TableCard className="lg:w-1/2">
-          <TagTable tags={byName(tags)} onDone={finish} />
-        </TableCard>
       ) : (
-        <ul aria-label="Tags" className={listCardClass}>
-          {byName(tags).map((tag) => (
-            <li key={tag.id}>
-              <TagRow
-                tag={tag}
-                others={tags.filter((other) => other.id !== tag.id)}
-                onDone={(outcome) => finish(tag, outcome)}
-              />
-            </li>
-          ))}
-        </ul>
+        tagList
       )}
     </div>
   );

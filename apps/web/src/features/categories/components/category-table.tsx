@@ -46,7 +46,7 @@ function CategoryTableRow({
       name={category.name}
       nameClassName={parentName === null ? "font-semibold" : "pl-8!"}
       count={entries}
-      sheet={(close) => (
+      renderSheet={(close) => (
         <EditCategorySheet
           category={category}
           color={color}

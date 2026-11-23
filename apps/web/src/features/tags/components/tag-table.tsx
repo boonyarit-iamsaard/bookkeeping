@@ -33,7 +33,7 @@ export function TagTable({ tags, onDone }: Readonly<TagTableProps>) {
             name={tag.name}
             nameClassName="font-semibold"
             count={tag.transactionCount}
-            sheet={(close) => (
+            renderSheet={(close) => (
               <EditTagSheet
                 tag={tag}
                 others={tags.filter((other) => other.id !== tag.id)}
