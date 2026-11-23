@@ -36,11 +36,10 @@ export function RecordTransactionDialog({
 }: Readonly<RecordTransactionDialogProps>) {
   const router = useRouter();
   const record = useEntryDialog();
-  const openRecord = () => record.open();
 
   return (
-    <OpenRecordDialog.Provider value={openRecord}>
-      {children(openRecord)}
+    <OpenRecordDialog.Provider value={record.open}>
+      {children(record.open)}
       {record.saved && (
         <EntrySavedNotice>
           <span className="font-semibold">Transaction saved.</span> Balances and

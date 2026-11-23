@@ -9,7 +9,7 @@ import { scriptArguments } from "./sonar/arguments";
 const repositoryDirectory = fileURLToPath(new URL("../", import.meta.url));
 const sourcePatterns = ["*.ts", "*.tsx", "*.mts"];
 // Generated files, such as the route tree and the OpenAPI types.
-const generatedFile = /\.gen\.ts$/;
+const generatedSuffix = ".gen.ts";
 
 // lint-staged passes the staged sources; with none, CI checks every tracked
 // source.
@@ -24,7 +24,7 @@ function chooseFiles(paths: readonly string[]): string[] {
           .split("\0")
           .filter(Boolean)
           .map((path) => resolve(repositoryDirectory, path));
-  return files.filter((file) => !generatedFile.test(file));
+  return files.filter((file) => !file.endsWith(generatedSuffix));
 }
 
 function main(): void {

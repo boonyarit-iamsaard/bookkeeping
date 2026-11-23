@@ -48,6 +48,24 @@ function WalletPage() {
       <span className="sr-only sm:not-sr-only">Manage</span>
     </Link>
   );
+  const transactionList = desktop ? (
+    <TableCard>
+      <TransactionTable
+        transactions={page.items}
+        savedId={created}
+        groupByMonth
+        pageWalletId={wallet.id}
+      />
+    </TableCard>
+  ) : (
+    <MonthSections
+      transactions={page.items}
+      idPrefix="wallet"
+      level={3}
+      savedId={created}
+      pageWalletId={wallet.id}
+    />
+  );
 
   return (
     <Page layout="dashboard">
@@ -75,23 +93,8 @@ function WalletPage() {
           <p className="bg-card text-muted-foreground shadow-card rounded-2xl p-5 text-sm sm:p-7">
             No transactions yet
           </p>
-        ) : desktop ? (
-          <TableCard>
-            <TransactionTable
-              transactions={page.items}
-              savedId={created}
-              groupByMonth
-              pageWalletId={wallet.id}
-            />
-          </TableCard>
         ) : (
-          <MonthSections
-            transactions={page.items}
-            idPrefix="wallet"
-            level={3}
-            savedId={created}
-            pageWalletId={wallet.id}
-          />
+          transactionList
         )}
       </section>
       {nextCursor && (
