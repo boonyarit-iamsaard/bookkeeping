@@ -10,8 +10,10 @@ import type {
   TransactionChange,
   TransactionDetail,
   TransactionFilters,
+  TransactionListOrder,
+  TransactionListSort,
 } from "@bookkeeping/domain/transactions";
-import { and, asc, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
 import { isUuid } from "../shared/identifier";
 import { carriesAnyTag } from "../tags/tag-links";
 import type { DetailRow, TransactionRef } from "./transaction-detail";
@@ -251,4 +253,51 @@ export async function listTransactionPage(
         ? toTransactionListPosition(last)
         : null,
   };
+}
+
+export interface ListNumberedTransactionPageOptions
+  extends ListTransactionsOptions {
+  /** From 1; a page past the last is empty. */
+  page: number;
+  pageSize: number;
+  sort: TransactionListSort;
+  order: TransactionListOrder;
+}
+
+export interface NumberedTransactionPage {
+  items: readonly TransactionDetail[];
+  /** Every transaction the filters match, across all pages. */
+  total: number;
+}
+
+/**
+ * One numbered page of current financial history in the chosen order. Ties
+ * break by recording time, then id, in the same direction, so pages hold a
+ * stable order. Amounts are stored unsigned, so amount sorts by size.
+ */
+export async function listNumberedTransactionPage(
+  db: Database,
+  options: Readonly<ListNumberedTransactionPageOptions>,
+): Promise<NumberedTransactionPage> {
+  const where = transactionWhere({ filters: options });
+  const direction = options.order === "asc" ? asc : desc;
+  const sortColumn =
+    options.sort === "amount"
+      ? transactions.amount
+      : transactions.transactionDate;
+  const [rows, [counted]] = await Promise.all([
+    detailQuery(db)
+      .where(where)
+      .orderBy(
+        direction(sortColumn),
+        direction(transactions.recordedAt),
+        direction(transactions.id),
+      )
+      .limit(options.pageSize)
+      .offset((options.page - 1) * options.pageSize),
+    db
+      .select({ total: count() })
+      .from(detailQuery(db).where(where).as("listed")),
+  ]);
+  return { items: await toDetails(db, rows), total: counted?.total ?? 0 };
 }

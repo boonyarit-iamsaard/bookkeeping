@@ -285,7 +285,7 @@ export interface paths {
         };
         /**
          * List transactions
-         * @description Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, type, and tag filters preserve transfer, parent category, refund, and ownership semantics; repeated tag ids match any of them, and a refund matches through its expense's tags. Pages use an opaque cursor bound to this ordering and the active filters; the server caps the requested limit.
+         * @description Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, type, and tag filters preserve transfer, parent category, refund, and ownership semantics; repeated tag ids match any of them, and a refund matches through its expense's tags. Any of `page` (from 1), `pageSize` (10, 25, 50, or 100; default 50), `sort` (`date` or `amount`, by size), or `order` (default `desc`) asks for a numbered page with the filtered `total`; ties break by recording time, then identifier. Otherwise pages use an opaque cursor bound to the date ordering and the active filters, and the server caps the requested limit.
          */
         get: operations["listTransactions"];
         put?: never;
@@ -788,7 +788,7 @@ export interface components {
         };
         TransactionCollection: {
             items: components["schemas"]["Transaction"][];
-            page: components["schemas"]["Page"];
+            page: components["schemas"]["TransactionPage"];
         };
         TransactionEntryDefaults: {
             lastUsedWalletId: string | null;
@@ -801,6 +801,12 @@ export interface components {
             refundAllowance: components["schemas"]["Money"];
         };
         TransactionFieldError: components["schemas"]["TransactionRuleFieldError"] | components["schemas"]["TransactionValidationFieldError"];
+        TransactionPage: {
+            nextCursor: string | null;
+            number?: number;
+            size?: number;
+            total?: number;
+        };
         TransactionPlainRuleFieldError: {
             /** @enum {string} */
             code: "wallet-not-found" | "destination-wallet-not-found" | "same-wallet" | "wallet-archived" | "invalid-transfer" | "category-not-found" | "category-kind-mismatch" | "amount-out-of-range" | "note-too-long" | "too-many-tags" | "tag-not-found" | "invalid-date" | "future-date" | "invalid-refund" | "expense-not-found";
@@ -1835,6 +1841,10 @@ export interface operations {
                 cursor?: string;
                 from?: string;
                 limit?: string;
+                order?: "asc" | "desc";
+                page?: string;
+                pageSize?: "10" | "25" | "50" | "100";
+                sort?: "date" | "amount";
                 tagId?: string | string[];
                 to?: string;
                 type?: "income" | "expense" | "transfer" | "refund";

@@ -6,7 +6,6 @@ import type {
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { WALLET_TYPES } from "@bookkeeping/domain/wallets";
 import * as z from "zod";
-import { createCollectionResponseSchema } from "../../core/http/collection.js";
 import {
   moneyInputSchema,
   moneySchema,
@@ -59,10 +58,20 @@ export const transactionResponseSchema = z
   })
   .meta({ id: "Transaction" });
 
-export const transactionCollectionResponseSchema =
-  createCollectionResponseSchema(transactionResponseSchema).meta({
-    id: "TransactionCollection",
-  });
+// Number, size and total answer a numbered request; a cursor request gets only nextCursor.
+export const transactionCollectionResponseSchema = z
+  .object({
+    items: z.array(transactionResponseSchema),
+    page: z
+      .object({
+        nextCursor: z.string().nullable(),
+        number: z.int().min(1).optional(),
+        size: z.int().min(1).optional(),
+        total: z.int().min(0).optional(),
+      })
+      .meta({ id: "TransactionPage" }),
+  })
+  .meta({ id: "TransactionCollection" });
 
 /** A refund as it counts against its expense's refund allowance. */
 export const transactionRefundSchema = z
