@@ -44,7 +44,7 @@ function PhoneSkeleton() {
 export function WalletPageLoading() {
   const desktop = useIsDesktop();
   return (
-    <Page layout="dashboard" loading>
+    <Page layout="wide" loading>
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="flex flex-col gap-6 sm:gap-8">
         {desktop ? <DesktopSkeleton /> : <PhoneSkeleton />}

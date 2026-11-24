@@ -28,7 +28,7 @@ function WalletsPage() {
   const openNewWallet = useIsDesktop() ? () => newWallet.open() : null;
 
   return (
-    <Page layout="dashboard">
+    <Page layout="wide">
       <TitleBar
         title="Wallets"
         actions={

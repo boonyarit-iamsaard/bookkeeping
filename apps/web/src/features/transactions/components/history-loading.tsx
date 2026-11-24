@@ -17,7 +17,7 @@ import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
  */
 export function HistoryLoading() {
   return (
-    <Page layout="wide" loading>
+    <Page layout="column" loading>
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="flex flex-col gap-6">
         <Skeleton className="mt-4 h-8 w-48 sm:mt-0" />
@@ -45,7 +45,7 @@ export function TransactionsLoading() {
     return <HistoryLoading />;
   }
   return (
-    <Page layout="dashboard" loading>
+    <Page layout="wide" loading>
       <TitleBar title="Transactions" />
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="contents">
@@ -59,7 +59,7 @@ export function TransactionsLoading() {
 /** A transaction's detail in neutral blocks: the hero, then its fact rows. */
 export function TransactionDetailLoading() {
   return (
-    <Page layout="wide" loading>
+    <Page layout="column" loading>
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="flex flex-col gap-6 sm:gap-8">
         <Skeleton className="mt-4 h-8 w-48 sm:mt-0" />

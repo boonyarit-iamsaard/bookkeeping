@@ -68,7 +68,7 @@ function WalletPage() {
   );
 
   return (
-    <Page layout="dashboard">
+    <Page layout="wide">
       {desktop ? (
         <WalletDesktopHeader wallet={wallet} manage={manage} />
       ) : (

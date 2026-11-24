@@ -43,7 +43,7 @@ function TransactionsPage() {
   const filterErrors = view.state === "invalid" ? view.errors : [];
 
   return (
-    <Page layout="dashboard">
+    <Page layout="wide">
       <TitleBar
         title="Transactions"
         actions={

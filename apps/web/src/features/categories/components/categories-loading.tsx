@@ -6,7 +6,7 @@ import { TableCardSkeleton } from "@/shared/components/skeleton";
 /** Categories' layout in neutral blocks: a table's card for each tree. */
 export function CategoriesLoading() {
   return (
-    <Page layout="dashboard" loading>
+    <Page layout="wide" loading>
       <TitleBar title="Categories" />
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="contents">

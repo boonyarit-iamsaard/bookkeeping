@@ -116,7 +116,7 @@ export function Home({
   }
 
   return (
-    <Page layout="dashboard">
+    <Page layout="wide">
       <TitleBar
         title="Home"
         actions={<div className="lg:hidden">{accountControl}</div>}

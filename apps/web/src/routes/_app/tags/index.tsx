@@ -8,7 +8,7 @@ import { TagsLoading } from "@/features/tags/components/tags-loading";
 function TagsPage() {
   const { data } = useSuspenseQuery(tagQueries.list());
   return (
-    <Page layout="dashboard">
+    <Page layout="wide">
       <TagManagement tags={data.items} />
     </Page>
   );

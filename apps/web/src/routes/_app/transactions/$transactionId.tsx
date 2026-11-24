@@ -64,7 +64,7 @@ function TransactionDetailPage() {
   const refunding = entryDialog.entry === "refund";
 
   return (
-    <Page layout="wide">
+    <Page layout="column">
       <TitleBar
         title={TRANSACTION_TYPE_LABELS[transaction.type]}
         back={<BackLink to="/transactions" aria-label="Back to Transactions" />}

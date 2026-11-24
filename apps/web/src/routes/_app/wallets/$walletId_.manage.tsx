@@ -11,7 +11,7 @@ function ManageWalletPage() {
   const { data: wallet } = useSuspenseQuery(walletQueries.detail(walletId));
 
   return (
-    <Page layout="narrow">
+    <Page layout="column">
       <TitleBar
         title={wallet.name}
         back={

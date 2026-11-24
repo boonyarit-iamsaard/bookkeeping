@@ -33,7 +33,7 @@ const NO_OUTCOME = { error: "", notice: "" };
 
 /** Each management task is its own card on the ground. */
 const manageCardClass =
-  "flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-card sm:p-7";
+  "flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-card sm:p-7 *:max-w-md";
 
 function savingsButtonLabel({
   pending,

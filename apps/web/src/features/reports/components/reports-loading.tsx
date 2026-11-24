@@ -129,7 +129,7 @@ function DesktopSkeleton() {
 export function ReportsLoading() {
   const desktop = useIsDesktop();
   return (
-    <Page layout="dashboard" loading>
+    <Page layout="wide" loading>
       <TitleBar
         title="Reports"
         actions={

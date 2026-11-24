@@ -16,7 +16,7 @@ function CategoriesPage() {
   );
 
   return (
-    <Page layout="dashboard">
+    <Page layout="wide">
       <CategoryManagement categories={categoryCollection.items} usage={usage} />
     </Page>
   );

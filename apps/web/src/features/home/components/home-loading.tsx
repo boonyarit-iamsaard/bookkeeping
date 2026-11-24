@@ -62,7 +62,7 @@ function DesktopSkeleton() {
 export function HomeLoading() {
   const desktop = useIsDesktop();
   return (
-    <Page layout="dashboard" loading>
+    <Page layout="wide" loading>
       <TitleBar title="Home" />
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="contents">
