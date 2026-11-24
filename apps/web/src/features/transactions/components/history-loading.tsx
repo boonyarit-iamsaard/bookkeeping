@@ -1,13 +1,10 @@
 import { Page } from "@/core/shell/page";
-import { TitleBar } from "@/core/shell/title-bar";
 import { listCardClass } from "@/shared/components/list-section";
 import {
   HeroSkeleton,
   RowSkeleton,
   Skeleton,
-  TableCardSkeleton,
 } from "@/shared/components/skeleton";
-import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 /**
  * The loading shape every transaction route shares, in neutral blocks: a
@@ -30,27 +27,6 @@ export function HistoryLoading() {
             <RowSkeleton />
           </div>
         </div>
-      </div>
-    </Page>
-  );
-}
-
-/**
- * The transaction list's loading shape: the title, then the phone's list or,
- * from 1024px, the filter bar over a table.
- */
-export function TransactionsLoading() {
-  const desktop = useIsDesktop();
-  if (!desktop) {
-    return <HistoryLoading />;
-  }
-  return (
-    <Page layout="wide" loading>
-      <TitleBar title="Transactions" />
-      <output className="sr-only">Loading your records…</output>
-      <div aria-hidden="true" className="contents">
-        <Skeleton className="h-16" />
-        <TableCardSkeleton rows={5} />
       </div>
     </Page>
   );
