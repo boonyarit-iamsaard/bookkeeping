@@ -28,6 +28,27 @@ jobs:
         with:
           fail-on-severity: moderate
 
+  workflow-lint:
+    name: Workflow lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run actionlint
+        uses: docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+        with:
+          args: -color
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@bd12b495c90993a4301c73398142281a61499af3 # v0.9.0
+        with:
+          # No `version`: the pinned action runs the newest zizmor it ships a lock for.
+          # Fails the job on findings instead of uploading SARIF to code scanning.
+          advanced-security: false
+
   ci:
     name: CI
     runs-on: ubuntu-latest
