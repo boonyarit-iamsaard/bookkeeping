@@ -28,7 +28,7 @@ unrelated changes. Agents run Git writes through the
 [host-command policy](../../AGENTS.md#host-commands) when the sandbox requires it.
 
 Merge changes through pull requests with the required `CI`, `SPA browser suite`,
-`Dependency Review` and `Acceptance criteria` checks passing; `main` rejects direct pushes. See
+`Dependency Review`, `Acceptance criteria` and `Workflow lint` checks passing; `main` rejects direct pushes. See
 [ADR 0010](../adr/0010-protected-main-and-gated-deploys.md). Squash-merge and delete the
 remote branch with `gh pr merge --squash --delete-branch`. The squash commit's subject
 is the pull request title, and its body stays empty or holds one trailer, passed with
@@ -76,7 +76,9 @@ GitHub Actions runs `.github/workflows/ci.yaml` on pull requests and pushes to
 lockfile: `CI` runs `pnpm run security:audit`, then `pnpm run ci`, and
 `SPA browser suite` installs Chromium (cached by Playwright version) and runs
 the SPA browser suite on two workers. A third job, `Dependency Review`, runs on
-pull requests only and fails on a moderate or worse vulnerability. The browser
+pull requests only and fails on a moderate or worse vulnerability. A fourth,
+`Workflow lint`, checks the workflows with actionlint and their security with
+zizmor, whose thresholds live in `.github/zizmor.yml`. The browser
 runner switches the API's sign-up throttle off
 (`AUTH_RATE_LIMIT_ENABLED=false`) so parallel sign-ups never meet it. Testcontainers
 supplies disposable PostgreSQL databases for both operation and browser tests.
