@@ -10,6 +10,7 @@ import {
 import { RecordRefund } from "@/features/transactions/components/record-refund";
 import { TransactionRowMenu } from "@/features/transactions/components/transaction-row-menu";
 import { walletName } from "@/features/transactions/components/transaction-table";
+import { TransactionFormDesktop } from "@/features/transactions/screens/transaction-form.desktop";
 import {
   EntryDialog,
   EntrySavedNotice,
@@ -65,6 +66,7 @@ export function TransactionRowActions({
       )}
       <EntryDialog
         {...entryDialog.dialog}
+        className="sm:max-w-2xl"
         title={
           refunding
             ? "Record refund"
@@ -76,12 +78,14 @@ export function TransactionRowActions({
           <RecordRefund
             expenseId={entry.transaction.id}
             host={entryDialog.host}
+            formComponent={TransactionFormDesktop}
           />
         )}
         {entry?.kind === "edit" && (
           <EditTransaction
             transactionId={entry.transaction.id}
             host={entryDialog.host}
+            formComponent={TransactionFormDesktop}
           />
         )}
       </EntryDialog>
