@@ -42,5 +42,5 @@ logic, field components, and domain rules; they share no layout.
 
 - Crossing 1024px still remounts the screen and drops unsaved form input, as
   under ADR 0016; nobody resizes mid-entry often enough to keep a draft.
-- Screens move one at a time; the lint rules warn until the last one has
-  moved, then fail.
+- Every screen has moved, so the lint rules fail on the desktop check and on
+  `lg:` classes outside routes and the shell.
