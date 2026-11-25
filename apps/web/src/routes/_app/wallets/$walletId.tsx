@@ -53,6 +53,7 @@ export const Route = createFileRoute("/_app/wallets/$walletId")({
     sort: true,
     order: true,
     created: true,
+    deleted: true,
   }),
   loaderDeps: ({ search }) => ({ search }),
   loader: async ({ context, params, deps }) => {

@@ -110,7 +110,7 @@ export function TransactionRowActions({
             setDeleting(null);
             // Stays on the page and filters it was deleted from.
             return navigate({
-              to: "/transactions",
+              to: ".",
               search: (previous) => ({
                 ...previous,
                 created: undefined,

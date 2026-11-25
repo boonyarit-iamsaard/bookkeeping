@@ -93,9 +93,9 @@ export type HistoryTableSettings = Pick<
   "order" | "page" | "pageSize" | "sort"
 >;
 
-/** The address a table reads: its settings and the saved row to highlight. */
+/** The address a table reads: its settings, the saved row to highlight, and a deletion's notice. */
 export type HistoryTableSearch = HistoryTableSettings &
-  Pick<HistorySearch, "created">;
+  Pick<HistorySearch, "created" | "deleted">;
 
 export const HISTORY_FILTER_KEYS = [
   "from",

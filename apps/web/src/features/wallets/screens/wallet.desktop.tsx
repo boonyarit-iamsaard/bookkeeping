@@ -5,6 +5,8 @@ import { Page } from "@/core/shell/page";
 import { HistoryDataTable } from "@/features/transactions/components/history-data-table";
 import { PastLastPage } from "@/features/transactions/components/past-last-page";
 import { transactionColumns } from "@/features/transactions/components/transaction-columns";
+import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
+import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
 import {
   changeHistoryTable,
   lastHistoryPage,
@@ -51,6 +53,7 @@ export function WalletDesktop({
         wallet={wallet}
         manage={<WalletManageLink walletId={wallet.id} />}
       />
+      {search.deleted === 1 && <TransactionDeletedNotice />}
       {lastPage !== undefined ? (
         <PastLastPage
           page={search.page ?? 1}
@@ -70,14 +73,19 @@ export function WalletDesktop({
         <WalletHistory empty={total === 0}>
           {/* Clips the sticky header's side fill to the card's corners. */}
           <TableCard className="overflow-clip">
-            <HistoryDataTable
-              columns={columns}
-              columnsStorageKey="bookkeeping.wallet-transactions-columns"
-              search={search}
-              transactions={page.items}
-              total={total}
-              onChange={show}
-            />
+            <TransactionRowActions>
+              {(rowActions) => (
+                <HistoryDataTable
+                  columns={columns}
+                  columnsStorageKey="bookkeeping.wallet-transactions-columns"
+                  search={search}
+                  transactions={page.items}
+                  total={total}
+                  onChange={show}
+                  rowActions={rowActions}
+                />
+              )}
+            </TransactionRowActions>
           </TableCard>
         </WalletHistory>
       )}

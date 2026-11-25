@@ -122,3 +122,34 @@ test("a wallet's page sorts and pages its transactions, keeping the view in the 
   await page.getByRole("link", { name: "Go to page 3" }).click();
   await expect(pageLabel).toHaveText("Page 3 of 3");
 });
+
+test("a wallet's row menu deletes and stays on the wallet's page", {
+  tag: "@matrix",
+}, async ({ page }) => {
+  test.skip(!isDesktop(page), "Phone keeps its month sections");
+  const cash = await seedLedger(page);
+
+  await page.goto(`/wallets/${cash}?pageSize=10`);
+  const rows = page
+    .getByRole("table", { name: "Transactions" })
+    .locator("[data-transaction-row]");
+  const newest = rows.filter({ hasText: "25 Sep 2026" });
+  await newest.getByRole("button", { name: /^Actions for/ }).click();
+  await expect(page.getByRole("menuitem")).toHaveText([
+    "Edit",
+    "Refund",
+    "Delete",
+  ]);
+  await page.getByRole("menuitem", { name: "Delete" }).click();
+  const confirm = page.getByRole("alertdialog", {
+    name: "Delete this expense?",
+  });
+  await confirm.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(confirm).toHaveCount(0);
+  await expect(page).toHaveURL(
+    new RegExp(`/wallets/${cash}\\?pageSize=10&deleted=1$`),
+  );
+  await expect(page.getByText("Transaction deleted.")).toBeVisible();
+  await expect(page.getByText("24 transactions")).toBeVisible();
+  await expect(newest).toHaveCount(0);
+});
