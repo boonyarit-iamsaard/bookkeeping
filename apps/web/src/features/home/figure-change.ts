@@ -7,6 +7,13 @@ export interface FigureChange {
   amount: ApiMoney;
 }
 
+function changeDirection(difference: bigint): FigureChange["direction"] {
+  if (difference > 0n) {
+    return "up";
+  }
+  return difference < 0n ? "down" : "same";
+}
+
 /** How a month's figure moved from the month before, exactly. */
 export function figureChange(
   current: Readonly<ApiMoney>,
@@ -14,7 +21,7 @@ export function figureChange(
 ): FigureChange {
   const difference = parseApiMoney(current) - parseApiMoney(previous);
   return {
-    direction: difference > 0n ? "up" : difference < 0n ? "down" : "same",
+    direction: changeDirection(difference),
     amount: presentApiMoney({
       amountInMinorUnits: difference < 0n ? -difference : difference,
       currency: current.currency,

@@ -114,7 +114,7 @@ export function CategoryTable({
         rows={rows}
         rowId={(row) => row.category.id}
         subRows={(row) => row.children}
-        rowActions={(row) => (
+        renderRowActions={(row) => (
           <RowActionsMenu record={row.category.name}>
             <DropdownMenuItem onClick={() => editing.edit(row)}>
               Edit

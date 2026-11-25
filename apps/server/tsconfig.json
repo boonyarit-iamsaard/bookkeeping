@@ -1,7 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    // Incremental signatures emit declarations, and since hono 4.13.20 a
+    // generic `c.json` body makes that emit exhaust the heap.
+    "incremental": false
   },
   "include": ["src/**/*.ts", "scripts/**/*.ts", "vitest.config.mts"],
   "exclude": ["node_modules", "dist"]

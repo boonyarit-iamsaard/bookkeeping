@@ -68,7 +68,7 @@ export function TagTable({ tags, onDone }: Readonly<TagTableProps>) {
         columns={tagColumns(editing.edit)}
         rows={tags}
         rowId={(row) => row.id}
-        rowActions={(row) => (
+        renderRowActions={(row) => (
           <RowActionsMenu record={row.name}>
             <DropdownMenuItem onClick={() => editing.edit(row)}>
               Edit

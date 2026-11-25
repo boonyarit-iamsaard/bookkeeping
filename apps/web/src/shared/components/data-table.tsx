@@ -117,12 +117,12 @@ interface DataTableProps<TData extends RowData> {
   pageSizes: readonly number[];
   /** Every row the server holds across all pages. */
   rowCount: number;
-  /** The footer's count, such as "120 transactions". */
+  /** The toolbar's count beside Columns, such as "120 transactions". */
   rowCountLabel: string;
   /** Where this browser keeps the table's column choice; columns opt in with `enableHiding`. */
   columnsStorageKey: string;
   /** A last cell per row, such as its action menu; it sits above the row's stretched link. */
-  rowActions?: (row: TData) => React.ReactNode;
+  renderRowActions?: (row: TData) => React.ReactNode;
 }
 
 /** The classes a column's meta sets, the same for its header and its cells. */
@@ -136,9 +136,11 @@ function columnMetaClass(
   );
 }
 
+const SORT_GLYPHS = { asc: ArrowUp, desc: ArrowDown };
+const ARIA_SORTS = { asc: "ascending", desc: "descending" } as const;
+
 function SortGlyph({ sorted }: Readonly<{ sorted: false | "asc" | "desc" }>) {
-  const Glyph =
-    sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ChevronsUpDown;
+  const Glyph = sorted ? SORT_GLYPHS[sorted] : ChevronsUpDown;
   return (
     <Glyph
       aria-hidden="true"
@@ -156,13 +158,7 @@ export function HeaderCell<TData extends RowData>({
   const end = column.columnDef.meta?.align === "end";
   return (
     <TableHead
-      aria-sort={
-        sorted === "asc"
-          ? "ascending"
-          : sorted === "desc"
-            ? "descending"
-            : undefined
-      }
+      aria-sort={sorted ? ARIA_SORTS[sorted] : undefined}
       className={columnMetaClass(column.columnDef.meta)}
     >
       {column.getCanSort() ? (
@@ -200,10 +196,10 @@ interface CompactDataTableProps<TData extends RowData> {
   rowProps?: (row: TData) => RowProps;
 }
 
-interface DataTableBodyProps<TData extends RowData> {
+interface DataTableBodyProps<TData extends RowData>
+  extends Pick<DataTableProps<TData>, "renderRowActions"> {
   table: ReactTable<DataTableFeatures, TData>;
   rowProps: CompactDataTableProps<TData>["rowProps"];
-  rowActions?: DataTableProps<TData>["rowActions"];
 }
 
 /** A row, then the rows nested under it, so a tree reads as one flat list. */
@@ -216,7 +212,7 @@ function withSubRows<TData extends RowData>(
 export function DataTableBody<TData extends RowData>({
   table,
   rowProps,
-  rowActions,
+  renderRowActions,
 }: Readonly<DataTableBodyProps<TData>>) {
   return (
     <TableBody>
@@ -239,9 +235,9 @@ export function DataTableBody<TData extends RowData>({
                   <FlexRender cell={cell} />
                 </TableCell>
               ))}
-              {rowActions && (
+              {renderRowActions && (
                 <TableCell className="relative z-1 w-px py-1.5 text-right">
-                  {rowActions(row.original)}
+                  {renderRowActions(row.original)}
                 </TableCell>
               )}
             </TableRow>
@@ -249,6 +245,28 @@ export function DataTableBody<TData extends RowData>({
         })}
     </TableBody>
   );
+}
+
+/** The header rows, with an unlabelled last head above the row actions. */
+export function DataTableHeaderRows<TData extends RowData>({
+  table,
+  hasRowActions = false,
+}: Readonly<{
+  table: ReactTable<DataTableFeatures, TData>;
+  hasRowActions?: boolean;
+}>) {
+  return table.getHeaderGroups().map((group) => (
+    <TableRow key={group.id}>
+      {group.headers.map((header) => (
+        <HeaderCell key={header.id} header={header} />
+      ))}
+      {hasRowActions && (
+        <TableHead className="w-px">
+          <span className="sr-only">Actions</span>
+        </TableHead>
+      )}
+    </TableRow>
+  ));
 }
 
 /**
@@ -272,13 +290,7 @@ export function CompactDataTable<TData extends RowData>({
   return (
     <Table aria-label={label}>
       <TableHeader>
-        {table.getHeaderGroups().map((group) => (
-          <TableRow key={group.id}>
-            {group.headers.map((header) => (
-              <HeaderCell key={header.id} header={header} />
-            ))}
-          </TableRow>
-        ))}
+        <DataTableHeaderRows table={table} />
       </TableHeader>
       <DataTableBody table={table} rowProps={rowProps} />
     </Table>
@@ -304,7 +316,7 @@ export function DataTable<TData extends RowData>({
   rowCount,
   rowCountLabel,
   columnsStorageKey,
-  rowActions,
+  renderRowActions,
 }: Readonly<DataTableProps<TData>>) {
   const [columnVisibility, setColumnVisibility] = useStoredColumnVisibility(
     columnsStorageKey,
@@ -345,7 +357,8 @@ export function DataTable<TData extends RowData>({
   const pageSizeLabelId = useId();
   return (
     <div className="flex flex-col">
-      <div className="flex justify-end pt-4 pb-1">
+      <div className="flex items-center justify-between gap-4 pt-4 pb-1">
+        <p className="text-muted-foreground text-sm">{rowCountLabel}</p>
         <ColumnsMenu
           columns={table.getAllLeafColumns().map((column) => ({
             id: column.id,
@@ -362,27 +375,18 @@ export function DataTable<TData extends RowData>({
       {/* No scroll box, so the header can stick under the 64px top bar. */}
       <Table aria-label={label} containerClassName="overflow-x-visible">
         <TableHeader className="bg-card sticky top-16 z-10 shadow-[-1.5rem_0_0_var(--card),1.5rem_0_0_var(--card)]">
-          {table.getHeaderGroups().map((group) => (
-            <TableRow key={group.id}>
-              {group.headers.map((header) => (
-                <HeaderCell key={header.id} header={header} />
-              ))}
-              {rowActions && (
-                <TableHead className="w-px">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              )}
-            </TableRow>
-          ))}
+          <DataTableHeaderRows
+            table={table}
+            hasRowActions={Boolean(renderRowActions)}
+          />
         </TableHeader>
         <DataTableBody
           table={table}
           rowProps={rowProps}
-          rowActions={rowActions}
+          renderRowActions={renderRowActions}
         />
       </Table>
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t py-3">
-        <p className="text-muted-foreground text-sm">{rowCountLabel}</p>
+      <div className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3 border-t py-3">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <span

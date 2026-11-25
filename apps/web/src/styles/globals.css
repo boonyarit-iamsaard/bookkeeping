@@ -235,6 +235,8 @@
   font-feature-settings: "tnum", "cv01";
   font-weight: 650;
   letter-spacing: -0.012em;
+  /* A figure never breaks between its sign and its digits. */
+  white-space: nowrap;
 }
 
 /* A category's hue, chosen by `data-hue`; tiles and marks read `--hue`. */

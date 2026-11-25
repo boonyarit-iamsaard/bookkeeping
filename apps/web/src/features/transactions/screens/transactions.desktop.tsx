@@ -96,7 +96,7 @@ export function TransactionsDesktop({
           {/* Clips the sticky header's side fill to the card's corners. */}
           <TableCard className="overflow-clip">
             <TransactionRowActions>
-              {(rowActions) => (
+              {(renderRowActions) => (
                 <HistoryDataTable
                   columns={TRANSACTION_COLUMNS}
                   columnsStorageKey="bookkeeping.transactions-columns"
@@ -104,7 +104,7 @@ export function TransactionsDesktop({
                   transactions={transactions}
                   total={total}
                   onChange={show}
-                  rowActions={rowActions}
+                  renderRowActions={renderRowActions}
                 />
               )}
             </TransactionRowActions>

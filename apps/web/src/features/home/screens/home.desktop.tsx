@@ -126,8 +126,7 @@ export function HomeDesktop({
             action={
               recent.length > 0 && (
                 <Link to="/transactions" className={sectionLinkClass}>
-                  View all
-                  <span className="sr-only"> transactions</span>
+                  View all <span className="sr-only">transactions</span>
                   <LinkArrow />
                 </Link>
               )

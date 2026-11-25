@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRightLeft } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryLabel } from "@/features/categories/category-search";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
@@ -32,15 +31,9 @@ export function TransactionCategoryCell({
       <Link
         to="/transactions/$transactionId"
         params={{ transactionId: transaction.id }}
-        className={cn("inline-flex items-center gap-1.5", tableRowLinkClass)}
+        // A label never breaks inside, so the spare width goes to Tags instead.
+        className={cn("whitespace-nowrap", tableRowLinkClass)}
       >
-        {transfer && (
-          <ArrowRightLeft
-            aria-hidden="true"
-            strokeWidth={1.75}
-            className="text-muted-foreground size-4 shrink-0"
-          />
-        )}
         {transaction.category
           ? categoryLabel(transaction.category)
           : TRANSACTION_TYPE_LABELS[transaction.type]}

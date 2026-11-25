@@ -21,7 +21,9 @@ type ApiTransaction = components["schemas"]["Transaction"];
 
 interface TransactionRowActionsProps {
   children: (
-    rowActions: (transaction: Readonly<ApiTransaction>) => React.ReactNode,
+    renderRowActions: (
+      transaction: Readonly<ApiTransaction>,
+    ) => React.ReactNode,
   ) => React.ReactNode;
 }
 

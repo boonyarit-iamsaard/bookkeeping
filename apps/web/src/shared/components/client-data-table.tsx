@@ -5,16 +5,10 @@ import { useState } from "react";
 import type { DataTableColumn, RowProps } from "@/shared/components/data-table";
 import {
   DataTableBody,
+  DataTableHeaderRows,
   dataTableFeatures,
-  HeaderCell,
 } from "@/shared/components/data-table";
-import {
-  Table,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { Table, TableFooter, TableHeader } from "@/shared/components/ui/table";
 
 interface ClientDataTableProps<TData extends RowData> {
   /** Names the table for assistive technology. */
@@ -28,7 +22,7 @@ interface ClientDataTableProps<TData extends RowData> {
   /** Attributes for one row's `tr`, such as a data hook. */
   rowProps?: (row: TData) => RowProps;
   /** A last cell per row, such as its action menu; it sits above the row's stretched link. */
-  rowActions?: (row: TData) => React.ReactNode;
+  renderRowActions?: (row: TData) => React.ReactNode;
   /** Rows beneath the body, such as a total. */
   footer?: React.ReactNode;
 }
@@ -45,7 +39,7 @@ export function ClientDataTable<TData extends RowData>({
   rowId,
   subRows,
   rowProps,
-  rowActions,
+  renderRowActions,
   footer,
 }: Readonly<ClientDataTableProps<TData>>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -65,23 +59,15 @@ export function ClientDataTable<TData extends RowData>({
   return (
     <Table aria-label={label}>
       <TableHeader>
-        {table.getHeaderGroups().map((group) => (
-          <TableRow key={group.id}>
-            {group.headers.map((header) => (
-              <HeaderCell key={header.id} header={header} />
-            ))}
-            {rowActions && (
-              <TableHead className="w-px">
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            )}
-          </TableRow>
-        ))}
+        <DataTableHeaderRows
+          table={table}
+          hasRowActions={Boolean(renderRowActions)}
+        />
       </TableHeader>
       <DataTableBody
         table={table}
         rowProps={rowProps}
-        rowActions={rowActions}
+        renderRowActions={renderRowActions}
       />
       {footer && <TableFooter>{footer}</TableFooter>}
     </Table>
