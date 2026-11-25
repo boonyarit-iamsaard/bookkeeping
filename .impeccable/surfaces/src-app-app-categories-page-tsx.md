@@ -2,7 +2,7 @@
 version: 1
 slug: "src-app-app-categories-page-tsx"
 primary_target: "src/routes/_app/categories/index.tsx"
-related_targets: ["src/features/categories/components/category-management.tsx"]
+related_targets: ["src/features/categories/screens/categories.phone.tsx", "src/features/categories/screens/categories.desktop.tsx"]
 ---
 
 # Surface brief: categories (management)
