@@ -11,6 +11,8 @@ import { cn } from "@/shared/helpers/cn";
 
 interface TransactionTagsCellProps {
   tags: readonly { id: string; name: string }[];
+  /** On a wallet's page, the wallet a chip's filter keeps. */
+  pageWalletId?: string;
 }
 
 /** Above the row's stretched link, so a chip is its own target. */
@@ -24,6 +26,7 @@ const CHIP_TARGET =
  */
 export function TransactionTagsCell({
   tags,
+  pageWalletId,
 }: Readonly<TransactionTagsCellProps>) {
   if (tags.length === 0) {
     return null;
@@ -39,6 +42,7 @@ export function TransactionTagsCell({
             to="/transactions"
             search={(previous) => ({
               ...changeHistoryTable(previous, {}),
+              ...(pageWalletId && { walletId: pageWalletId }),
               tagId: [tag.id],
             })}
             title={tag.name}

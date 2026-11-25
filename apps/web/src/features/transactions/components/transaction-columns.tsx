@@ -100,7 +100,10 @@ export function transactionColumns(
       // A transfer carries no tags.
       cell: ({ row }) =>
         row.original.type === "transfer" ? null : (
-          <TransactionTagsCell tags={row.original.tags} />
+          <TransactionTagsCell
+            tags={row.original.tags}
+            pageWalletId={pageWalletId}
+          />
         ),
     }),
     column.accessor("note", {
