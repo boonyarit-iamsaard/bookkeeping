@@ -2,6 +2,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { sortFn_basic, sortFn_text } from "@tanstack/react-table";
 import { EditTagSheet } from "@/features/tags/components/edit-tag-sheet";
 import type { EditTagOutcome } from "@/features/tags/hooks/use-edit-tag-form";
+import { EditTagFormDesktop } from "@/features/tags/screens/edit-tag-form.desktop";
 import type { TagSummary } from "@/features/tags/tag-search";
 import { ClientDataTable } from "@/shared/components/client-data-table";
 import type { DataTableColumn } from "@/shared/components/data-table";
@@ -79,6 +80,7 @@ export function TagTable({ tags, onDone }: Readonly<TagTableProps>) {
       <Dialog.Root {...editing.rootProps}>
         {tag && (
           <EditTagSheet
+            formComponent={EditTagFormDesktop}
             tag={tag}
             others={tags.filter((other) => other.id !== tag.id)}
             onDone={(outcome) => {

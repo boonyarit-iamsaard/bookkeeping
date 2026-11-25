@@ -1,28 +1,35 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
-import { CreateWalletForm } from "@/features/wallets/components/create-wallet-form";
+import { WalletFormDesktop } from "@/features/wallets/screens/wallet-form.desktop";
+import { WalletFormPhone } from "@/features/wallets/screens/wallet-form.phone";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function NewWalletPage() {
+  const desktop = useIsDesktop();
+
   return (
-    <Page layout="entry">
+    <Page layout={desktop ? "column" : "entry"}>
       <TitleBar
         title="New wallet"
         actions={
-          <Link
-            to="/wallets"
-            className={buttonVariants({
-              variant: "ghost",
-              size: "lg",
-              className: "-mr-3",
-            })}
-          >
-            Cancel
-          </Link>
+          // The desktop form's footer carries Cancel.
+          !desktop && (
+            <Link
+              to="/wallets"
+              className={buttonVariants({
+                variant: "ghost",
+                size: "lg",
+                className: "-mr-3",
+              })}
+            >
+              Cancel
+            </Link>
+          )
         }
       />
-      <CreateWalletForm />
+      {desktop ? <WalletFormDesktop /> : <WalletFormPhone />}
     </Page>
   );
 }

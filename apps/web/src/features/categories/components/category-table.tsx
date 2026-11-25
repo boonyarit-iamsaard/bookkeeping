@@ -5,6 +5,7 @@ import type { CategoryColor } from "@/features/categories/category-color";
 import type { CategoryGroup } from "@/features/categories/category-search";
 import type { EditResult } from "@/features/categories/components/edit-category-sheet";
 import { EditCategorySheet } from "@/features/categories/components/edit-category-sheet";
+import { EditCategoryFormDesktop } from "@/features/categories/screens/edit-category-form.desktop";
 import { ClientDataTable } from "@/shared/components/client-data-table";
 import type { DataTableColumn } from "@/shared/components/data-table";
 import { dataTableColumns } from "@/shared/components/data-table";
@@ -125,6 +126,7 @@ export function CategoryTable({
       <Dialog.Root {...editing.rootProps}>
         {edited && (
           <EditCategorySheet
+            formComponent={EditCategoryFormDesktop}
             category={edited.category}
             color={edited.color}
             removal={{

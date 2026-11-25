@@ -1,10 +1,10 @@
 import type { components } from "@/core/api/openapi.gen";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
-import { CreateWalletForm } from "@/features/wallets/components/create-wallet-form";
 import { NewWalletLink } from "@/features/wallets/components/new-wallet-link";
 import { WalletDataTable } from "@/features/wallets/components/wallet-data-table";
 import { EmptyWallets } from "@/features/wallets/components/wallet-list";
+import { WalletFormDesktop } from "@/features/wallets/screens/wallet-form.desktop";
 import { TableCard } from "@/shared/components/dashboard-card";
 import {
   EntryDialog,
@@ -54,9 +54,10 @@ export function WalletsDesktop({ collection }: Readonly<WalletsDesktopProps>) {
       <EntryDialog
         {...newWallet.dialog}
         title="New wallet"
+        className="sm:max-w-2xl"
         loadError="This form could not load. Try again; nothing has been saved."
       >
-        <CreateWalletForm host={newWallet.host} />
+        <WalletFormDesktop host={newWallet.host} />
       </EntryDialog>
     </Page>
   );

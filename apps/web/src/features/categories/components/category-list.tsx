@@ -11,10 +11,11 @@ import {
   CategoryTile,
   ChildMarker,
 } from "@/features/categories/components/category-icon";
-import type { RemovalContext } from "@/features/categories/components/edit-category-form";
-import { entriesLabel } from "@/features/categories/components/edit-category-form";
+import { entriesLabel } from "@/features/categories/components/edit-category-form-sections";
 import type { EditResult } from "@/features/categories/components/edit-category-sheet";
 import { EditCategorySheet } from "@/features/categories/components/edit-category-sheet";
+import type { RemovalContext } from "@/features/categories/hooks/use-edit-category-entry-form";
+import { EditCategoryFormPhone } from "@/features/categories/screens/edit-category-form.phone";
 import { listCardClass } from "@/shared/components/list-section";
 import { cn } from "@/shared/helpers/cn";
 
@@ -94,6 +95,7 @@ function CategoryRow({
         </span>
       </Dialog.Trigger>
       <EditCategorySheet
+        formComponent={EditCategoryFormPhone}
         category={category}
         color={color}
         removal={removal}

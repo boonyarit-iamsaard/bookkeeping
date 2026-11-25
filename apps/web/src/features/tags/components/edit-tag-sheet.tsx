@@ -1,31 +1,23 @@
-import { EditTagForm } from "@/features/tags/components/edit-tag-form";
-import type { EditTagOutcome } from "@/features/tags/hooks/use-edit-tag-form";
+import type { EditTagFormProps } from "@/features/tags/hooks/use-edit-tag-entry-form";
 import type { TagSummary } from "@/features/tags/tag-search";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 
-interface EditTagSheetProps {
+interface EditTagSheetProps extends Omit<EditTagFormProps, "tag"> {
   tag: TagSummary;
-  others: readonly TagSummary[];
-  onDone: (outcome: EditTagOutcome) => void;
-  onCancel: () => void;
+  /** The composition to edit with; the list or the table picks it. */
+  formComponent: React.ComponentType<EditTagFormProps>;
 }
 
 /** The edit sheet a tag row opens, shared by the list and the table. */
 export function EditTagSheet({
   tag,
-  others,
-  onDone,
-  onCancel,
+  formComponent: Form,
+  ...form
 }: Readonly<EditTagSheetProps>) {
   return (
     <SheetPortal className="sm:h-auto sm:max-h-144">
       <SheetHeader subtitle={tag.name}>Edit tag</SheetHeader>
-      <EditTagForm
-        tag={tag}
-        others={others}
-        onDone={onDone}
-        onCancel={onCancel}
-      />
+      <Form tag={tag} {...form} />
     </SheetPortal>
   );
 }

@@ -10,7 +10,7 @@ import { useState } from "react";
 import { TitleBar } from "@/core/shell/title-bar";
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
 import { CreateCategoryForm } from "@/features/categories/components/create-category-form";
-import { entriesLabel } from "@/features/categories/components/edit-category-form";
+import { entriesLabel } from "@/features/categories/components/edit-category-form-sections";
 import type { EditResult } from "@/features/categories/components/edit-category-sheet";
 import { SavedNotice } from "@/shared/components/saved-notice";
 import { Button } from "@/shared/components/ui/button";

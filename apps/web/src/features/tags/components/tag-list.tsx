@@ -5,6 +5,7 @@ import { Hash } from "lucide-react";
 import { useState } from "react";
 import { EditTagSheet } from "@/features/tags/components/edit-tag-sheet";
 import type { EditTagOutcome } from "@/features/tags/hooks/use-edit-tag-form";
+import { EditTagFormPhone } from "@/features/tags/screens/edit-tag-form.phone";
 import type { TagSummary } from "@/features/tags/tag-search";
 import { tagUsageLabel } from "@/features/tags/tag-search";
 import { EmptyState } from "@/shared/components/empty-state";
@@ -61,6 +62,7 @@ function TagRow({ tag, others, onDone }: Readonly<TagRowProps>) {
         </span>
       </Dialog.Trigger>
       <EditTagSheet
+        formComponent={EditTagFormPhone}
         tag={tag}
         others={others}
         onDone={(outcome) => {
