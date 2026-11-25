@@ -68,7 +68,6 @@ export function TagTable({ tags, onDone }: Readonly<TagTableProps>) {
         columns={tagColumns(editing.edit)}
         rows={tags}
         rowId={(row) => row.id}
-        rowProps={() => ({ className: "hover:bg-accent/70" })}
         rowActions={(row) => (
           <RowActionsMenu record={row.name}>
             <DropdownMenuItem onClick={() => editing.edit(row)}>

@@ -113,10 +113,7 @@ export function WalletDataTable({
           </DropdownMenuItem>
         </RowActionsMenu>
       )}
-      rowProps={() => ({
-        "data-wallet-row": true,
-        className: "hover:bg-accent/70",
-      })}
+      rowProps={() => ({ "data-wallet-row": true })}
       footer={
         total && (
           <TableRow>

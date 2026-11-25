@@ -142,13 +142,12 @@ export const RECENT_TRANSACTION_COLUMNS = TRANSACTION_COLUMNS.filter(
     : definition,
 );
 
-/** A transaction row's hooks and hover, the one just saved arriving with a fade. */
+/** A transaction row's hooks, the one just saved arriving with a fade. */
 export function transactionRowProps(savedId: string | undefined) {
   return (transaction: Readonly<ApiTransaction>) => ({
     "data-transaction-row": true,
     "data-saved": transaction.id === savedId || undefined,
     className: cn(
-      "has-[a:hover]:bg-accent/70",
       transaction.id === savedId && [ARRIVAL_CLASS, "bg-primary/7"],
     ),
   });

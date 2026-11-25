@@ -114,7 +114,6 @@ export function CategoryTable({
         rows={rows}
         rowId={(row) => row.category.id}
         subRows={(row) => row.children}
-        rowProps={() => ({ className: "hover:bg-accent/70" })}
         rowActions={(row) => (
           <RowActionsMenu record={row.category.name}>
             <DropdownMenuItem onClick={() => editing.edit(row)}>

@@ -96,14 +96,18 @@ export function dataTableColumns<TData extends RowData>() {
   return createColumnHelper<DataTableFeatures, TData>();
 }
 
+/** A row's `tr` attributes, including data hooks. */
+export type RowProps = React.ComponentProps<"tr"> &
+  Partial<Record<`data-${string}`, boolean>>;
+
 interface DataTableProps<TData extends RowData> {
   /** Names the table for assistive technology. */
   label: string;
   columns: readonly DataTableColumn<TData>[];
   rows: readonly TData[];
   rowId: (row: TData) => string;
-  /** Attributes for one row's `tr`, such as a data hook or a highlight. */
-  rowProps?: (row: TData) => React.ComponentProps<"tr">;
+  /** Attributes for one row's `tr`, such as a data hook or a highlight; every row highlights on hover. */
+  rowProps?: (row: TData) => RowProps;
   /** The server's order: one column, ascending or descending. */
   sorting: SortingState;
   onSortingChange: (sorting: SortingState) => void;
@@ -119,6 +123,17 @@ interface DataTableProps<TData extends RowData> {
   columnsStorageKey: string;
   /** A last cell per row, such as its action menu; it sits above the row's stretched link. */
   rowActions?: (row: TData) => React.ReactNode;
+}
+
+/** The classes a column's meta sets, the same for its header and its cells. */
+function columnMetaClass(
+  meta: Readonly<{ align?: "end"; grow?: true; secondary?: true }> | undefined,
+) {
+  return cn(
+    meta?.align === "end" && "text-right",
+    meta?.grow && "w-full max-w-0",
+    meta?.secondary && SECONDARY_COLUMN,
+  );
 }
 
 function SortGlyph({ sorted }: Readonly<{ sorted: false | "asc" | "desc" }>) {
@@ -148,11 +163,7 @@ export function HeaderCell<TData extends RowData>({
             ? "descending"
             : undefined
       }
-      className={cn(
-        end && "text-right",
-        column.columnDef.meta?.grow && "w-full max-w-0",
-        column.columnDef.meta?.secondary && SECONDARY_COLUMN,
-      )}
+      className={columnMetaClass(column.columnDef.meta)}
     >
       {column.getCanSort() ? (
         <button
@@ -186,7 +197,7 @@ interface CompactDataTableProps<TData extends RowData> {
   rows: readonly TData[];
   rowId: (row: TData) => string;
   /** Attributes for one row's `tr`, such as a data hook or a highlight. */
-  rowProps?: (row: TData) => React.ComponentProps<"tr">;
+  rowProps?: (row: TData) => RowProps;
 }
 
 interface DataTableBodyProps<TData extends RowData> {
@@ -212,27 +223,30 @@ export function DataTableBody<TData extends RowData>({
       {table
         .getRowModel()
         .rows.flatMap(withSubRows)
-        .map((row) => (
-          <TableRow key={row.id} {...rowProps?.(row.original)}>
-            {row.getVisibleCells().map((cell) => (
-              <TableCell
-                key={cell.id}
-                className={cn(
-                  cell.column.columnDef.meta?.align === "end" && "text-right",
-                  cell.column.columnDef.meta?.grow && "w-full max-w-0",
-                  cell.column.columnDef.meta?.secondary && SECONDARY_COLUMN,
-                )}
-              >
-                <FlexRender cell={cell} />
-              </TableCell>
-            ))}
-            {rowActions && (
-              <TableCell className="relative z-1 w-px py-1.5 text-right">
-                {rowActions(row.original)}
-              </TableCell>
-            )}
-          </TableRow>
-        ))}
+        .map((row) => {
+          const props = rowProps?.(row.original);
+          return (
+            <TableRow
+              key={row.id}
+              {...props}
+              className={cn("hover:bg-accent/70", props?.className)}
+            >
+              {row.getVisibleCells().map((cell) => (
+                <TableCell
+                  key={cell.id}
+                  className={columnMetaClass(cell.column.columnDef.meta)}
+                >
+                  <FlexRender cell={cell} />
+                </TableCell>
+              ))}
+              {rowActions && (
+                <TableCell className="relative z-1 w-px py-1.5 text-right">
+                  {rowActions(row.original)}
+                </TableCell>
+              )}
+            </TableRow>
+          );
+        })}
     </TableBody>
   );
 }

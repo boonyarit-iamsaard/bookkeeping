@@ -2,7 +2,7 @@ import type { RowData, SortingState } from "@tanstack/react-table";
 import { functionalUpdate, useTable } from "@tanstack/react-table";
 import type * as React from "react";
 import { useState } from "react";
-import type { DataTableColumn } from "@/shared/components/data-table";
+import type { DataTableColumn, RowProps } from "@/shared/components/data-table";
 import {
   DataTableBody,
   dataTableFeatures,
@@ -26,7 +26,7 @@ interface ClientDataTableProps<TData extends RowData> {
   /** Rows nested under a row; each level sorts among its own siblings. */
   subRows?: (row: TData) => readonly TData[];
   /** Attributes for one row's `tr`, such as a data hook. */
-  rowProps?: (row: TData) => React.ComponentProps<"tr">;
+  rowProps?: (row: TData) => RowProps;
   /** A last cell per row, such as its action menu; it sits above the row's stretched link. */
   rowActions?: (row: TData) => React.ReactNode;
   /** Rows beneath the body, such as a total. */
