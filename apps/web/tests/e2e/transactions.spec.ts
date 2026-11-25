@@ -3,12 +3,13 @@ import {
   formatCalendarDate,
   todayIn,
 } from "@bookkeeping/domain/dates";
-import type { Locator, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
+import { expectUnclipped } from "./helpers/expect-unclipped";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
 test.setTimeout(150_000);
@@ -44,43 +45,6 @@ async function recordExpenseThroughForm(
     .first()
     .click();
   await expect(page).toHaveURL(/\/transactions\/[0-9a-f-]+$/);
-}
-
-/**
- * Fails when the element's text is cut short: by its own ellipsis, by an
- * ancestor inside its row that hides overflow, or by running past the row or
- * the screen. Half a pixel absorbs subpixel rounding.
- */
-async function expectUnclipped(locator: Locator) {
-  await expect(locator).toBeVisible();
-  const clipped = await locator.evaluate((element) => {
-    if (element.scrollWidth > element.clientWidth) {
-      return true;
-    }
-    const right = element.getBoundingClientRect().right;
-    const row = element.closest("[data-transaction-row]");
-    if (
-      !row ||
-      right > row.getBoundingClientRect().right + 0.5 ||
-      right > window.innerWidth + 0.5
-    ) {
-      return true;
-    }
-    for (
-      let ancestor = element.parentElement;
-      ancestor && !ancestor.hasAttribute("data-transaction-row");
-      ancestor = ancestor.parentElement
-    ) {
-      if (
-        getComputedStyle(ancestor).overflowX !== "visible" &&
-        right > ancestor.getBoundingClientRect().right + 0.5
-      ) {
-        return true;
-      }
-    }
-    return false;
-  });
-  expect(clipped).toBe(false);
 }
 
 test("history rows show the whole financial date beside long wallets, notes and amounts", async ({

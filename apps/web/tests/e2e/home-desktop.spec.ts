@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
+import { expectNoClippedMoney } from "./helpers/expect-unclipped";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 import { isDesktop } from "./helpers/viewport";
 
@@ -113,7 +114,7 @@ test("the desktop grid compares category spending by month, then sets the wallet
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {
     name: "Cash",
-    openingAmount: "1000",
+    openingAmount: "10000000",
     openingDate: "2025-01-01",
   });
   await createWalletThroughForm(page, {
@@ -154,7 +155,7 @@ test("the desktop grid compares category spending by month, then sets the wallet
   await page.goto(`/?created=${savedId}`);
   const total = page.getByRole("region", { name: "Total balance" });
   const netExpenses = page.getByRole("region", { name: "Net expenses" });
-  await expect(total).toContainText("฿940.00");
+  await expect(total).toContainText("฿9,999,940.00");
   await expect(netExpenses).toContainText("฿80.00");
   // Row 1: Spendable beside Income and Net expenses, Net beneath them, the
   // hero as tall as the pair and Net together.
@@ -201,13 +202,13 @@ test("the desktop grid compares category spending by month, then sets the wallet
     "Balance",
   ]);
   const cashRow = walletTable.getByRole("row", { name: /Cash/ });
-  await expect(cashRow).toContainText("฿890.00");
+  await expect(cashRow).toContainText("฿9,999,890.00");
   await expect(walletTable.getByRole("row", { name: /Old card/ })).toHaveCount(
     0,
   );
   await expect(
     walletTable.getByRole("row", { name: /Total balance/ }),
-  ).toContainText("฿940.00");
+  ).toContainText("฿9,999,940.00");
   await expect(wallets).toContainText("1 archived wallet not shown");
   const walletsBox = await boxOf(wallets);
   expect(walletsBox.y).toBeGreaterThan(categoriesBox.y + categoriesBox.height);
@@ -232,6 +233,10 @@ test("the desktop grid compares category spending by month, then sets the wallet
   expect(recentBox.y).toBeCloseTo(walletsBox.y, 0);
   expect(recentBox.height).toBeCloseTo(walletsBox.height, 0);
   expect(recentBox.x).toBeGreaterThan(walletsBox.x + walletsBox.width);
+  // Seven-digit balances fit the narrowest desktop grid as well as this one.
+  await expectNoClippedMoney(page);
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await expectNoClippedMoney(page);
   await row.getByRole("link").click();
   await expect(page).toHaveURL(new RegExp(`/transactions/${savedId}$`));
 
