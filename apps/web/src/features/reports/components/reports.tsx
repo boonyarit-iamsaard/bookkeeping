@@ -9,15 +9,24 @@ import type { ReportSearch } from "@/features/reports/report-schema";
 import { DatePicker } from "@/shared/components/date-picker";
 import { MonthPicker } from "@/shared/components/month-picker";
 import { useToday } from "@/shared/hooks/use-today";
-import { FinancialReport } from "./financial-report";
-import { ReportsLoading } from "./reports-loading";
+import type { FinancialReportProps } from "./report-sections";
 
 interface ReportsProps {
   search: Readonly<ReportSearch>;
   initialToday: CalendarDate;
+  /** The composition's skeleton while a pick's report loads. */
+  loading: React.ReactNode;
+  /** The composition's arrangement of a ready report. */
+  children: (report: FinancialReportProps) => React.ReactNode;
 }
 
-export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
+/** The Reports page both compositions share: its controls, reads and notices. */
+export function Reports({
+  search,
+  initialToday,
+  loading,
+  children,
+}: Readonly<ReportsProps>) {
   const today = useToday(initialToday);
   const thisMonth = reportMonthOf(today);
   const [comparedWalletId, setComparedWalletId] = useState<string>();
@@ -25,7 +34,7 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
   const navigate = useNavigate({ from: "/reports" });
 
   if (report.state === "loading") {
-    return <ReportsLoading />;
+    return loading;
   }
 
   // Each control applies on pick and changes only its own value; the other
@@ -80,20 +89,20 @@ export function Reports({ search, initialToday }: Readonly<ReportsProps>) {
         }
       />
       {report.state === "ready" ? (
-        <FinancialReport
-          summary={report.summary}
-          categoryBreakdown={report.categoryBreakdown}
-          balanceTrend={report.balanceTrend}
-          comparedWalletId={comparedWalletId}
-          onCompareWallet={setComparedWalletId}
-          currentWallets={report.currentWallets}
-          currentTotal={report.currentTotal}
-          datedWallets={report.datedWallets}
-          datedTotal={report.datedTotal}
-          asOf={report.values.asOf}
-          balanceDate={balanceDate}
-          trend={report.trend}
-        />
+        children({
+          summary: report.summary,
+          categoryBreakdown: report.categoryBreakdown,
+          balanceTrend: report.balanceTrend,
+          comparedWalletId,
+          onCompareWallet: setComparedWalletId,
+          currentWallets: report.currentWallets,
+          currentTotal: report.currentTotal,
+          datedWallets: report.datedWallets,
+          datedTotal: report.datedTotal,
+          asOf: report.values.asOf,
+          balanceDate,
+          trend: report.trend,
+        })
       ) : (
         <>
           <div className="bg-card shadow-card rounded-2xl p-5 sm:p-6">

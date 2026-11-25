@@ -1,17 +1,11 @@
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
-import { DashboardRow } from "@/shared/components/dashboard-row";
-import {
-  HeroSkeleton,
-  RowSkeleton,
-  Skeleton,
-} from "@/shared/components/skeleton";
-import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
+import { RowSkeleton, Skeleton } from "@/shared/components/skeleton";
 
-const CARD_CLASS =
+export const CARD_CLASS =
   "flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-card sm:p-6";
 
-function FigureRowSkeleton() {
+export function FigureRowSkeleton() {
   return (
     <div className="flex items-center justify-between gap-3 py-3.5">
       <Skeleton className="h-4 w-28" />
@@ -20,7 +14,7 @@ function FigureRowSkeleton() {
   );
 }
 
-function BalanceDateSkeleton() {
+export function BalanceDateSkeleton() {
   return (
     <div className={CARD_CLASS}>
       <Skeleton className="h-4 w-24" />
@@ -29,7 +23,7 @@ function BalanceDateSkeleton() {
   );
 }
 
-function MonthSkeleton() {
+export function MonthSkeleton() {
   return (
     <div className={CARD_CLASS}>
       <Skeleton className="h-6 w-40" />
@@ -46,7 +40,7 @@ function MonthSkeleton() {
   );
 }
 
-function CategoriesSkeleton() {
+export function CategoriesSkeleton() {
   return (
     <div className={CARD_CLASS}>
       <Skeleton className="h-6 w-48" />
@@ -59,7 +53,7 @@ function CategoriesSkeleton() {
   );
 }
 
-function TrendSkeleton() {
+export function TrendSkeleton() {
   return (
     <div className={CARD_CLASS}>
       <Skeleton className="h-6 w-36" />
@@ -69,7 +63,7 @@ function TrendSkeleton() {
   );
 }
 
-function BalancesSkeleton() {
+export function BalancesSkeleton() {
   return (
     <div className={CARD_CLASS}>
       <Skeleton className="h-6 w-40" />
@@ -81,7 +75,7 @@ function BalancesSkeleton() {
   );
 }
 
-function BalanceTrendSkeleton() {
+export function BalanceTrendSkeleton() {
   return (
     <div className={CARD_CLASS}>
       <Skeleton className="h-6 w-44" />
@@ -91,43 +85,17 @@ function BalanceTrendSkeleton() {
   );
 }
 
-function PhoneSkeleton() {
-  return (
-    <>
-      <BalanceDateSkeleton />
-      <HeroSkeleton captionClassName="w-36" />
-      <MonthSkeleton />
-      <CategoriesSkeleton />
-      <TrendSkeleton />
-      <BalancesSkeleton />
-      <BalanceTrendSkeleton />
-    </>
-  );
+interface ReportsLoadingProps {
+  /** The composition's own skeleton layout. */
+  className: string;
+  children: React.ReactNode;
 }
 
-// The ready report's rows, so nothing moves when it arrives.
-function DesktopSkeleton() {
-  return (
-    <>
-      <DashboardRow className="lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)]">
-        <HeroSkeleton captionClassName="w-36" />
-        <MonthSkeleton />
-      </DashboardRow>
-      <DashboardRow className="lg:grid-cols-2">
-        <CategoriesSkeleton />
-        <TrendSkeleton />
-      </DashboardRow>
-      <DashboardRow className="lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <BalancesSkeleton />
-        <BalanceTrendSkeleton />
-      </DashboardRow>
-    </>
-  );
-}
-
-/** Reports' layout in neutral blocks: never a figure that could pass for money. */
-export function ReportsLoading() {
-  const desktop = useIsDesktop();
+/** Reports' frame around a composition's skeleton: never a figure that could pass for money. */
+export function ReportsLoading({
+  className,
+  children,
+}: Readonly<ReportsLoadingProps>) {
   return (
     <Page layout="wide" loading>
       <TitleBar
@@ -139,11 +107,8 @@ export function ReportsLoading() {
       <output className="text-muted-foreground text-sm">
         Loading your report…
       </output>
-      <div
-        aria-hidden="true"
-        className={desktop ? "contents" : "flex flex-col gap-6 sm:gap-8"}
-      >
-        {desktop ? <DesktopSkeleton /> : <PhoneSkeleton />}
+      <div aria-hidden="true" className={className}>
+        {children}
       </div>
     </Page>
   );

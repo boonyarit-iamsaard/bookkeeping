@@ -12,12 +12,9 @@ import { TREND_HEADING } from "@/features/reports/trend-series";
 import { FlowBars } from "@/shared/components/chart/flow-bars";
 import type { WalletShare } from "@/shared/components/chart/wallet-share-chart";
 import { WalletShareChart } from "@/shared/components/chart/wallet-share-chart";
-import { DashboardCard } from "@/shared/components/dashboard-card";
-import { DashboardRow } from "@/shared/components/dashboard-row";
 import { DisplayFigure } from "@/shared/components/display-figure";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
-import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 import { BalanceOverTime } from "./balance-over-time";
 import { SpendingByCategory } from "./spending-by-category";
 import { TrendChart } from "./trend-chart";
@@ -26,7 +23,7 @@ type MonthlyReport = components["schemas"]["MonthlyReport"];
 type WalletSummary = components["schemas"]["Wallet"];
 type ApiMoney = components["schemas"]["Money"];
 
-interface FinancialReportProps {
+export interface FinancialReportProps {
   summary: Readonly<MonthlyReport>;
   categoryBreakdown: Readonly<CategoryBreakdown>;
   balanceTrend: Readonly<BalanceTrend>;
@@ -46,10 +43,6 @@ interface FinancialReportProps {
   balanceDate: React.ReactNode;
 }
 
-const CARD_CLASS =
-  "flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-card sm:p-6";
-const CARD_HEADING_CLASS = "font-bold text-lg tracking-tight";
-
 const SUMMARY_FIGURES = [
   "income",
   "grossExpenses",
@@ -58,36 +51,16 @@ const SUMMARY_FIGURES = [
   "net",
 ] as const satisfies readonly ReportFigure[];
 
-interface ReportCardProps {
+export interface ReportCardProps {
   headingId: string;
   heading: React.ReactNode;
-  desktop: boolean;
   children: React.ReactNode;
 }
 
-/** A report section: the dashboard card from 1024px, the phone card below. */
-function ReportCard({
-  headingId,
-  heading,
-  desktop,
-  children,
-}: Readonly<ReportCardProps>) {
-  if (desktop) {
-    return (
-      <DashboardCard headingId={headingId} heading={heading}>
-        {children}
-      </DashboardCard>
-    );
-  }
-  return (
-    <section aria-labelledby={headingId} className={CARD_CLASS}>
-      <h2 id={headingId} className={CARD_HEADING_CLASS}>
-        {heading}
-      </h2>
-      {children}
-    </section>
-  );
-}
+/** The card each composition draws a report section in. */
+export type ReportCardComponent = React.ComponentType<
+  Readonly<ReportCardProps>
+>;
 
 function BalanceRow({
   name,
@@ -140,20 +113,27 @@ function BalanceRow({
   );
 }
 
-export function FinancialReport({
-  summary,
-  categoryBreakdown,
-  balanceTrend,
-  comparedWalletId,
-  onCompareWallet,
-  currentWallets,
-  currentTotal,
-  datedWallets,
-  datedTotal,
-  asOf,
-  trend,
-  balanceDate,
-}: Readonly<FinancialReportProps>) {
+/**
+ * The report's sections, each in the composition's card, for the composition
+ * to arrange.
+ */
+export function createReportSections(
+  {
+    summary,
+    categoryBreakdown,
+    balanceTrend,
+    comparedWalletId,
+    onCompareWallet,
+    currentWallets,
+    currentTotal,
+    datedWallets,
+    datedTotal,
+    asOf,
+    trend,
+    balanceDate,
+  }: Readonly<FinancialReportProps>,
+  ReportCard: ReportCardComponent,
+) {
   const shares: WalletShare[] = datedWallets.map((wallet) => ({
     wallet,
     balance: wallet.balance,
@@ -162,7 +142,6 @@ export function FinancialReport({
     currentWallets.map((wallet) => [wallet.id, wallet.balance]),
   );
   const month = formatReportMonth(summary.month);
-  const desktop = useIsDesktop();
 
   const net = (
     <DisplayFigure
@@ -173,11 +152,7 @@ export function FinancialReport({
     />
   );
   const monthCard = (
-    <ReportCard
-      headingId="monthly-totals-heading"
-      heading={month}
-      desktop={desktop}
-    >
+    <ReportCard headingId="monthly-totals-heading" heading={month}>
       {summary.transactionCount > 0 && (
         <fieldset className="m-0 min-w-0 border-0 p-0">
           <legend className="sr-only">Income against net expenses</legend>
@@ -217,26 +192,17 @@ export function FinancialReport({
     <ReportCard
       headingId="category-spending-heading"
       heading="Spending by category"
-      desktop={desktop}
     >
       <SpendingByCategory breakdown={categoryBreakdown} month={month} />
     </ReportCard>
   );
   const trendCard = (
-    <ReportCard
-      headingId="trend-heading"
-      heading={TREND_HEADING}
-      desktop={desktop}
-    >
+    <ReportCard headingId="trend-heading" heading={TREND_HEADING}>
       <TrendChart key={summary.month} points={trend} />
     </ReportCard>
   );
   const balances = (
-    <ReportCard
-      headingId="wallet-balances-heading"
-      heading="Wallet balances"
-      desktop={desktop}
-    >
+    <ReportCard headingId="wallet-balances-heading" heading="Wallet balances">
       {balanceDate}
       <p className="text-muted-foreground text-sm">
         End of day {formatCalendarDate(asOf)} · Bangkok. Archived holdings are
@@ -294,11 +260,7 @@ export function FinancialReport({
     </ReportCard>
   );
   const overTime = (
-    <ReportCard
-      headingId="balance-trend-heading"
-      heading="Balance over time"
-      desktop={desktop}
-    >
+    <ReportCard headingId="balance-trend-heading" heading="Balance over time">
       <BalanceOverTime
         reportMonth={summary.month}
         balanceDate={asOf}
@@ -311,36 +273,7 @@ export function FinancialReport({
     </ReportCard>
   );
 
-  // From 1024px the cards pair up, 4 + 8, 6 + 6 and 5 + 7 of twelve columns.
-  if (desktop) {
-    return (
-      <>
-        <DashboardRow className="lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)]">
-          {net}
-          {monthCard}
-        </DashboardRow>
-        <DashboardRow className="lg:grid-cols-2">
-          {categories}
-          {trendCard}
-        </DashboardRow>
-        <DashboardRow className="lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          {balances}
-          {overTime}
-        </DashboardRow>
-      </>
-    );
-  }
-
-  return (
-    <>
-      {net}
-      {monthCard}
-      {categories}
-      {trendCard}
-      {balances}
-      {overTime}
-    </>
-  );
+  return { net, monthCard, categories, trendCard, balances, overTime };
 }
 
 interface BalanceRowProps {

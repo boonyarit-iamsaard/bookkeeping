@@ -1,23 +1,36 @@
 import { APP_TIME_ZONE, todayIn } from "@bookkeeping/domain/dates";
 import { createFileRoute } from "@tanstack/react-router";
 import { AccountSheet } from "@/features/auth/components/account-sheet";
-import { Home } from "@/features/home/components/home";
 import { HomeErrorBoundary } from "@/features/home/components/home-error-boundary";
-import { HomeLoading } from "@/features/home/components/home-loading";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
+import {
+  HomeDesktop,
+  HomeDesktopLoading,
+} from "@/features/home/screens/home.desktop";
+import {
+  HomePhone,
+  HomePhoneLoading,
+} from "@/features/home/screens/home.phone";
 import { historySearchSchema } from "@/features/transactions/history-schema";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function HomeRoute() {
   const { initialToday } = Route.useLoaderData();
   const { created } = Route.useSearch();
   const { session } = Route.useRouteContext();
-  return (
-    <Home
+  return useIsDesktop() ? (
+    <HomeDesktop initialToday={initialToday} savedId={created} />
+  ) : (
+    <HomePhone
       accountControl={<AccountSheet email={session.user.email} />}
       initialToday={initialToday}
       savedId={created}
     />
   );
+}
+
+function HomeLoading() {
+  return useIsDesktop() ? <HomeDesktopLoading /> : <HomePhoneLoading />;
 }
 
 export const Route = createFileRoute("/_app/")({

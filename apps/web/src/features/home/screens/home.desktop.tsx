@@ -2,40 +2,48 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
-import type { components } from "@/core/api/openapi.gen";
+import { Page } from "@/core/shell/page";
+import { TitleBar } from "@/core/shell/title-bar";
 import { Arrival } from "@/features/home/components/home-arrival";
+import {
+  HomeLoading,
+  SummarySkeleton,
+} from "@/features/home/components/home-loading";
+import { MonthCard, TodayCard } from "@/features/home/components/period-cards";
 import { createHomeCategorySummary } from "@/features/home/home-category-summary";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
+import { useHomeReads } from "@/features/home/hooks/use-home-reads";
 import { createCategoryBreakdown } from "@/features/reports/category-breakdown";
 import { SpendingByCategory } from "@/features/reports/components/spending-by-category";
 import { formatReportMonth } from "@/features/reports/report-month";
 import { TransactionTable } from "@/features/transactions/components/transaction-table";
+import { EmptyWallets } from "@/features/wallets/components/wallet-list";
 import { WalletTable } from "@/features/wallets/components/wallet-table";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
 import { DashboardCard } from "@/shared/components/dashboard-card";
 import { DashboardRow } from "@/shared/components/dashboard-row";
 import { sectionLinkClass } from "@/shared/components/list-section";
+import { HeroSkeleton, TableCardSkeleton } from "@/shared/components/skeleton";
 import { pluralize } from "@/shared/helpers/pluralize";
 
-type WalletCollection = components["schemas"]["WalletCollection"];
-type ApiTransaction = components["schemas"]["Transaction"];
-
-interface DesktopHomeProps {
-  today: CalendarDate;
-  walletCollection: Readonly<WalletCollection>;
-  /** The Today and This month cards the phone strip also shows. */
-  summaryCards: readonly [React.ReactNode, React.ReactNode];
-  recent: readonly ApiTransaction[];
+interface HomeDesktopProps {
+  initialToday: CalendarDate;
   savedId?: string;
-  /** Whether the cards arrive one by one, as on the app's first showing. */
-  arrive: boolean;
 }
+
+interface CategoriesCardProps {
+  today: CalendarDate;
+}
+
+// The figures in thirds, then spending beside the wallets, 5 + 7 of twelve.
+const FIGURES_ROW = "grid-cols-3";
+const SPENDING_ROW = "grid-cols-[minmax(0,5fr)_minmax(0,7fr)]";
 
 function LinkArrow() {
   return <ArrowRight aria-hidden="true" strokeWidth={2} className="size-3.5" />;
 }
 
-function CategoriesCard({ today }: Readonly<Pick<DesktopHomeProps, "today">>) {
+function CategoriesCard({ today }: Readonly<CategoriesCardProps>) {
   const { data } = useSuspenseQuery(
     createHomeQueryPlan(today).categorySpending,
   );
@@ -65,35 +73,44 @@ function CategoriesCard({ today }: Readonly<Pick<DesktopHomeProps, "today">>) {
 }
 
 /**
- * Home from 1024px as a dashboard grid: the figures, then spending beside the
- * wallets, then the records as a table. The cards in a row share one height.
+ * Home as a dashboard grid: the figures, then spending beside the wallets,
+ * then the records as a table. The cards in a row share one height.
  */
-export function DesktopHome({
-  today,
-  walletCollection,
-  summaryCards,
-  recent,
+export function HomeDesktop({
+  initialToday,
   savedId,
-  arrive,
-}: Readonly<DesktopHomeProps>) {
+}: Readonly<HomeDesktopProps>) {
+  const { today, walletCollection, daily, monthly, recent, arrive } =
+    useHomeReads(initialToday);
+  if (walletCollection.items.length === 0) {
+    return (
+      <Page layout="wide">
+        <TitleBar title="Home" />
+        <div className="max-w-2xl">
+          <EmptyWallets />
+        </div>
+      </Page>
+    );
+  }
   const activeWallets = walletCollection.items.filter(
     (wallet) => !wallet.archivedAt,
   );
   const archivedCount = walletCollection.items.length - activeWallets.length;
   return (
-    <>
-      <DashboardRow className="lg:grid-cols-3">
+    <Page layout="wide">
+      <TitleBar title="Home" />
+      <DashboardRow className={FIGURES_ROW}>
         <Arrival order={0} animate={arrive}>
           <WalletsTotal balance={walletCollection.balance} lead="spendable" />
         </Arrival>
         <Arrival order={1} animate={arrive}>
-          {summaryCards[0]}
+          <TodayCard report={daily} />
         </Arrival>
         <Arrival order={2} animate={arrive}>
-          {summaryCards[1]}
+          <MonthCard report={monthly} />
         </Arrival>
       </DashboardRow>
-      <DashboardRow className="lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <DashboardRow className={SPENDING_ROW}>
         <Arrival order={3} animate={arrive}>
           <CategoriesCard today={today} />
         </Arrival>
@@ -131,6 +148,24 @@ export function DesktopHome({
           )}
         </DashboardCard>
       </Arrival>
-    </>
+    </Page>
+  );
+}
+
+/** The desktop Home in neutral blocks, in the ready grid's rows. */
+export function HomeDesktopLoading() {
+  return (
+    <HomeLoading>
+      <DashboardRow className={FIGURES_ROW}>
+        <HeroSkeleton />
+        <SummarySkeleton />
+        <SummarySkeleton />
+      </DashboardRow>
+      <DashboardRow className={SPENDING_ROW}>
+        <TableCardSkeleton />
+        <TableCardSkeleton />
+      </DashboardRow>
+      <TableCardSkeleton />
+    </HomeLoading>
   );
 }
