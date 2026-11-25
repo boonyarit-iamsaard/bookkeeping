@@ -27,6 +27,8 @@ type ChangeSource = "savings" | "other";
 
 interface WalletManagementProps {
   wallet: Wallet;
+  /** A line above the balance caption, in the balance card. */
+  nameLine?: React.ReactNode;
 }
 
 const NO_OUTCOME = { error: "", notice: "" };
@@ -45,7 +47,10 @@ function savingsButtonLabel({
   return savings ? "Unmark as a Savings wallet" : "Mark as a Savings wallet";
 }
 
-export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
+export function WalletManagement({
+  wallet,
+  nameLine,
+}: Readonly<WalletManagementProps>) {
   const navigate = useNavigate();
   const [amount, setAmount] = useState(() =>
     formatApiMoneyInput(wallet.openingAmount),
@@ -185,10 +190,7 @@ export function WalletManagement({ wallet }: Readonly<WalletManagementProps>) {
       >
         <WalletTile type={wallet.type} archived={archived} />
         <div className="flex min-w-0 flex-col">
-          {/* The phone title bar truncates; say which wallet this is in full. */}
-          <p className="text-sm font-medium wrap-break-word lg:hidden">
-            {wallet.name}
-          </p>
+          {nameLine}
           <p className="text-muted-foreground text-sm">
             Current balance{wallet.savings ? " · Savings" : ""}
             {archived ? " · Archived" : ""}

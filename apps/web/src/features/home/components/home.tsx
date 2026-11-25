@@ -76,7 +76,13 @@ export function Home({
 
   let content: React.ReactNode;
   if (wallets.length === 0) {
-    content = <EmptyWallets />;
+    content = desktop ? (
+      <div className="max-w-2xl">
+        <EmptyWallets />
+      </div>
+    ) : (
+      <EmptyWallets />
+    );
   } else if (desktop) {
     content = (
       <DesktopHome

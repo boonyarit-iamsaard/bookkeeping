@@ -2,28 +2,17 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { walletQueries } from "@/core/api/queries";
-import { Page } from "@/core/shell/page";
-import { BackLink, TitleBar } from "@/core/shell/title-bar";
-import { WalletManagement } from "@/features/wallets/components/wallet-management";
+import { WalletManagementDesktop } from "@/features/wallets/screens/wallet-management.desktop";
+import { WalletManagementPhone } from "@/features/wallets/screens/wallet-management.phone";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function ManageWalletPage() {
   const { walletId } = Route.useParams();
   const { data: wallet } = useSuspenseQuery(walletQueries.detail(walletId));
-
-  return (
-    <Page layout="column">
-      <TitleBar
-        title={wallet.name}
-        back={
-          <BackLink
-            to="/wallets/$walletId"
-            params={{ walletId: wallet.id }}
-            aria-label={`Back to ${wallet.name}`}
-          />
-        }
-      />
-      <WalletManagement wallet={wallet} />
-    </Page>
+  return useIsDesktop() ? (
+    <WalletManagementDesktop wallet={wallet} />
+  ) : (
+    <WalletManagementPhone wallet={wallet} />
   );
 }
 
