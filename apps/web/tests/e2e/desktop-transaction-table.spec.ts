@@ -136,6 +136,7 @@ test("desktop history's type tabs, column menu and one-line tags cell", {
     "Type",
     "Tags",
     "Amount",
+    "Actions",
   ]);
   await page.getByRole("button", { name: "Columns" }).click();
   const menu = page.getByRole("menu");
@@ -148,7 +149,15 @@ test("desktop history's type tabs, column menu and one-line tags cell", {
   await menu.getByRole("menuitemcheckbox", { name: "Wallet" }).click();
   await menu.getByRole("menuitemcheckbox", { name: "Note" }).click();
   await page.keyboard.press("Escape");
-  const chosen = ["Date", "Category", "Type", "Tags", "Note", "Amount"];
+  const chosen = [
+    "Date",
+    "Category",
+    "Type",
+    "Tags",
+    "Note",
+    "Amount",
+    "Actions",
+  ];
   await expect(headers).toHaveText(chosen);
   await page.reload();
   await expect(headers).toHaveText(chosen);

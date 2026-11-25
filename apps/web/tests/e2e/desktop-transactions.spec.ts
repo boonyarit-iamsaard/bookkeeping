@@ -133,6 +133,7 @@ test("desktop history is one table with a live filter bar, and a wallet page of 
     "Type",
     "Tags",
     "Amount",
+    "Actions",
   ]);
   const rows = table.locator("[data-transaction-row]");
   await expect(rows).toHaveCount(4);
