@@ -65,6 +65,15 @@ It prints each file's path, by default under
 `pnpm --filter @bookkeeping/web test:e2e shot.spec.ts --project phone-chromium`
 with `SHOT_WIDTHS=360`.
 
+Two browser facts have each cost a failed run:
+
+- A Base UI tooltip opens on keyboard focus (`:focus-visible`), not on
+  `locator.focus()`. Tab onto its trigger with `page.keyboard.press("Tab")`,
+  then read `[data-slot=tooltip-content]`.
+- Rendered sizes are fractional, so compare heights and edges with a
+  tolerance of up to a pixel rather than with exact equality, as
+  `tests/e2e/helpers/expect-unclipped.ts` does.
+
 ## Coverage
 
 Coverage is an on-demand report, not part of `pnpm test` or `pnpm run ci`, and
