@@ -12,7 +12,7 @@ import {
 } from "@/shared/components/ui/field";
 
 // The capture form's wallet fields: where the money leaves from or lands in,
-// and a transfer's destination. `TransactionForm` wires them to its form.
+// and a transfer's destination. The entry form compositions wire them to its form.
 
 interface WalletFieldProps {
   name: string;

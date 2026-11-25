@@ -10,7 +10,7 @@ import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
 
 // The capture form's actions: Save, and for a correction, when it was recorded
-// and how to delete it. Only `TransactionForm` composes them.
+// and how to delete it. Only the entry form compositions use them.
 
 function walletNameOf(
   wallets: readonly WalletOption[],
@@ -19,7 +19,7 @@ function walletNameOf(
   return wallets.find((wallet) => wallet.id === walletId)?.name;
 }
 
-interface TransactionSaveBarProps {
+interface TransactionSaveButtonProps {
   wallets: readonly WalletOption[];
   pending: boolean;
   isSubmitting: boolean;
@@ -27,10 +27,11 @@ interface TransactionSaveBarProps {
   amount: string;
   walletId: string;
   destinationWalletId: string | undefined;
+  className?: string;
 }
 
-/** Save, pinned to the bottom of a phone screen and inline from `sm` up. */
-export function TransactionSaveBar({
+/** The submit button, reading back what Save will record. */
+export function TransactionSaveButton({
   wallets,
   pending,
   isSubmitting,
@@ -38,34 +39,47 @@ export function TransactionSaveBar({
   amount,
   walletId,
   destinationWalletId,
-}: Readonly<TransactionSaveBarProps>) {
+  className,
+}: Readonly<TransactionSaveButtonProps>) {
+  return (
+    <Button
+      type="submit"
+      size="lg"
+      disabled={
+        pending ||
+        isSubmitting ||
+        (type === "transfer" && wallets.length < 2) ||
+        (type === "refund" && !walletId)
+      }
+      className={cn(type === "transfer" && "h-auto", className)}
+    >
+      {isSubmitting || pending ? (
+        "Saving…"
+      ) : (
+        <SaveLabel
+          type={type}
+          amountText={amount}
+          walletName={walletNameOf(wallets, walletId)}
+          destinationWalletName={walletNameOf(wallets, destinationWalletId)}
+        />
+      )}
+    </Button>
+  );
+}
+
+/** Save, pinned to the bottom of a phone screen and inline from `sm` up. */
+export function TransactionSaveBar(
+  props: Readonly<Omit<TransactionSaveButtonProps, "className">>,
+) {
   return (
     <EntrySaveBar>
-      <Button
-        type="submit"
-        size="lg"
-        disabled={
-          pending ||
-          isSubmitting ||
-          (type === "transfer" && wallets.length < 2) ||
-          (type === "refund" && !walletId)
-        }
+      <TransactionSaveButton
+        {...props}
         className={cn(
           "min-h-12 w-full text-base",
-          type === "transfer" ? "h-auto" : "h-12",
+          props.type !== "transfer" && "h-12",
         )}
-      >
-        {isSubmitting || pending ? (
-          "Saving…"
-        ) : (
-          <SaveLabel
-            type={type}
-            amountText={amount}
-            walletName={walletNameOf(wallets, walletId)}
-            destinationWalletName={walletNameOf(wallets, destinationWalletId)}
-          />
-        )}
-      </Button>
+      />
     </EntrySaveBar>
   );
 }

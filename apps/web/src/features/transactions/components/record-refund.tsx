@@ -3,7 +3,7 @@ import { Link, notFound } from "@tanstack/react-router";
 import { Wallet as WalletIcon } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
 import { transactionQueries, walletQueries } from "@/core/api/queries";
-import { TransactionForm } from "@/features/transactions/components/transaction-form";
+import type { TransactionFormProps } from "@/features/transactions/hooks/use-transaction-entry-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
 import { toWalletOptions } from "@/features/transactions/wallet-options";
 import { EmptyState } from "@/shared/components/empty-state";
@@ -73,10 +73,16 @@ function NoReceivingWallet({
 interface RecordRefundProps {
   expenseId: string;
   host?: EntryDialogHost;
+  /** The composition to record with; the route or dialog host picks it. */
+  formComponent: React.ComponentType<TransactionFormProps>;
 }
 
 /** The refund form for an expense, or what to do first when no wallet can receive it. */
-export function RecordRefund({ expenseId, host }: Readonly<RecordRefundProps>) {
+export function RecordRefund({
+  expenseId,
+  host,
+  formComponent: Form,
+}: Readonly<RecordRefundProps>) {
   const { data: expense } = useSuspenseQuery(
     transactionQueries.detail(expenseId),
   );
@@ -94,7 +100,7 @@ export function RecordRefund({ expenseId, host }: Readonly<RecordRefundProps>) {
   const linked = linkedExpenseView({ expense, refunds });
 
   return wallets.length > 0 ? (
-    <TransactionForm
+    <Form
       wallets={wallets}
       mode={{ kind: "refund", expense: linked, defaultWalletId }}
       host={host}
