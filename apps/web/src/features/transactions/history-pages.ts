@@ -1,11 +1,8 @@
-import type { HistorySearch } from "@/features/transactions/history-schema";
-import { DEFAULT_HISTORY_PAGE_SIZE } from "@/features/transactions/history-view";
-
-/** How the table shows the history: which page, how many rows, in what order. */
-export type HistoryTableSettings = Pick<
+import type {
   HistorySearch,
-  "page" | "pageSize" | "sort" | "order"
->;
+  HistoryTableSettings,
+} from "@/features/transactions/history-schema";
+import { historyPageSize } from "@/features/transactions/history-view";
 
 /**
  * The settings a filter change keeps. The page goes, so new filters start on
@@ -57,8 +54,18 @@ export function changeHistoryType(
 
 /** The page after the one the address shows, or none when it shows the last. */
 export function olderHistoryPage(
-  { page = 1, pageSize = DEFAULT_HISTORY_PAGE_SIZE }: Readonly<HistorySearch>,
+  search: Readonly<HistorySearch>,
   total: number,
 ): number | undefined {
-  return page * pageSize < total ? page + 1 : undefined;
+  const { page = 1 } = search;
+  return page * historyPageSize(search) < total ? page + 1 : undefined;
+}
+
+/** The list's last page, when the address names one beyond it; none while it holds rows. */
+export function lastHistoryPage(
+  search: Readonly<HistorySearch>,
+  total: number,
+): number | undefined {
+  const lastPage = Math.ceil(total / historyPageSize(search));
+  return (search.page ?? 1) > lastPage && lastPage > 0 ? lastPage : undefined;
 }

@@ -9,10 +9,14 @@ import { TRANSACTION_COLUMNS } from "@/features/transactions/components/transact
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
 import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
-import type { HistoryTableSettings } from "@/features/transactions/history-pages";
-import { changeHistoryTable } from "@/features/transactions/history-pages";
-import type { HistorySearch } from "@/features/transactions/history-schema";
-import { DEFAULT_HISTORY_PAGE_SIZE } from "@/features/transactions/history-view";
+import {
+  changeHistoryTable,
+  lastHistoryPage,
+} from "@/features/transactions/history-pages";
+import type {
+  HistorySearch,
+  HistoryTableSettings,
+} from "@/features/transactions/history-schema";
 import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads";
 import { TableCard } from "@/shared/components/dashboard-card";
 import { Skeleton, TableCardSkeleton } from "@/shared/components/skeleton";
@@ -43,9 +47,7 @@ export function TransactionsDesktop({
   const navigate = useNavigate();
   const { view, pending, transactions, total, filterErrors, ...collections } =
     useHistoryReads(search);
-  const page = search.page ?? 1;
-  const pageSize = search.pageSize ?? DEFAULT_HISTORY_PAGE_SIZE;
-  const lastPage = Math.ceil(total / pageSize);
+  const lastPage = lastHistoryPage(search, total);
 
   function show(change: HistoryTableSettings) {
     void navigate({
@@ -70,8 +72,8 @@ export function TransactionsDesktop({
         </>
       )}
       {search.deleted === 1 && <TransactionDeletedNotice />}
-      {transactions.length === 0 && page > lastPage && lastPage > 0 ? (
-        <PastLastPage page={page} lastPage={lastPage}>
+      {lastPage !== undefined ? (
+        <PastLastPage page={search.page ?? 1} lastPage={lastPage}>
           <Link
             to="/transactions"
             search={changeHistoryTable(search, { page: lastPage })}

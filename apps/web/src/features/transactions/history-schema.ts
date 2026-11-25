@@ -49,11 +49,12 @@ const pageSize = z.preprocess(
     TRANSACTION_PAGE_SIZES.find((size) => size === addressNumber(value)),
   z.literal(TRANSACTION_PAGE_SIZES).optional(),
 );
-const choiceOf = <const T extends readonly [string, ...string[]]>(choices: T) =>
-  z.preprocess(
+function choiceOf<const T extends readonly [string, ...string[]]>(choices: T) {
+  return z.preprocess(
     (value) => choices.find((choice) => choice === value),
     z.enum(choices).optional(),
   );
+}
 
 /**
  * `?deleted=1` after a deletion. The router writes validated search back to
@@ -85,6 +86,16 @@ export const historySearchSchema = z.object({
 });
 
 export type HistorySearch = z.infer<typeof historySearchSchema>;
+
+/** How a table shows the history: which page, how many rows, in what order. */
+export type HistoryTableSettings = Pick<
+  HistorySearch,
+  "order" | "page" | "pageSize" | "sort"
+>;
+
+/** The address a table reads: its settings and the saved row to highlight. */
+export type HistoryTableSearch = HistoryTableSettings &
+  Pick<HistorySearch, "created">;
 
 export const HISTORY_FILTER_KEYS = [
   "from",

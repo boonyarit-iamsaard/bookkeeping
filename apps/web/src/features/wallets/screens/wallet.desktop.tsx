@@ -5,10 +5,14 @@ import { Page } from "@/core/shell/page";
 import { HistoryDataTable } from "@/features/transactions/components/history-data-table";
 import { PastLastPage } from "@/features/transactions/components/past-last-page";
 import { transactionColumns } from "@/features/transactions/components/transaction-columns";
-import type { HistoryTableSettings } from "@/features/transactions/history-pages";
-import { changeHistoryTable } from "@/features/transactions/history-pages";
-import type { HistorySearch } from "@/features/transactions/history-schema";
-import { DEFAULT_HISTORY_PAGE_SIZE } from "@/features/transactions/history-view";
+import {
+  changeHistoryTable,
+  lastHistoryPage,
+} from "@/features/transactions/history-pages";
+import type {
+  HistoryTableSearch,
+  HistoryTableSettings,
+} from "@/features/transactions/history-schema";
 import { WalletDesktopHeader } from "@/features/wallets/components/wallet-desktop-header";
 import { WalletHistory } from "@/features/wallets/components/wallet-history";
 import { WalletManageLink } from "@/features/wallets/components/wallet-manage-link";
@@ -19,10 +23,7 @@ import { buttonVariants } from "@/shared/components/ui/button";
 interface WalletDesktopProps {
   wallet: components["schemas"]["Wallet"];
   page: components["schemas"]["TransactionCollection"];
-  search: Pick<
-    HistorySearch,
-    "created" | "order" | "page" | "pageSize" | "sort"
-  >;
+  search: HistoryTableSearch;
 }
 
 /** From 1024px: a header with the balance as a figure, then one data table. */
@@ -34,9 +35,7 @@ export function WalletDesktop({
   const navigate = useNavigate();
   const columns = useMemo(() => transactionColumns(wallet.id), [wallet.id]);
   const { total } = page.page;
-  const lastPage = Math.ceil(
-    total / (search.pageSize ?? DEFAULT_HISTORY_PAGE_SIZE),
-  );
+  const lastPage = lastHistoryPage(search, total);
 
   function show(change: HistoryTableSettings) {
     void navigate({
@@ -52,7 +51,7 @@ export function WalletDesktop({
         wallet={wallet}
         manage={<WalletManageLink walletId={wallet.id} />}
       />
-      {page.items.length === 0 && total > 0 ? (
+      {lastPage !== undefined ? (
         <PastLastPage page={search.page ?? 1} lastPage={lastPage}>
           <Link
             to="/wallets/$walletId"

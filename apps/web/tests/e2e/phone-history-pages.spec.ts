@@ -80,28 +80,42 @@ test("phone history and a wallet's page ask for the next numbered page", async (
   const { cash } = await seedLedger(page);
   const older = page.getByRole("link", { name: "Older transactions" });
 
-  // The history keeps its filters and rows per page on the next page.
+  // The history keeps its filters on the next page and ignores the table's
+  // rows per page, which only the desktop offers.
   await page.goto("/transactions?type=expense&pageSize=10");
-  await expect(rowsOf(page)).toHaveCount(10);
+  await expect(rowsOf(page)).toHaveCount(50);
   await older.click();
   await expect
     .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
-    .toEqual({ type: "expense", pageSize: "10", page: "2" });
-  await expect(rowsOf(page)).toHaveCount(10);
+    .toEqual({ type: "expense", page: "2" });
+  await expect(rowsOf(page)).toHaveCount(1);
   await expect(
     page.getByRole("link", { name: "Remove filter Expense" }),
   ).toBeVisible();
 
   // The last page has no older link.
-  await page.goto("/transactions?type=expense&pageSize=10&page=6");
-  await expect(rowsOf(page)).toHaveCount(1);
   await expect(older).toHaveCount(0);
 
+  // A page past the end leads back to the last one.
+  await page.goto("/transactions?type=expense&page=3");
+  await expect(
+    page.getByRole("heading", { name: "Page 3 is past the end" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Go to page 2" }).click();
+  await expect(rowsOf(page)).toHaveCount(1);
+
   // A wallet's page holds the default 50, then the one left.
-  await page.goto(`/wallets/${cash}`);
+  await page.goto(`/wallets/${cash}?sort=amount&order=asc`);
   await expect(rowsOf(page)).toHaveCount(50);
   await older.click();
   await expect(page).toHaveURL(new RegExp(`/wallets/${cash}\\?page=2$`));
   await expect(rowsOf(page)).toHaveCount(1);
   await expect(older).toHaveCount(0);
+
+  await page.goto(`/wallets/${cash}?page=3`);
+  await expect(
+    page.getByRole("heading", { name: "Page 3 is past the end" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Go to page 2" }).click();
+  await expect(rowsOf(page)).toHaveCount(1);
 });

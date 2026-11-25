@@ -1,6 +1,7 @@
 import { listNumberedTransactionPage } from "@bookkeeping/application/transactions/reads";
 import type { Database } from "@bookkeeping/database/connection";
 import {
+  DEFAULT_TRANSACTION_PAGE_SIZE,
   isTransactionListPage,
   TRANSACTION_LIST_ORDERS,
   TRANSACTION_LIST_SORTS,
@@ -11,8 +12,6 @@ import * as z from "zod";
 import { createQueryMiddleware } from "../../core/http/request-validation.js";
 import type { transactionCollectionResponseSchema } from "./transaction.schemas.js";
 import { presentTransaction } from "./transaction.schemas.js";
-
-const DEFAULT_TRANSACTION_PAGE_SIZE = 50;
 
 export const transactionListQuerySchema = z
   .strictObject({

@@ -1,12 +1,15 @@
 import { isCalendarDate } from "@bookkeeping/domain/dates";
-import type { TRANSACTION_PAGE_SIZES } from "@bookkeeping/domain/transactions";
-import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
+import {
+  DEFAULT_TRANSACTION_PAGE_SIZE,
+  TRANSACTION_TYPES,
+} from "@bookkeeping/domain/transactions";
 import { z } from "zod";
 import type { TransactionListQuery } from "@/core/api/queries";
 import type {
   HistoryFilterKey,
   HistoryFilterValues,
   HistorySearch,
+  HistoryTableSearch,
 } from "@/features/transactions/history-schema";
 import { HISTORY_FILTER_KEYS } from "@/features/transactions/history-schema";
 
@@ -28,10 +31,25 @@ const transactionFiltersSchema = z
     "From date must be on or before To date.",
   );
 
-/** The rows per page until the owner picks another; the server's default too. */
-export const DEFAULT_HISTORY_PAGE_SIZE = 50 satisfies TransactionPageSize;
+/** The rows per page the address asks for, or the list's default. */
+export function historyPageSize({
+  pageSize,
+}: Readonly<Pick<HistorySearch, "pageSize">>) {
+  return pageSize ?? DEFAULT_TRANSACTION_PAGE_SIZE;
+}
 
-type TransactionPageSize = (typeof TRANSACTION_PAGE_SIZES)[number];
+/**
+ * The part of the address a composition reads. The phone is month sections,
+ * newest first, at the default size, so only the desktop table's page size,
+ * sort and order reach its read and its links.
+ */
+export function historySearchFor(
+  search: Readonly<HistorySearch>,
+  { desktop }: Readonly<{ desktop: boolean }>,
+): HistorySearch {
+  const { pageSize: _size, sort: _sort, order: _order, ...phone } = search;
+  return desktop ? search : phone;
+}
 
 const HISTORY_FIELDS = [...HISTORY_FILTER_KEYS, "tagId"] as const;
 
@@ -118,7 +136,7 @@ export function buildHistoryView(search: Readonly<HistorySearch>): HistoryView {
         ...result.data,
         // The query carries text; the address keeps numbers.
         page: String(search.page ?? 1),
-        pageSize: `${search.pageSize ?? DEFAULT_HISTORY_PAGE_SIZE}`,
+        pageSize: `${historyPageSize(search)}`,
         sort: search.sort ?? "date",
         order: search.order ?? "desc",
       },
@@ -140,5 +158,20 @@ export function buildHistoryView(search: Readonly<HistorySearch>): HistoryView {
     hasFilters,
     errors: [...errors],
     invalidKeys,
+  };
+}
+
+/** One wallet's history: the list's own address, pinned to this wallet. */
+export function walletHistoryList(
+  walletId: string,
+  search: Readonly<HistoryTableSearch>,
+): TransactionListQuery {
+  return {
+    walletId,
+    page: String(search.page ?? 1),
+    // The size is sent so the Older link counts pages the way the server does.
+    pageSize: `${historyPageSize(search)}`,
+    ...(search.sort && { sort: search.sort }),
+    ...(search.order && { order: search.order }),
   };
 }

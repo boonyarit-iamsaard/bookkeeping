@@ -4,9 +4,11 @@ import {
 } from "@bookkeeping/domain/transactions";
 import type { components } from "@/core/api/openapi.gen";
 import { transactionRowProps } from "@/features/transactions/components/transaction-columns";
-import type { HistoryTableSettings } from "@/features/transactions/history-pages";
-import type { HistorySearch } from "@/features/transactions/history-schema";
-import { DEFAULT_HISTORY_PAGE_SIZE } from "@/features/transactions/history-view";
+import type {
+  HistoryTableSearch,
+  HistoryTableSettings,
+} from "@/features/transactions/history-schema";
+import { historyPageSize } from "@/features/transactions/history-view";
 import type { DataTableColumn } from "@/shared/components/data-table";
 import { DataTable } from "@/shared/components/data-table";
 
@@ -15,10 +17,7 @@ type ApiTransaction = components["schemas"]["Transaction"];
 interface HistoryDataTableProps {
   columns: readonly DataTableColumn<ApiTransaction>[];
   columnsStorageKey: string;
-  search: Pick<
-    HistorySearch,
-    "created" | "order" | "page" | "pageSize" | "sort"
-  >;
+  search: HistoryTableSearch;
   transactions: readonly ApiTransaction[];
   /** The filtered list's size across all pages. */
   total: number;
@@ -43,7 +42,7 @@ export function HistoryDataTable({
   rowActions,
 }: Readonly<HistoryDataTableProps>) {
   const page = search.page ?? 1;
-  const pageSize = search.pageSize ?? DEFAULT_HISTORY_PAGE_SIZE;
+  const pageSize = historyPageSize(search);
   return (
     <DataTable
       label="Transactions"

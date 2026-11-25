@@ -1,7 +1,14 @@
+import { Link } from "@tanstack/react-router";
 import type { components } from "@/core/api/openapi.gen";
 import { Page } from "@/core/shell/page";
 import { BackLink, TitleBar } from "@/core/shell/title-bar";
 import { MonthSections } from "@/features/transactions/components/month-sections";
+import { PastLastPage } from "@/features/transactions/components/past-last-page";
+import {
+  changeHistoryTable,
+  lastHistoryPage,
+} from "@/features/transactions/history-pages";
+import type { HistoryTableSearch } from "@/features/transactions/history-schema";
 import { WalletBalance } from "@/features/wallets/components/wallet-balance";
 import { WalletHistory } from "@/features/wallets/components/wallet-history";
 import { WalletManageLink } from "@/features/wallets/components/wallet-manage-link";
@@ -11,10 +18,12 @@ import {
   RowSkeleton,
   Skeleton,
 } from "@/shared/components/skeleton";
+import { buttonVariants } from "@/shared/components/ui/button";
 
 interface WalletPhoneProps {
   wallet: components["schemas"]["Wallet"];
   page: components["schemas"]["TransactionCollection"];
+  search: HistoryTableSearch;
   createdId: string | undefined;
   /** The page after this one; none on the last. */
   olderPage: number | undefined;
@@ -24,9 +33,11 @@ interface WalletPhoneProps {
 export function WalletPhone({
   wallet,
   page,
+  search,
   createdId,
   olderPage,
 }: Readonly<WalletPhoneProps>) {
+  const lastPage = lastHistoryPage(search, page.page.total);
   return (
     <Page layout="wide">
       <TitleBar
@@ -35,19 +46,32 @@ export function WalletPhone({
         actions={<WalletManageLink walletId={wallet.id} />}
       />
       <WalletBalance wallet={wallet} />
-      <WalletHistory
-        walletId={wallet.id}
-        empty={page.items.length === 0}
-        olderPage={olderPage}
-      >
-        <MonthSections
-          transactions={page.items}
-          idPrefix="wallet"
-          level={3}
-          savedId={createdId}
-          pageWalletId={wallet.id}
-        />
-      </WalletHistory>
+      {lastPage === undefined ? (
+        <WalletHistory
+          walletId={wallet.id}
+          empty={page.items.length === 0}
+          olderPage={olderPage}
+        >
+          <MonthSections
+            transactions={page.items}
+            idPrefix="wallet"
+            level={3}
+            savedId={createdId}
+            pageWalletId={wallet.id}
+          />
+        </WalletHistory>
+      ) : (
+        <PastLastPage page={search.page ?? 1} lastPage={lastPage}>
+          <Link
+            to="/wallets/$walletId"
+            params={{ walletId: wallet.id }}
+            search={changeHistoryTable(search, { page: lastPage })}
+            className={buttonVariants({ variant: "secondary", size: "lg" })}
+          >
+            Go to page {lastPage}
+          </Link>
+        </PastLastPage>
+      )}
     </Page>
   );
 }

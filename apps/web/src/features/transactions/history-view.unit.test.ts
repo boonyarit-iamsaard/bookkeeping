@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { historySearchSchema } from "./history-schema";
-import { buildHistoryView } from "./history-view";
+import {
+  buildHistoryView,
+  historySearchFor,
+  walletHistoryList,
+} from "./history-view";
 
 const CASH = "00000000-0000-4000-8000-000000000001";
 const COFFEE = "00000000-0000-4000-8000-000000000003";
@@ -134,6 +138,42 @@ describe("history view", () => {
       values: {},
       hasFilters: false,
       list: { page: "2", pageSize: "50", sort: "amount", order: "desc" },
+    });
+  });
+});
+
+describe("the phone and desktop reads of one address", () => {
+  const address = {
+    type: "expense",
+    page: 2,
+    pageSize: 10,
+    sort: "amount",
+    order: "asc",
+  } as const;
+
+  test("the desktop keeps the table's size, sort and order", () => {
+    expect(historySearchFor(address, { desktop: true })).toEqual(address);
+  });
+
+  test("the phone keeps the filters and page, and drops the table's size, sort and order", () => {
+    expect(historySearchFor(address, { desktop: false })).toEqual({
+      type: "expense",
+      page: 2,
+    });
+  });
+
+  test("a wallet's list is pinned to it and sends the size", () => {
+    expect(walletHistoryList(CASH, {})).toEqual({
+      walletId: CASH,
+      page: "1",
+      pageSize: "50",
+    });
+    expect(walletHistoryList(CASH, address)).toEqual({
+      walletId: CASH,
+      page: "2",
+      pageSize: "10",
+      sort: "amount",
+      order: "asc",
     });
   });
 });

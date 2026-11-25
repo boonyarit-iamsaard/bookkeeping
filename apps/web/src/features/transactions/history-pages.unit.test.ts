@@ -3,6 +3,7 @@ import {
   changeHistoryTable,
   changeHistoryType,
   historyTableSettings,
+  lastHistoryPage,
   olderHistoryPage,
 } from "./history-pages";
 
@@ -77,5 +78,13 @@ describe("history pages", () => {
     expect(olderHistoryPage({ page: 2, pageSize: 10 }, 21)).toBe(3);
     expect(olderHistoryPage({ page: 3, pageSize: 10 }, 21)).toBeUndefined();
     expect(olderHistoryPage({ page: 9 }, 0)).toBeUndefined();
+  });
+
+  test("a page past the end names the last one to return to", () => {
+    expect(lastHistoryPage({ page: 3 }, 51)).toBe(2);
+    expect(lastHistoryPage({ page: 4, pageSize: 10 }, 21)).toBe(3);
+    expect(lastHistoryPage({ page: 2 }, 51)).toBeUndefined();
+    expect(lastHistoryPage({ page: 9 }, 0)).toBeUndefined();
+    expect(lastHistoryPage({}, 51)).toBeUndefined();
   });
 });

@@ -7,9 +7,11 @@ import {
   walletQueries,
 } from "@/core/api/queries";
 import { olderHistoryPage } from "@/features/transactions/history-pages";
-import type { HistorySearch } from "@/features/transactions/history-schema";
 import { historySearchSchema } from "@/features/transactions/history-schema";
-import { DEFAULT_HISTORY_PAGE_SIZE } from "@/features/transactions/history-view";
+import {
+  historySearchFor,
+  walletHistoryList,
+} from "@/features/transactions/history-view";
 import { WalletPageErrorBoundary } from "@/features/wallets/components/wallet-page-error-boundary";
 import {
   WalletDesktop,
@@ -19,40 +21,17 @@ import {
   WalletPhone,
   WalletPhoneLoading,
 } from "@/features/wallets/screens/wallet.phone";
-import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
-
-type WalletSearch = Pick<
-  HistorySearch,
-  "created" | "order" | "page" | "pageSize" | "sort"
->;
-
-/** One wallet's history: the list's own address, pinned to this wallet. */
-function walletHistoryQuery(
-  walletId: string,
-  { page = 1, pageSize = DEFAULT_HISTORY_PAGE_SIZE, sort, order }: WalletSearch,
-) {
-  // The size is sent so the Older link counts pages the way the server does.
-  return transactionQueries.list({
-    walletId,
-    page: String(page),
-    pageSize: `${pageSize}`,
-    ...(sort && { sort }),
-    ...(order && { order }),
-  });
-}
+import { isDesktopViewport, useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function WalletPage() {
   const { walletId } = Route.useParams();
   const desktop = useIsDesktop();
-  const { page: pageNumber, created, ...table } = Route.useSearch();
   // Phone keeps the default size and order; its Older link carries only the page.
-  const search = {
-    page: pageNumber,
-    created,
-    ...(desktop && table),
-  };
+  const search = historySearchFor(Route.useSearch(), { desktop });
   const { data: wallet } = useSuspenseQuery(walletQueries.detail(walletId));
-  const { data: page } = useSuspenseQuery(walletHistoryQuery(walletId, search));
+  const { data: page } = useSuspenseQuery(
+    transactionQueries.list(walletHistoryList(walletId, search)),
+  );
   const screen = {
     wallet,
     page,
@@ -82,7 +61,12 @@ export const Route = createFileRoute("/_app/wallets/$walletId")({
         walletQueries.detail(params.walletId),
       ),
       context.queryClient.ensureQueryData(
-        walletHistoryQuery(params.walletId, deps.search),
+        transactionQueries.list(
+          walletHistoryList(
+            params.walletId,
+            historySearchFor(deps.search, { desktop: isDesktopViewport() }),
+          ),
+        ),
       ),
       // Rows take their category color from this read.
       context.queryClient.ensureQueryData(categoryQueries.list()),

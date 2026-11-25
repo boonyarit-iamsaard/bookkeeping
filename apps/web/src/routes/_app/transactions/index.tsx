@@ -8,20 +8,24 @@ import {
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { historySearchSchema } from "@/features/transactions/history-schema";
-import { buildHistoryView } from "@/features/transactions/history-view";
+import {
+  buildHistoryView,
+  historySearchFor,
+} from "@/features/transactions/history-view";
 import {
   TransactionsDesktop,
   TransactionsDesktopLoading,
 } from "@/features/transactions/screens/transactions.desktop";
 import { TransactionsPhone } from "@/features/transactions/screens/transactions.phone";
-import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
+import { isDesktopViewport, useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function TransactionsPage() {
   const search = Route.useSearch();
-  return useIsDesktop() ? (
+  const desktop = useIsDesktop();
+  return desktop ? (
     <TransactionsDesktop search={search} />
   ) : (
-    <TransactionsPhone search={search} />
+    <TransactionsPhone search={historySearchFor(search, { desktop })} />
   );
 }
 
@@ -34,7 +38,10 @@ export const Route = createFileRoute("/_app/transactions/")({
   validateSearch: historySearchSchema,
   loaderDeps: ({ search }) => ({ search }),
   loader: async ({ context, deps }) => {
-    const view = buildHistoryView(deps.search);
+    // The phone ignores the table's size, sort and order, so it reads without them.
+    const view = buildHistoryView(
+      historySearchFor(deps.search, { desktop: isDesktopViewport() }),
+    );
     await Promise.all([
       view.state === "valid" &&
         context.queryClient.ensureQueryData(transactionQueries.list(view.list)),

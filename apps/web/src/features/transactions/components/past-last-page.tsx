@@ -15,7 +15,7 @@ export function PastLastPage({
 }: Readonly<PastLastPageProps>) {
   return (
     <section
-      className="bg-card shadow-card flex flex-col items-start gap-3 rounded-2xl p-7"
+      className="bg-card shadow-card flex flex-col items-start gap-3 rounded-2xl p-5 sm:p-7"
       aria-labelledby="past-last-heading"
     >
       <h2 id="past-last-heading" className="text-lg font-bold tracking-tight">
