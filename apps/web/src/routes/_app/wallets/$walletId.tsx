@@ -9,7 +9,7 @@ import {
 import { olderHistoryPage } from "@/features/transactions/history-pages";
 import { historySearchSchema } from "@/features/transactions/history-schema";
 import {
-  historySearchFor,
+  historyReadSearch,
   walletHistoryList,
 } from "@/features/transactions/history-view";
 import { WalletPageErrorBoundary } from "@/features/wallets/components/wallet-page-error-boundary";
@@ -26,18 +26,18 @@ import { isDesktopViewport, useIsDesktop } from "@/shared/hooks/use-is-desktop";
 function WalletPage() {
   const { walletId } = Route.useParams();
   const desktop = useIsDesktop();
-  // Phone keeps the default size and order; its Older link carries only the page.
-  const search = historySearchFor(Route.useSearch(), { desktop });
+  const search = Route.useSearch();
+  const readSearch = historyReadSearch(search, { desktop });
   const { data: wallet } = useSuspenseQuery(walletQueries.detail(walletId));
   const { data: page } = useSuspenseQuery(
-    transactionQueries.list(walletHistoryList(walletId, search)),
+    transactionQueries.list(walletHistoryList(walletId, readSearch)),
   );
   const screen = {
     wallet,
     page,
     search,
     createdId: search.created,
-    olderPage: olderHistoryPage(search, page.page.total),
+    olderPage: olderHistoryPage(readSearch, page.page.total),
   };
   return desktop ? <WalletDesktop {...screen} /> : <WalletPhone {...screen} />;
 }
@@ -64,7 +64,7 @@ export const Route = createFileRoute("/_app/wallets/$walletId")({
         transactionQueries.list(
           walletHistoryList(
             params.walletId,
-            historySearchFor(deps.search, { desktop: isDesktopViewport() }),
+            historyReadSearch(deps.search, { desktop: isDesktopViewport() }),
           ),
         ),
       ),

@@ -1,9 +1,14 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { walletQueries } from "@/core/api/queries";
-import { WalletsLoading } from "@/features/wallets/components/wallets-loading";
-import { WalletsDesktop } from "@/features/wallets/screens/wallets.desktop";
-import { WalletsPhone } from "@/features/wallets/screens/wallets.phone";
+import {
+  WalletsDesktop,
+  WalletsDesktopLoading,
+} from "@/features/wallets/screens/wallets.desktop";
+import {
+  WalletsPhone,
+  WalletsPhoneLoading,
+} from "@/features/wallets/screens/wallets.phone";
 import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 interface WalletsSearch {
@@ -18,6 +23,10 @@ function WalletsPage() {
   ) : (
     <WalletsPhone collection={data} createdId={created} />
   );
+}
+
+function WalletsLoading() {
+  return useIsDesktop() ? <WalletsDesktopLoading /> : <WalletsPhoneLoading />;
 }
 
 export const Route = createFileRoute("/_app/wallets/")({

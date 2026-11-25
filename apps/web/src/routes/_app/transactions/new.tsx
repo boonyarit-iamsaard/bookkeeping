@@ -6,18 +6,19 @@ import {
   walletQueries,
 } from "@/core/api/queries";
 import { isSignedInPathname } from "@/core/router/router";
-import { Page } from "@/core/shell/page";
-import { TitleBar } from "@/core/shell/title-bar";
 import {
-  captureOriginHref,
   captureSearchSchema,
   parseCaptureOrigin,
 } from "@/features/transactions/capture-origin";
-import { RecordTransaction } from "@/features/transactions/components/record-transaction";
-import { TransactionFormDesktop } from "@/features/transactions/screens/transaction-form.desktop";
-import { TransactionFormPhone } from "@/features/transactions/screens/transaction-form.phone";
-import { buttonVariants } from "@/shared/components/ui/button";
-import { isPlainClick } from "@/shared/helpers/plain-click";
+import type { TransactionEntry } from "@/features/transactions/components/transaction-entry-content";
+import {
+  TransactionEntryDesktop,
+  TransactionEntryDesktopLoading,
+} from "@/features/transactions/screens/transaction-entry.desktop";
+import {
+  TransactionEntryPhone,
+  TransactionEntryPhoneLoading,
+} from "@/features/transactions/screens/transaction-entry.phone";
 import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function NewTransactionPage() {
@@ -27,42 +28,23 @@ function NewTransactionPage() {
   const captureOrigin = parseCaptureOrigin(search.origin, (pathname) =>
     isSignedInPathname(router, pathname),
   );
-  const returnHref = captureOriginHref(captureOrigin);
+  const entry = {
+    kind: "record",
+    captureOrigin,
+    requestedWalletId: search.wallet,
+  } satisfies TransactionEntry;
+  return desktop ? (
+    <TransactionEntryDesktop entry={entry} />
+  ) : (
+    <TransactionEntryPhone entry={entry} />
+  );
+}
 
-  return (
-    <Page layout={desktop ? "column" : "entry"}>
-      <TitleBar
-        title="New transaction"
-        actions={
-          // The desktop form's footer carries Cancel. Link requires a typed
-          // `to`; the origin is a built path, so a plain anchor navigates
-          // in-app and leaves modified clicks to the browser.
-          !desktop && (
-            <a
-              href={returnHref}
-              onClick={(event) => {
-                if (isPlainClick(event)) {
-                  event.preventDefault();
-                  void router.navigate({ href: returnHref });
-                }
-              }}
-              className={buttonVariants({
-                variant: "ghost",
-                size: "lg",
-                className: "-mr-3",
-              })}
-            >
-              Cancel
-            </a>
-          )
-        }
-      />
-      <RecordTransaction
-        captureOrigin={captureOrigin}
-        requestedWalletId={search.wallet}
-        formComponent={desktop ? TransactionFormDesktop : TransactionFormPhone}
-      />
-    </Page>
+function NewTransactionLoading() {
+  return useIsDesktop() ? (
+    <TransactionEntryDesktopLoading title="New transaction" />
+  ) : (
+    <TransactionEntryPhoneLoading title="New transaction" />
   );
 }
 
@@ -77,6 +59,7 @@ export const Route = createFileRoute("/_app/transactions/new")({
       context.queryClient.ensureQueryData(transactionQueries.entryDefaults()),
     ]);
   },
+  pendingComponent: NewTransactionLoading,
   staticData: { form: true },
   component: NewTransactionPage,
 });

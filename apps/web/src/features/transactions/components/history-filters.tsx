@@ -8,6 +8,7 @@ import type { components } from "@/core/api/openapi.gen";
 import type { FilterOptionGroup } from "@/features/transactions/components/filter-select";
 import { FilterSelect } from "@/features/transactions/components/filter-select";
 import { historyFilterChips } from "@/features/transactions/history-chips";
+import { historyTableSettings } from "@/features/transactions/history-pages";
 import type { HistoryFilterValues } from "@/features/transactions/history-schema";
 import { HISTORY_FILTER_KEYS } from "@/features/transactions/history-schema";
 import type { HistoryView } from "@/features/transactions/history-view";
@@ -154,7 +155,10 @@ export function HistoryFilters({
 
   function showFilters(search: HistoryFilterValues) {
     setOpen(false);
-    void navigate({ to: "/transactions", search });
+    void navigate({
+      to: "/transactions",
+      search: (previous) => ({ ...historyTableSettings(previous), ...search }),
+    });
   }
 
   function applyFilters(event: SyntheticEvent<HTMLFormElement>) {
@@ -305,7 +309,10 @@ export function HistoryFilterChips({
         >
           <Link
             to="/transactions"
-            search={chip.without}
+            search={(previous) => ({
+              ...historyTableSettings(previous),
+              ...chip.without,
+            })}
             // `without` is a subset of the current search, so the default
             // match would mark every chip as the current page.
             activeOptions={{ exact: true, includeSearch: true }}

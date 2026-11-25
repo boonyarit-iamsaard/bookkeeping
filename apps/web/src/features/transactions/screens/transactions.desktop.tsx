@@ -47,7 +47,8 @@ export function TransactionsDesktop({
   const navigate = useNavigate();
   const { view, pending, transactions, total, filterErrors, ...collections } =
     useHistoryReads(search);
-  const lastPage = lastHistoryPage(search, total);
+  const lastPage =
+    view.state === "valid" ? lastHistoryPage(search, total) : undefined;
 
   function show(change: HistoryTableSettings) {
     void navigate({
@@ -73,7 +74,11 @@ export function TransactionsDesktop({
       )}
       {search.deleted === 1 && <TransactionDeletedNotice />}
       {lastPage !== undefined ? (
-        <PastLastPage page={search.page ?? 1} lastPage={lastPage}>
+        <PastLastPage
+          page={search.page ?? 1}
+          lastPage={lastPage}
+          empty={total === 0}
+        >
           <Link
             to="/transactions"
             search={changeHistoryTable(search, { page: lastPage })}

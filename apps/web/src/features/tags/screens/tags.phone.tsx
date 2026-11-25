@@ -5,9 +5,12 @@ import {
   EmptyTags,
   TagList,
 } from "@/features/tags/components/tag-list";
-import { TagManagement } from "@/features/tags/components/tag-management";
+import { useTagManagement } from "@/features/tags/hooks/use-tag-management";
 import type { TagSummary } from "@/features/tags/tag-search";
-import { TableCardSkeleton } from "@/shared/components/skeleton";
+import { listCardClass } from "@/shared/components/list-section";
+import { SavedNotice } from "@/shared/components/saved-notice";
+import { RowSkeleton } from "@/shared/components/skeleton";
+import { cn } from "@/shared/helpers/cn";
 
 interface TagsPhoneProps {
   tags: readonly TagSummary[];
@@ -15,17 +18,21 @@ interface TagsPhoneProps {
 
 /** Every tag on one list card. */
 export function TagsPhone({ tags }: Readonly<TagsPhoneProps>) {
+  const { notice, finish } = useTagManagement();
   return (
     <Page layout="wide">
-      <TagManagement>
-        {(onDone) =>
-          tags.length === 0 ? (
-            <EmptyTags />
-          ) : (
-            <TagList tags={byName(tags)} onDone={onDone} />
-          )
-        }
-      </TagManagement>
+      <TitleBar title="Tags" />
+      <SavedNotice
+        takeFocusOn={notice.takesFocus ? notice : undefined}
+        className={cn(!notice.message && "sr-only")}
+      >
+        {notice.message}
+      </SavedNotice>
+      {tags.length === 0 ? (
+        <EmptyTags />
+      ) : (
+        <TagList tags={byName(tags)} onDone={finish} />
+      )}
     </Page>
   );
 }
@@ -37,7 +44,12 @@ export function TagsPhoneLoading() {
       <TitleBar title="Tags" />
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="contents">
-        <TableCardSkeleton rows={4} />
+        <div className={listCardClass}>
+          <RowSkeleton />
+          <RowSkeleton />
+          <RowSkeleton />
+          <RowSkeleton />
+        </div>
       </div>
     </Page>
   );

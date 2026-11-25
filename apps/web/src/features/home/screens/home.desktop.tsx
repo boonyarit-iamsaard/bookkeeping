@@ -7,10 +7,6 @@ import { TitleBar } from "@/core/shell/title-bar";
 import { CashFlowCard } from "@/features/home/components/cash-flow-card";
 import { CategoryComparisonCard } from "@/features/home/components/category-comparison-card";
 import { Arrival } from "@/features/home/components/home-arrival";
-import {
-  HomeLoading,
-  TileSkeleton,
-} from "@/features/home/components/home-loading";
 import { MonthFigureTile } from "@/features/home/components/month-figure-tile";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
 import { useHomeReads } from "@/features/home/hooks/use-home-reads";
@@ -25,7 +21,11 @@ import { DashboardCard } from "@/shared/components/dashboard-card";
 import { DashboardRow } from "@/shared/components/dashboard-row";
 import { CompactDataTable } from "@/shared/components/data-table";
 import { sectionLinkClass } from "@/shared/components/list-section";
-import { HeroSkeleton, TableCardSkeleton } from "@/shared/components/skeleton";
+import {
+  HeroSkeleton,
+  Skeleton,
+  TableCardSkeleton,
+} from "@/shared/components/skeleton";
 import { pluralize } from "@/shared/helpers/pluralize";
 
 interface HomeDesktopProps {
@@ -153,26 +153,41 @@ export function HomeDesktop({
   );
 }
 
+/** A desktop month figure tile in neutral blocks. */
+function TileSkeleton() {
+  return (
+    <div className="bg-card shadow-card flex flex-col rounded-2xl p-6">
+      <Skeleton className="h-7 w-28" />
+      <Skeleton className="mt-auto h-8 w-36" />
+      <Skeleton className="mt-2 h-4 w-32" />
+    </div>
+  );
+}
+
 /** The desktop Home in neutral blocks, in the ready grid's rows. */
 export function HomeDesktopLoading() {
   return (
-    <HomeLoading>
-      <DashboardRow className={FIVE_SEVEN_ROW}>
-        <HeroSkeleton />
-        <div className={MONTH_TILES}>
-          <TileSkeleton />
-          <TileSkeleton />
-          <div className="col-span-2 *:h-full">
+    <Page layout="wide" loading>
+      <TitleBar title="Home" />
+      <output className="sr-only">Loading your records…</output>
+      <div aria-hidden="true" className="contents">
+        <DashboardRow className={FIVE_SEVEN_ROW}>
+          <HeroSkeleton />
+          <div className={MONTH_TILES}>
             <TileSkeleton />
+            <TileSkeleton />
+            <div className="col-span-2 *:h-full">
+              <TileSkeleton />
+            </div>
           </div>
-        </div>
-      </DashboardRow>
-      <TableCardSkeleton />
-      <TableCardSkeleton />
-      <DashboardRow className={FIVE_SEVEN_ROW}>
+        </DashboardRow>
         <TableCardSkeleton />
         <TableCardSkeleton />
-      </DashboardRow>
-    </HomeLoading>
+        <DashboardRow className={FIVE_SEVEN_ROW}>
+          <TableCardSkeleton />
+          <TableCardSkeleton />
+        </DashboardRow>
+      </div>
+    </Page>
   );
 }

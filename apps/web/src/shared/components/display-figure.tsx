@@ -66,7 +66,7 @@ export function DisplayFigure({
         {heading}
       </h2>
       {/* The larger size needs the card's room as well as the viewport's, so a narrow desktop cell keeps the figure whole. */}
-      <p className="mt-auto pt-4 text-4xl leading-none font-bold tracking-[-0.025em] sm:@sm:text-5xl">
+      <p className="mt-auto pt-4 text-4xl leading-none font-bold tracking-[-0.025em] wrap-anywhere sm:@sm:text-5xl">
         <Money amount={amount} sign={sign} display className="font-bold" />
       </p>
       <p className="text-hero-muted mt-3 text-sm">{caption}</p>

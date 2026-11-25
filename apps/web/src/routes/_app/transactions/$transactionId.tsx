@@ -3,10 +3,15 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { categoryQueries, transactionQueries } from "@/core/api/queries";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
-import { TransactionDetailLoading } from "@/features/transactions/components/history-loading";
 import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
-import { TransactionDetailDesktop } from "@/features/transactions/screens/transaction-detail.desktop";
-import { TransactionDetailPhone } from "@/features/transactions/screens/transaction-detail.phone";
+import {
+  TransactionDetailDesktop,
+  TransactionDetailDesktopLoading,
+} from "@/features/transactions/screens/transaction-detail.desktop";
+import {
+  TransactionDetailPhone,
+  TransactionDetailPhoneLoading,
+} from "@/features/transactions/screens/transaction-detail.phone";
 import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function TransactionDetailPage() {
@@ -18,6 +23,14 @@ function TransactionDetailPage() {
     <TransactionDetailDesktop transaction={transaction} />
   ) : (
     <TransactionDetailPhone transaction={transaction} />
+  );
+}
+
+function TransactionDetailLoading() {
+  return useIsDesktop() ? (
+    <TransactionDetailDesktopLoading />
+  ) : (
+    <TransactionDetailPhoneLoading />
   );
 }
 

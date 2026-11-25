@@ -80,14 +80,21 @@ test("phone history and a wallet's page ask for the next numbered page", async (
   const { cash } = await seedLedger(page);
   const older = page.getByRole("link", { name: "Older transactions" });
 
-  // The history keeps its filters on the next page and ignores the table's
-  // rows per page, which only the desktop offers.
-  await page.goto("/transactions?type=expense&pageSize=10");
+  // The phone reads its usual 50 rows while keeping the desktop settings.
+  await page.goto(
+    "/transactions?type=expense&pageSize=10&sort=amount&order=asc",
+  );
   await expect(rowsOf(page)).toHaveCount(50);
   await older.click();
   await expect
     .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
-    .toEqual({ type: "expense", page: "2" });
+    .toEqual({
+      type: "expense",
+      pageSize: "10",
+      sort: "amount",
+      order: "asc",
+      page: "2",
+    });
   await expect(rowsOf(page)).toHaveCount(1);
   await expect(
     page.getByRole("link", { name: "Remove filter Expense" }),
@@ -95,6 +102,18 @@ test("phone history and a wallet's page ask for the next numbered page", async (
 
   // The last page has no older link.
   await expect(older).toHaveCount(0);
+
+  // Removing a filter resets the page and the desktop still has its settings.
+  await page.getByRole("link", { name: "Remove filter Expense" }).click();
+  await expect
+    .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
+    .toEqual({ pageSize: "10", sort: "amount", order: "asc" });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.getByText("Page 1 of 6")).toBeVisible();
+  await expect(
+    page.getByRole("columnheader", { name: "Amount" }),
+  ).toHaveAttribute("aria-sort", "ascending");
+  await page.setViewportSize({ width: 360, height: 780 });
 
   // A page past the end leads back to the last one.
   await page.goto("/transactions?type=expense&page=3");
@@ -108,7 +127,9 @@ test("phone history and a wallet's page ask for the next numbered page", async (
   await page.goto(`/wallets/${cash}?sort=amount&order=asc`);
   await expect(rowsOf(page)).toHaveCount(50);
   await older.click();
-  await expect(page).toHaveURL(new RegExp(`/wallets/${cash}\\?page=2$`));
+  await expect
+    .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
+    .toEqual({ sort: "amount", order: "asc", page: "2" });
   await expect(rowsOf(page)).toHaveCount(1);
   await expect(older).toHaveCount(0);
 
@@ -118,4 +139,17 @@ test("phone history and a wallet's page ask for the next numbered page", async (
   ).toBeVisible();
   await page.getByRole("link", { name: "Go to page 2" }).click();
   await expect(rowsOf(page)).toHaveCount(1);
+});
+
+test("an empty ledger offers a way back from an old page", async ({ page }) => {
+  await signUpFreshUser(page);
+  await page.goto("/transactions?page=9");
+  await expect(
+    page.getByRole("heading", { name: "Page 9 is past the end" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Go to page 1" }).click();
+  await expect(page).toHaveURL(/\/transactions$/);
+  await expect(
+    page.getByRole("heading", { name: "Nothing recorded yet" }),
+  ).toBeVisible();
 });

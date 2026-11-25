@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 interface PastLastPageProps {
   page: number;
   lastPage: number;
+  empty: boolean;
   /** The way back, as the screen's own link. */
   children: ReactNode;
 }
@@ -11,6 +12,7 @@ interface PastLastPageProps {
 export function PastLastPage({
   page,
   lastPage,
+  empty,
   children,
 }: Readonly<PastLastPageProps>) {
   return (
@@ -22,7 +24,9 @@ export function PastLastPage({
         Page {page} is past the end
       </h2>
       <p className="text-muted-foreground max-w-prose text-sm leading-normal">
-        This list has {lastPage} {lastPage === 1 ? "page" : "pages"}.
+        {empty
+          ? "There are no transactions to show."
+          : `This list has ${lastPage} ${lastPage === 1 ? "page" : "pages"}.`}
       </p>
       {children}
     </section>

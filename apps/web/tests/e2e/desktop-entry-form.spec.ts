@@ -92,8 +92,20 @@ test("a direct entry URL shows the same desktop form as a page with Cancel at it
     openingDate: addDays(todayIn({ timeZone: APP_TIME_ZONE }), -3),
   });
 
+  await page.route(
+    /\/v1\/wallets$/,
+    async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2_500));
+      await route.continue();
+    },
+    { times: 1 },
+  );
   await page.goto("/transactions/new?origin=%2Ftransactions");
+  await expect(page.getByRole("main", { name: "Loading" })).toContainText(
+    "Loading entry form…",
+  );
   const main = page.locator("main");
+  await expect(main.getByLabel("Amount")).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expectBeside(
     main.getByLabel("Amount"),

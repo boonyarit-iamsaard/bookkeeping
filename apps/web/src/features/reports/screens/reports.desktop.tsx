@@ -1,18 +1,19 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
+import { Page } from "@/core/shell/page";
+import { TitleBar } from "@/core/shell/title-bar";
 import { createReportSections } from "@/features/reports/components/report-sections";
-import { Reports } from "@/features/reports/components/reports";
 import {
   BalancesSkeleton,
   BalanceTrendSkeleton,
   CategoriesSkeleton,
   MonthSkeleton,
-  ReportsLoading,
   TrendSkeleton,
 } from "@/features/reports/components/reports-loading";
+import { useReports } from "@/features/reports/hooks/use-reports";
 import type { ReportSearch } from "@/features/reports/report-schema";
 import { DashboardCard } from "@/shared/components/dashboard-card";
 import { DashboardRow } from "@/shared/components/dashboard-row";
-import { HeroSkeleton } from "@/shared/components/skeleton";
+import { HeroSkeleton, Skeleton } from "@/shared/components/skeleton";
 
 interface ReportsDesktopProps {
   search: Readonly<ReportSearch>;
@@ -27,20 +28,33 @@ const ROW_5_7 = "grid-cols-[minmax(0,5fr)_minmax(0,7fr)]";
 /** The desktop Reports in neutral blocks, in the ready report's rows so nothing moves when it arrives. */
 export function ReportsDesktopLoading() {
   return (
-    <ReportsLoading className="contents">
-      <DashboardRow className={ROW_4_8}>
-        <HeroSkeleton captionClassName="w-36" />
-        <MonthSkeleton />
-      </DashboardRow>
-      <DashboardRow className={ROW_6_6}>
-        <CategoriesSkeleton />
-        <TrendSkeleton />
-      </DashboardRow>
-      <DashboardRow className={ROW_5_7}>
-        <BalancesSkeleton />
-        <BalanceTrendSkeleton />
-      </DashboardRow>
-    </ReportsLoading>
+    <Page layout="wide" loading>
+      <TitleBar
+        title="Reports"
+        actions={
+          <div aria-hidden="true">
+            <Skeleton className="h-11 w-44" />
+          </div>
+        }
+      />
+      <output className="text-muted-foreground text-sm">
+        Loading your report…
+      </output>
+      <div aria-hidden="true" className="contents">
+        <DashboardRow className={ROW_4_8}>
+          <HeroSkeleton captionClassName="w-36" />
+          <MonthSkeleton />
+        </DashboardRow>
+        <DashboardRow className={ROW_6_6}>
+          <CategoriesSkeleton />
+          <TrendSkeleton />
+        </DashboardRow>
+        <DashboardRow className={ROW_5_7}>
+          <BalancesSkeleton />
+          <BalanceTrendSkeleton />
+        </DashboardRow>
+      </div>
+    </Page>
   );
 }
 
@@ -49,32 +63,45 @@ export function ReportsDesktop({
   search,
   initialToday,
 }: Readonly<ReportsDesktopProps>) {
+  const { state, sections, reportMonth, balanceDate } = useReports({
+    search,
+    initialToday,
+  });
+  if (state === "loading") {
+    return <ReportsDesktopLoading />;
+  }
+  const cards = sections
+    ? createReportSections(sections, DashboardCard)
+    : undefined;
+
   return (
-    <Reports
-      search={search}
-      initialToday={initialToday}
-      loading={<ReportsDesktopLoading />}
-    >
-      {(report) => {
-        const { net, monthCard, categories, trendCard, balances, overTime } =
-          createReportSections(report, DashboardCard);
-        return (
-          <>
-            <DashboardRow className={ROW_4_8}>
-              {net}
-              {monthCard}
-            </DashboardRow>
-            <DashboardRow className={ROW_6_6}>
-              {categories}
-              {trendCard}
-            </DashboardRow>
-            <DashboardRow className={ROW_5_7}>
-              {balances}
-              {overTime}
-            </DashboardRow>
-          </>
-        );
-      }}
-    </Reports>
+    <Page layout="wide">
+      <TitleBar title="Reports" actions={reportMonth} />
+      {cards ? (
+        <>
+          <DashboardRow className={ROW_4_8}>
+            {cards.net}
+            {cards.monthCard}
+          </DashboardRow>
+          <DashboardRow className={ROW_6_6}>
+            {cards.categories}
+            {cards.trendCard}
+          </DashboardRow>
+          <DashboardRow className={ROW_5_7}>
+            {cards.balances}
+            {cards.overTime}
+          </DashboardRow>
+        </>
+      ) : (
+        <>
+          <div className="bg-card shadow-card rounded-2xl p-5 sm:p-6">
+            {balanceDate}
+          </div>
+          <p role="alert" className="text-destructive text-sm">
+            Choose a valid month and balance date.
+          </p>
+        </>
+      )}
+    </Page>
   );
 }

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { sortFn_basic, sortFn_text } from "@tanstack/react-table";
+import { parseApiMoney } from "@/core/api/money";
 import type { components } from "@/core/api/openapi.gen";
 import {
   WALLET_TYPE_LABELS,
@@ -71,7 +72,7 @@ const WALLET_COLUMNS: readonly DataTableColumn<WalletSummary>[] = [
     sortFn: sortFn_text,
     meta: { secondary: true },
   }),
-  column.accessor((wallet) => Number(wallet.balance.value), {
+  column.accessor((wallet) => parseApiMoney(wallet.balance), {
     id: "balance",
     header: "Balance",
     enableSorting: true,

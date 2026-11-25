@@ -7,15 +7,18 @@ import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { createCategoryColors } from "@/features/categories/category-color";
 import { searchCategories } from "@/features/categories/category-search";
-import { CategoryManagement } from "@/features/categories/components/category-management";
 import { CategoryTable } from "@/features/categories/components/category-table";
 import {
   KIND_OPTIONS,
   KindSwitch,
 } from "@/features/categories/components/kind-switch";
+import { NewCategoryButton } from "@/features/categories/components/new-category-button";
+import { useCategoryManagement } from "@/features/categories/hooks/use-category-management";
 import { DashboardCard } from "@/shared/components/dashboard-card";
 import { DashboardRow } from "@/shared/components/dashboard-row";
+import { SavedNotice } from "@/shared/components/saved-notice";
 import { TableCardSkeleton } from "@/shared/components/skeleton";
+import { cn } from "@/shared/helpers/cn";
 
 interface CategoriesDesktopProps {
   categories: readonly CategorySummary[];
@@ -31,43 +34,54 @@ export function CategoriesDesktop({
   const [kind, setKind] = useState<CategoryKind>("expense");
   const colorOf = createCategoryColors(categories);
 
+  const { notice, announce, finishEdit } = useCategoryManagement();
+
   return (
     <Page layout="wide">
-      <CategoryManagement
-        categories={categories}
-        kind={kind}
-        createLead={
-          <div className="px-4 pb-2 sm:px-6">
-            <KindSwitch kind={kind} onChange={setKind} />
-          </div>
+      <TitleBar
+        title="Categories"
+        actions={
+          <NewCategoryButton
+            categories={categories}
+            kind={kind}
+            onCreated={announce}
+            createLead={
+              <div className="px-4 pb-2 sm:px-6">
+                <KindSwitch kind={kind} onChange={setKind} />
+              </div>
+            }
+          />
         }
+      />
+      <SavedNotice
+        takeFocusOn={notice.takesFocus ? notice : undefined}
+        className={cn(!notice.message && "sr-only")}
       >
-        {(onDone) => (
-          <DashboardRow className="grid-cols-2">
-            {KIND_OPTIONS.map((option) => (
-              <DashboardCard
-                key={option.value}
-                headingId={`${option.value}-categories-heading`}
-                heading={option.label}
-              >
-                <CategoryTable
-                  label={`${option.label} categories`}
-                  groups={
-                    searchCategories({
-                      categories,
-                      kind: option.value,
-                      query: "",
-                    }).groups
-                  }
-                  colorOf={colorOf}
-                  usage={usage}
-                  onDone={onDone}
-                />
-              </DashboardCard>
-            ))}
-          </DashboardRow>
-        )}
-      </CategoryManagement>
+        {notice.message}
+      </SavedNotice>
+      <DashboardRow className="grid-cols-2">
+        {KIND_OPTIONS.map((option) => (
+          <DashboardCard
+            key={option.value}
+            headingId={`${option.value}-categories-heading`}
+            heading={option.label}
+          >
+            <CategoryTable
+              label={`${option.label} categories`}
+              groups={
+                searchCategories({
+                  categories,
+                  kind: option.value,
+                  query: "",
+                }).groups
+              }
+              colorOf={colorOf}
+              usage={usage}
+              onDone={finishEdit}
+            />
+          </DashboardCard>
+        ))}
+      </DashboardRow>
     </Page>
   );
 }

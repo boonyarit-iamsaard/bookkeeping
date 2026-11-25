@@ -61,11 +61,11 @@ export function olderHistoryPage(
   return page * historyPageSize(search) < total ? page + 1 : undefined;
 }
 
-/** The list's last page, when the address names one beyond it; none while it holds rows. */
+/** The recovery page when the address is past the end, or undefined on a valid page. */
 export function lastHistoryPage(
   search: Readonly<HistorySearch>,
   total: number,
 ): number | undefined {
-  const lastPage = Math.ceil(total / historyPageSize(search));
-  return (search.page ?? 1) > lastPage && lastPage > 0 ? lastPage : undefined;
+  const lastPage = Math.max(1, Math.ceil(total / historyPageSize(search)));
+  return (search.page ?? 1) > lastPage ? lastPage : undefined;
 }

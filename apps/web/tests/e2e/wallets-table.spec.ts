@@ -76,7 +76,6 @@ test("Wallets lists every wallet in a table, archived ones captioned", {
 test("Wallets loads without sample money, then offers only wallet creation when empty", {
   tag: "@matrix",
 }, async ({ page }) => {
-  test.skip(!isDesktop(page), "Phone keeps its card list");
   await signUpFreshUser(page);
   await page.route(/\/v1\/wallets(\?.*)?$/, async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 2_500));
@@ -93,8 +92,17 @@ test("Wallets loads without sample money, then offers only wallet creation when 
   await expect(page.getByText(/฿/)).toHaveCount(0);
   await expect(page.getByRole("table")).toHaveCount(0);
   await page.getByRole("link", { name: "Create your first wallet" }).click();
-  await expect(page.getByRole("dialog", { name: "New wallet" })).toBeVisible();
-  await expect(page).toHaveURL(/\/wallets$/);
+  if (isDesktop(page)) {
+    await expect(
+      page.getByRole("dialog", { name: "New wallet" }),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/wallets$/);
+  } else {
+    await expect(page).toHaveURL(/\/wallets\/new$/);
+    await expect(
+      page.getByRole("heading", { name: "New wallet" }),
+    ).toBeVisible();
+  }
 });
 
 test("Wallets sorts by its columns and each row's menu opens or manages the wallet", {
@@ -104,12 +112,12 @@ test("Wallets sorts by its columns and each row's menu opens or manages the wall
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {
     name: "Cash",
-    openingAmount: "1000",
+    openingAmount: "100000000000000.01",
     openingDate: "2026-09-01",
   });
   await createWalletThroughForm(page, {
     name: "Old card",
-    openingAmount: "50",
+    openingAmount: "100000000000000.02",
     openingDate: "2026-09-01",
   });
   await page.goto("/wallets");
@@ -120,15 +128,28 @@ test("Wallets sorts by its columns and each row's menu opens or manages the wall
   ).toHaveCount(0);
 
   await table.getByRole("button", { name: "Balance" }).click();
-  await expect(wallets).toHaveText([/Cash/, /Old card/]);
+  await expect(wallets).toHaveText([/^Old card/, /^Cash/]);
   await table.getByRole("button", { name: "Balance" }).click();
-  await expect(wallets).toHaveText([/Old card/, /Cash/]);
+  await expect(wallets).toHaveText([/^Cash/, /^Old card/]);
   await table.getByRole("button", { name: "Wallet", exact: true }).click();
-  await expect(wallets).toHaveText([/Cash/, /Old card/]);
+  await expect(wallets).toHaveText([/^Cash/, /^Old card/]);
   // The total stays beneath the rows, whatever the sort.
   await expect(table.getByRole("row").last()).toContainText("Total balance");
 
   await table.getByRole("button", { name: "Actions for Old card" }).click();
   await page.getByRole("menuitem", { name: "Manage" }).click();
   await expect(page).toHaveURL(/\/wallets\/[0-9a-f-]+\/manage$/);
+
+  await page.setViewportSize({ width: 1024, height: 800 });
+  const opening = page.getByRole("heading", {
+    name: "Correct opening balance",
+  });
+  const savings = page.getByRole("heading", { name: "Savings wallet" });
+  await expect(opening).toBeVisible();
+  const [left, right] = await Promise.all([
+    opening.boundingBox(),
+    savings.boundingBox(),
+  ]);
+  expect(right?.x).toBeGreaterThan((left?.x ?? 0) + (left?.width ?? 0));
+  expect(right?.y).toBe(left?.y);
 });

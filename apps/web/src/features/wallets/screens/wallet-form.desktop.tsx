@@ -2,6 +2,8 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Link } from "@tanstack/react-router";
+import { Page } from "@/core/shell/page";
+import { TitleBar } from "@/core/shell/title-bar";
 import {
   CreateWalletButton,
   OpeningAmountField,
@@ -70,5 +72,14 @@ export function WalletFormDesktop(props: Readonly<WalletFormProps>) {
         <CreateWalletButton entryForm={entryForm} />
       </footer>
     </form>
+  );
+}
+
+export function NewWalletDesktop() {
+  return (
+    <Page layout="column">
+      <TitleBar title="New wallet" />
+      <WalletFormDesktop />
+    </Page>
   );
 }

@@ -2,10 +2,6 @@ import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { Arrival } from "@/features/home/components/home-arrival";
-import {
-  HomeLoading,
-  SummarySkeleton,
-} from "@/features/home/components/home-loading";
 import { MonthCard, TodayCard } from "@/features/home/components/period-cards";
 import { RecentTransactions } from "@/features/home/components/recent-transactions";
 import { SummaryStrip } from "@/features/home/components/summary-strip";
@@ -73,20 +69,39 @@ export function HomePhone({
   );
 }
 
+/** A summary card in neutral blocks. */
+function SummarySkeleton() {
+  return (
+    <div className="bg-card shadow-card flex flex-col gap-5 rounded-2xl p-5 sm:p-6">
+      <Skeleton className="h-5 w-24" />
+      <div className="grid grid-cols-2 gap-4">
+        <Skeleton className="h-12" />
+        <Skeleton className="h-12" />
+      </div>
+      <Skeleton className="h-6" />
+      <Skeleton className="h-24" />
+    </div>
+  );
+}
+
 /** The phone Home in neutral blocks. */
 export function HomePhoneLoading() {
   return (
-    <HomeLoading>
-      <HeroSkeleton />
-      <SummarySkeleton />
-      <div className="flex flex-col gap-3">
-        <Skeleton className="ml-1 h-6 w-48" />
-        <div className={listCardClass}>
-          <RowSkeleton />
-          <RowSkeleton />
-          <RowSkeleton />
+    <Page layout="wide" loading>
+      <TitleBar title="Home" />
+      <output className="sr-only">Loading your records…</output>
+      <div aria-hidden="true" className="contents">
+        <HeroSkeleton />
+        <SummarySkeleton />
+        <div className="flex flex-col gap-3">
+          <Skeleton className="ml-1 h-6 w-48" />
+          <div className={listCardClass}>
+            <RowSkeleton />
+            <RowSkeleton />
+            <RowSkeleton />
+          </div>
         </div>
       </div>
-    </HomeLoading>
+    </Page>
   );
 }

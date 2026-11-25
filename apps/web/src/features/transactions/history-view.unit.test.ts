@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { historySearchSchema } from "./history-schema";
 import {
   buildHistoryView,
-  historySearchFor,
+  historyReadSearch,
   walletHistoryList,
 } from "./history-view";
 
@@ -152,11 +152,11 @@ describe("the phone and desktop reads of one address", () => {
   } as const;
 
   test("the desktop keeps the table's size, sort and order", () => {
-    expect(historySearchFor(address, { desktop: true })).toEqual(address);
+    expect(historyReadSearch(address, { desktop: true })).toEqual(address);
   });
 
   test("the phone keeps the filters and page, and drops the table's size, sort and order", () => {
-    expect(historySearchFor(address, { desktop: false })).toEqual({
+    expect(historyReadSearch(address, { desktop: false })).toEqual({
       type: "expense",
       page: 2,
     });

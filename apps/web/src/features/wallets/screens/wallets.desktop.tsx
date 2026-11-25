@@ -12,6 +12,8 @@ import {
   useEntryDialog,
 } from "@/shared/components/form/entry-dialog";
 
+import { TableCardSkeleton } from "@/shared/components/skeleton";
+
 interface WalletsDesktopProps {
   collection: components["schemas"]["WalletCollection"];
 }
@@ -59,6 +61,18 @@ export function WalletsDesktop({ collection }: Readonly<WalletsDesktopProps>) {
       >
         <WalletFormDesktop host={newWallet.host} />
       </EntryDialog>
+    </Page>
+  );
+}
+
+export function WalletsDesktopLoading() {
+  return (
+    <Page layout="wide" loading>
+      <TitleBar title="Wallets" />
+      <output className="sr-only">Loading your records…</output>
+      <div aria-hidden="true">
+        <TableCardSkeleton />
+      </div>
     </Page>
   );
 }

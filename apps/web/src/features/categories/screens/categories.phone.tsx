@@ -9,9 +9,13 @@ import { createCategoryColors } from "@/features/categories/category-color";
 import { CATEGORY_KIND_LABELS } from "@/features/categories/category-labels";
 import { searchCategories } from "@/features/categories/category-search";
 import { CategoryList } from "@/features/categories/components/category-list";
-import { CategoryManagement } from "@/features/categories/components/category-management";
 import { KindSwitch } from "@/features/categories/components/kind-switch";
-import { TableCardSkeleton } from "@/shared/components/skeleton";
+import { NewCategoryButton } from "@/features/categories/components/new-category-button";
+import { useCategoryManagement } from "@/features/categories/hooks/use-category-management";
+import { listCardClass } from "@/shared/components/list-section";
+import { SavedNotice } from "@/shared/components/saved-notice";
+import { RowSkeleton, Skeleton } from "@/shared/components/skeleton";
+import { cn } from "@/shared/helpers/cn";
 
 interface CategoriesPhoneProps {
   categories: readonly CategorySummary[];
@@ -28,22 +32,34 @@ export function CategoriesPhone({
   const { groups } = searchCategories({ categories, kind, query: "" });
   const colorOf = createCategoryColors(categories);
 
+  const { notice, announce, finishEdit } = useCategoryManagement();
+
   return (
     <Page layout="wide">
-      <CategoryManagement categories={categories} kind={kind}>
-        {(onDone) => (
-          <>
-            <KindSwitch kind={kind} onChange={setKind} />
-            <CategoryList
-              label={`${CATEGORY_KIND_LABELS[kind]} categories`}
-              groups={groups}
-              colorOf={colorOf}
-              usage={usage}
-              onDone={onDone}
-            />
-          </>
-        )}
-      </CategoryManagement>
+      <TitleBar
+        title="Categories"
+        actions={
+          <NewCategoryButton
+            categories={categories}
+            kind={kind}
+            onCreated={announce}
+          />
+        }
+      />
+      <SavedNotice
+        takeFocusOn={notice.takesFocus ? notice : undefined}
+        className={cn(!notice.message && "sr-only")}
+      >
+        {notice.message}
+      </SavedNotice>
+      <KindSwitch kind={kind} onChange={setKind} />
+      <CategoryList
+        label={`${CATEGORY_KIND_LABELS[kind]} categories`}
+        groups={groups}
+        colorOf={colorOf}
+        usage={usage}
+        onDone={finishEdit}
+      />
     </Page>
   );
 }
@@ -55,7 +71,13 @@ export function CategoriesPhoneLoading() {
       <TitleBar title="Categories" />
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="contents">
-        <TableCardSkeleton rows={4} />
+        <Skeleton className="h-11 w-52" />
+        <div className={listCardClass}>
+          <RowSkeleton />
+          <RowSkeleton />
+          <RowSkeleton />
+          <RowSkeleton />
+        </div>
       </div>
     </Page>
   );

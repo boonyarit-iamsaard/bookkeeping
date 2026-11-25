@@ -52,7 +52,11 @@ export function WalletDesktop({
         manage={<WalletManageLink walletId={wallet.id} />}
       />
       {lastPage !== undefined ? (
-        <PastLastPage page={search.page ?? 1} lastPage={lastPage}>
+        <PastLastPage
+          page={search.page ?? 1}
+          lastPage={lastPage}
+          empty={total === 0}
+        >
           <Link
             to="/wallets/$walletId"
             params={{ walletId: wallet.id }}
@@ -63,7 +67,7 @@ export function WalletDesktop({
           </Link>
         </PastLastPage>
       ) : (
-        <WalletHistory walletId={wallet.id} empty={total === 0}>
+        <WalletHistory empty={total === 0}>
           {/* Clips the sticky header's side fill to the card's corners. */}
           <TableCard className="overflow-clip">
             <HistoryDataTable

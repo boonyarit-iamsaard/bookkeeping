@@ -1,41 +1,28 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Page } from "@/core/shell/page";
-import { TitleBar } from "@/core/shell/title-bar";
+import type { FinancialReportProps } from "@/features/reports/components/report-sections";
 import { reportMonthOf } from "@/features/reports/report-month";
 import { useReportView } from "@/features/reports/report-reads";
 import type { ReportSearch } from "@/features/reports/report-schema";
 import { DatePicker } from "@/shared/components/date-picker";
 import { MonthPicker } from "@/shared/components/month-picker";
 import { useToday } from "@/shared/hooks/use-today";
-import type { FinancialReportProps } from "./report-sections";
 
-interface ReportsProps {
+interface UseReportsOptions {
   search: Readonly<ReportSearch>;
   initialToday: CalendarDate;
-  /** The composition's skeleton while a pick's report loads. */
-  loading: React.ReactNode;
-  /** The composition's arrangement of a ready report. */
-  children: (report: FinancialReportProps) => React.ReactNode;
 }
 
-/** The Reports page both compositions share: its controls, reads and notices. */
-export function Reports({
+export function useReports({
   search,
   initialToday,
-  loading,
-  children,
-}: Readonly<ReportsProps>) {
+}: Readonly<UseReportsOptions>) {
   const today = useToday(initialToday);
   const thisMonth = reportMonthOf(today);
   const [comparedWalletId, setComparedWalletId] = useState<string>();
   const report = useReportView({ search, today, comparedWalletId });
   const navigate = useNavigate({ from: "/reports" });
-
-  if (report.state === "loading") {
-    return loading;
-  }
 
   // Each control applies on pick and changes only its own value; the other
   // keeps the address's, so a malformed one stays visible until corrected.
@@ -66,30 +53,27 @@ export function Reports({
     </div>
   );
 
-  return (
-    <Page layout="wide">
-      <TitleBar
-        title="Reports"
-        actions={
-          <>
-            <label htmlFor="report-month" className="sr-only">
-              Report month
-            </label>
-            <MonthPicker
-              key={report.values.month}
-              id="report-month"
-              thisMonth={thisMonth}
-              max={thisMonth}
-              defaultValue={report.values.month}
-              invalid={report.invalidFields.has("month")}
-              onChange={showMonth}
-              className="w-auto"
-            />
-          </>
-        }
+  const reportMonth = (
+    <>
+      <label htmlFor="report-month" className="sr-only">
+        Report month
+      </label>
+      <MonthPicker
+        key={report.values.month}
+        id="report-month"
+        thisMonth={thisMonth}
+        max={thisMonth}
+        defaultValue={report.values.month}
+        invalid={report.invalidFields.has("month")}
+        onChange={showMonth}
+        className="w-auto"
       />
-      {report.state === "ready" ? (
-        children({
+    </>
+  );
+
+  const sections =
+    report.state === "ready"
+      ? ({
           summary: report.summary,
           categoryBreakdown: report.categoryBreakdown,
           balanceTrend: report.balanceTrend,
@@ -102,17 +86,8 @@ export function Reports({
           asOf: report.values.asOf,
           balanceDate,
           trend: report.trend,
-        })
-      ) : (
-        <>
-          <div className="bg-card shadow-card rounded-2xl p-5 sm:p-6">
-            {balanceDate}
-          </div>
-          <p role="alert" className="text-destructive text-sm">
-            Choose a valid month and balance date.
-          </p>
-        </>
-      )}
-    </Page>
-  );
+        } satisfies FinancialReportProps)
+      : undefined;
+
+  return { state: report.state, sections, reportMonth, balanceDate };
 }

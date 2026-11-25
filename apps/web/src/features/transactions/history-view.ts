@@ -39,11 +39,10 @@ export function historyPageSize({
 }
 
 /**
- * The part of the address a composition reads. The phone is month sections,
- * newest first, at the default size, so only the desktop table's page size,
- * sort and order reach its read and its links.
+ * The settings for a list read. Phone month sections read newest first at the
+ * default size. Navigation keeps the full address for both compositions.
  */
-export function historySearchFor(
+export function historyReadSearch(
   search: Readonly<HistorySearch>,
   { desktop }: Readonly<{ desktop: boolean }>,
 ): HistorySearch {

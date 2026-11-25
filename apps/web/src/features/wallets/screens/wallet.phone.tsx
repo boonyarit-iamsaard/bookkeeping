@@ -9,6 +9,7 @@ import {
   lastHistoryPage,
 } from "@/features/transactions/history-pages";
 import type { HistoryTableSearch } from "@/features/transactions/history-schema";
+import { historyReadSearch } from "@/features/transactions/history-view";
 import { WalletBalance } from "@/features/wallets/components/wallet-balance";
 import { WalletHistory } from "@/features/wallets/components/wallet-history";
 import { WalletManageLink } from "@/features/wallets/components/wallet-manage-link";
@@ -37,7 +38,10 @@ export function WalletPhone({
   createdId,
   olderPage,
 }: Readonly<WalletPhoneProps>) {
-  const lastPage = lastHistoryPage(search, page.page.total);
+  const lastPage = lastHistoryPage(
+    historyReadSearch(search, { desktop: false }),
+    page.page.total,
+  );
   return (
     <Page layout="wide">
       <TitleBar
@@ -47,11 +51,7 @@ export function WalletPhone({
       />
       <WalletBalance wallet={wallet} />
       {lastPage === undefined ? (
-        <WalletHistory
-          walletId={wallet.id}
-          empty={page.items.length === 0}
-          olderPage={olderPage}
-        >
+        <WalletHistory empty={page.items.length === 0}>
           <MonthSections
             transactions={page.items}
             idPrefix="wallet"
@@ -61,7 +61,11 @@ export function WalletPhone({
           />
         </WalletHistory>
       ) : (
-        <PastLastPage page={search.page ?? 1} lastPage={lastPage}>
+        <PastLastPage
+          page={search.page ?? 1}
+          lastPage={lastPage}
+          empty={page.page.total === 0}
+        >
           <Link
             to="/wallets/$walletId"
             params={{ walletId: wallet.id }}
@@ -71,6 +75,20 @@ export function WalletPhone({
             Go to page {lastPage}
           </Link>
         </PastLastPage>
+      )}
+      {olderPage !== undefined && (
+        <Link
+          to="/wallets/$walletId"
+          params={{ walletId: wallet.id }}
+          search={changeHistoryTable(search, { page: olderPage })}
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+            className: "self-start",
+          })}
+        >
+          Older transactions
+        </Link>
       )}
     </Page>
   );

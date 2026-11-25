@@ -17,6 +17,7 @@ import {
   olderHistoryPage,
 } from "@/features/transactions/history-pages";
 import type { HistorySearch } from "@/features/transactions/history-schema";
+import { historyReadSearch } from "@/features/transactions/history-view";
 import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads";
 import { buttonVariants } from "@/shared/components/ui/button";
 
@@ -28,9 +29,11 @@ interface TransactionsPhoneProps {
 export function TransactionsPhone({
   search,
 }: Readonly<TransactionsPhoneProps>) {
+  const readSearch = historyReadSearch(search, { desktop: false });
   const { view, pending, transactions, total, filterErrors, ...collections } =
-    useHistoryReads(search);
-  const lastPage = lastHistoryPage(search, total);
+    useHistoryReads(readSearch);
+  const lastPage =
+    view.state === "valid" ? lastHistoryPage(readSearch, total) : undefined;
   if (pending) {
     return <HistoryLoading />;
   }
@@ -61,7 +64,11 @@ export function TransactionsPhone({
           />
         </TransactionHistory>
       ) : (
-        <PastLastPage page={search.page ?? 1} lastPage={lastPage}>
+        <PastLastPage
+          page={search.page ?? 1}
+          lastPage={lastPage}
+          empty={total === 0}
+        >
           <Link
             to="/transactions"
             search={changeHistoryTable(search, { page: lastPage })}
@@ -73,7 +80,7 @@ export function TransactionsPhone({
       )}
       <OlderTransactionsLink
         search={search}
-        page={olderHistoryPage(search, total)}
+        page={olderHistoryPage(readSearch, total)}
       />
     </Page>
   );

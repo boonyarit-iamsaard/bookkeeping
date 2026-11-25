@@ -84,7 +84,11 @@ describe("history pages", () => {
     expect(lastHistoryPage({ page: 3 }, 51)).toBe(2);
     expect(lastHistoryPage({ page: 4, pageSize: 10 }, 21)).toBe(3);
     expect(lastHistoryPage({ page: 2 }, 51)).toBeUndefined();
-    expect(lastHistoryPage({ page: 9 }, 0)).toBeUndefined();
     expect(lastHistoryPage({}, 51)).toBeUndefined();
+  });
+
+  test("returns to page one from an old address when no transactions match", () => {
+    expect(lastHistoryPage({ page: 9 }, 0)).toBe(1);
+    expect(lastHistoryPage({ page: 1 }, 0)).toBeUndefined();
   });
 });

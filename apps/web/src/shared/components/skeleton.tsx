@@ -71,7 +71,7 @@ export function HeroSkeleton({
   return (
     <div className="bg-hero shadow-hero flex min-h-44 flex-col gap-3 rounded-3xl p-5 pt-6 sm:min-h-48 sm:p-7">
       <Skeleton className="bg-hero-foreground/12 h-4 w-24" />
-      <Skeleton className="bg-hero-foreground/12 mt-auto h-9 w-52 sm:h-12 sm:w-72" />
+      <Skeleton className="bg-hero-foreground/12 mt-auto h-9 w-52 max-w-full sm:h-12 sm:w-72" />
       <Skeleton className={cn("bg-hero-foreground/12 h-4", captionClassName)} />
     </div>
   );

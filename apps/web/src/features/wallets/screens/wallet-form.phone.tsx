@@ -1,5 +1,9 @@
 "use client";
 
+import { Link } from "@tanstack/react-router";
+
+import { Page } from "@/core/shell/page";
+import { TitleBar } from "@/core/shell/title-bar";
 import {
   CreateWalletButton,
   OpeningAmountField,
@@ -12,12 +16,13 @@ import type { WalletFormProps } from "@/features/wallets/hooks/use-wallet-entry-
 import { useWalletEntryForm } from "@/features/wallets/hooks/use-wallet-entry-form";
 import { ErrorNotice } from "@/shared/components/error-notice";
 import { EntrySaveBar, FormCard } from "@/shared/components/form/entry-form";
+import { buttonVariants } from "@/shared/components/ui/button";
 
 /**
  * The wallet form below 1024px: field cards in the one phone column, and
  * Create wallet fixed to the bottom of the screen. Always a page.
  */
-export function WalletFormPhone(props: Readonly<WalletFormProps>) {
+function WalletFormPhone(props: Readonly<WalletFormProps>) {
   const entryForm = useWalletEntryForm(props);
   const { formRef, serverError, submit } = entryForm;
 
@@ -48,5 +53,28 @@ export function WalletFormPhone(props: Readonly<WalletFormProps>) {
         />
       </EntrySaveBar>
     </form>
+  );
+}
+
+export function NewWalletPhone() {
+  return (
+    <Page layout="entry">
+      <TitleBar
+        title="New wallet"
+        actions={
+          <Link
+            to="/wallets"
+            className={buttonVariants({
+              variant: "ghost",
+              size: "lg",
+              className: "-mr-3",
+            })}
+          >
+            Cancel
+          </Link>
+        }
+      />
+      <WalletFormPhone />
+    </Page>
   );
 }

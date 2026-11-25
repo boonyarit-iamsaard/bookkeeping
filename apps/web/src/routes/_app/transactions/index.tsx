@@ -10,7 +10,7 @@ import { HistoryLoading } from "@/features/transactions/components/history-loadi
 import { historySearchSchema } from "@/features/transactions/history-schema";
 import {
   buildHistoryView,
-  historySearchFor,
+  historyReadSearch,
 } from "@/features/transactions/history-view";
 import {
   TransactionsDesktop,
@@ -25,7 +25,7 @@ function TransactionsPage() {
   return desktop ? (
     <TransactionsDesktop search={search} />
   ) : (
-    <TransactionsPhone search={historySearchFor(search, { desktop })} />
+    <TransactionsPhone search={search} />
   );
 }
 
@@ -40,7 +40,7 @@ export const Route = createFileRoute("/_app/transactions/")({
   loader: async ({ context, deps }) => {
     // The phone ignores the table's size, sort and order, so it reads without them.
     const view = buildHistoryView(
-      historySearchFor(deps.search, { desktop: isDesktopViewport() }),
+      historyReadSearch(deps.search, { desktop: isDesktopViewport() }),
     );
     await Promise.all([
       view.state === "valid" &&
