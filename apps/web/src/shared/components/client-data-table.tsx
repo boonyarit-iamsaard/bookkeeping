@@ -5,16 +5,10 @@ import { useState } from "react";
 import type { DataTableColumn, RowProps } from "@/shared/components/data-table";
 import {
   DataTableBody,
+  DataTableHeaderRows,
   dataTableFeatures,
-  HeaderCell,
 } from "@/shared/components/data-table";
-import {
-  Table,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+import { Table, TableFooter, TableHeader } from "@/shared/components/ui/table";
 
 interface ClientDataTableProps<TData extends RowData> {
   /** Names the table for assistive technology. */
@@ -65,18 +59,10 @@ export function ClientDataTable<TData extends RowData>({
   return (
     <Table aria-label={label}>
       <TableHeader>
-        {table.getHeaderGroups().map((group) => (
-          <TableRow key={group.id}>
-            {group.headers.map((header) => (
-              <HeaderCell key={header.id} header={header} />
-            ))}
-            {renderRowActions && (
-              <TableHead className="w-px">
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            )}
-          </TableRow>
-        ))}
+        <DataTableHeaderRows
+          table={table}
+          hasRowActions={Boolean(renderRowActions)}
+        />
       </TableHeader>
       <DataTableBody
         table={table}

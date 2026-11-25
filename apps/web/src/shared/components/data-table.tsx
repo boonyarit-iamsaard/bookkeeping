@@ -247,6 +247,28 @@ export function DataTableBody<TData extends RowData>({
   );
 }
 
+/** The header rows, with an unlabelled last head above the row actions. */
+export function DataTableHeaderRows<TData extends RowData>({
+  table,
+  hasRowActions = false,
+}: Readonly<{
+  table: ReactTable<DataTableFeatures, TData>;
+  hasRowActions?: boolean;
+}>) {
+  return table.getHeaderGroups().map((group) => (
+    <TableRow key={group.id}>
+      {group.headers.map((header) => (
+        <HeaderCell key={header.id} header={header} />
+      ))}
+      {hasRowActions && (
+        <TableHead className="w-px">
+          <span className="sr-only">Actions</span>
+        </TableHead>
+      )}
+    </TableRow>
+  ));
+}
+
 /**
  * A data table's columns and rows alone, for a short excerpt such as Home's
  * recent rows: no sorting, paging or footer, and the header scrolls with it.
@@ -268,13 +290,7 @@ export function CompactDataTable<TData extends RowData>({
   return (
     <Table aria-label={label}>
       <TableHeader>
-        {table.getHeaderGroups().map((group) => (
-          <TableRow key={group.id}>
-            {group.headers.map((header) => (
-              <HeaderCell key={header.id} header={header} />
-            ))}
-          </TableRow>
-        ))}
+        <DataTableHeaderRows table={table} />
       </TableHeader>
       <DataTableBody table={table} rowProps={rowProps} />
     </Table>
@@ -359,18 +375,10 @@ export function DataTable<TData extends RowData>({
       {/* No scroll box, so the header can stick under the 64px top bar. */}
       <Table aria-label={label} containerClassName="overflow-x-visible">
         <TableHeader className="bg-card sticky top-16 z-10 shadow-[-1.5rem_0_0_var(--card),1.5rem_0_0_var(--card)]">
-          {table.getHeaderGroups().map((group) => (
-            <TableRow key={group.id}>
-              {group.headers.map((header) => (
-                <HeaderCell key={header.id} header={header} />
-              ))}
-              {renderRowActions && (
-                <TableHead className="w-px">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              )}
-            </TableRow>
-          ))}
+          <DataTableHeaderRows
+            table={table}
+            hasRowActions={Boolean(renderRowActions)}
+          />
         </TableHeader>
         <DataTableBody
           table={table}
