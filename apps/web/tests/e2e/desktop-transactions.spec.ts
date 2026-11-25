@@ -217,7 +217,7 @@ test("desktop history is one table with a live filter bar, and a wallet page of 
   const walletTable = page.getByRole("table", { name: "Transactions" });
   await expect(
     walletTable.locator("thead").getByRole("columnheader"),
-  ).toHaveText(["Date", "Category", "Type", "Tags", "Amount"]);
+  ).toHaveText(["Date", "Category", "Type", "Tags", "Amount", "Actions"]);
   await expect(walletTable.locator("[data-transaction-row]")).toHaveCount(4);
   await expect(
     walletTable.locator("[data-transaction-row]").first(),
