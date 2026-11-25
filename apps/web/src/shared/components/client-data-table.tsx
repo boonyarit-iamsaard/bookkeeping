@@ -28,7 +28,7 @@ interface ClientDataTableProps<TData extends RowData> {
   /** Attributes for one row's `tr`, such as a data hook. */
   rowProps?: (row: TData) => RowProps;
   /** A last cell per row, such as its action menu; it sits above the row's stretched link. */
-  rowActions?: (row: TData) => React.ReactNode;
+  renderRowActions?: (row: TData) => React.ReactNode;
   /** Rows beneath the body, such as a total. */
   footer?: React.ReactNode;
 }
@@ -45,7 +45,7 @@ export function ClientDataTable<TData extends RowData>({
   rowId,
   subRows,
   rowProps,
-  rowActions,
+  renderRowActions,
   footer,
 }: Readonly<ClientDataTableProps<TData>>) {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -70,7 +70,7 @@ export function ClientDataTable<TData extends RowData>({
             {group.headers.map((header) => (
               <HeaderCell key={header.id} header={header} />
             ))}
-            {rowActions && (
+            {renderRowActions && (
               <TableHead className="w-px">
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -81,7 +81,7 @@ export function ClientDataTable<TData extends RowData>({
       <DataTableBody
         table={table}
         rowProps={rowProps}
-        rowActions={rowActions}
+        renderRowActions={renderRowActions}
       />
       {footer && <TableFooter>{footer}</TableFooter>}
     </Table>

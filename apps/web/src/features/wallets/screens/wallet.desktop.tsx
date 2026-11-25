@@ -74,7 +74,7 @@ export function WalletDesktop({
           {/* Clips the sticky header's side fill to the card's corners. */}
           <TableCard className="overflow-clip">
             <TransactionRowActions>
-              {(rowActions) => (
+              {(renderRowActions) => (
                 <HistoryDataTable
                   columns={columns}
                   columnsStorageKey="bookkeeping.wallet-transactions-columns"
@@ -82,7 +82,7 @@ export function WalletDesktop({
                   transactions={page.items}
                   total={total}
                   onChange={show}
-                  rowActions={rowActions}
+                  renderRowActions={renderRowActions}
                 />
               )}
             </TransactionRowActions>

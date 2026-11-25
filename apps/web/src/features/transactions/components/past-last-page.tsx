@@ -15,6 +15,7 @@ export function PastLastPage({
   empty,
   children,
 }: Readonly<PastLastPageProps>) {
+  const pageWord = lastPage === 1 ? "page" : "pages";
   return (
     <section
       className="bg-card shadow-card flex flex-col items-start gap-3 rounded-2xl p-5 sm:p-7"
@@ -26,7 +27,7 @@ export function PastLastPage({
       <p className="text-muted-foreground max-w-prose text-sm leading-normal">
         {empty
           ? "There are no transactions to show."
-          : `This list has ${lastPage} ${lastPage === 1 ? "page" : "pages"}.`}
+          : `This list has ${lastPage} ${pageWord}.`}
       </p>
       {children}
     </section>

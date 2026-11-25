@@ -93,7 +93,7 @@ export function WalletDataTable({
       columns={WALLET_COLUMNS}
       rows={wallets}
       rowId={(wallet) => wallet.id}
-      rowActions={(wallet) => (
+      renderRowActions={(wallet) => (
         <RowActionsMenu record={wallet.name}>
           <DropdownMenuItem
             render={

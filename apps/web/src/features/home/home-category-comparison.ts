@@ -31,7 +31,10 @@ export interface CategoryComparison {
 type Parent = CategorySpending["parents"][number];
 
 function compareDescending(first: bigint, second: bigint) {
-  return first === second ? 0 : first > second ? -1 : 1;
+  if (first === second) {
+    return 0;
+  }
+  return first > second ? -1 : 1;
 }
 
 /** This month's Category spending beside last month's, parent by parent. */

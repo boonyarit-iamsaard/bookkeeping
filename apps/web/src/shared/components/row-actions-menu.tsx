@@ -14,7 +14,7 @@ interface RowActionsMenuProps {
   children: React.ReactNode;
 }
 
-/** A small table's row menu, for a data table's `rowActions` slot. */
+/** A small table's row menu, for a data table's `renderRowActions` slot. */
 export function RowActionsMenu({
   record,
   children,

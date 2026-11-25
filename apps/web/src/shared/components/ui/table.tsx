@@ -9,7 +9,11 @@ interface TableProps extends React.ComponentProps<"table"> {
   containerClassName?: string;
 }
 
-function Table({ className, containerClassName, ...props }: TableProps) {
+function Table({
+  className,
+  containerClassName,
+  ...props
+}: Readonly<TableProps>) {
   return (
     <div
       data-slot="table-container"
