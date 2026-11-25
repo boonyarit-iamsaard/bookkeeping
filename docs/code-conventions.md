@@ -137,7 +137,8 @@ the input field it addresses, so adapters map fields with a table rather than
 re-deciding them. Adapters validate shape at their own interface: request and
 form schemas check types, formats, and required fields. A client may mirror a
 rule as a hint, but the hint never diverges from the rule and nothing outside
-the author asserts it. See ADR 0005.
+the author asserts it. A client query-parameter parser imports the domain's
+predicate, such as `isTransactionListPage`. See ADR 0005.
 
 ## Cached reads
 
@@ -162,7 +163,9 @@ known gaps: they do not report a destructured call (`const { setQueryData } =
 queryClient`), which throws at runtime because the method loses `this`, and
 the `clear()` exemption covers all of `session.ts`, not only
 `resetSessionCache`. A screen may show the previous data briefly on its next
-visit while it re-reads; that is accepted.
+visit while it re-reads; that is accepted. Phone and desktop
+compositions reading different queries each show their loading state until
+their own query has data.
 
 ## Test ownership
 
