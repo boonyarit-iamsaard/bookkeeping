@@ -5,6 +5,7 @@ import {
 } from "@bookkeeping/application/transactions/reads";
 import type { Database } from "@bookkeeping/database/connection";
 import {
+  isTransactionListPage,
   TRANSACTION_LIST_ORDERS,
   TRANSACTION_LIST_SORTS,
   TRANSACTION_PAGE_SIZES,
@@ -55,7 +56,7 @@ export const transactionListQuerySchema = z
     cursor: z.string().min(1).optional(),
     page: positiveIntegerText
       .transform(Number)
-      .pipe(z.int().max(Number.MAX_SAFE_INTEGER))
+      .refine(isTransactionListPage)
       .optional(),
     pageSize: z
       .enum(TRANSACTION_PAGE_SIZES.map(String))

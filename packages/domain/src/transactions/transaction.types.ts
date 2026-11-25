@@ -25,6 +25,11 @@ export type TransactionListOrder = (typeof TRANSACTION_LIST_ORDERS)[number];
 /** The rows per page a numbered transaction list offers. */
 export const TRANSACTION_PAGE_SIZES = [10, 25, 50, 100] as const;
 
+/** A numbered list's page: a whole number from 1 that its address text reads back exactly. */
+export function isTransactionListPage(page: number) {
+  return Number.isSafeInteger(page) && page >= 1;
+}
+
 /** The types the general creation picker offers; a refund starts from its expense. */
 export const CREATABLE_TRANSACTION_TYPES = [
   "income",

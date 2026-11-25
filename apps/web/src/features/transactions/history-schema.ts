@@ -1,4 +1,5 @@
 import {
+  isTransactionListPage,
   TRANSACTION_LIST_ORDERS,
   TRANSACTION_LIST_SORTS,
   TRANSACTION_PAGE_SIZES,
@@ -28,11 +29,9 @@ const navigationValue = z.preprocess((value) => {
   return typeof value === "number" ? String(value) : undefined;
 }, z.string().optional());
 
-/** A whole number from the address, whether the router read it as text or not. */
-function wholeNumber(value: unknown) {
-  const number = typeof value === "string" ? Number(value) : value;
-  // Past the safe range the API's number text no longer reads back.
-  return Number.isSafeInteger(number) ? number : undefined;
+/** A number from the address, whether the router read it as text or not. */
+function addressNumber(value: unknown) {
+  return typeof value === "string" ? Number(value) : value;
 }
 
 /**
@@ -40,11 +39,14 @@ function wholeNumber(value: unknown) {
  * default rather than reading an invalid page.
  */
 const pageNumber = z.preprocess((value) => {
-  const number = wholeNumber(value);
-  return typeof number === "number" && number >= 1 ? number : undefined;
+  const number = addressNumber(value);
+  return typeof number === "number" && isTransactionListPage(number)
+    ? number
+    : undefined;
 }, z.number().optional());
 const pageSize = z.preprocess(
-  (value) => TRANSACTION_PAGE_SIZES.find((size) => size === wholeNumber(value)),
+  (value) =>
+    TRANSACTION_PAGE_SIZES.find((size) => size === addressNumber(value)),
   z.literal(TRANSACTION_PAGE_SIZES).optional(),
 );
 const choiceOf = <const T extends readonly [string, ...string[]]>(choices: T) =>
