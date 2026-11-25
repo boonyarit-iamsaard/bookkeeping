@@ -1,16 +1,11 @@
-import {
-  TRANSACTION_LIST_SORTS,
-  TRANSACTION_PAGE_SIZES,
-} from "@bookkeeping/domain/transactions";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
+import { HistoryDataTable } from "@/features/transactions/components/history-data-table";
 import { HistoryFilterBar } from "@/features/transactions/components/history-filter-bar";
 import { HistoryTypeTabs } from "@/features/transactions/components/history-type-tabs";
-import {
-  TRANSACTION_COLUMNS,
-  transactionRowProps,
-} from "@/features/transactions/components/transaction-columns";
+import { PastLastPage } from "@/features/transactions/components/past-last-page";
+import { TRANSACTION_COLUMNS } from "@/features/transactions/components/transaction-columns";
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
 import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
@@ -20,45 +15,11 @@ import type { HistorySearch } from "@/features/transactions/history-schema";
 import { DEFAULT_HISTORY_PAGE_SIZE } from "@/features/transactions/history-view";
 import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads";
 import { TableCard } from "@/shared/components/dashboard-card";
-import { DataTable } from "@/shared/components/data-table";
 import { Skeleton, TableCardSkeleton } from "@/shared/components/skeleton";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 interface TransactionsDesktopProps {
   search: HistorySearch;
-}
-
-function countLabel(total: number) {
-  return `${total.toLocaleString("en-US")} ${total === 1 ? "transaction" : "transactions"}`;
-}
-
-interface PastLastPageProps {
-  search: HistorySearch;
-  lastPage: number;
-}
-
-/** An old link to a page the list no longer reaches. */
-function PastLastPage({ search, lastPage }: Readonly<PastLastPageProps>) {
-  return (
-    <section
-      className="bg-card shadow-card flex flex-col items-start gap-3 rounded-2xl p-7"
-      aria-labelledby="past-last-heading"
-    >
-      <h2 id="past-last-heading" className="text-lg font-bold tracking-tight">
-        Page {search.page} is past the end
-      </h2>
-      <p className="text-muted-foreground max-w-prose text-sm leading-normal">
-        This list has {lastPage} {lastPage === 1 ? "page" : "pages"}.
-      </p>
-      <Link
-        to="/transactions"
-        search={changeHistoryTable(search, { page: lastPage })}
-        className={buttonVariants({ variant: "secondary", size: "lg" })}
-      >
-        Go to page {lastPage}
-      </Link>
-    </section>
-  );
 }
 
 /** The desktop list's loading shape: the title, the filter bar, a table. */
@@ -110,7 +71,15 @@ export function TransactionsDesktop({
       )}
       {search.deleted === 1 && <TransactionDeletedNotice />}
       {transactions.length === 0 && page > lastPage && lastPage > 0 ? (
-        <PastLastPage search={search} lastPage={lastPage} />
+        <PastLastPage page={page} lastPage={lastPage}>
+          <Link
+            to="/transactions"
+            search={changeHistoryTable(search, { page: lastPage })}
+            className={buttonVariants({ variant: "secondary", size: "lg" })}
+          >
+            Go to page {lastPage}
+          </Link>
+        </PastLastPage>
       ) : (
         <TransactionHistory
           transactions={transactions}
@@ -121,41 +90,13 @@ export function TransactionsDesktop({
           <TableCard className="overflow-clip">
             <TransactionRowActions>
               {(rowActions) => (
-                <DataTable
-                  label="Transactions"
+                <HistoryDataTable
                   columns={TRANSACTION_COLUMNS}
-                  rows={transactions}
-                  rowId={(transaction) => transaction.id}
-                  rowProps={transactionRowProps(search.created)}
-                  sorting={[
-                    {
-                      id: search.sort ?? "date",
-                      desc: (search.order ?? "desc") === "desc",
-                    },
-                  ]}
-                  onSortingChange={([next]) => {
-                    const sort = TRANSACTION_LIST_SORTS.find(
-                      (name) => name === next?.id,
-                    );
-                    if (sort) {
-                      show({ sort, order: next?.desc ? "desc" : "asc" });
-                    }
-                  }}
-                  pagination={{ pageIndex: page - 1, pageSize }}
-                  onPaginationChange={(next) => {
-                    const size = TRANSACTION_PAGE_SIZES.find(
-                      (option) => option === next.pageSize,
-                    );
-                    show(
-                      size === pageSize
-                        ? { page: next.pageIndex + 1 }
-                        : { pageSize: size },
-                    );
-                  }}
-                  pageSizes={TRANSACTION_PAGE_SIZES}
-                  rowCount={total}
-                  rowCountLabel={countLabel(total)}
                   columnsStorageKey="bookkeeping.transactions-columns"
+                  search={search}
+                  transactions={transactions}
+                  total={total}
+                  onChange={show}
                   rowActions={rowActions}
                 />
               )}
