@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { splitTagOverflow } from "./tag-overflow";
 
-const tag = (name: string) => ({ id: name, name });
+function tag(name: string) {
+  return { id: name, name };
+}
 
 describe("tag overflow", () => {
   test("two tags or fewer all show, with nothing over", () => {

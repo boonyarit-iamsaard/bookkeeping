@@ -10,7 +10,9 @@ export function useEditingRow<TRow>() {
     row: null,
     open: false,
   });
-  const close = () => setState((current) => ({ ...current, open: false }));
+  function close() {
+    setState((current) => ({ ...current, open: false }));
+  }
   return {
     row: state.row,
     edit: (row: TRow) => setState({ row, open: true }),

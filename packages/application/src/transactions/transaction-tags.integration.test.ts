@@ -326,8 +326,8 @@ describe("filtering by tag", () => {
         amount: 1_000n,
       });
 
-      const pageOf = (page: number) =>
-        listNumberedTransactionPage(db, {
+      function pageOf(page: number) {
+        return listNumberedTransactionPage(db, {
           ownerId: owner.ownerId,
           tagIds: [coffee, shop],
           page,
@@ -335,6 +335,7 @@ describe("filtering by tag", () => {
           sort: "date",
           order: "desc",
         });
+      }
       const [first, second] = await Promise.all([pageOf(1), pageOf(2)]);
 
       expect([...first.items, ...second.items].map((item) => item.id)).toEqual([

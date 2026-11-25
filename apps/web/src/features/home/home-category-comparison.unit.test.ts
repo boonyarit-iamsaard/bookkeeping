@@ -6,7 +6,9 @@ function spendingOf(
   month: string,
   amounts: Readonly<Record<number, string>>,
 ): CategorySpending {
-  const money = (value: string) => ({ value, currency: "THB" as const });
+  function money(value: string) {
+    return { value, currency: "THB" as const };
+  }
   return {
     month,
     netExpenses: money("0.00"),
