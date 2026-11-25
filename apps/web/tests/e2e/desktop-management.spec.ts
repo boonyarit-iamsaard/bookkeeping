@@ -222,9 +222,9 @@ test("desktop management tables sort by their columns and each row has a menu", 
   await expect(sheet.getByLabel("Name")).toHaveValue("Groceries");
   await page.keyboard.press("Escape");
   await expect(sheet).toBeHidden();
-  // The menu closed with the sheet's opening; focus goes back to the row.
+  // The menu closes with the sheet's opening and hands focus back to its trigger.
   await expect(
-    expense.getByRole("button", { name: "Groceries", exact: true }),
+    expense.getByRole("button", { name: "Actions for Groceries" }),
   ).toBeFocused();
 
   await page.goto("/tags");

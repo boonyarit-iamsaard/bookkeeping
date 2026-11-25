@@ -85,9 +85,7 @@ export function CategoryTable({
   usage,
   onDone,
 }: Readonly<CategoryTableProps>) {
-  const editing = useEditingRow<CategoryRow>(
-    (row) => `[data-category-row="${row.category.id}"]`,
-  );
+  const editing = useEditingRow<CategoryRow>();
   const edited = editing.row;
   const rows = groups.map(({ parent, children }): CategoryRow => {
     const color = colorOf(parent.id);

@@ -58,9 +58,7 @@ function tagColumns(
 
 /** Tags with how many transactions carry each; a row's name or menu opens its edit sheet. */
 export function TagTable({ tags, onDone }: Readonly<TagTableProps>) {
-  const editing = useEditingRow<TagSummary>(
-    (row) => `[data-tag-row="${row.id}"]`,
-  );
+  const editing = useEditingRow<TagSummary>();
   const tag = editing.row;
   return (
     <>
