@@ -40,10 +40,14 @@ async function lintFixture(files: ReadonlyMap<string, string>) {
 it("reports the desktop check outside routes and the shell", async () => {
   const call =
     "export function Screen() {\n  return useIsDesktop() ? null : null;\n}\n";
+  const loaderCall =
+    "export function read() {\n  return isDesktopViewport();\n}\n";
   const report = await lintFixture(
     new Map([
       ["apps/web/src/features/home/components/home.tsx", call],
       ["apps/web/src/shared/components/card.tsx", call],
+      ["apps/web/src/features/home/read-home.ts", loaderCall],
+      ["apps/web/src/routes/_app/read.ts", loaderCall],
       ["apps/web/src/routes/_app/index.tsx", call],
       ["apps/web/src/core/shell/desktop-shell.tsx", call],
     ]),
@@ -51,7 +55,9 @@ it("reports the desktop check outside routes and the shell", async () => {
 
   expect(report, report).toContain("home.tsx:2:");
   expect(report, report).toContain("card.tsx:2:");
+  expect(report, report).toContain("read-home.ts:2:");
   expect(report).toContain("Only routes and core/shell call useIsDesktop");
+  expect(report).not.toContain("read.ts:");
   expect(report).not.toContain("index.tsx:");
   expect(report).not.toContain("desktop-shell.tsx:");
 }, 30_000);

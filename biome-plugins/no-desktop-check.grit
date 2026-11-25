@@ -1,5 +1,8 @@
 language js
 
-`useIsDesktop($args)` as $call where {
-  register_diagnostic(span=$call, severity="error", message="Only routes and core/shell call useIsDesktop. Give the screen a phone and a desktop composition and let its route choose between them (ADR 0017).")
+or {
+  `useIsDesktop($args)`,
+  `isDesktopViewport($args)`
+} as $call where {
+  register_diagnostic(span=$call, severity="error", message="Only routes and core/shell call useIsDesktop or isDesktopViewport. Give the screen a phone and a desktop composition and let its route choose between them (ADR 0017).")
 }
