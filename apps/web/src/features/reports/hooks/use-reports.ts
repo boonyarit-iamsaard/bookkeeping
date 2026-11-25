@@ -1,12 +1,14 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import type {
+  BalanceDateFieldProps,
+  ReportMonthFieldProps,
+} from "@/features/reports/components/report-pickers";
 import type { FinancialReportProps } from "@/features/reports/components/report-sections";
 import { reportMonthOf } from "@/features/reports/report-month";
 import { useReportView } from "@/features/reports/report-reads";
 import type { ReportSearch } from "@/features/reports/report-schema";
-import { DatePicker } from "@/shared/components/date-picker";
-import { MonthPicker } from "@/shared/components/month-picker";
 import { useToday } from "@/shared/hooks/use-today";
 
 interface UseReportsOptions {
@@ -36,40 +38,19 @@ export function useReports({
     void navigate({ search: (latest) => ({ month: latest.month, asOf }) });
   }
 
-  // It sits with the balances it dates; an invalid value keeps it on screen
-  // above the notice, so the value to correct stays visible.
-  const balanceDate = (
-    <div className="flex min-w-0 flex-col gap-2 text-sm font-medium">
-      <label htmlFor="balance-date">Balance date</label>
-      <DatePicker
-        key={report.values.asOf}
-        id="balance-date"
-        today={today}
-        max={today}
-        defaultValue={report.values.asOf}
-        invalid={report.invalidFields.has("asOf")}
-        onChange={showBalanceDate}
-      />
-    </div>
-  );
+  const balanceDate = {
+    today,
+    value: report.values.asOf,
+    invalid: report.invalidFields.has("asOf"),
+    onChange: showBalanceDate,
+  } satisfies BalanceDateFieldProps;
 
-  const reportMonth = (
-    <>
-      <label htmlFor="report-month" className="sr-only">
-        Report month
-      </label>
-      <MonthPicker
-        key={report.values.month}
-        id="report-month"
-        thisMonth={thisMonth}
-        max={thisMonth}
-        defaultValue={report.values.month}
-        invalid={report.invalidFields.has("month")}
-        onChange={showMonth}
-        className="w-auto"
-      />
-    </>
-  );
+  const reportMonth = {
+    thisMonth,
+    value: report.values.month,
+    invalid: report.invalidFields.has("month"),
+    onChange: showMonth,
+  } satisfies ReportMonthFieldProps;
 
   const sections =
     report.state === "ready"
@@ -84,9 +65,8 @@ export function useReports({
           datedWallets: report.datedWallets,
           datedTotal: report.datedTotal,
           asOf: report.values.asOf,
-          balanceDate,
           trend: report.trend,
-        } satisfies FinancialReportProps)
+        } satisfies Omit<FinancialReportProps, "balanceDate">)
       : undefined;
 
   return { state: report.state, sections, reportMonth, balanceDate };

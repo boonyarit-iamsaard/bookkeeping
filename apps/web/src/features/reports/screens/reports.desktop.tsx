@@ -1,6 +1,10 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
+import {
+  BalanceDateField,
+  ReportMonthField,
+} from "@/features/reports/components/report-pickers";
 import { createReportSections } from "@/features/reports/components/report-sections";
 import {
   BalancesSkeleton,
@@ -63,20 +67,24 @@ export function ReportsDesktop({
   search,
   initialToday,
 }: Readonly<ReportsDesktopProps>) {
-  const { state, sections, reportMonth, balanceDate } = useReports({
+  const { state, sections, ...pickers } = useReports({
     search,
     initialToday,
   });
   if (state === "loading") {
     return <ReportsDesktopLoading />;
   }
+  const balanceDate = <BalanceDateField {...pickers.balanceDate} />;
   const cards = sections
-    ? createReportSections(sections, DashboardCard)
+    ? createReportSections({ ...sections, balanceDate }, DashboardCard)
     : undefined;
 
   return (
     <Page layout="wide">
-      <TitleBar title="Reports" actions={reportMonth} />
+      <TitleBar
+        title="Reports"
+        actions={<ReportMonthField {...pickers.reportMonth} />}
+      />
       {cards ? (
         <>
           <DashboardRow className={ROW_4_8}>

@@ -1,6 +1,10 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
+import {
+  BalanceDateField,
+  ReportMonthField,
+} from "@/features/reports/components/report-pickers";
 import type { ReportCardProps } from "@/features/reports/components/report-sections";
 import { createReportSections } from "@/features/reports/components/report-sections";
 import {
@@ -67,20 +71,24 @@ export function ReportsPhone({
   search,
   initialToday,
 }: Readonly<ReportsPhoneProps>) {
-  const { state, sections, reportMonth, balanceDate } = useReports({
+  const { state, sections, ...pickers } = useReports({
     search,
     initialToday,
   });
   if (state === "loading") {
     return <ReportsPhoneLoading />;
   }
+  const balanceDate = <BalanceDateField {...pickers.balanceDate} />;
   const cards = sections
-    ? createReportSections(sections, PhoneReportCard)
+    ? createReportSections({ ...sections, balanceDate }, PhoneReportCard)
     : undefined;
 
   return (
     <Page layout="wide">
-      <TitleBar title="Reports" actions={reportMonth} />
+      <TitleBar
+        title="Reports"
+        actions={<ReportMonthField {...pickers.reportMonth} />}
+      />
       {cards ? (
         <>
           {cards.net}
