@@ -92,6 +92,7 @@ test("desktop Categories shows both trees as tables and Tags one table", {
     await expect(table.getByRole("columnheader")).toHaveText([
       "Name",
       "Entries",
+      "Actions",
     ]);
   }
   await expect(expense.getByRole("row", { name: /Groceries/ })).toContainText(
@@ -104,13 +105,15 @@ test("desktop Categories shows both trees as tables and Tags one table", {
   expect(incomeBox.x).toBeGreaterThan(expenseBox.x + expenseBox.width - 1);
   // A child sits one step in from its parent.
   const parent = await boxOf(
-    expense.getByRole("button", { name: /Food & Drink/ }),
+    expense.getByRole("button", { name: "Food & Drink", exact: true }),
   );
-  const child = await boxOf(expense.getByRole("button", { name: /Groceries/ }));
+  const child = await boxOf(
+    expense.getByRole("button", { name: "Groceries", exact: true }),
+  );
   expect(child.x).toBeGreaterThan(parent.x);
 
   const sheet = page.getByRole("dialog", { name: "Edit category" });
-  await expense.getByRole("button", { name: /Groceries/ }).click();
+  await expense.getByRole("button", { name: "Groceries", exact: true }).click();
   await expect(sheet.getByLabel("Name")).toHaveValue("Groceries");
   await sheet.getByLabel("Name").fill("Supermarket");
   await sheet.getByRole("button", { name: "Save changes" }).click();
@@ -119,7 +122,7 @@ test("desktop Categories shows both trees as tables and Tags one table", {
     "Groceries is now Supermarket.",
   );
   await expect(
-    expense.getByRole("button", { name: /Supermarket/ }),
+    expense.getByRole("button", { name: "Supermarket", exact: true }),
   ).toBeVisible();
 
   await page.getByRole("button", { name: "New category" }).click();
@@ -127,7 +130,9 @@ test("desktop Categories shows both trees as tables and Tags one table", {
   await create.getByLabel("Name", { exact: true }).fill("Pets");
   await create.getByRole("button", { name: "Save category" }).click();
   await expect(create).toBeHidden(ROUND_TRIP);
-  await expect(expense.getByRole("button", { name: /Pets/ })).toBeVisible();
+  await expect(
+    expense.getByRole("button", { name: "Pets", exact: true }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "New category" }).click();
   // The one New button asks which tree in its sheet.
@@ -138,22 +143,103 @@ test("desktop Categories shows both trees as tables and Tags one table", {
   await createIncome.getByLabel("Name", { exact: true }).fill("Royalties");
   await createIncome.getByRole("button", { name: "Save category" }).click();
   await expect(createIncome).toBeHidden(ROUND_TRIP);
-  await expect(income.getByRole("button", { name: /Royalties/ })).toBeVisible();
+  await expect(
+    income.getByRole("button", { name: "Royalties", exact: true }),
+  ).toBeVisible();
 
   await page.goto("/tags");
   const tags = page.getByRole("table", { name: "Tags", exact: true });
   await expect(tags.getByRole("columnheader")).toHaveText([
     "Name",
     "Transactions",
+    "Actions",
   ]);
   await expect(tags.getByRole("row", { name: /Coffee/ })).toContainText("1");
   const width = page.viewportSize()?.width ?? 0;
   expect((await boxOf(tags)).width).toBeLessThan(width / 2);
-  await tags.getByRole("button", { name: /Coffee/ }).click();
+  await tags.getByRole("button", { name: "Coffee", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Edit tag", exact: true });
   await editor.getByLabel("Name", { exact: true }).fill("Espresso");
   await editor.getByRole("button", { name: "Save name" }).click();
   await expect(editor).toBeHidden(ROUND_TRIP);
   await expect(page.getByRole("status")).toHaveText("Coffee is now Espresso.");
-  await expect(tags.getByRole("button", { name: /Espresso/ })).toBeVisible();
+  await expect(
+    tags.getByRole("button", { name: "Espresso", exact: true }),
+  ).toBeVisible();
+});
+
+test("desktop management tables sort by their columns and each row has a menu", {
+  tag: "@matrix",
+}, async ({ page, baseURL }) => {
+  test.skip(!isDesktop(page), "Phone keeps its lists");
+  if (!baseURL) {
+    throw new Error("The browser test has no client origin");
+  }
+  await signUpFreshUser(page);
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "500",
+    openingDate: "2026-09-01",
+  });
+  await seedTaggedGroceriesEntry(page, baseURL);
+  const alpha = await page.request.post(
+    `${process.env.VITE_API_ORIGIN}/v1/tags`,
+    {
+      headers: { origin: baseURL, "idempotency-key": randomUUID() },
+      data: { name: "Alpha" },
+    },
+  );
+  expect(alpha.ok()).toBe(true);
+
+  await page.goto("/categories");
+  const expense = page.getByRole("table", { name: "Expense categories" });
+  const names = expense.locator("[data-category-row]");
+  const nameHeader = expense.getByRole("columnheader", { name: "Name" });
+  await expect(expense.getByRole("button", { name: "Entries" })).toBeVisible();
+  await nameHeader.getByRole("button").click();
+  await expect(nameHeader).toHaveAttribute("aria-sort", "ascending");
+  await expect(names.first()).toHaveText("Education");
+  // A child stays under its parent, sorted among its siblings.
+  const ascending = await names.allTextContents();
+  const food = ascending.indexOf("Food & Drink");
+  expect(ascending.slice(food, food + 5)).toEqual([
+    "Food & Drink",
+    "Coffee & snacks",
+    "Delivery",
+    "Groceries",
+    "Restaurants",
+  ]);
+  await nameHeader.getByRole("button").click();
+  await expect(nameHeader).toHaveAttribute("aria-sort", "descending");
+  await expect(names.first()).toHaveText("Uncategorized");
+  await expect(
+    expense.getByRole("button", { name: /rows per page/i }),
+  ).toHaveCount(0);
+
+  await expense.getByRole("button", { name: "Actions for Groceries" }).click();
+  await page.getByRole("menuitem", { name: "Edit" }).click();
+  const sheet = page.getByRole("dialog", { name: "Edit category" });
+  await expect(sheet.getByLabel("Name")).toHaveValue("Groceries");
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  // The menu closed with the sheet's opening; focus goes back to the row.
+  await expect(
+    expense.getByRole("button", { name: "Groceries", exact: true }),
+  ).toBeFocused();
+
+  await page.goto("/tags");
+  const tags = page.getByRole("table", { name: "Tags", exact: true });
+  const tagNames = tags.locator("[data-tag-row]");
+  await tags.getByRole("button", { name: "Transactions" }).click();
+  await expect(tagNames).toHaveText(["Coffee", "Alpha"]);
+  await tags.getByRole("button", { name: "Transactions" }).click();
+  await expect(tagNames).toHaveText(["Alpha", "Coffee"]);
+
+  // The menu works from the keyboard alone.
+  await tags.getByRole("button", { name: "Actions for Alpha" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem", { name: "Edit" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  const editor = page.getByRole("dialog", { name: "Edit tag", exact: true });
+  await expect(editor.getByLabel("Name", { exact: true })).toHaveValue("Alpha");
 });

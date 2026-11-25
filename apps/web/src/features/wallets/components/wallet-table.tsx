@@ -25,16 +25,10 @@ interface WalletTableProps {
   wallets: readonly WalletSummary[];
   /** The Total balance beneath the rows, which may cover wallets not listed; none without wallets. */
   total: ApiMoney | null;
-  /** Captions archived wallets in the list; Home, which hides them, leaves it off. */
-  captionArchived?: boolean;
 }
 
 /** Wallets by name, type, how their balance counts, and balance, with the Total balance beneath. */
-export function WalletTable({
-  wallets,
-  total,
-  captionArchived = false,
-}: Readonly<WalletTableProps>) {
+export function WalletTable({ wallets, total }: Readonly<WalletTableProps>) {
   return (
     <Table>
       <TableHeader>
@@ -60,12 +54,6 @@ export function WalletTable({
               >
                 {wallet.name}
               </Link>
-              {/* A caption is text, not a link: the row is the link. */}
-              {captionArchived && wallet.archivedAt && (
-                <span className="text-muted-foreground block text-sm font-normal">
-                  Archived
-                </span>
-              )}
             </TableCell>
             <TableCell className={SECONDARY_COLUMN}>
               {WALLET_TYPE_LABELS[wallet.type]}

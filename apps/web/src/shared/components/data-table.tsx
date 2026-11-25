@@ -4,6 +4,7 @@ import type {
   Header,
   PaginationState,
   Table as ReactTable,
+  Row,
   RowData,
   SortingState,
   TableFeatures,
@@ -11,6 +12,7 @@ import type {
 import {
   columnVisibilityFeature,
   createColumnHelper,
+  createSortedRowModel,
   FlexRender,
   functionalUpdate,
   rowPaginationFeature,
@@ -71,13 +73,16 @@ declare module "@tanstack/react-table" {
 /** A column a narrow dashboard card drops, so no figure beside it clips. */
 export const SECONDARY_COLUMN = "@max-sm:hidden";
 
+// The sorted row model serves `ClientDataTable`; `manualSorting` leaves it idle here.
 const features = tableFeatures({
   rowSortingFeature,
   rowPaginationFeature,
   columnVisibilityFeature,
+  sortedRowModel: createSortedRowModel(),
 });
 
-type DataTableFeatures = typeof features;
+export type DataTableFeatures = typeof features;
+export { features as dataTableFeatures };
 
 export type DataTableColumn<TData extends RowData> = ColumnDef<
   DataTableFeatures,
@@ -126,7 +131,7 @@ function SortGlyph({ sorted }: Readonly<{ sorted: false | "asc" | "desc" }>) {
   );
 }
 
-function HeaderCell<TData extends RowData>({
+export function HeaderCell<TData extends RowData>({
   header,
 }: Readonly<{ header: Header<DataTableFeatures, TData, unknown> }>) {
   const { column } = header;
@@ -187,28 +192,38 @@ interface DataTableBodyProps<TData extends RowData> {
   rowProps: CompactDataTableProps<TData>["rowProps"];
 }
 
-function DataTableBody<TData extends RowData>({
+/** A row, then the rows nested under it, so a tree reads as one flat list. */
+function withSubRows<TData extends RowData>(
+  row: Row<DataTableFeatures, TData>,
+): Row<DataTableFeatures, TData>[] {
+  return [row, ...row.subRows.flatMap(withSubRows)];
+}
+
+export function DataTableBody<TData extends RowData>({
   table,
   rowProps,
 }: Readonly<DataTableBodyProps<TData>>) {
   return (
     <TableBody>
-      {table.getRowModel().rows.map((row) => (
-        <TableRow key={row.id} {...rowProps?.(row.original)}>
-          {row.getVisibleCells().map((cell) => (
-            <TableCell
-              key={cell.id}
-              className={cn(
-                cell.column.columnDef.meta?.align === "end" && "text-right",
-                cell.column.columnDef.meta?.grow && "w-full max-w-0",
-                cell.column.columnDef.meta?.secondary && SECONDARY_COLUMN,
-              )}
-            >
-              <FlexRender cell={cell} />
-            </TableCell>
-          ))}
-        </TableRow>
-      ))}
+      {table
+        .getRowModel()
+        .rows.flatMap(withSubRows)
+        .map((row) => (
+          <TableRow key={row.id} {...rowProps?.(row.original)}>
+            {row.getVisibleCells().map((cell) => (
+              <TableCell
+                key={cell.id}
+                className={cn(
+                  cell.column.columnDef.meta?.align === "end" && "text-right",
+                  cell.column.columnDef.meta?.grow && "w-full max-w-0",
+                  cell.column.columnDef.meta?.secondary && SECONDARY_COLUMN,
+                )}
+              >
+                <FlexRender cell={cell} />
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
     </TableBody>
   );
 }

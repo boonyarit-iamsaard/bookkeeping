@@ -43,6 +43,7 @@ test("Wallets lists every wallet in a table, archived ones captioned", {
     "Type",
     "Held as",
     "Balance",
+    "Actions",
   ]);
   const cash = table.getByRole("row", { name: /^Cash/ });
   await expect(cash).toContainText("Spendable");
@@ -94,4 +95,40 @@ test("Wallets loads without sample money, then offers only wallet creation when 
   await page.getByRole("link", { name: "Create your first wallet" }).click();
   await expect(page.getByRole("dialog", { name: "New wallet" })).toBeVisible();
   await expect(page).toHaveURL(/\/wallets$/);
+});
+
+test("Wallets sorts by its columns and each row's menu opens or manages the wallet", {
+  tag: "@matrix",
+}, async ({ page }) => {
+  test.skip(!isDesktop(page), "Phone keeps its card list");
+  await signUpFreshUser(page);
+  await createWalletThroughForm(page, {
+    name: "Cash",
+    openingAmount: "1000",
+    openingDate: "2026-09-01",
+  });
+  await createWalletThroughForm(page, {
+    name: "Old card",
+    openingAmount: "50",
+    openingDate: "2026-09-01",
+  });
+  await page.goto("/wallets");
+  const table = page.getByRole("table", { name: "Wallets" });
+  const wallets = table.locator("[data-wallet-row]");
+  await expect(
+    table.getByRole("button", { name: /rows per page/i }),
+  ).toHaveCount(0);
+
+  await table.getByRole("button", { name: "Balance" }).click();
+  await expect(wallets).toHaveText([/Cash/, /Old card/]);
+  await table.getByRole("button", { name: "Balance" }).click();
+  await expect(wallets).toHaveText([/Old card/, /Cash/]);
+  await table.getByRole("button", { name: "Wallet", exact: true }).click();
+  await expect(wallets).toHaveText([/Cash/, /Old card/]);
+  // The total stays beneath the rows, whatever the sort.
+  await expect(table.getByRole("row").last()).toContainText("Total balance");
+
+  await table.getByRole("button", { name: "Actions for Old card" }).click();
+  await page.getByRole("menuitem", { name: "Manage" }).click();
+  await expect(page).toHaveURL(/\/wallets\/[0-9a-f-]+\/manage$/);
 });

@@ -3,8 +3,8 @@ import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { CreateWalletForm } from "@/features/wallets/components/create-wallet-form";
 import { NewWalletLink } from "@/features/wallets/components/new-wallet-link";
+import { WalletDataTable } from "@/features/wallets/components/wallet-data-table";
 import { EmptyWallets } from "@/features/wallets/components/wallet-list";
-import { WalletTable } from "@/features/wallets/components/wallet-table";
 import { TableCard } from "@/shared/components/dashboard-card";
 import {
   EntryDialog,
@@ -39,10 +39,9 @@ export function WalletsDesktop({ collection }: Readonly<WalletsDesktopProps>) {
         </div>
       ) : (
         <TableCard>
-          <WalletTable
+          <WalletDataTable
             wallets={collection.items}
             total={collection.balance.total}
-            captionArchived
           />
         </TableCard>
       )}

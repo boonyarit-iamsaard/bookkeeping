@@ -1,16 +1,21 @@
+import { Dialog } from "@base-ui/react/dialog";
 import type { CategorySummary } from "@bookkeeping/domain/categories";
+import { sortFn_basic, sortFn_text } from "@tanstack/react-table";
 import type { CategoryColor } from "@/features/categories/category-color";
 import type { CategoryGroup } from "@/features/categories/category-search";
 import type { EditResult } from "@/features/categories/components/edit-category-sheet";
 import { EditCategorySheet } from "@/features/categories/components/edit-category-sheet";
-import { SheetTableRow } from "@/shared/components/sheet-table-row";
+import { ClientDataTable } from "@/shared/components/client-data-table";
+import type { DataTableColumn } from "@/shared/components/data-table";
+import { dataTableColumns } from "@/shared/components/data-table";
 import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/table";
+  actionsColumn,
+  RowActionsMenu,
+} from "@/shared/components/row-actions-menu";
+import { DropdownMenuItem } from "@/shared/components/ui/dropdown-menu";
+import { tableRowLinkClass } from "@/shared/components/ui/table";
+import { cn } from "@/shared/helpers/cn";
+import { useEditingRow } from "@/shared/hooks/use-editing-row";
 
 interface CategoryTableProps {
   /** Names the table, e.g. "Expense categories". */
@@ -22,44 +27,62 @@ interface CategoryTableProps {
   onDone: (result: Readonly<EditResult>) => void;
 }
 
-interface CategoryTableRowProps {
+/** A category as a row: its children nest under it, each level sorted among its own. */
+interface CategoryRow {
   category: CategorySummary;
   color: CategoryColor;
   parentName: string | null;
   childCount: number;
   entries: number;
-  onDone: (result: Readonly<EditResult>) => void;
+  children: readonly CategoryRow[];
 }
 
-/** One row, and the edit sheet it opens; a child sits one step in under its parent. */
-function CategoryTableRow({
-  category,
-  color,
-  parentName,
-  childCount,
-  entries,
-  onDone,
-}: Readonly<CategoryTableRowProps>) {
-  return (
-    <SheetTableRow
-      marker={{ "data-category-row": category.id }}
-      name={category.name}
-      nameClassName={parentName === null ? "font-semibold" : "pl-8!"}
-      count={entries}
-      renderSheet={(close) => (
-        <EditCategorySheet
-          category={category}
-          color={color}
-          removal={{ parentName, childCount, entries }}
-          onDone={(result) => {
-            close();
-            onDone(result);
-          }}
-          onCancel={close}
-        />
-      )}
-    />
-  );
+const column = dataTableColumns<CategoryRow>();
+
+function categoryColumns(
+  edit: (row: CategoryRow) => void,
+): readonly DataTableColumn<CategoryRow>[] {
+  return [
+    column.accessor((row) => row.category.name, {
+      id: "name",
+      header: "Name",
+      enableSorting: true,
+      sortFn: sortFn_text,
+      meta: { grow: true },
+      cell: ({ row }) => (
+        <button
+          type="button"
+          data-category-row={row.original.category.id}
+          title={row.original.category.name}
+          onClick={() => edit(row.original)}
+          // A child sits one step in under its parent.
+          className={cn(
+            tableRowLinkClass,
+            "block truncate text-left",
+            row.depth === 0
+              ? "max-w-full font-semibold"
+              : "ms-8 max-w-[calc(100%-2rem)]",
+          )}
+        >
+          {row.original.category.name}
+        </button>
+      ),
+    }),
+    column.accessor("entries", {
+      header: "Entries",
+      enableSorting: true,
+      sortFn: sortFn_basic,
+      meta: { align: "end" },
+      cell: ({ getValue }) => (
+        <span className="text-muted-foreground tabular-nums">{getValue()}</span>
+      ),
+    }),
+    actionsColumn<CategoryRow>((row) => (
+      <RowActionsMenu record={row.category.name}>
+        <DropdownMenuItem onClick={() => edit(row)}>Edit</DropdownMenuItem>
+      </RowActionsMenu>
+    )),
+  ];
 }
 
 /** One tree as a table: Name and Entries, each child one step in under its parent. */
@@ -70,41 +93,56 @@ export function CategoryTable({
   usage,
   onDone,
 }: Readonly<CategoryTableProps>) {
+  const editing = useEditingRow<CategoryRow>(
+    (row) => `[data-category-row="${row.category.id}"]`,
+  );
+  const edited = editing.row;
+  const rows = groups.map(({ parent, children }): CategoryRow => {
+    const color = colorOf(parent.id);
+    return {
+      category: parent,
+      color,
+      parentName: null,
+      childCount: children.length,
+      entries: usage[parent.id] ?? 0,
+      children: children.map((child) => ({
+        category: child,
+        color,
+        parentName: parent.name,
+        childCount: 0,
+        entries: usage[child.id] ?? 0,
+        children: [],
+      })),
+    };
+  });
   return (
-    <Table aria-label={label}>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead className="text-right">Entries</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {groups.map(({ parent, children }) => {
-          const color = colorOf(parent.id);
-          return [
-            <CategoryTableRow
-              key={parent.id}
-              category={parent}
-              color={color}
-              parentName={null}
-              childCount={children.length}
-              entries={usage[parent.id] ?? 0}
-              onDone={onDone}
-            />,
-            ...children.map((child) => (
-              <CategoryTableRow
-                key={child.id}
-                category={child}
-                color={color}
-                parentName={parent.name}
-                childCount={0}
-                entries={usage[child.id] ?? 0}
-                onDone={onDone}
-              />
-            )),
-          ];
-        })}
-      </TableBody>
-    </Table>
+    <>
+      <ClientDataTable
+        label={label}
+        columns={categoryColumns(editing.edit)}
+        rows={rows}
+        rowId={(row) => row.category.id}
+        subRows={(row) => row.children}
+        rowProps={() => ({ className: "hover:bg-accent/70" })}
+      />
+      <Dialog.Root {...editing.rootProps}>
+        {edited && (
+          <EditCategorySheet
+            category={edited.category}
+            color={edited.color}
+            removal={{
+              parentName: edited.parentName,
+              childCount: edited.childCount,
+              entries: edited.entries,
+            }}
+            onDone={(result) => {
+              editing.close();
+              onDone(result);
+            }}
+            onCancel={editing.close}
+          />
+        )}
+      </Dialog.Root>
+    </>
   );
 }
