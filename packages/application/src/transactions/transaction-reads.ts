@@ -133,11 +133,20 @@ export interface ListTransactionsOptions extends TransactionFilters {
   ownerId: string;
 }
 
-const transactionListOrder = [
-  desc(transactions.transactionDate),
-  desc(transactions.recordedAt),
-  desc(transactions.id),
-] as const;
+/** Ties break by recording time, then id, in the sort's direction, so pages hold a stable order. */
+function transactionListOrder(
+  sort: TransactionListSort,
+  order: TransactionListOrder,
+) {
+  const direction = order === "asc" ? asc : desc;
+  return [
+    direction(
+      sort === "amount" ? transactions.amount : transactions.transactionDate,
+    ),
+    direction(transactions.recordedAt),
+    direction(transactions.id),
+  ] as const;
+}
 
 function transactionWhere(filters: Readonly<ListTransactionsOptions>) {
   return and(
@@ -179,7 +188,7 @@ export async function listTransactions(
 ): Promise<readonly TransactionDetail[]> {
   const rows = await detailQuery(db)
     .where(transactionWhere(filters))
-    .orderBy(...transactionListOrder);
+    .orderBy(...transactionListOrder("date", "desc"));
   return toDetails(db, rows);
 }
 
@@ -199,28 +208,18 @@ export interface NumberedTransactionPage {
 }
 
 /**
- * One numbered page of current financial history in the chosen order. Ties
- * break by recording time, then id, in the same direction, so pages hold a
- * stable order. Amounts are stored unsigned, so amount sorts by size.
+ * One numbered page of current financial history in the chosen order. Amounts
+ * are stored unsigned, so amount sorts by size.
  */
 export async function listNumberedTransactionPage(
   db: Database,
   options: Readonly<ListNumberedTransactionPageOptions>,
 ): Promise<NumberedTransactionPage> {
   const where = transactionWhere(options);
-  const direction = options.order === "asc" ? asc : desc;
-  const sortColumn =
-    options.sort === "amount"
-      ? transactions.amount
-      : transactions.transactionDate;
   const [rows, [counted]] = await Promise.all([
     detailQuery(db)
       .where(where)
-      .orderBy(
-        direction(sortColumn),
-        direction(transactions.recordedAt),
-        direction(transactions.id),
-      )
+      .orderBy(...transactionListOrder(options.sort, options.order))
       .limit(options.pageSize)
       .offset((options.page - 1) * options.pageSize),
     db
