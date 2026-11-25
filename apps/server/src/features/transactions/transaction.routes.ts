@@ -3,18 +3,15 @@ import {
   deleteTransaction,
   updateTransaction,
 } from "@bookkeeping/application/transactions";
-import type { ListTransactionsOptions } from "@bookkeeping/application/transactions/reads";
 import {
   findExpenseRefunds,
   findLastUsedWalletId,
   findTransaction,
-  listTransactionPage,
 } from "@bookkeeping/application/transactions/reads";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   carriesOwnCategory,
   carriesOwnTags,
-  TRANSACTION_TYPES,
 } from "@bookkeeping/domain/transactions";
 import type { Input } from "hono";
 import { Hono } from "hono";
@@ -28,10 +25,7 @@ import {
   describeProblemVariant,
 } from "../../core/http/openapi.js";
 import type { problemDetailsSchema } from "../../core/http/problem-details.js";
-import {
-  createProblemResponse,
-  getProblemOptionsForStatus,
-} from "../../core/http/problem-details.js";
+import { getProblemOptionsForStatus } from "../../core/http/problem-details.js";
 
 import type {
   CreationValidatedInput,
@@ -67,10 +61,11 @@ import {
   transactionResponseSchema,
   updateTransactionRequestSchema,
 } from "./transaction.schemas.js";
+import type { transactionListQuerySchema } from "./transaction-list.js";
 import {
-  decodeTransactionCursor,
-  encodeTransactionCursor,
-} from "./transaction-cursor.js";
+  readTransactionList,
+  transactionListQueryMiddleware,
+} from "./transaction-list.js";
 import type { transactionRejectionProblemSchema } from "./transaction-rejection.js";
 import {
   toCreateFieldErrors,
@@ -80,54 +75,10 @@ import {
 
 // Registered before the resource path so the static entry-defaults read is
 // never captured by the identifier route.
-const DEFAULT_TRANSACTION_PAGE_LIMIT = 50;
-const MAX_TRANSACTION_PAGE_LIMIT = 100;
 const COLLECTION_PATH = "/transactions";
 const ENTRY_DEFAULTS_PATH = "/transactions/entry-defaults";
 const RESOURCE_PATH = "/transactions/:transactionId";
 const REFUNDS_PATH = "/transactions/:transactionId/refunds";
-
-const transactionLimitSchema = z
-  .string()
-  .regex(/^[1-9]\d*$/)
-  .transform((value) => {
-    const parsed = Number(value);
-    return Number.isSafeInteger(parsed)
-      ? Math.min(parsed, MAX_TRANSACTION_PAGE_LIMIT)
-      : MAX_TRANSACTION_PAGE_LIMIT;
-  });
-
-const transactionListQuerySchema = z
-  .strictObject({
-    from: z.iso.date().optional(),
-    to: z.iso.date().optional(),
-    walletId: z.uuid().optional(),
-    categoryId: z.uuid().optional(),
-    type: z.enum(TRANSACTION_TYPES).optional(),
-    // Repeat it for any of several tags; a single one arrives as a string.
-    tagId: z
-      .union([z.uuid().transform((id) => [id]), z.array(z.uuid())])
-      .optional(),
-    limit: transactionLimitSchema.optional(),
-    cursor: z.string().min(1).optional(),
-  })
-  .superRefine((query, context) => {
-    if (
-      query.from !== undefined &&
-      query.to !== undefined &&
-      query.from > query.to
-    ) {
-      context.addIssue({
-        code: "custom",
-        path: ["from"],
-        message: "The start date must not be after the end date",
-      });
-    }
-  });
-
-const transactionListQueryMiddleware = createQueryMiddleware(
-  transactionListQuerySchema,
-);
 
 const transactionRefundsQuerySchema = z.strictObject({
   excluding: z.uuid().optional(),
@@ -220,8 +171,11 @@ export function createTransactionRoutes(db: Database) {
           "Date, wallet, category, type, and tag filters preserve transfer, " +
           "parent category, refund, and ownership semantics; repeated tag " +
           "ids match any of them, and a refund matches through its " +
-          "expense's tags. Pages use an opaque cursor bound to this ordering " +
-          "and the active filters; the server caps the requested limit.",
+          "expense's tags. The list comes in numbered pages: `page` (from " +
+          "1), `pageSize` (10, 25, 50, or 100; default 50), `sort` (`date` " +
+          "or `amount`, by size; default `date`), and `order` (default " +
+          "`desc`); the response carries the filtered `total`, and ties " +
+          "break by recording time, then identifier.",
         tags: ["Transactions"],
         responses: {
           400: describeProblemResponse(400),
@@ -239,43 +193,11 @@ export function createTransactionRoutes(db: Database) {
         }
       >(
         async (c) => {
-          const query = c.req.valid("query");
-          const options: ListTransactionsOptions = {
+          const list = await readTransactionList(db, {
             ownerId: c.get("session").user.id,
-            from: query.from,
-            to: query.to,
-            walletId: query.walletId,
-            categoryId: query.categoryId,
-            type: query.type,
-            tagIds: query.tagId,
-          };
-          const after =
-            query.cursor === undefined
-              ? undefined
-              : decodeTransactionCursor(query.cursor, options);
-          if (query.cursor !== undefined && after === null) {
-            return createProblemResponse(c, getProblemOptionsForStatus(400));
-          }
-
-          const page = await listTransactionPage(db, {
-            ...options,
-            limit: query.limit ?? DEFAULT_TRANSACTION_PAGE_LIMIT,
-            after: after ?? undefined,
+            query: c.req.valid("query"),
           });
-          return c.json(
-            {
-              items: page.items.map(presentTransaction),
-              page: {
-                nextCursor: page.nextPosition
-                  ? encodeTransactionCursor({
-                      options,
-                      position: page.nextPosition,
-                    })
-                  : null,
-              },
-            },
-            200,
-          );
+          return c.json(list, 200);
         },
         {
           200: {

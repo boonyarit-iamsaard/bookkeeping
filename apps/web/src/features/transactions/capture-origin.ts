@@ -4,7 +4,7 @@ import type { HistorySearch } from "@/features/transactions/history-schema";
 
 const INTERNAL_ORIGIN = "https://bookkeeping.invalid";
 const ARRIVAL_KEY = "created" satisfies keyof HistorySearch;
-const CURSOR_KEY = "cursor" satisfies keyof HistorySearch;
+const PAGE_KEY = "page" satisfies keyof HistorySearch;
 
 interface CaptureLocation {
   pathname: string;
@@ -46,11 +46,11 @@ function walletIdFromPathname(pathname: string): string | undefined {
   return walletId === "new" ? undefined : walletId;
 }
 
-function resetHistoryCursor(url: URL): void {
+function resetHistoryPage(url: URL): void {
   const isTransactionsHistory = url.pathname === "/transactions";
   const isWalletHistory = walletIdFromPathname(url.pathname) !== undefined;
   if (isTransactionsHistory || isWalletHistory) {
-    url.searchParams.delete(CURSOR_KEY);
+    url.searchParams.delete(PAGE_KEY);
   }
 }
 
@@ -130,7 +130,7 @@ export function captureReturnHref(
   transactionId: string,
 ): string {
   const url = urlForCaptureOrigin(origin);
-  resetHistoryCursor(url);
+  resetHistoryPage(url);
   url.searchParams.set(ARRIVAL_KEY, transactionId);
   return pathWithSearch(url);
 }

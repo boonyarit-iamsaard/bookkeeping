@@ -17,17 +17,24 @@ interface TrendChartProps {
 
 const CURRENCY = "THB";
 
+/** The trend lengths Home and Reports show, in words. */
+const TREND_SPAN_WORDS: Partial<Record<number, string>> = {
+  6: "six",
+  12: "twelve",
+};
+
 const SERIES = [
   { key: "income", label: "Income", series: "income" },
   { key: "netExpenses", label: "Net expenses", series: "expense" },
 ] as const;
 
 /**
- * The level 2 chart: Income and Net expenses for the six months ending at the
- * chosen one, as paired columns from one zero line. A month's exact figures
+ * The level 2 chart: Income and Net expenses for the months given, ending at
+ * the chosen one, as paired columns from one zero line. A month's exact figures
  * are the readout beneath it, and a table for assistive technology.
  */
 export function TrendChart({ points }: Readonly<TrendChartProps>) {
+  const span = TREND_SPAN_WORDS[points.length] ?? String(points.length);
   const [chosen, setChosen] = useState(points.length - 1);
   const everyMonthEmpty = points.every((point) => point.empty);
   const selected = points[chosen] ?? points.at(-1);
@@ -38,7 +45,7 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
   if (everyMonthEmpty || !selected) {
     return (
       <p className="text-muted-foreground text-sm">
-        Nothing recorded in these six months.
+        Nothing recorded in these {span} months.
       </p>
     );
   }
@@ -49,7 +56,7 @@ export function TrendChart({ points }: Readonly<TrendChartProps>) {
       <div className="sr-only">
         <table>
           <caption>
-            Income and net expenses for each of the last six months
+            Income and net expenses for each of the last {span} months
           </caption>
           <thead>
             <tr>

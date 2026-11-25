@@ -18,13 +18,27 @@ import { ErrorNotice } from "@/shared/components/error-notice";
 import { Button } from "@/shared/components/ui/button";
 import { SheetPortal } from "@/shared/components/ui/sheet";
 
+interface DeletableTransaction {
+  id: string;
+  type: TransactionType;
+  amountText: string;
+  transactionDate: CalendarDate;
+}
+
+interface DeleteTransactionDialogProps {
+  transaction: DeletableTransaction;
+  walletName: string | undefined;
+  destinationWalletName?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Where a finished deletion goes; the list, with a notice, by default. */
+  onDeleted?: () => void;
+  /** The trigger, when the dialog opens from its own button. */
+  children?: React.ReactNode;
+}
+
 interface DeleteTransactionButtonProps {
-  transaction: {
-    id: string;
-    type: TransactionType;
-    amountText: string;
-    transactionDate: CalendarDate;
-  };
+  transaction: DeletableTransaction;
   walletName: string | undefined;
   destinationWalletName?: string;
   disabled?: boolean;
@@ -43,18 +57,20 @@ function deletionEffect(type: TransactionType) {
 }
 
 /**
- * The destructive action of the edit screen: a button that opens a
- * confirmation reading the line back, then deletes and returns to the list
- * with a notice. Repeating a deletion whose response was lost is safe.
+ * The confirmation for deleting a transaction: it reads the line back, then
+ * deletes and returns to the list with a notice. Repeating a deletion whose
+ * response was lost is safe.
  */
-export function DeleteTransactionButton({
+export function DeleteTransactionDialog({
   transaction,
   walletName,
   destinationWalletName,
-  disabled,
-}: Readonly<DeleteTransactionButtonProps>) {
+  open,
+  onOpenChange,
+  onDeleted,
+  children,
+}: Readonly<DeleteTransactionDialogProps>) {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
   const { submit, pending, serverError, clearErrors } = useFormWrites({
     fields: [],
     writes: {
@@ -69,7 +85,10 @@ export function DeleteTransactionButton({
           transactionQueries.detail(transaction.id).queryKey,
           transactionQueries.refunds(transaction.id).queryKey,
         ],
-        onDone: () => navigate({ to: "/transactions", search: { deleted: 1 } }),
+        onDone: () =>
+          onDeleted
+            ? onDeleted()
+            : navigate({ to: "/transactions", search: { deleted: 1 } }),
       },
     },
   });
@@ -92,26 +111,13 @@ export function DeleteTransactionButton({
         if (pending) {
           return;
         }
-        setOpen(next);
+        onOpenChange(next);
         if (next) {
           clearErrors();
         }
       }}
     >
-      <AlertDialog.Trigger
-        disabled={disabled}
-        render={
-          <Button
-            type="button"
-            variant="destructive"
-            size="lg"
-            className="h-11 self-start"
-          />
-        }
-      >
-        <Trash2 data-icon="inline-start" strokeWidth={1.75} />
-        Delete {noun}
-      </AlertDialog.Trigger>
+      {children}
 
       <SheetPortal>
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-6 pb-2 sm:px-6">
@@ -165,5 +171,38 @@ export function DeleteTransactionButton({
         </div>
       </SheetPortal>
     </AlertDialog.Root>
+  );
+}
+
+/** The destructive action of the edit screen: a button that opens the confirmation. */
+export function DeleteTransactionButton({
+  transaction,
+  disabled,
+  ...names
+}: Readonly<DeleteTransactionButtonProps>) {
+  const [open, setOpen] = useState(false);
+  const noun = TRANSACTION_TYPE_LABELS[transaction.type].toLowerCase();
+  return (
+    <DeleteTransactionDialog
+      {...names}
+      transaction={transaction}
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <AlertDialog.Trigger
+        disabled={disabled}
+        render={
+          <Button
+            type="button"
+            variant="destructive"
+            size="lg"
+            className="h-11 self-start"
+          />
+        }
+      >
+        <Trash2 data-icon="inline-start" strokeWidth={1.75} />
+        Delete {noun}
+      </AlertDialog.Trigger>
+    </DeleteTransactionDialog>
   );
 }

@@ -1713,6 +1713,32 @@
         ],
         "additionalProperties": {}
       },
+      "TransactionPage": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "number",
+          "size",
+          "total"
+        ],
+        "additionalProperties": false
+      },
       "TransactionCollection": {
         "type": "object",
         "properties": {
@@ -1723,7 +1749,7 @@
             }
           },
           "page": {
-            "$ref": "#/components/schemas/Page"
+            "$ref": "#/components/schemas/TransactionPage"
           }
         },
         "required": [
@@ -3624,7 +3650,7 @@
           }
         },
         "summary": "List transactions",
-        "description": "Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, type, and tag filters preserve transfer, parent category, refund, and ownership semantics; repeated tag ids match any of them, and a refund matches through its expense's tags. Pages use an opaque cursor bound to this ordering and the active filters; the server caps the requested limit.",
+        "description": "Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, type, and tag filters preserve transfer, parent category, refund, and ownership semantics; repeated tag ids match any of them, and a refund matches through its expense's tags. The list comes in numbered pages: `page` (from 1), `pageSize` (10, 25, 50, or 100; default 50), `sort` (`date` or `amount`, by size; default `date`), and `order` (default `desc`); the response carries the filtered `total`, and ties break by recording time, then identifier.",
         "tags": [
           "Transactions"
         ],
@@ -3701,7 +3727,7 @@
           },
           {
             "in": "query",
-            "name": "limit",
+            "name": "page",
             "schema": {
               "type": "string",
               "pattern": "^[1-9]\\d*$"
@@ -3709,10 +3735,37 @@
           },
           {
             "in": "query",
-            "name": "cursor",
+            "name": "pageSize",
             "schema": {
               "type": "string",
-              "minLength": 1
+              "enum": [
+                "10",
+                "25",
+                "50",
+                "100"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "date",
+                "amount"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
             }
           }
         ]

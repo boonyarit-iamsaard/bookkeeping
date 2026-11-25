@@ -6,9 +6,10 @@ import {
   walletQueries,
 } from "@/core/api/queries";
 import { reportMonthOf } from "@/features/reports/report-month";
+import { TREND_LENGTH, trendMonths } from "@/features/reports/trend-series";
 
 // Enough to confirm what was just recorded; history holds the rest.
-const RECENT_TRANSACTION_LIMIT = "10";
+const RECENT_TRANSACTION_PAGE_SIZE = "10";
 
 /** Home's reads for Bangkok's `today`, shared by its loader and screen. */
 export function createHomeQueryPlan(today: CalendarDate) {
@@ -18,8 +19,17 @@ export function createHomeQueryPlan(today: CalendarDate) {
     wallets: walletQueries.list(),
     daily: reportQueries.daily(today),
     monthly: reportQueries.monthly(reportMonthOf(today)),
-    // Only the desktop grid shows it.
+    // Only the desktop grid shows them, this month beside the one before.
     categorySpending: reportQueries.categorySpending(reportMonthOf(today)),
-    recent: transactionQueries.list({ limit: RECENT_TRANSACTION_LIMIT }),
+    /** Absent in the calendar's first month. */
+    lastMonthCategorySpending: trendMonths(reportMonthOf(today), 2)
+      .slice(0, -1)
+      .map((month) => reportQueries.categorySpending(month)),
+    recent: transactionQueries.list({ pageSize: RECENT_TRANSACTION_PAGE_SIZE }),
+    /** The desktop cash flow: one monthly report per month, the cache Reports reads. */
+    trend: (length = TREND_LENGTH) =>
+      trendMonths(reportMonthOf(today), length).map((month) =>
+        reportQueries.monthly(month),
+      ),
   };
 }

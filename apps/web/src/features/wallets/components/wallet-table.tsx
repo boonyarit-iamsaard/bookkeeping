@@ -4,6 +4,7 @@ import {
   WALLET_TYPE_LABELS,
   walletHeldAsLabel,
 } from "@/features/wallets/wallet-labels";
+import { SECONDARY_COLUMN } from "@/shared/components/data-table";
 import { Money } from "@/shared/components/money";
 import {
   Table,
@@ -24,23 +25,17 @@ interface WalletTableProps {
   wallets: readonly WalletSummary[];
   /** The Total balance beneath the rows, which may cover wallets not listed; none without wallets. */
   total: ApiMoney | null;
-  /** Captions archived wallets in the list; Home, which hides them, leaves it off. */
-  captionArchived?: boolean;
 }
 
 /** Wallets by name, type, how their balance counts, and balance, with the Total balance beneath. */
-export function WalletTable({
-  wallets,
-  total,
-  captionArchived = false,
-}: Readonly<WalletTableProps>) {
+export function WalletTable({ wallets, total }: Readonly<WalletTableProps>) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Wallet</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Held as</TableHead>
+          <TableHead className={SECONDARY_COLUMN}>Type</TableHead>
+          <TableHead className={SECONDARY_COLUMN}>Held as</TableHead>
           <TableHead className="text-right">Balance</TableHead>
         </TableRow>
       </TableHeader>
@@ -59,15 +54,13 @@ export function WalletTable({
               >
                 {wallet.name}
               </Link>
-              {/* A caption is text, not a link: the row is the link. */}
-              {captionArchived && wallet.archivedAt && (
-                <span className="text-muted-foreground block text-sm font-normal">
-                  Archived
-                </span>
-              )}
             </TableCell>
-            <TableCell>{WALLET_TYPE_LABELS[wallet.type]}</TableCell>
-            <TableCell>{walletHeldAsLabel(wallet)}</TableCell>
+            <TableCell className={SECONDARY_COLUMN}>
+              {WALLET_TYPE_LABELS[wallet.type]}
+            </TableCell>
+            <TableCell className={SECONDARY_COLUMN}>
+              {walletHeldAsLabel(wallet)}
+            </TableCell>
             <TableCell className="text-right">
               <Money amount={wallet.balance} />
             </TableCell>
@@ -77,7 +70,8 @@ export function WalletTable({
       {total && (
         <TableFooter>
           <TableRow>
-            <TableCell colSpan={3}>Total balance</TableCell>
+            <TableCell>Total balance</TableCell>
+            <TableCell colSpan={2} className={SECONDARY_COLUMN} />
             <TableCell className="text-right">
               <Money amount={total} />
             </TableCell>

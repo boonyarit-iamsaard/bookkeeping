@@ -27,7 +27,7 @@
     "format": "prettier --write \"**/*.{md,yaml,yml,html}\"",
     "format:check": "prettier --check \"**/*.{md,yaml,yml,html}\"",
     "generate:api": "pnpm --filter @bookkeeping/web generate:api",
-    "lint": "biome check --error-on-warnings --no-errors-on-unmatched --files-ignore-unknown=true",
+    "lint": "pnpm check:file-token-budget && pnpm check:public-identifiers && pnpm check:declaration-order && biome check --error-on-warnings --no-errors-on-unmatched --files-ignore-unknown=true",
     "lint:md": "markdownlint \"**/*.md\" --ignore-path .gitignore",
     "lint:sh": "tsx scripts/lint-shell.ts",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" --ignore-path .gitignore",

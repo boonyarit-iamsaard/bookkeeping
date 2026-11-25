@@ -12,7 +12,8 @@ interface DashboardCardProps {
 /**
  * A desktop dashboard card: its heading and action on one line, the content
  * beneath. It fills its cell in a `DashboardRow`; content that should sit at
- * the card's foot takes `mt-auto`.
+ * the card's foot takes `mt-auto`. It is a size container, so a table inside
+ * can drop secondary columns when the card is narrow.
  */
 export function DashboardCard({
   headingId,
@@ -23,7 +24,7 @@ export function DashboardCard({
   return (
     <section
       aria-labelledby={headingId}
-      className="bg-card shadow-card flex flex-col gap-4 rounded-2xl p-6"
+      className="bg-card shadow-card @container flex flex-col gap-4 rounded-2xl p-6"
     >
       <div className="flex min-h-11 items-center justify-between gap-3">
         <h2 id={headingId} className="text-lg font-bold tracking-tight">

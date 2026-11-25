@@ -37,7 +37,7 @@ describe("history filter chips", () => {
     const [from] = chipsFor({
       from: "2026-09-01",
       type: "income",
-      cursor: "eyJ2IjoxfQ",
+      page: 2,
       created: CASH,
     });
     expect(from?.without).toEqual({ type: "income" });
@@ -76,6 +76,6 @@ describe("history filter chips", () => {
   });
 
   test("has no chips without filters", () => {
-    expect(chipsFor({ cursor: "x" })).toEqual([]);
+    expect(chipsFor({ page: 2 })).toEqual([]);
   });
 });

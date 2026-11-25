@@ -72,7 +72,7 @@ ownership, house-style enforcement); each `##` section stands alone, and
 Schema changes ship as committed migrations, and production applies them on
 deploy. Merging a PR that adds a migration authorizes it, so only the owner
 merges one; leave it open for the owner. Follow the naming and workflow rules
-in `docs/code-conventions.md#database-migrations`.
+in `docs/development/database-migrations.md`.
 
 ### Issue tracker
 

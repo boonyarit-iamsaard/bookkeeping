@@ -37,6 +37,23 @@ describe("trendMonths", () => {
     expect(TREND_HEADING).toBe("Last six months");
   });
 
+  test("covers a longer trend when asked", () => {
+    expect(trendMonths("2026-02", 12)).toEqual([
+      "2025-03",
+      "2025-04",
+      "2025-05",
+      "2025-06",
+      "2025-07",
+      "2025-08",
+      "2025-09",
+      "2025-10",
+      "2025-11",
+      "2025-12",
+      "2026-01",
+      "2026-02",
+    ]);
+  });
+
   test("stops at the first month the calendar has", () => {
     expect(trendMonths("0001-03")).toEqual(["0001-01", "0001-02", "0001-03"]);
   });

@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { chooseDate } from "./helpers/choose-date";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
+import { expectUnclipped } from "./helpers/expect-unclipped";
 import { resumePage } from "./helpers/resume-page";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 
@@ -196,11 +197,7 @@ test("the month picker sits on the Reports title's row", {
     .getByLabel("Report month")
     .locator('[data-slot="month-value"]');
   await expect(monthValue).toHaveText("September 2026");
-  const { scrollWidth, clientWidth } = await monthValue.evaluate((element) => ({
-    scrollWidth: element.scrollWidth,
-    clientWidth: element.clientWidth,
-  }));
-  expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+  await expectUnclipped(monthValue);
 
   const heading = await page
     .getByRole("heading", { name: "Reports", level: 1 })

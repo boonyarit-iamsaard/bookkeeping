@@ -127,6 +127,16 @@ test("from 1024px Edit, Record refund and New wallet open over their screens", {
   const detailUrl = page.url();
   const main = page.locator("main");
 
+  await page.setViewportSize({ width: 1024, height: 800 });
+  const amount = await main
+    .getByRole("region", { name: "Amount" })
+    .boundingBox();
+  const recorded = await main
+    .getByText("Recorded", { exact: true })
+    .boundingBox();
+  expect(recorded?.x).toBeGreaterThan((amount?.x ?? 0) + (amount?.width ?? 0));
+  await page.setViewportSize({ width: 1280, height: 800 });
+
   // Edit closes onto the detail with its new values.
   await main.getByRole("link", { name: "Edit" }).click();
   const edit = page.getByRole("dialog", { name: "Edit expense" });
@@ -151,17 +161,27 @@ test("from 1024px Edit, Record refund and New wallet open over their screens", {
     main.getByRole("list", { name: "Linked refunds" }),
   ).toContainText("50.00");
 
-  // A direct load of either is still the page.
+  // Direct links load with the form skeleton and then show the form as a page.
+  const detailRead = /\/v1\/transactions\/[0-9a-f-]+$/;
+  await page.route(detailRead, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2_500));
+    await route.continue();
+  });
   for (const [path, title] of [
     ["edit", "Edit expense"],
     ["refund", "Record refund"],
   ]) {
     await page.goto(`${detailUrl}/${path}`);
+    await expect(page.getByRole("main", { name: "Loading" })).toContainText(
+      "Loading entry form…",
+    );
     await expect(
       page.getByRole("heading", { name: title, level: 1 }),
     ).toBeVisible();
+    await expect(main.getByLabel("Amount")).toBeVisible();
     await expect(page.getByRole("dialog")).toHaveCount(0);
   }
+  await page.unroute(detailRead);
 
   // New wallet stays on Wallets, which lists it after Save.
   await page.goto("/wallets");

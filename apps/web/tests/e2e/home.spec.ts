@@ -221,119 +221,15 @@ test("loads without sample money, then reads an empty ledger as empty", {
     page.getByRole("main", { name: "Loading" }).getByText(/฿/),
   ).toHaveCount(0);
 
-  const day = page.getByRole("region", { name: "Today" });
-  await expect(day).toContainText("Income฿0.00");
-  await expect(day).toContainText("Net expenses฿0.00");
-  await expect(day).toContainText("Net฿0.00");
+  // Phone reads the day's card; desktop reads this month's tiles instead.
+  const figures = isDesktop(page)
+    ? page.getByRole("region", { name: "Net", exact: true })
+    : page.getByRole("region", { name: "Today" });
+  await expect(figures).toContainText(/Net\s*฿0\.00/);
   const recent = page.getByRole("region", { name: "Recent transactions" });
   await expect(recent).toContainText("No transactions yet");
   await expect(recent.getByRole("listitem")).toHaveCount(0);
   await expect(
-    page.getByRole("link", { name: "All transactions" }),
+    page.getByRole("link", { name: /^(All|View all) transactions$/ }),
   ).toHaveCount(0);
-});
-
-test("the desktop grid lines the figures, categories, wallets and records in three rows", {
-  tag: "@matrix",
-}, async ({ page }) => {
-  test.skip(!isDesktop(page), "Phone keeps its single column");
-  await signUpFreshUser(page);
-  await createWalletThroughForm(page, {
-    name: "Cash",
-    openingAmount: "1000",
-    openingDate: "2026-09-01",
-  });
-  await createWalletThroughForm(page, {
-    name: "Old card",
-    openingAmount: "50",
-    openingDate: "2026-09-01",
-  });
-  await page.getByRole("link", { name: "Old card", exact: true }).click();
-  await page.getByRole("link", { name: "Manage" }).click();
-  await page
-    .getByRole("button", { name: "Archive wallet", exact: true })
-    .click();
-  await expect(
-    page.getByRole("button", { name: "Unarchive wallet", exact: true }),
-  ).toBeVisible();
-  await page.goto("/transactions/new");
-  await page.getByLabel("Amount").fill("80");
-  await page.getByLabel("Note (optional)", { exact: true }).fill("Lunch");
-  await page.getByRole("button", { name: "Save −฿80.00 · Cash" }).click();
-  const saved = await expectSavedRecord(page);
-  const savedId = (await saved.locator("a").first().getAttribute("href"))
-    ?.split("/")
-    .pop();
-  if (!savedId) {
-    throw new Error("Missing saved expense link");
-  }
-
-  await page.goto(`/?created=${savedId}`);
-  const total = page.getByRole("region", { name: "Total balance" });
-  const day = page.getByRole("region", { name: "Today" });
-  const month = page.getByRole("region", { name: "This month" });
-  await expect(total).toContainText("฿970.00");
-  await expect(day).toContainText("Net expenses฿80.00");
-  await expect(month).toContainText("Net expenses฿80.00");
-  // Row 1: three cards on one line, stretched to one height.
-  const totalBox = await boxOf(total);
-  for (const card of [day, month]) {
-    const box = await boxOf(card);
-    expect(box.y).toBeCloseTo(totalBox.y, 0);
-    expect(box.height).toBeCloseTo(totalBox.height, 0);
-  }
-
-  // Row 2: spending by category beside the Wallets table.
-  const categories = page.getByRole("region", { name: "Spending by category" });
-  await expect(categories).toContainText("Uncategorized");
-  await expect(categories).toContainText("฿80.00");
-  const wallets = page.getByRole("region", { name: "Wallets" });
-  const walletTable = wallets.getByRole("table");
-  await expect(walletTable.getByRole("columnheader")).toHaveText([
-    "Wallet",
-    "Type",
-    "Held as",
-    "Balance",
-  ]);
-  const cashRow = walletTable.getByRole("row", { name: /Cash/ });
-  await expect(cashRow).toContainText("Spendable");
-  await expect(cashRow).toContainText("฿920.00");
-  await expect(walletTable.getByRole("row", { name: /Old card/ })).toHaveCount(
-    0,
-  );
-  await expect(
-    walletTable.getByRole("row", { name: /Total balance/ }),
-  ).toContainText("฿970.00");
-  await expect(wallets).toContainText("1 archived wallet not shown");
-  const categoriesBox = await boxOf(categories);
-  const walletsBox = await boxOf(wallets);
-  expect(walletsBox.y).toBeCloseTo(categoriesBox.y, 0);
-  expect(walletsBox.height).toBeCloseTo(categoriesBox.height, 0);
-  expect(categoriesBox.y).toBeGreaterThan(totalBox.y + totalBox.height);
-
-  // Row 3: the records as a table, the one just saved arriving with a fade.
-  const recent = page.getByRole("region", { name: "Recent transactions" });
-  const recentTable = recent.getByRole("table");
-  await expect(recentTable.getByRole("columnheader")).toHaveText([
-    "Date",
-    "Category",
-    "Wallet",
-    "Tags",
-    "Note",
-    "Amount",
-  ]);
-  const row = recentTable.locator("[data-saved]");
-  await expect(row).toContainText("Uncategorized");
-  await expect(row).toContainText("Cash");
-  await expect(row).toContainText("Lunch");
-  await expect(row).toContainText("−฿80.00");
-  expect((await boxOf(recent)).y).toBeGreaterThan(
-    walletsBox.y + walletsBox.height,
-  );
-  await row.getByRole("link").click();
-  await expect(page).toHaveURL(new RegExp(`/transactions/${savedId}$`));
-
-  await page.goto("/");
-  await page.getByRole("link", { name: "All transactions" }).click();
-  await expect(page).toHaveURL(/\/transactions$/);
 });

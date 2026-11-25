@@ -5,7 +5,7 @@ import { chooseOption } from "./helpers/choose-option";
 import { createWalletThroughForm } from "./helpers/create-wallet";
 import { expectSavedRecord } from "./helpers/expect-saved-record";
 import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
-import { isDesktop } from "./helpers/viewport";
+import { expectNoHorizontalOverflow, isDesktop } from "./helpers/viewport";
 
 test.setTimeout(120_000);
 
@@ -101,11 +101,7 @@ test("filters apply through the address and open the saved record", {
     "All types",
   );
   await page.keyboard.press("Escape");
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBe(true);
+  await expectNoHorizontalOverflow(page);
   await page.goto(expenseHref);
   await expect(
     page.getByRole("heading", { name: "Expense", exact: true }),

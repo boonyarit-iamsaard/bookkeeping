@@ -1,17 +1,27 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { tagQueries } from "@/core/api/queries";
-import { Page } from "@/core/shell/page";
-import { TagManagement } from "@/features/tags/components/tag-management";
-import { TagsLoading } from "@/features/tags/components/tags-loading";
+import {
+  TagsDesktop,
+  TagsDesktopLoading,
+} from "@/features/tags/screens/tags.desktop";
+import {
+  TagsPhone,
+  TagsPhoneLoading,
+} from "@/features/tags/screens/tags.phone";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function TagsPage() {
   const { data } = useSuspenseQuery(tagQueries.list());
-  return (
-    <Page layout="dashboard">
-      <TagManagement tags={data.items} />
-    </Page>
+  return useIsDesktop() ? (
+    <TagsDesktop tags={data.items} />
+  ) : (
+    <TagsPhone tags={data.items} />
   );
+}
+
+function TagsLoading() {
+  return useIsDesktop() ? <TagsDesktopLoading /> : <TagsPhoneLoading />;
 }
 
 export const Route = createFileRoute("/_app/tags/")({

@@ -1,3 +1,9 @@
+import {
+  isTransactionListPage,
+  TRANSACTION_LIST_ORDERS,
+  TRANSACTION_LIST_SORTS,
+  TRANSACTION_PAGE_SIZES,
+} from "@bookkeeping/domain/transactions";
 import { z } from "zod";
 import { searchValue } from "@/shared/helpers/search-value";
 
@@ -13,15 +19,42 @@ const searchValues = z.preprocess((value) => {
 }, z.array(z.string()).optional());
 
 /**
- * The page cursor or the saved id. These are not filters, so a repeated one
- * drops to the first page with no highlight rather than reading an invalid page.
+ * The saved id. It is not a filter, so a repeated one drops the highlight
+ * rather than marking a row.
  */
-const navigationValue = z.preprocess((value) => {
+const savedIdValue = z.preprocess((value) => {
   if (typeof value === "string") {
     return value === "" ? undefined : value;
   }
   return typeof value === "number" ? String(value) : undefined;
 }, z.string().optional());
+
+/** A number from the address, whether the router read it as text or not. */
+function addressNumber(value: unknown) {
+  return typeof value === "string" ? Number(value) : value;
+}
+
+/**
+ * The table's view of the history. A value it cannot show drops to its
+ * default rather than reading an invalid page.
+ */
+const pageNumber = z.preprocess((value) => {
+  const number = addressNumber(value);
+  return typeof number === "number" && isTransactionListPage(number)
+    ? number
+    : undefined;
+}, z.number().optional());
+const pageSize = z.preprocess(
+  (value) =>
+    TRANSACTION_PAGE_SIZES.find((size) => size === addressNumber(value)),
+  z.literal(TRANSACTION_PAGE_SIZES).optional(),
+);
+function choiceOf<const T extends readonly [string, ...string[]]>(choices: T) {
+  return z.preprocess(
+    (value) => choices.find((choice) => choice === value),
+    z.enum(choices).optional(),
+  );
+}
 
 /**
  * `?deleted=1` after a deletion. The router writes validated search back to
@@ -34,7 +67,7 @@ const deletedFlag = z.preprocess(
 
 /**
  * The history address as the URL carries it: every control's raw text, so
- * invalid filters keep their editable values, plus the page cursor and the
+ * invalid filters keep their editable values, plus the table's view and the
  * transaction just saved.
  */
 export const historySearchSchema = z.object({
@@ -44,12 +77,25 @@ export const historySearchSchema = z.object({
   categoryId: searchValue,
   type: searchValue,
   tagId: searchValues,
-  cursor: navigationValue,
-  created: navigationValue,
+  page: pageNumber,
+  pageSize,
+  sort: choiceOf(TRANSACTION_LIST_SORTS),
+  order: choiceOf(TRANSACTION_LIST_ORDERS),
+  created: savedIdValue,
   deleted: deletedFlag,
 });
 
 export type HistorySearch = z.infer<typeof historySearchSchema>;
+
+/** How a table shows the history: which page, how many rows, in what order. */
+export type HistoryTableSettings = Pick<
+  HistorySearch,
+  "order" | "page" | "pageSize" | "sort"
+>;
+
+/** The address a table reads: its settings, the saved row to highlight, and a deletion's notice. */
+export type HistoryTableSearch = HistoryTableSettings &
+  Pick<HistorySearch, "created" | "deleted">;
 
 export const HISTORY_FILTER_KEYS = [
   "from",

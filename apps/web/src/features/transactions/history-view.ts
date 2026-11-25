@@ -1,11 +1,15 @@
 import { isCalendarDate } from "@bookkeeping/domain/dates";
-import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
+import {
+  DEFAULT_TRANSACTION_PAGE_SIZE,
+  TRANSACTION_TYPES,
+} from "@bookkeeping/domain/transactions";
 import { z } from "zod";
 import type { TransactionListQuery } from "@/core/api/queries";
 import type {
   HistoryFilterKey,
   HistoryFilterValues,
   HistorySearch,
+  HistoryTableSearch,
 } from "@/features/transactions/history-schema";
 import { HISTORY_FILTER_KEYS } from "@/features/transactions/history-schema";
 
@@ -27,6 +31,25 @@ const transactionFiltersSchema = z
     "From date must be on or before To date.",
   );
 
+/** The rows per page the address asks for, or the list's default. */
+export function historyPageSize({
+  pageSize,
+}: Readonly<Pick<HistorySearch, "pageSize">>) {
+  return pageSize ?? DEFAULT_TRANSACTION_PAGE_SIZE;
+}
+
+/**
+ * The settings for a list read. Phone month sections read newest first at the
+ * default size. Navigation keeps the full address for both compositions.
+ */
+export function historyReadSearch(
+  search: Readonly<HistorySearch>,
+  { desktop }: Readonly<{ desktop: boolean }>,
+): HistorySearch {
+  const { pageSize: _size, sort: _sort, order: _order, ...phone } = search;
+  return desktop ? search : phone;
+}
+
 const HISTORY_FIELDS = [...HISTORY_FILTER_KEYS, "tagId"] as const;
 
 type HistoryField = (typeof HISTORY_FIELDS)[number];
@@ -44,7 +67,7 @@ const FILTER_ERROR_MESSAGES = {
 export type HistoryValueKey = HistoryFilterKey | `tagId:${string}`;
 
 interface HistoryViewBase {
-  /** The filter controls' raw values; the cursor and saved id are not filters. */
+  /** The filter controls' raw values; the page and saved id are not filters. */
   values: HistoryFilterValues;
   /** Whether the address narrows the history at all, valid or not. */
   hasFilters: boolean;
@@ -52,7 +75,7 @@ interface HistoryViewBase {
 
 interface ValidHistoryView extends HistoryViewBase {
   state: "valid";
-  /** The page of transactions the address names. */
+  /** The numbered page the address names, with the table's defaults filled in. */
   list: TransactionListQuery;
 }
 
@@ -108,7 +131,14 @@ export function buildHistoryView(search: Readonly<HistorySearch>): HistoryView {
       state: "valid",
       values,
       hasFilters,
-      list: { ...result.data, cursor: search.cursor },
+      list: {
+        ...result.data,
+        // The query carries text; the address keeps numbers.
+        page: String(search.page ?? 1),
+        pageSize: `${historyPageSize(search)}`,
+        sort: search.sort ?? "date",
+        order: search.order ?? "desc",
+      },
     };
   }
   const errors = new Set<string>();
@@ -127,5 +157,20 @@ export function buildHistoryView(search: Readonly<HistorySearch>): HistoryView {
     hasFilters,
     errors: [...errors],
     invalidKeys,
+  };
+}
+
+/** One wallet's history: the list's own address, pinned to this wallet. */
+export function walletHistoryList(
+  walletId: string,
+  search: Readonly<HistoryTableSearch>,
+): TransactionListQuery {
+  return {
+    walletId,
+    page: String(search.page ?? 1),
+    // The size is sent so the Older link counts pages the way the server does.
+    pageSize: `${historyPageSize(search)}`,
+    ...(search.sort && { sort: search.sort }),
+    ...(search.order && { order: search.order }),
   };
 }

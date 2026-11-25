@@ -1,8 +1,6 @@
+import type { ReactNode } from "react";
 import type { components } from "@/core/api/openapi.gen";
-import { MonthSections } from "@/features/transactions/components/month-sections";
 import { TransactionList } from "@/features/transactions/components/transaction-list";
-import { TransactionTable } from "@/features/transactions/components/transaction-table";
-import { TableCard } from "@/shared/components/dashboard-card";
 import { ErrorNotice } from "@/shared/components/error-notice";
 
 type ApiTransaction = components["schemas"]["Transaction"];
@@ -12,17 +10,15 @@ interface TransactionHistoryProps {
   /** Why the address's filters are invalid; empty when the history can show. */
   filterErrors: readonly string[];
   filtered: boolean;
-  savedId?: string;
-  /** From 1024px the months are header rows of one table, not a list each. */
-  table?: boolean;
+  /** The composition's rows, shown once there are transactions to list. */
+  children: ReactNode;
 }
 
 export function TransactionHistory({
   transactions,
   filterErrors,
   filtered,
-  savedId,
-  table = false,
+  children,
 }: Readonly<TransactionHistoryProps>) {
   if (filterErrors.length > 0) {
     return (
@@ -57,23 +53,5 @@ export function TransactionHistory({
     return <TransactionList transactions={transactions} />;
   }
 
-  if (table) {
-    return (
-      <TableCard>
-        <TransactionTable
-          transactions={transactions}
-          savedId={savedId}
-          groupByMonth
-        />
-      </TableCard>
-    );
-  }
-
-  return (
-    <MonthSections
-      transactions={transactions}
-      idPrefix="history"
-      savedId={savedId}
-    />
-  );
+  return children;
 }

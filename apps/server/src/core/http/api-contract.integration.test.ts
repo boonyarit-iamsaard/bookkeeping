@@ -330,7 +330,7 @@ describe("published API contract", () => {
         method: "get",
         path: "/v1/transactions",
         schema: transactionCollectionResponseSchema,
-        response: await call({ path: "/v1/transactions?limit=10" }),
+        response: await call({ path: "/v1/transactions?sort=amount" }),
       });
       record({
         operationId: "getTransaction",
@@ -483,7 +483,7 @@ describe("published API contract", () => {
         method: "get",
         path: "/v1/transactions",
         schema: problemDetailsSchema,
-        response: await call({ path: "/v1/transactions?limit=none" }),
+        response: await call({ path: "/v1/transactions?page=0" }),
       });
       record({
         operationId: "createWallet",

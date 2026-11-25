@@ -1,7 +1,7 @@
 import { cn } from "@/shared/helpers/cn";
 
 interface DashboardRowProps {
-  /** The row's columns, such as `lg:grid-cols-3`. */
+  /** The row's columns, such as `grid-cols-3`. */
   className: string;
   children: React.ReactNode;
 }
