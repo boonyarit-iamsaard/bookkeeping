@@ -118,7 +118,7 @@ async function seedLedger(page: Page) {
   return { cash, savings, lunch };
 }
 
-test("desktop history is one table with month rows, a live filter bar, and a wallet page of the same rows", {
+test("desktop history is one table with a live filter bar, and a wallet page of the same rows", {
   tag: "@matrix",
 }, async ({ page }) => {
   test.skip(!isDesktop(page), "Phone keeps its lists and filter sheet");
@@ -133,10 +133,6 @@ test("desktop history is one table with month rows, a live filter bar, and a wal
     "Tags",
     "Note",
     "Amount",
-  ]);
-  await expect(table.locator("[data-month-row]")).toHaveText([
-    "September 2026",
-    "August 2026",
   ]);
   const rows = table.locator("[data-transaction-row]");
   await expect(rows).toHaveCount(4);
@@ -181,7 +177,6 @@ test("desktop history is one table with month rows, a live filter bar, and a wal
 
   await chooseDate(bar.getByLabel("To", { exact: true }), "2026-08-31");
   await expect(page).toHaveURL(/to=2026-08-31$/);
-  await expect(table.locator("[data-month-row]")).toHaveText(["August 2026"]);
   await expect(rows).toHaveCount(1);
   await chooseOption(bar.getByLabel("Type", { exact: true }), "Income");
   await expect(page.getByText("No matching transactions")).toBeVisible();

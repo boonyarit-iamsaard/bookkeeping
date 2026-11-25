@@ -1,4 +1,5 @@
 import { isCalendarDate } from "@bookkeeping/domain/dates";
+import type { TRANSACTION_PAGE_SIZES } from "@bookkeeping/domain/transactions";
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { z } from "zod";
 import type { TransactionListQuery } from "@/core/api/queries";
@@ -27,6 +28,11 @@ const transactionFiltersSchema = z
     "From date must be on or before To date.",
   );
 
+/** The rows per page until the owner picks another; the server's default too. */
+export const DEFAULT_HISTORY_PAGE_SIZE = 50 satisfies TransactionPageSize;
+
+type TransactionPageSize = (typeof TRANSACTION_PAGE_SIZES)[number];
+
 const HISTORY_FIELDS = [...HISTORY_FILTER_KEYS, "tagId"] as const;
 
 type HistoryField = (typeof HISTORY_FIELDS)[number];
@@ -54,6 +60,8 @@ interface ValidHistoryView extends HistoryViewBase {
   state: "valid";
   /** The page of transactions the address names. */
   list: TransactionListQuery;
+  /** The numbered page the address names, with the table's defaults filled in. */
+  pages: TransactionListQuery;
 }
 
 /** Invalid filters have no list query, so they read nothing. */
@@ -109,6 +117,14 @@ export function buildHistoryView(search: Readonly<HistorySearch>): HistoryView {
       values,
       hasFilters,
       list: { ...result.data, cursor: search.cursor },
+      pages: {
+        ...result.data,
+        // The query carries text; the address keeps numbers.
+        page: String(search.page ?? 1),
+        pageSize: `${search.pageSize ?? DEFAULT_HISTORY_PAGE_SIZE}`,
+        sort: search.sort ?? "date",
+        order: search.order ?? "desc",
+      },
     };
   }
   const errors = new Set<string>();

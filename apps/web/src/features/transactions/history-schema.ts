@@ -1,3 +1,8 @@
+import {
+  TRANSACTION_LIST_ORDERS,
+  TRANSACTION_LIST_SORTS,
+  TRANSACTION_PAGE_SIZES,
+} from "@bookkeeping/domain/transactions";
 import { z } from "zod";
 import { searchValue } from "@/shared/helpers/search-value";
 
@@ -23,6 +28,31 @@ const navigationValue = z.preprocess((value) => {
   return typeof value === "number" ? String(value) : undefined;
 }, z.string().optional());
 
+/** A whole number from the address, whether the router read it as text or not. */
+function wholeNumber(value: unknown) {
+  const number = typeof value === "string" ? Number(value) : value;
+  // Past the safe range the API's number text no longer reads back.
+  return Number.isSafeInteger(number) ? number : undefined;
+}
+
+/**
+ * The table's view of the history. A value it cannot show drops to its
+ * default rather than reading an invalid page.
+ */
+const pageNumber = z.preprocess((value) => {
+  const number = wholeNumber(value);
+  return typeof number === "number" && number >= 1 ? number : undefined;
+}, z.number().optional());
+const pageSize = z.preprocess(
+  (value) => TRANSACTION_PAGE_SIZES.find((size) => size === wholeNumber(value)),
+  z.literal(TRANSACTION_PAGE_SIZES).optional(),
+);
+const choiceOf = <const T extends readonly [string, ...string[]]>(choices: T) =>
+  z.preprocess(
+    (value) => choices.find((choice) => choice === value),
+    z.enum(choices).optional(),
+  );
+
 /**
  * `?deleted=1` after a deletion. The router writes validated search back to
  * the address, so the output stays the number `1`: a string would be quoted.
@@ -45,6 +75,10 @@ export const historySearchSchema = z.object({
   type: searchValue,
   tagId: searchValues,
   cursor: navigationValue,
+  page: pageNumber,
+  pageSize,
+  sort: choiceOf(TRANSACTION_LIST_SORTS),
+  order: choiceOf(TRANSACTION_LIST_ORDERS),
   created: navigationValue,
   deleted: deletedFlag,
 });

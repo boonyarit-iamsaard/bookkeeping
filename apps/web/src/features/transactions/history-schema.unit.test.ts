@@ -51,4 +51,33 @@ describe("history search", () => {
     ).toEqual([COFFEE, SNACKS]);
     expect(historySearchSchema.parse({ tagId: [] }).tagId).toBeUndefined();
   });
+
+  test("reads the page, rows per page, sort and order the address names", () => {
+    expect(
+      historySearchSchema.parse({
+        page: 3,
+        pageSize: 25,
+        sort: "amount",
+        order: "asc",
+      }),
+    ).toEqual({ page: 3, pageSize: 25, sort: "amount", order: "asc" });
+    expect(historySearchSchema.parse({ page: "2", pageSize: "100" })).toEqual({
+      page: 2,
+      pageSize: 100,
+    });
+  });
+
+  test("drops a page, size, sort or order the table cannot show", () => {
+    expect(
+      historySearchSchema.parse({
+        page: 0,
+        pageSize: 20,
+        sort: "category",
+        order: "up",
+      }),
+    ).toEqual({});
+    expect(historySearchSchema.parse({ page: 1.5 })).toEqual({});
+    expect(historySearchSchema.parse({ page: "1e21" })).toEqual({});
+    expect(historySearchSchema.parse({ page: [2, 3] })).toEqual({});
+  });
 });

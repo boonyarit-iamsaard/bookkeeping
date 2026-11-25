@@ -34,6 +34,38 @@ describe("history view", () => {
         tagId: [COFFEE],
         cursor: "eyJ2IjoxfQ",
       },
+      pages: {
+        from: "2026-09-01",
+        to: "2026-09-30",
+        walletId: CASH,
+        type: "expense",
+        tagId: [COFFEE],
+        page: "1",
+        pageSize: "50",
+        sort: "date",
+        order: "desc",
+      },
+    });
+  });
+
+  test("the numbered page keeps the address's page, size, sort and order", () => {
+    const view = buildHistoryView({
+      type: "income",
+      page: 3,
+      pageSize: 10,
+      sort: "amount",
+      order: "asc",
+    });
+    expect(view).toMatchObject({
+      state: "valid",
+      values: { type: "income" },
+      pages: {
+        type: "income",
+        page: "3",
+        pageSize: "10",
+        sort: "amount",
+        order: "asc",
+      },
     });
   });
 
@@ -98,14 +130,21 @@ describe("history view", () => {
     expect(view.state === "invalid" && [...view.invalidKeys]).toEqual(["from"]);
   });
 
-  test("the cursor, saved id, and deletion flag are not filters", () => {
+  test("the cursor, page, sort, saved id, and deletion flag are not filters", () => {
     expect(
-      buildHistoryView({ cursor: "eyJ2IjoxfQ", created: CASH, deleted: 1 }),
+      buildHistoryView({
+        cursor: "eyJ2IjoxfQ",
+        page: 2,
+        sort: "amount",
+        created: CASH,
+        deleted: 1,
+      }),
     ).toEqual({
       state: "valid",
       values: {},
       hasFilters: false,
       list: { cursor: "eyJ2IjoxfQ" },
+      pages: { page: "2", pageSize: "50", sort: "amount", order: "desc" },
     });
   });
 });

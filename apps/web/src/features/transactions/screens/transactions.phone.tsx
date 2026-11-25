@@ -4,6 +4,7 @@ import {
   HistoryFilterChips,
   HistoryFilters,
 } from "@/features/transactions/components/history-filters";
+import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { MonthSections } from "@/features/transactions/components/month-sections";
 import { OlderTransactionsLink } from "@/features/transactions/components/older-transactions-link";
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
@@ -19,8 +20,17 @@ interface TransactionsPhoneProps {
 export function TransactionsPhone({
   search,
 }: Readonly<TransactionsPhoneProps>) {
-  const { view, transactions, nextCursor, filterErrors, ...collections } =
-    useHistoryReads(search);
+  const {
+    view,
+    pending,
+    transactions,
+    nextCursor,
+    filterErrors,
+    ...collections
+  } = useHistoryReads(search);
+  if (pending) {
+    return <HistoryLoading />;
+  }
   return (
     <Page layout="wide">
       <TitleBar
