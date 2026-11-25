@@ -14,7 +14,7 @@ import {
   TransactionsDesktopLoading,
 } from "@/features/transactions/screens/transactions.desktop";
 import { TransactionsPhone } from "@/features/transactions/screens/transactions.phone";
-import { isDesktopViewport, useIsDesktop } from "@/shared/hooks/use-is-desktop";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function TransactionsPage() {
   const search = Route.useSearch();
@@ -37,9 +37,7 @@ export const Route = createFileRoute("/_app/transactions/")({
     const view = buildHistoryView(deps.search);
     await Promise.all([
       view.state === "valid" &&
-        context.queryClient.ensureQueryData(
-          transactionQueries.list(isDesktopViewport() ? view.pages : view.list),
-        ),
+        context.queryClient.ensureQueryData(transactionQueries.list(view.list)),
       context.queryClient.ensureQueryData(walletQueries.list()),
       context.queryClient.ensureQueryData(categoryQueries.list()),
       context.queryClient.ensureQueryData(tagQueries.list()),

@@ -16,6 +16,8 @@ interface WalletPhoneProps {
   wallet: components["schemas"]["Wallet"];
   page: components["schemas"]["TransactionCollection"];
   createdId: string | undefined;
+  /** The page after this one; none on the last. */
+  olderPage: number | undefined;
 }
 
 /** Below 1024px: the title bar, the balance hero, then month sections. */
@@ -23,6 +25,7 @@ export function WalletPhone({
   wallet,
   page,
   createdId,
+  olderPage,
 }: Readonly<WalletPhoneProps>) {
   return (
     <Page layout="wide">
@@ -35,7 +38,7 @@ export function WalletPhone({
       <WalletHistory
         walletId={wallet.id}
         empty={page.items.length === 0}
-        nextCursor={page.page.nextCursor}
+        olderPage={olderPage}
       >
         <MonthSections
           transactions={page.items}

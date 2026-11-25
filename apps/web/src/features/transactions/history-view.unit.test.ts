@@ -14,7 +14,6 @@ describe("history view", () => {
         walletId: CASH,
         type: "expense",
         tagId: [COFFEE],
-        cursor: "eyJ2IjoxfQ",
       }),
     ).toEqual({
       state: "valid",
@@ -27,14 +26,6 @@ describe("history view", () => {
       },
       hasFilters: true,
       list: {
-        from: "2026-09-01",
-        to: "2026-09-30",
-        walletId: CASH,
-        type: "expense",
-        tagId: [COFFEE],
-        cursor: "eyJ2IjoxfQ",
-      },
-      pages: {
         from: "2026-09-01",
         to: "2026-09-30",
         walletId: CASH,
@@ -59,7 +50,7 @@ describe("history view", () => {
     expect(view).toMatchObject({
       state: "valid",
       values: { type: "income" },
-      pages: {
+      list: {
         type: "income",
         page: "3",
         pageSize: "10",
@@ -75,7 +66,7 @@ describe("history view", () => {
       walletId: "gone",
       type: "7",
       categoryId: "not-a-uuid",
-      cursor: "eyJ2IjoxfQ",
+      page: 2,
     });
     expect(view).not.toHaveProperty("list");
     expect(view).toMatchObject({
@@ -130,10 +121,9 @@ describe("history view", () => {
     expect(view.state === "invalid" && [...view.invalidKeys]).toEqual(["from"]);
   });
 
-  test("the cursor, page, sort, saved id, and deletion flag are not filters", () => {
+  test("the page, sort, saved id, and deletion flag are not filters", () => {
     expect(
       buildHistoryView({
-        cursor: "eyJ2IjoxfQ",
         page: 2,
         sort: "amount",
         created: CASH,
@@ -143,8 +133,7 @@ describe("history view", () => {
       state: "valid",
       values: {},
       hasFilters: false,
-      list: { cursor: "eyJ2IjoxfQ" },
-      pages: { page: "2", pageSize: "50", sort: "amount", order: "desc" },
+      list: { page: "2", pageSize: "50", sort: "amount", order: "desc" },
     });
   });
 });

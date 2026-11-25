@@ -285,7 +285,7 @@ export interface paths {
         };
         /**
          * List transactions
-         * @description Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, type, and tag filters preserve transfer, parent category, refund, and ownership semantics; repeated tag ids match any of them, and a refund matches through its expense's tags. Any of `page` (from 1), `pageSize` (10, 25, 50, or 100; default 50), `sort` (`date` or `amount`, by size), or `order` (default `desc`) asks for a numbered page with the filtered `total`; ties break by recording time, then identifier. Otherwise pages use an opaque cursor bound to the date ordering and the active filters, and the server caps the requested limit.
+         * @description Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, type, and tag filters preserve transfer, parent category, refund, and ownership semantics; repeated tag ids match any of them, and a refund matches through its expense's tags. The list comes in numbered pages: `page` (from 1), `pageSize` (10, 25, 50, or 100; default 50), `sort` (`date` or `amount`, by size; default `date`), and `order` (default `desc`); the response carries the filtered `total`, and ties break by recording time, then identifier.
          */
         get: operations["listTransactions"];
         put?: never;
@@ -802,10 +802,9 @@ export interface components {
         };
         TransactionFieldError: components["schemas"]["TransactionRuleFieldError"] | components["schemas"]["TransactionValidationFieldError"];
         TransactionPage: {
-            nextCursor: string | null;
-            number?: number;
-            size?: number;
-            total?: number;
+            number: number;
+            size: number;
+            total: number;
         };
         TransactionPlainRuleFieldError: {
             /** @enum {string} */
@@ -1838,9 +1837,7 @@ export interface operations {
         parameters: {
             query?: {
                 categoryId?: string;
-                cursor?: string;
                 from?: string;
-                limit?: string;
                 order?: "asc" | "desc";
                 page?: string;
                 pageSize?: "10" | "25" | "50" | "100";

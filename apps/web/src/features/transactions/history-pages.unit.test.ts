@@ -3,6 +3,7 @@ import {
   changeHistoryTable,
   changeHistoryType,
   historyTableSettings,
+  olderHistoryPage,
 } from "./history-pages";
 
 const CASH = "00000000-0000-4000-8000-000000000001";
@@ -37,10 +38,7 @@ describe("history pages", () => {
 
   test("a table change lets go of the saved highlight and deletion notice", () => {
     expect(
-      changeHistoryTable(
-        { created: CASH, deleted: 1, cursor: "eyJ2IjoxfQ" },
-        { page: 2 },
-      ),
+      changeHistoryTable({ created: CASH, deleted: 1 }, { page: 2 }),
     ).toEqual({ page: 2 });
   });
 
@@ -71,5 +69,13 @@ describe("history pages", () => {
     expect(changeHistoryType({ type: "refund", page: 2 }, undefined)).toEqual(
       {},
     );
+  });
+
+  test("older transactions are the next page until the last one", () => {
+    expect(olderHistoryPage({}, 51)).toBe(2);
+    expect(olderHistoryPage({}, 50)).toBeUndefined();
+    expect(olderHistoryPage({ page: 2, pageSize: 10 }, 21)).toBe(3);
+    expect(olderHistoryPage({ page: 3, pageSize: 10 }, 21)).toBeUndefined();
+    expect(olderHistoryPage({ page: 9 }, 0)).toBeUndefined();
   });
 });

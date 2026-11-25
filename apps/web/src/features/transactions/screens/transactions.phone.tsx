@@ -9,6 +9,7 @@ import { MonthSections } from "@/features/transactions/components/month-sections
 import { OlderTransactionsLink } from "@/features/transactions/components/older-transactions-link";
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
+import { olderHistoryPage } from "@/features/transactions/history-pages";
 import type { HistorySearch } from "@/features/transactions/history-schema";
 import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads";
 
@@ -20,14 +21,8 @@ interface TransactionsPhoneProps {
 export function TransactionsPhone({
   search,
 }: Readonly<TransactionsPhoneProps>) {
-  const {
-    view,
-    pending,
-    transactions,
-    nextCursor,
-    filterErrors,
-    ...collections
-  } = useHistoryReads(search);
+  const { view, pending, transactions, total, filterErrors, ...collections } =
+    useHistoryReads(search);
   if (pending) {
     return <HistoryLoading />;
   }
@@ -56,7 +51,10 @@ export function TransactionsPhone({
           savedId={search.created}
         />
       </TransactionHistory>
-      <OlderTransactionsLink values={view.values} cursor={nextCursor} />
+      <OlderTransactionsLink
+        search={search}
+        page={olderHistoryPage(search, total)}
+      />
     </Page>
   );
 }

@@ -1,8 +1,4 @@
-import type { ListTransactionsOptions } from "@bookkeeping/application/transactions/reads";
-import {
-  listNumberedTransactionPage,
-  listTransactionPage,
-} from "@bookkeeping/application/transactions/reads";
+import { listNumberedTransactionPage } from "@bookkeeping/application/transactions/reads";
 import type { Database } from "@bookkeeping/database/connection";
 import {
   isTransactionListPage,
@@ -15,31 +11,8 @@ import * as z from "zod";
 import { createQueryMiddleware } from "../../core/http/request-validation.js";
 import type { transactionCollectionResponseSchema } from "./transaction.schemas.js";
 import { presentTransaction } from "./transaction.schemas.js";
-import {
-  decodeTransactionCursor,
-  encodeTransactionCursor,
-} from "./transaction-cursor.js";
 
-const DEFAULT_TRANSACTION_PAGE_LIMIT = 50;
-const MAX_TRANSACTION_PAGE_LIMIT = 100;
 const DEFAULT_TRANSACTION_PAGE_SIZE = 50;
-const NUMBERED_KEYS = ["page", "pageSize", "sort", "order"] as const;
-
-/** Any of page, pageSize, sort, or order asks for a numbered page. */
-function isNumbered(
-  query: Readonly<Partial<Record<(typeof NUMBERED_KEYS)[number], unknown>>>,
-) {
-  return NUMBERED_KEYS.some((key) => query[key] !== undefined);
-}
-
-const positiveIntegerText = z.string().regex(/^[1-9]\d*$/);
-
-const transactionLimitSchema = positiveIntegerText.transform((value) => {
-  const parsed = Number(value);
-  return Number.isSafeInteger(parsed)
-    ? Math.min(parsed, MAX_TRANSACTION_PAGE_LIMIT)
-    : MAX_TRANSACTION_PAGE_LIMIT;
-});
 
 export const transactionListQuerySchema = z
   .strictObject({
@@ -52,9 +25,9 @@ export const transactionListQuerySchema = z
     tagId: z
       .union([z.uuid().transform((id) => [id]), z.array(z.uuid())])
       .optional(),
-    limit: transactionLimitSchema.optional(),
-    cursor: z.string().min(1).optional(),
-    page: positiveIntegerText
+    page: z
+      .string()
+      .regex(/^[1-9]\d*$/)
       .transform(Number)
       .refine(isTransactionListPage)
       .optional(),
@@ -77,14 +50,6 @@ export const transactionListQuerySchema = z
         message: "The start date must not be after the end date",
       });
     }
-    const byCursor = query.cursor !== undefined || query.limit !== undefined;
-    if (byCursor && isNumbered(query)) {
-      context.addIssue({
-        code: "custom",
-        path: ["cursor"],
-        message: "A cursor page cannot also be numbered or sorted",
-      });
-    }
   });
 
 export const transactionListQueryMiddleware = createQueryMiddleware(
@@ -102,16 +67,14 @@ type TransactionCollection = z.infer<
   typeof transactionCollectionResponseSchema
 >;
 
-/**
- * The owner's transactions for one list request: a numbered page when any of
- * page, pageSize, sort, or order is given, otherwise a cursor page. `null`
- * when the cursor was not issued for this owner's identical query.
- */
+/** One numbered page of the owner's transactions, with the filtered total. */
 export async function readTransactionList(
   db: Database,
   { ownerId, query }: Readonly<TransactionListRequest>,
-): Promise<TransactionCollection | null> {
-  const options: ListTransactionsOptions = {
+): Promise<TransactionCollection> {
+  const pageNumber = query.page ?? 1;
+  const pageSize = query.pageSize ?? DEFAULT_TRANSACTION_PAGE_SIZE;
+  const numbered = await listNumberedTransactionPage(db, {
     ownerId,
     from: query.from,
     to: query.to,
@@ -119,46 +82,13 @@ export async function readTransactionList(
     categoryId: query.categoryId,
     type: query.type,
     tagIds: query.tagId,
-  };
-  if (isNumbered(query)) {
-    const pageNumber = query.page ?? 1;
-    const pageSize = query.pageSize ?? DEFAULT_TRANSACTION_PAGE_SIZE;
-    const numbered = await listNumberedTransactionPage(db, {
-      ...options,
-      page: pageNumber,
-      pageSize,
-      sort: query.sort ?? "date",
-      order: query.order ?? "desc",
-    });
-    return {
-      items: numbered.items.map(presentTransaction),
-      page: {
-        nextCursor: null,
-        number: pageNumber,
-        size: pageSize,
-        total: numbered.total,
-      },
-    };
-  }
-
-  const after =
-    query.cursor === undefined
-      ? undefined
-      : decodeTransactionCursor(query.cursor, options);
-  if (after === null) {
-    return null;
-  }
-  const page = await listTransactionPage(db, {
-    ...options,
-    limit: query.limit ?? DEFAULT_TRANSACTION_PAGE_LIMIT,
-    after,
+    page: pageNumber,
+    pageSize,
+    sort: query.sort ?? "date",
+    order: query.order ?? "desc",
   });
   return {
-    items: page.items.map(presentTransaction),
-    page: {
-      nextCursor: page.nextPosition
-        ? encodeTransactionCursor({ options, position: page.nextPosition })
-        : null,
-    },
+    items: numbered.items.map(presentTransaction),
+    page: { number: pageNumber, size: pageSize, total: numbered.total },
   };
 }

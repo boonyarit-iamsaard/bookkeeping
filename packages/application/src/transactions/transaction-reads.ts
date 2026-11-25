@@ -13,15 +13,14 @@ import type {
   TransactionListOrder,
   TransactionListSort,
 } from "@bookkeeping/domain/transactions";
-import { and, asc, count, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, lte, or, sql } from "drizzle-orm";
 import { isUuid } from "../shared/identifier";
 import { carriesAnyTag } from "../tags/tag-links";
-import type { DetailRow, TransactionRef } from "./transaction-detail";
+import type { TransactionRef } from "./transaction-detail";
 import {
   currentRefundsOf,
   detailQuery,
   ownedCurrent,
-  recordingPosition,
   toDetails,
   toOneDetail,
 } from "./transaction-detail";
@@ -134,45 +133,13 @@ export interface ListTransactionsOptions extends TransactionFilters {
   ownerId: string;
 }
 
-export interface TransactionListPosition {
-  transactionDate: TransactionDetail["transactionDate"];
-  /** Canonical UTC text with six fractional-second digits. */
-  recordedAt: string;
-  id: string;
-}
-
-export interface ListTransactionPageOptions extends ListTransactionsOptions {
-  limit: number;
-  after?: TransactionListPosition;
-}
-
-export interface TransactionPage {
-  items: readonly TransactionDetail[];
-  nextPosition: TransactionListPosition | null;
-}
-
-interface TransactionWhereOptions {
-  filters: Readonly<ListTransactionsOptions>;
-  after?: TransactionListPosition;
-}
-
 const transactionListOrder = [
   desc(transactions.transactionDate),
   desc(transactions.recordedAt),
   desc(transactions.id),
 ] as const;
 
-function transactionWhere({
-  filters,
-  after,
-}: Readonly<TransactionWhereOptions>) {
-  const sameDate = after
-    ? eq(transactions.transactionDate, after.transactionDate)
-    : undefined;
-  const sameRecordingTime = after
-    ? eq(recordingPosition, after.recordedAt)
-    : undefined;
-
+function transactionWhere(filters: Readonly<ListTransactionsOptions>) {
   return and(
     ownedCurrent(filters.ownerId),
     filters.from ? gte(transactions.transactionDate, filters.from) : undefined,
@@ -202,26 +169,7 @@ function transactionWhere({
           filters.tagIds,
         )
       : undefined,
-    after
-      ? or(
-          lt(transactions.transactionDate, after.transactionDate),
-          and(sameDate, lt(recordingPosition, after.recordedAt)),
-          and(sameDate, sameRecordingTime, lt(transactions.id, after.id)),
-        )
-      : undefined,
   );
-}
-
-function toTransactionListPosition(
-  row: Readonly<
-    Pick<DetailRow, "transactionDate" | "recordingPosition" | "id">
-  >,
-) {
-  return {
-    transactionDate: row.transactionDate,
-    recordedAt: row.recordingPosition,
-    id: row.id,
-  };
 }
 
 /** Current financial history, newest transaction date first. */
@@ -230,29 +178,9 @@ export async function listTransactions(
   filters: Readonly<ListTransactionsOptions>,
 ): Promise<readonly TransactionDetail[]> {
   const rows = await detailQuery(db)
-    .where(transactionWhere({ filters }))
+    .where(transactionWhere(filters))
     .orderBy(...transactionListOrder);
   return toDetails(db, rows);
-}
-
-/** One keyset page of current financial history, newest first. */
-export async function listTransactionPage(
-  db: Database,
-  options: Readonly<ListTransactionPageOptions>,
-): Promise<TransactionPage> {
-  const rows = await detailQuery(db)
-    .where(transactionWhere({ filters: options, after: options.after }))
-    .orderBy(...transactionListOrder)
-    .limit(options.limit + 1);
-  const items = rows.slice(0, options.limit);
-  const last = items.at(-1);
-  return {
-    items: await toDetails(db, items),
-    nextPosition:
-      rows.length > options.limit && last
-        ? toTransactionListPosition(last)
-        : null,
-  };
 }
 
 export interface ListNumberedTransactionPageOptions
@@ -279,7 +207,7 @@ export async function listNumberedTransactionPage(
   db: Database,
   options: Readonly<ListNumberedTransactionPageOptions>,
 ): Promise<NumberedTransactionPage> {
-  const where = transactionWhere({ filters: options });
+  const where = transactionWhere(options);
   const direction = options.order === "asc" ? asc : desc;
   const sortColumn =
     options.sort === "amount"

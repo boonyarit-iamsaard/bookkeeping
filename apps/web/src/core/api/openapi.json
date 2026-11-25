@@ -1716,12 +1716,6 @@
       "TransactionPage": {
         "type": "object",
         "properties": {
-          "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "number": {
             "type": "integer",
             "minimum": 1,
@@ -1739,7 +1733,9 @@
           }
         },
         "required": [
-          "nextCursor"
+          "number",
+          "size",
+          "total"
         ],
         "additionalProperties": false
       },
@@ -3654,7 +3650,7 @@
           }
         },
         "summary": "List transactions",
-        "description": "Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, type, and tag filters preserve transfer, parent category, refund, and ownership semantics; repeated tag ids match any of them, and a refund matches through its expense's tags. Any of `page` (from 1), `pageSize` (10, 25, 50, or 100; default 50), `sort` (`date` or `amount`, by size), or `order` (default `desc`) asks for a numbered page with the filtered `total`; ties break by recording time, then identifier. Otherwise pages use an opaque cursor bound to the date ordering and the active filters, and the server caps the requested limit.",
+        "description": "Returns the signed-in owner's current financial history, newest transaction date first, then newest recording time and identifier. Date, wallet, category, type, and tag filters preserve transfer, parent category, refund, and ownership semantics; repeated tag ids match any of them, and a refund matches through its expense's tags. The list comes in numbered pages: `page` (from 1), `pageSize` (10, 25, 50, or 100; default 50), `sort` (`date` or `amount`, by size; default `date`), and `order` (default `desc`); the response carries the filtered `total`, and ties break by recording time, then identifier.",
         "tags": [
           "Transactions"
         ],
@@ -3727,22 +3723,6 @@
                   }
                 }
               ]
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "string",
-              "pattern": "^[1-9]\\d*$"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cursor",
-            "schema": {
-              "type": "string",
-              "minLength": 1
             }
           },
           {

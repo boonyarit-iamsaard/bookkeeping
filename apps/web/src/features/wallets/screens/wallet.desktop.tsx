@@ -11,6 +11,8 @@ interface WalletDesktopProps {
   wallet: components["schemas"]["Wallet"];
   page: components["schemas"]["TransactionCollection"];
   createdId: string | undefined;
+  /** The page after this one; none on the last. */
+  olderPage: number | undefined;
 }
 
 /** From 1024px: a header with the balance as a figure, then one table. */
@@ -18,6 +20,7 @@ export function WalletDesktop({
   wallet,
   page,
   createdId,
+  olderPage,
 }: Readonly<WalletDesktopProps>) {
   return (
     <Page layout="wide">
@@ -28,7 +31,7 @@ export function WalletDesktop({
       <WalletHistory
         walletId={wallet.id}
         empty={page.items.length === 0}
-        nextCursor={page.page.nextCursor}
+        olderPage={olderPage}
       >
         <TableCard>
           <TransactionTable

@@ -19,10 +19,10 @@ const searchValues = z.preprocess((value) => {
 }, z.array(z.string()).optional());
 
 /**
- * The page cursor or the saved id. These are not filters, so a repeated one
- * drops to the first page with no highlight rather than reading an invalid page.
+ * The saved id. It is not a filter, so a repeated one drops the highlight
+ * rather than marking a row.
  */
-const navigationValue = z.preprocess((value) => {
+const savedIdValue = z.preprocess((value) => {
   if (typeof value === "string") {
     return value === "" ? undefined : value;
   }
@@ -66,7 +66,7 @@ const deletedFlag = z.preprocess(
 
 /**
  * The history address as the URL carries it: every control's raw text, so
- * invalid filters keep their editable values, plus the page cursor and the
+ * invalid filters keep their editable values, plus the table's view and the
  * transaction just saved.
  */
 export const historySearchSchema = z.object({
@@ -76,12 +76,11 @@ export const historySearchSchema = z.object({
   categoryId: searchValue,
   type: searchValue,
   tagId: searchValues,
-  cursor: navigationValue,
   page: pageNumber,
   pageSize,
   sort: choiceOf(TRANSACTION_LIST_SORTS),
   order: choiceOf(TRANSACTION_LIST_ORDERS),
-  created: navigationValue,
+  created: savedIdValue,
   deleted: deletedFlag,
 });
 

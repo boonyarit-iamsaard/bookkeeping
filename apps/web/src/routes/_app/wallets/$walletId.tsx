@@ -6,7 +6,9 @@ import {
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
+import { olderHistoryPage } from "@/features/transactions/history-pages";
 import { historySearchSchema } from "@/features/transactions/history-schema";
+import { DEFAULT_HISTORY_PAGE_SIZE } from "@/features/transactions/history-view";
 import { WalletPageErrorBoundary } from "@/features/wallets/components/wallet-page-error-boundary";
 import {
   WalletDesktop,
@@ -19,19 +21,32 @@ import {
 import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 /** One wallet's history: the list's own address, pinned to this wallet. */
-function walletHistoryQuery(walletId: string, cursor: string | undefined) {
-  return transactionQueries.list({ walletId, cursor });
+function walletHistoryQuery(walletId: string, page = 1) {
+  // The size is sent so the Older link counts pages the way the server does.
+  return transactionQueries.list({
+    walletId,
+    page: String(page),
+    pageSize: `${DEFAULT_HISTORY_PAGE_SIZE}`,
+  });
 }
 
 function WalletPage() {
   const { walletId } = Route.useParams();
-  const { cursor, created } = Route.useSearch();
+  const search = Route.useSearch();
   const { data: wallet } = useSuspenseQuery(walletQueries.detail(walletId));
-  const { data: page } = useSuspenseQuery(walletHistoryQuery(walletId, cursor));
+  const { data: page } = useSuspenseQuery(
+    walletHistoryQuery(walletId, search.page),
+  );
+  const screen = {
+    wallet,
+    page,
+    createdId: search.created,
+    olderPage: olderHistoryPage(search, page.page.total),
+  };
   return useIsDesktop() ? (
-    <WalletDesktop wallet={wallet} page={page} createdId={created} />
+    <WalletDesktop {...screen} />
   ) : (
-    <WalletPhone wallet={wallet} page={page} createdId={created} />
+    <WalletPhone {...screen} />
   );
 }
 
@@ -40,15 +55,15 @@ function WalletPageLoading() {
 }
 
 export const Route = createFileRoute("/_app/wallets/$walletId")({
-  validateSearch: historySearchSchema.pick({ cursor: true, created: true }),
-  loaderDeps: ({ search }) => ({ cursor: search.cursor }),
+  validateSearch: historySearchSchema.pick({ page: true, created: true }),
+  loaderDeps: ({ search }) => ({ page: search.page }),
   loader: async ({ context, params, deps }) => {
     const [wallet] = await Promise.all([
       context.queryClient.ensureQueryData(
         walletQueries.detail(params.walletId),
       ),
       context.queryClient.ensureQueryData(
-        walletHistoryQuery(params.walletId, deps.cursor),
+        walletHistoryQuery(params.walletId, deps.page),
       ),
       // Rows take their category color from this read.
       context.queryClient.ensureQueryData(categoryQueries.list()),

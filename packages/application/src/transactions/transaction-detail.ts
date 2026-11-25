@@ -16,9 +16,6 @@ const parentCategories = alias(categories, "parent_categories");
 
 const refundedExpenses = alias(transactions, "refunded_expenses");
 
-/** A text key that preserves PostgreSQL's microsecond recording precision. */
-export const recordingPosition = sql<string>`to_char(${transactions.recordedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
-
 export interface TransactionRef {
   /** Always the session user; never a client-supplied identifier. */
   ownerId: string;
@@ -41,7 +38,6 @@ export function detailQuery(db: Database) {
         transactionDate: transactions.transactionDate,
         note: transactions.note,
         recordedAt: transactions.recordedAt,
-        recordingPosition,
         walletId: wallets.id,
         walletName: wallets.name,
         walletType: wallets.type,

@@ -1,24 +1,26 @@
 import { Link } from "@tanstack/react-router";
-import type { HistoryFilterValues } from "@/features/transactions/history-schema";
+import { changeHistoryTable } from "@/features/transactions/history-pages";
+import type { HistorySearch } from "@/features/transactions/history-schema";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 interface OlderTransactionsLinkProps {
-  values: HistoryFilterValues;
-  cursor: string | null;
+  search: HistorySearch;
+  /** The page after this one; none on the last. */
+  page: number | undefined;
 }
 
 /** The next page of the history, keeping the filters; absent on the last. */
 export function OlderTransactionsLink({
-  values,
-  cursor,
+  search,
+  page,
 }: Readonly<OlderTransactionsLinkProps>) {
-  if (!cursor) {
+  if (page === undefined) {
     return null;
   }
   return (
     <Link
       to="/transactions"
-      search={{ ...values, cursor }}
+      search={changeHistoryTable(search, { page })}
       className={buttonVariants({
         variant: "outline",
         size: "lg",

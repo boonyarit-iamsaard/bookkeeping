@@ -25,10 +25,7 @@ import {
   describeProblemVariant,
 } from "../../core/http/openapi.js";
 import type { problemDetailsSchema } from "../../core/http/problem-details.js";
-import {
-  createProblemResponse,
-  getProblemOptionsForStatus,
-} from "../../core/http/problem-details.js";
+import { getProblemOptionsForStatus } from "../../core/http/problem-details.js";
 
 import type {
   CreationValidatedInput,
@@ -174,12 +171,11 @@ export function createTransactionRoutes(db: Database) {
           "Date, wallet, category, type, and tag filters preserve transfer, " +
           "parent category, refund, and ownership semantics; repeated tag " +
           "ids match any of them, and a refund matches through its " +
-          "expense's tags. Any of `page` (from 1), `pageSize` (10, 25, 50, " +
-          "or 100; default 50), `sort` (`date` or `amount`, by size), or " +
-          "`order` (default `desc`) asks for a numbered page with the " +
-          "filtered `total`; ties break by recording time, then identifier. " +
-          "Otherwise pages use an opaque cursor bound to the date ordering " +
-          "and the active filters, and the server caps the requested limit.",
+          "expense's tags. The list comes in numbered pages: `page` (from " +
+          "1), `pageSize` (10, 25, 50, or 100; default 50), `sort` (`date` " +
+          "or `amount`, by size; default `date`), and `order` (default " +
+          "`desc`); the response carries the filtered `total`, and ties " +
+          "break by recording time, then identifier.",
         tags: ["Transactions"],
         responses: {
           400: describeProblemResponse(400),
@@ -201,9 +197,7 @@ export function createTransactionRoutes(db: Database) {
             ownerId: c.get("session").user.id,
             query: c.req.valid("query"),
           });
-          return list === null
-            ? createProblemResponse(c, getProblemOptionsForStatus(400))
-            : c.json(list, 200);
+          return c.json(list, 200);
         },
         {
           200: {

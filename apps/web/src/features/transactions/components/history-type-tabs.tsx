@@ -37,7 +37,7 @@ function countFilters({
  * shortcut: four list reads per filter change; add a counts endpoint if they prove slow.
  */
 function useTypeCounts(view: HistoryView) {
-  const filters = view.state === "valid" ? countFilters(view.pages) : null;
+  const filters = view.state === "valid" ? countFilters(view.list) : null;
   return useQueries({
     queries: TABS.map(({ type }) => ({
       ...transactionQueries.list({
@@ -47,7 +47,7 @@ function useTypeCounts(view: HistoryView) {
         pageSize: "10",
       }),
       enabled: filters !== null,
-      select: (page: { page: { total?: number } }) => page.page.total ?? 0,
+      select: (page: { page: { total: number } }) => page.page.total,
     })),
   }).map((result) => result.data);
 }

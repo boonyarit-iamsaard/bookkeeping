@@ -4,7 +4,8 @@ import { buttonVariants } from "@/shared/components/ui/button";
 interface WalletHistoryProps {
   walletId: string;
   empty: boolean;
-  nextCursor: string | null;
+  /** The page after this one; none on the last. */
+  olderPage: number | undefined;
   /** The transactions, in the composition's own layout. */
   children: React.ReactNode;
 }
@@ -13,7 +14,7 @@ interface WalletHistoryProps {
 export function WalletHistory({
   walletId,
   empty,
-  nextCursor,
+  olderPage,
   children,
 }: Readonly<WalletHistoryProps>) {
   return (
@@ -34,11 +35,11 @@ export function WalletHistory({
           children
         )}
       </section>
-      {nextCursor && (
+      {olderPage !== undefined && (
         <Link
           to="/wallets/$walletId"
           params={{ walletId }}
-          search={{ cursor: nextCursor }}
+          search={{ page: olderPage }}
           className={buttonVariants({
             variant: "outline",
             size: "lg",

@@ -57,7 +57,7 @@ describe("GET /v1/transactions by page number", () => {
         await list("type=expense&sort=amount&order=desc&pageSize=10"),
       ).toEqual({
         ids: [largeLater, largeEarlier, small],
-        page: { nextCursor: null, number: 1, size: 10, total: 3 },
+        page: { number: 1, size: 10, total: 3 },
       });
       expect((await list("type=expense&sort=amount&order=asc")).ids).toEqual([
         small,
@@ -68,7 +68,7 @@ describe("GET /v1/transactions by page number", () => {
         await list("type=expense&sort=amount&order=asc&page=2&pageSize=10"),
       ).toEqual({
         ids: [],
-        page: { nextCursor: null, number: 2, size: 10, total: 3 },
+        page: { number: 2, size: 10, total: 3 },
       });
       expect((await list("type=expense&order=asc")).ids).toEqual([
         small,
@@ -80,8 +80,7 @@ describe("GET /v1/transactions by page number", () => {
         largeEarlier,
         small,
       ]);
-      expect((await list("page=1")).page).toEqual({
-        nextCursor: null,
+      expect((await list("")).page).toEqual({
         number: 1,
         size: 50,
         total: 4,
@@ -89,7 +88,7 @@ describe("GET /v1/transactions by page number", () => {
     });
   });
 
-  test("rejects an out-of-range page or page size, an unknown sort, and a numbered cursor", async () => {
+  test("rejects an out-of-range page or page size, an unknown sort, and the former cursor", async () => {
     await withRollback(async (db) => {
       const app = createIntegrationTestApp(db, {
         auth: createTestAuthGateway(db),

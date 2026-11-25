@@ -13,14 +13,14 @@ describe("history search", () => {
         to: "",
         walletId: WALLET_ID,
         categoryId: undefined,
-        cursor: "eyJ2IjoxfQ",
+        page: "2",
         created: "",
         unrelated: "x",
       }),
     ).toEqual({
       from: "2026-09-01",
       walletId: WALLET_ID,
-      cursor: "eyJ2IjoxfQ",
+      page: 2,
     });
   });
 
@@ -36,9 +36,9 @@ describe("history search", () => {
     expect(historySearchSchema.parse({ deleted: "yes" })).toEqual({});
   });
 
-  test("drops a repeated page cursor or saved id rather than reading it", () => {
+  test("drops a repeated page or saved id rather than reading it", () => {
     expect(
-      historySearchSchema.parse({ cursor: ["a", "b"], created: ["c", "d"] }),
+      historySearchSchema.parse({ page: ["2", "3"], created: ["c", "d"] }),
     ).toEqual({});
   });
 

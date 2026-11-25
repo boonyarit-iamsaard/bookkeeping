@@ -80,7 +80,7 @@ export function TransactionsDesktop({
 }: Readonly<TransactionsDesktopProps>) {
   const navigate = useNavigate();
   const { view, pending, transactions, total, filterErrors, ...collections } =
-    useHistoryReads(search, { numbered: true });
+    useHistoryReads(search);
   const page = search.page ?? 1;
   const pageSize = search.pageSize ?? DEFAULT_HISTORY_PAGE_SIZE;
   const lastPage = Math.ceil(total / pageSize);

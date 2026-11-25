@@ -50,7 +50,7 @@ const FILTER_ERROR_MESSAGES = {
 export type HistoryValueKey = HistoryFilterKey | `tagId:${string}`;
 
 interface HistoryViewBase {
-  /** The filter controls' raw values; the cursor and saved id are not filters. */
+  /** The filter controls' raw values; the page and saved id are not filters. */
   values: HistoryFilterValues;
   /** Whether the address narrows the history at all, valid or not. */
   hasFilters: boolean;
@@ -58,10 +58,8 @@ interface HistoryViewBase {
 
 interface ValidHistoryView extends HistoryViewBase {
   state: "valid";
-  /** The page of transactions the address names. */
-  list: TransactionListQuery;
   /** The numbered page the address names, with the table's defaults filled in. */
-  pages: TransactionListQuery;
+  list: TransactionListQuery;
 }
 
 /** Invalid filters have no list query, so they read nothing. */
@@ -116,8 +114,7 @@ export function buildHistoryView(search: Readonly<HistorySearch>): HistoryView {
       state: "valid",
       values,
       hasFilters,
-      list: { ...result.data, cursor: search.cursor },
-      pages: {
+      list: {
         ...result.data,
         // The query carries text; the address keeps numbers.
         page: String(search.page ?? 1),

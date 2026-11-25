@@ -10,8 +10,8 @@ import type { CreateTransactionInput } from "./transaction";
 import { createTransaction, updateTransaction } from "./transaction";
 import {
   findTransaction,
+  listNumberedTransactionPage,
   listTransactionChanges,
-  listTransactionPage,
 } from "./transaction-reads";
 
 const { withRollback } = setupTestDatabase();
@@ -326,24 +326,23 @@ describe("filtering by tag", () => {
         amount: 1_000n,
       });
 
-      const first = await listTransactionPage(db, {
-        ownerId: owner.ownerId,
-        tagIds: [coffee, shop],
-        limit: 2,
-      });
-      const second = first.nextPosition
-        ? await listTransactionPage(db, {
-            ownerId: owner.ownerId,
-            tagIds: [coffee, shop],
-            limit: 2,
-            after: first.nextPosition,
-          })
-        : undefined;
+      const pageOf = (page: number) =>
+        listNumberedTransactionPage(db, {
+          ownerId: owner.ownerId,
+          tagIds: [coffee, shop],
+          page,
+          pageSize: 2,
+          sort: "date",
+          order: "desc",
+        });
+      const [first, second] = await Promise.all([pageOf(1), pageOf(2)]);
 
-      expect(
-        [...first.items, ...(second?.items ?? [])].map((item) => item.id),
-      ).toEqual([refund.id, snacks.id, latte.id]);
-      expect(second?.nextPosition).toBeNull();
+      expect([...first.items, ...second.items].map((item) => item.id)).toEqual([
+        refund.id,
+        snacks.id,
+        latte.id,
+      ]);
+      expect(second.total).toBe(3);
     });
   });
 
@@ -361,10 +360,13 @@ describe("filtering by tag", () => {
       });
       await record(db, expenseInput(owner));
 
-      const page = await listTransactionPage(db, {
+      const page = await listNumberedTransactionPage(db, {
         ownerId: owner.ownerId,
         tagIds: [foreign],
-        limit: 10,
+        page: 1,
+        pageSize: 10,
+        sort: "date",
+        order: "desc",
       });
 
       expect(page.items).toEqual([]);

@@ -58,16 +58,14 @@ export const transactionResponseSchema = z
   })
   .meta({ id: "Transaction" });
 
-// Number, size and total answer a numbered request; a cursor request gets only nextCursor.
 export const transactionCollectionResponseSchema = z
   .object({
     items: z.array(transactionResponseSchema),
     page: z
       .object({
-        nextCursor: z.string().nullable(),
-        number: z.int().min(1).optional(),
-        size: z.int().min(1).optional(),
-        total: z.int().min(0).optional(),
+        number: z.int().min(1),
+        size: z.int().min(1),
+        total: z.int().min(0),
       })
       .meta({ id: "TransactionPage" }),
   })

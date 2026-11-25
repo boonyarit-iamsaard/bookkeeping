@@ -1,4 +1,5 @@
 import type { HistorySearch } from "@/features/transactions/history-schema";
+import { DEFAULT_HISTORY_PAGE_SIZE } from "@/features/transactions/history-view";
 
 /** How the table shows the history: which page, how many rows, in what order. */
 export type HistoryTableSettings = Pick<
@@ -33,7 +34,6 @@ export function changeHistoryTable(
 ): HistorySearch {
   const {
     page: _currentPage,
-    cursor: _cursor,
     created: _created,
     deleted: _deleted,
     ...rest
@@ -53,4 +53,12 @@ export function changeHistoryType(
 ): HistorySearch {
   const { type: _previous, ...rest } = changeHistoryTable(search, {});
   return type === undefined ? rest : { ...rest, type };
+}
+
+/** The page after the one the address shows, or none when it shows the last. */
+export function olderHistoryPage(
+  { page = 1, pageSize = DEFAULT_HISTORY_PAGE_SIZE }: Readonly<HistorySearch>,
+  total: number,
+): number | undefined {
+  return page * pageSize < total ? page + 1 : undefined;
 }

@@ -115,9 +115,9 @@ These are decided, not overlooked.
 - **Next.js cache invalidation had no API surface.** `revalidatePath` was how
   the adapter refreshed its own rendered pages; the SPA refreshes its cached
   reads after each write on its own.
-- **The API paginated where Next.js did not.** `listTransactions` returns
-  opaque cursors from its first version; the Next.js history page read an
-  unpaginated list. The SPA history pages through those cursors.
+- **The API paginated where Next.js did not.** `listTransactions` paged by
+  opaque cursor from its first version, and by numbered pages with a total
+  since ADR 0018; the Next.js history page read an unpaginated list.
 - **Wallet and category collections stay unpaginated.** Both are small and
   bounded by one owner's own records.
 
