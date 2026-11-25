@@ -6,10 +6,7 @@ import type { TagSummary } from "@/features/tags/tag-search";
 import { ClientDataTable } from "@/shared/components/client-data-table";
 import type { DataTableColumn } from "@/shared/components/data-table";
 import { dataTableColumns } from "@/shared/components/data-table";
-import {
-  actionsColumn,
-  RowActionsMenu,
-} from "@/shared/components/row-actions-menu";
+import { RowActionsMenu } from "@/shared/components/row-actions-menu";
 import { DropdownMenuItem } from "@/shared/components/ui/dropdown-menu";
 import { tableRowLinkClass } from "@/shared/components/ui/table";
 import { cn } from "@/shared/helpers/cn";
@@ -56,11 +53,6 @@ function tagColumns(
         <span className="text-muted-foreground tabular-nums">{getValue()}</span>
       ),
     }),
-    actionsColumn<TagSummary>((tag) => (
-      <RowActionsMenu record={tag.name}>
-        <DropdownMenuItem onClick={() => edit(tag)}>Edit</DropdownMenuItem>
-      </RowActionsMenu>
-    )),
   ];
 }
 
@@ -78,6 +70,13 @@ export function TagTable({ tags, onDone }: Readonly<TagTableProps>) {
         rows={tags}
         rowId={(row) => row.id}
         rowProps={() => ({ className: "hover:bg-accent/70" })}
+        rowActions={(row) => (
+          <RowActionsMenu record={row.name}>
+            <DropdownMenuItem onClick={() => editing.edit(row)}>
+              Edit
+            </DropdownMenuItem>
+          </RowActionsMenu>
+        )}
       />
       <Dialog.Root {...editing.rootProps}>
         {tag && (

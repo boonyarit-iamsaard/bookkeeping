@@ -117,6 +117,8 @@ interface DataTableProps<TData extends RowData> {
   rowCountLabel: string;
   /** Where this browser keeps the table's column choice; columns opt in with `enableHiding`. */
   columnsStorageKey: string;
+  /** A last cell per row, such as its action menu; it sits above the row's stretched link. */
+  rowActions?: (row: TData) => React.ReactNode;
 }
 
 function SortGlyph({ sorted }: Readonly<{ sorted: false | "asc" | "desc" }>) {
@@ -190,6 +192,7 @@ interface CompactDataTableProps<TData extends RowData> {
 interface DataTableBodyProps<TData extends RowData> {
   table: ReactTable<DataTableFeatures, TData>;
   rowProps: CompactDataTableProps<TData>["rowProps"];
+  rowActions?: DataTableProps<TData>["rowActions"];
 }
 
 /** A row, then the rows nested under it, so a tree reads as one flat list. */
@@ -202,6 +205,7 @@ function withSubRows<TData extends RowData>(
 export function DataTableBody<TData extends RowData>({
   table,
   rowProps,
+  rowActions,
 }: Readonly<DataTableBodyProps<TData>>) {
   return (
     <TableBody>
@@ -222,6 +226,11 @@ export function DataTableBody<TData extends RowData>({
                 <FlexRender cell={cell} />
               </TableCell>
             ))}
+            {rowActions && (
+              <TableCell className="relative z-1 w-px py-1.5 text-right">
+                {rowActions(row.original)}
+              </TableCell>
+            )}
           </TableRow>
         ))}
     </TableBody>
@@ -281,6 +290,7 @@ export function DataTable<TData extends RowData>({
   rowCount,
   rowCountLabel,
   columnsStorageKey,
+  rowActions,
 }: Readonly<DataTableProps<TData>>) {
   const [columnVisibility, setColumnVisibility] = useStoredColumnVisibility(
     columnsStorageKey,
@@ -343,10 +353,19 @@ export function DataTable<TData extends RowData>({
               {group.headers.map((header) => (
                 <HeaderCell key={header.id} header={header} />
               ))}
+              {rowActions && (
+                <TableHead className="w-px">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              )}
             </TableRow>
           ))}
         </TableHeader>
-        <DataTableBody table={table} rowProps={rowProps} />
+        <DataTableBody
+          table={table}
+          rowProps={rowProps}
+          rowActions={rowActions}
+        />
       </Table>
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t py-3">
         <p className="text-muted-foreground text-sm">{rowCountLabel}</p>

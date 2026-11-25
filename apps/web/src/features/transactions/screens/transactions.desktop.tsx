@@ -13,6 +13,7 @@ import {
 } from "@/features/transactions/components/transaction-columns";
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
+import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
 import type { HistoryTableSettings } from "@/features/transactions/history-pages";
 import { changeHistoryTable } from "@/features/transactions/history-pages";
 import type { HistorySearch } from "@/features/transactions/history-schema";
@@ -118,42 +119,47 @@ export function TransactionsDesktop({
         >
           {/* Clips the sticky header's side fill to the card's corners. */}
           <TableCard className="overflow-clip">
-            <DataTable
-              label="Transactions"
-              columns={TRANSACTION_COLUMNS}
-              rows={transactions}
-              rowId={(transaction) => transaction.id}
-              rowProps={transactionRowProps(search.created)}
-              sorting={[
-                {
-                  id: search.sort ?? "date",
-                  desc: (search.order ?? "desc") === "desc",
-                },
-              ]}
-              onSortingChange={([next]) => {
-                const sort = TRANSACTION_LIST_SORTS.find(
-                  (name) => name === next?.id,
-                );
-                if (sort) {
-                  show({ sort, order: next?.desc ? "desc" : "asc" });
-                }
-              }}
-              pagination={{ pageIndex: page - 1, pageSize }}
-              onPaginationChange={(next) => {
-                const size = TRANSACTION_PAGE_SIZES.find(
-                  (option) => option === next.pageSize,
-                );
-                show(
-                  size === pageSize
-                    ? { page: next.pageIndex + 1 }
-                    : { pageSize: size },
-                );
-              }}
-              pageSizes={TRANSACTION_PAGE_SIZES}
-              rowCount={total}
-              rowCountLabel={countLabel(total)}
-              columnsStorageKey="bookkeeping.transactions-columns"
-            />
+            <TransactionRowActions>
+              {(rowActions) => (
+                <DataTable
+                  label="Transactions"
+                  columns={TRANSACTION_COLUMNS}
+                  rows={transactions}
+                  rowId={(transaction) => transaction.id}
+                  rowProps={transactionRowProps(search.created)}
+                  sorting={[
+                    {
+                      id: search.sort ?? "date",
+                      desc: (search.order ?? "desc") === "desc",
+                    },
+                  ]}
+                  onSortingChange={([next]) => {
+                    const sort = TRANSACTION_LIST_SORTS.find(
+                      (name) => name === next?.id,
+                    );
+                    if (sort) {
+                      show({ sort, order: next?.desc ? "desc" : "asc" });
+                    }
+                  }}
+                  pagination={{ pageIndex: page - 1, pageSize }}
+                  onPaginationChange={(next) => {
+                    const size = TRANSACTION_PAGE_SIZES.find(
+                      (option) => option === next.pageSize,
+                    );
+                    show(
+                      size === pageSize
+                        ? { page: next.pageIndex + 1 }
+                        : { pageSize: size },
+                    );
+                  }}
+                  pageSizes={TRANSACTION_PAGE_SIZES}
+                  rowCount={total}
+                  rowCountLabel={countLabel(total)}
+                  columnsStorageKey="bookkeeping.transactions-columns"
+                  rowActions={rowActions}
+                />
+              )}
+            </TransactionRowActions>
           </TableCard>
         </TransactionHistory>
       )}

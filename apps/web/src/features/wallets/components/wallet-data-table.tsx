@@ -12,10 +12,7 @@ import {
   SECONDARY_COLUMN,
 } from "@/shared/components/data-table";
 import { Money } from "@/shared/components/money";
-import {
-  actionsColumn,
-  RowActionsMenu,
-} from "@/shared/components/row-actions-menu";
+import { RowActionsMenu } from "@/shared/components/row-actions-menu";
 import { DropdownMenuItem } from "@/shared/components/ui/dropdown-menu";
 import {
   TableCell,
@@ -82,27 +79,6 @@ const WALLET_COLUMNS: readonly DataTableColumn<WalletSummary>[] = [
     meta: { align: "end" },
     cell: ({ row }) => <Money amount={row.original.balance} />,
   }),
-  actionsColumn<WalletSummary>((wallet) => (
-    <RowActionsMenu record={wallet.name}>
-      <DropdownMenuItem
-        render={
-          <Link to="/wallets/$walletId" params={{ walletId: wallet.id }} />
-        }
-      >
-        Open
-      </DropdownMenuItem>
-      <DropdownMenuItem
-        render={
-          <Link
-            to="/wallets/$walletId/manage"
-            params={{ walletId: wallet.id }}
-          />
-        }
-      >
-        Manage
-      </DropdownMenuItem>
-    </RowActionsMenu>
-  )),
 ];
 
 /** Every wallet as a sortable table, the Total balance in its footer; each row's menu opens or manages it. */
@@ -116,6 +92,27 @@ export function WalletDataTable({
       columns={WALLET_COLUMNS}
       rows={wallets}
       rowId={(wallet) => wallet.id}
+      rowActions={(wallet) => (
+        <RowActionsMenu record={wallet.name}>
+          <DropdownMenuItem
+            render={
+              <Link to="/wallets/$walletId" params={{ walletId: wallet.id }} />
+            }
+          >
+            Open
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            render={
+              <Link
+                to="/wallets/$walletId/manage"
+                params={{ walletId: wallet.id }}
+              />
+            }
+          >
+            Manage
+          </DropdownMenuItem>
+        </RowActionsMenu>
+      )}
       rowProps={() => ({
         "data-wallet-row": true,
         className: "hover:bg-accent/70",
