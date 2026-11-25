@@ -1,14 +1,11 @@
 language js
 
 // Matches an `lg:` (or `max-lg:`) class in any string or template text.
-// Severity is info, not warn: `biome ci --error-on-warnings` would fail on the
-// screens not yet split into compositions. Raise it to error when the last
-// screen moves (ADR 0017).
 or {
   JsStringLiteralExpression(),
   JsxString(),
   JsTemplateChunkElement()
 } as $text where {
   $text <: r"(?s).*(?:^|[\s\"'`:-])lg:.*",
-  register_diagnostic(span=$text, severity="info", message="Only core/shell uses lg: classes. A desktop composition never renders below 1024px, so it needs none; put the desktop layout in the screen's .desktop.tsx composition (ADR 0017). sm: classes stay allowed.")
+  register_diagnostic(span=$text, severity="error", message="Only core/shell uses lg: classes. A desktop composition never renders below 1024px, so it needs none; put the desktop layout in the screen's .desktop.tsx composition (ADR 0017). sm: classes stay allowed.")
 }

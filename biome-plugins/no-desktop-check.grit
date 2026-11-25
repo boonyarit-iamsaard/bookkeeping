@@ -1,8 +1,5 @@
 language js
 
-// Severity is info, not warn: `biome ci --error-on-warnings` would fail on the
-// screens not yet split into compositions. Raise it to error when the last
-// screen moves (ADR 0017).
 `useIsDesktop($args)` as $call where {
-  register_diagnostic(span=$call, severity="info", message="Only routes and core/shell call useIsDesktop. Give the screen a phone and a desktop composition and let its route choose between them (ADR 0017).")
+  register_diagnostic(span=$call, severity="error", message="Only routes and core/shell call useIsDesktop. Give the screen a phone and a desktop composition and let its route choose between them (ADR 0017).")
 }
