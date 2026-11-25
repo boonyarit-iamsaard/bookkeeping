@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { changeHistoryTable, historyTableSettings } from "./history-pages";
+import {
+  changeHistoryTable,
+  changeHistoryType,
+  historyTableSettings,
+} from "./history-pages";
 
 const CASH = "00000000-0000-4000-8000-000000000001";
 
@@ -52,5 +56,20 @@ describe("history pages", () => {
       }),
     ).toEqual({ pageSize: 10, sort: "amount", order: "asc" });
     expect(historyTableSettings({ page: 2 })).toEqual({});
+  });
+
+  test("a type tab keeps the other filters and the view but returns to page 1", () => {
+    expect(
+      changeHistoryType(
+        { walletId: CASH, type: "income", page: 3, sort: "amount" },
+        "expense",
+      ),
+    ).toEqual({ walletId: CASH, type: "expense", sort: "amount" });
+  });
+
+  test("the All tab lifts the type filter", () => {
+    expect(changeHistoryType({ type: "refund", page: 2 }, undefined)).toEqual(
+      {},
+    );
   });
 });

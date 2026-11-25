@@ -130,8 +130,8 @@ test("desktop history is one table with a live filter bar, and a wallet page of 
     "Date",
     "Category",
     "Wallet",
+    "Type",
     "Tags",
-    "Note",
     "Amount",
   ]);
   const rows = table.locator("[data-transaction-row]");
@@ -142,7 +142,6 @@ test("desktop history is one table with a live filter bar, and a wallet page of 
   await expect(rows.nth(0)).not.toContainText(/[+−]฿/);
   await expect(rows.nth(1)).toContainText("Refund");
   await expect(rows.nth(1)).toContainText("+฿20.00");
-  await expect(rows.nth(2)).toContainText("Lunch");
   await expect(rows.nth(2)).toContainText("Coffee");
   await expect(rows.nth(2)).toContainText("−฿80.00");
   await expect(

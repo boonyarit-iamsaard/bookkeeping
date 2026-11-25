@@ -6,6 +6,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { HistoryFilterBar } from "@/features/transactions/components/history-filter-bar";
+import { HistoryTypeTabs } from "@/features/transactions/components/history-type-tabs";
 import {
   TRANSACTION_COLUMNS,
   transactionRowProps,
@@ -100,7 +101,11 @@ export function TransactionsDesktop({
       <TitleBar title="Transactions" />
       {/* An empty ledger has nothing to narrow. */}
       {(view.hasFilters || total > 0) && (
-        <HistoryFilterBar {...collections} values={view.values} />
+        <>
+          <HistoryFilterBar {...collections} values={view.values} />
+          {/* Outside the table, so an empty tab still leads back to the others. */}
+          <HistoryTypeTabs search={search} view={view} />
+        </>
       )}
       {search.deleted === 1 && <TransactionDeletedNotice />}
       {transactions.length === 0 && page > lastPage && lastPage > 0 ? (
@@ -147,6 +152,7 @@ export function TransactionsDesktop({
               pageSizes={TRANSACTION_PAGE_SIZES}
               rowCount={total}
               rowCountLabel={countLabel(total)}
+              columnsStorageKey="bookkeeping.transactions-columns"
             />
           </TableCard>
         </TransactionHistory>

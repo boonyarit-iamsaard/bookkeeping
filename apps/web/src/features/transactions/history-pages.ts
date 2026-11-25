@@ -45,3 +45,12 @@ export function changeHistoryTable(
     ...(nextPage !== undefined && nextPage > 1 && { page: nextPage }),
   };
 }
+
+/** The address after a type tab: that type, or none for All, from page 1. */
+export function changeHistoryType(
+  search: Readonly<HistorySearch>,
+  type: string | undefined,
+): HistorySearch {
+  const { type: _previous, ...rest } = changeHistoryTable(search, {});
+  return type === undefined ? rest : { ...rest, type };
+}

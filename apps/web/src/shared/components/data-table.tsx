@@ -9,6 +9,7 @@ import type {
   TableFeatures,
 } from "@tanstack/react-table";
 import {
+  columnVisibilityFeature,
   createColumnHelper,
   FlexRender,
   functionalUpdate,
@@ -28,6 +29,10 @@ import {
 } from "lucide-react";
 import type * as React from "react";
 import { useId } from "react";
+import {
+  ColumnsMenu,
+  useStoredColumnVisibility,
+} from "@/shared/components/data-table-columns";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
 import {
   Select,
@@ -58,13 +63,19 @@ declare module "@tanstack/react-table" {
     grow?: true;
     /** Drops out when the table sits in a narrow card container. */
     secondary?: true;
+    /** An optional column the owner must choose to show. */
+    hiddenByDefault?: true;
   }
 }
 
 /** A column a narrow dashboard card drops, so no figure beside it clips. */
 export const SECONDARY_COLUMN = "@max-sm:hidden";
 
-const features = tableFeatures({ rowSortingFeature, rowPaginationFeature });
+const features = tableFeatures({
+  rowSortingFeature,
+  rowPaginationFeature,
+  columnVisibilityFeature,
+});
 
 type DataTableFeatures = typeof features;
 
@@ -99,6 +110,8 @@ interface DataTableProps<TData extends RowData> {
   rowCount: number;
   /** The footer's count, such as "120 transactions". */
   rowCountLabel: string;
+  /** Where this browser keeps the table's column choice; columns opt in with `enableHiding`. */
+  columnsStorageKey: string;
 }
 
 function SortGlyph({ sorted }: Readonly<{ sorted: false | "asc" | "desc" }>) {
@@ -182,7 +195,7 @@ function DataTableBody<TData extends RowData>({
     <TableBody>
       {table.getRowModel().rows.map((row) => (
         <TableRow key={row.id} {...rowProps?.(row.original)}>
-          {row.getAllCells().map((cell) => (
+          {row.getVisibleCells().map((cell) => (
             <TableCell
               key={cell.id}
               className={cn(
@@ -252,13 +265,30 @@ export function DataTable<TData extends RowData>({
   pageSizes,
   rowCount,
   rowCountLabel,
+  columnsStorageKey,
 }: Readonly<DataTableProps<TData>>) {
+  const [columnVisibility, setColumnVisibility] = useStoredColumnVisibility(
+    columnsStorageKey,
+    columns.flatMap(({ id, enableHiding, meta }) =>
+      id
+        ? [
+            {
+              id,
+              hideable: enableHiding ?? false,
+              hiddenByDefault: meta?.hiddenByDefault ?? false,
+            },
+          ]
+        : [],
+    ),
+  );
   const table = useTable({
     features,
     columns: [...columns],
     data: [...rows],
     getRowId: rowId,
-    state: { sorting, pagination },
+    state: { sorting, pagination, columnVisibility },
+    onColumnVisibilityChange: (updater) =>
+      setColumnVisibility(functionalUpdate(updater, columnVisibility)),
     onSortingChange: (updater) =>
       onSortingChange(functionalUpdate(updater, sorting)),
     onPaginationChange: (updater) =>
@@ -270,12 +300,26 @@ export function DataTable<TData extends RowData>({
     enableSortingRemoval: false,
     // An unsorted column's first click reads largest or newest first.
     sortDescFirst: true,
-    defaultColumn: { enableSorting: false },
+    defaultColumn: { enableSorting: false, enableHiding: false },
   });
   const pageCount = Math.max(table.getPageCount(), 1);
   const pageSizeLabelId = useId();
   return (
     <div className="flex flex-col">
+      <div className="flex justify-end pt-4 pb-1">
+        <ColumnsMenu
+          columns={table.getAllLeafColumns().map((column) => ({
+            id: column.id,
+            label:
+              typeof column.columnDef.header === "string"
+                ? column.columnDef.header
+                : column.id,
+            visible: column.getIsVisible(),
+            hideable: column.getCanHide(),
+            setVisible: (visible) => column.toggleVisibility(visible),
+          }))}
+        />
+      </div>
       {/* No scroll box, so the header can stick under the 64px top bar. */}
       <Table aria-label={label} containerClassName="overflow-x-visible">
         <TableHeader className="bg-card sticky top-16 z-10 shadow-[-1.5rem_0_0_var(--card),1.5rem_0_0_var(--card)]">

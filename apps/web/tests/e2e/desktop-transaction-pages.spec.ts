@@ -98,7 +98,7 @@ test("desktop history sorts and pages on the server, keeping the view in the add
   await expect(page).toHaveURL(/\/transactions\?pageSize=10$/);
   await expect(pageLabel).toHaveText("Page 1 of 3");
   await expect(rows).toHaveCount(10);
-  await expect(rows.first()).toContainText("Day 25");
+  await expect(rows.first()).toContainText("25 Sep 2026");
   const first = page.getByRole("button", { name: "First page" });
   const previous = page.getByRole("button", { name: "Previous page" });
   const next = page.getByRole("button", { name: "Next page" });
@@ -109,7 +109,7 @@ test("desktop history sorts and pages on the server, keeping the view in the add
   await next.click();
   await expect(page).toHaveURL(/pageSize=10&page=2$/);
   await expect(pageLabel).toHaveText("Page 2 of 3");
-  await expect(rows.first()).toContainText("Day 15");
+  await expect(rows.first()).toContainText("15 Sep 2026");
   await last.click();
   await expect(pageLabel).toHaveText("Page 3 of 3");
   await expect(rows).toHaveCount(5);

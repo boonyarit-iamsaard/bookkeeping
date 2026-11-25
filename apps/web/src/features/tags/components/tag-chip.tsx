@@ -4,14 +4,21 @@ import { cn } from "@/shared/helpers/cn";
 interface TagChipProps {
   name: string;
   className?: string;
+  /** Cuts a long name short on one line, for a table cell that may not grow. */
+  truncate?: boolean;
 }
 
 /**
  * A tag read back: a Mist pill led by a Slate #, never a hue, because hue
  * identifies categories and a tag is not one. Names wrap inside the pill
- * rather than truncating, so "Hay Day diamonds" is never cut to "Hay D…".
+ * rather than truncating, so "Hay Day diamonds" is never cut to "Hay D…",
+ * except in a table, whose rows stay one line.
  */
-export function TagChip({ name, className }: Readonly<TagChipProps>) {
+export function TagChip({
+  name,
+  className,
+  truncate = false,
+}: Readonly<TagChipProps>) {
   return (
     <span
       className={cn(
@@ -24,7 +31,11 @@ export function TagChip({ name, className }: Readonly<TagChipProps>) {
         strokeWidth={2}
         className="text-muted-foreground mt-[0.1875rem] size-3.5 shrink-0"
       />
-      <span className="min-w-0 wrap-break-word">{name}</span>
+      <span
+        className={cn("min-w-0", truncate ? "truncate" : "wrap-break-word")}
+      >
+        {name}
+      </span>
     </span>
   );
 }

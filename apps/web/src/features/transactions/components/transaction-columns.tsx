@@ -1,12 +1,15 @@
 import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import type { components } from "@/core/api/openapi.gen";
-import { TagChipList } from "@/features/tags/components/tag-chip";
 import { transferWallets } from "@/features/transactions/components/transaction-list";
 import {
   TransactionCategoryCell,
   walletName,
 } from "@/features/transactions/components/transaction-table";
-import { TRANSACTION_TYPE_SIGNS } from "@/features/transactions/transaction-labels";
+import { TransactionTagsCell } from "@/features/transactions/components/transaction-tags-cell";
+import {
+  TRANSACTION_TYPE_LABELS,
+  TRANSACTION_TYPE_SIGNS,
+} from "@/features/transactions/transaction-labels";
 import type { DataTableColumn } from "@/shared/components/data-table";
 import { dataTableColumns } from "@/shared/components/data-table";
 import { Money } from "@/shared/components/money";
@@ -29,7 +32,8 @@ const column = dataTableColumns<ApiTransaction>();
 
 /**
  * Desktop Transactions' columns. Date and Amount sort on the server under the
- * list's own sort names; the category is the row's link.
+ * list's own sort names; the category is the row's link. Date and Category
+ * always show, so every row stays identifiable; the rest the owner may hide.
  */
 export const TRANSACTION_COLUMNS: readonly DataTableColumn<ApiTransaction>[] = [
   column.accessor("transactionDate", {
@@ -45,12 +49,13 @@ export const TRANSACTION_COLUMNS: readonly DataTableColumn<ApiTransaction>[] = [
   column.display({
     id: "category",
     header: "Category",
-    cell: ({ row }) => (
+    cell: ({ row, table }) => (
       <span className="font-semibold">
         <TransactionCategoryCell
           transaction={row.original}
           transfer={transferOf(row.original)}
-          showTransfer={false}
+          // A hidden Wallet column moves a transfer's wallets here.
+          showTransfer={!table.getColumn("wallet")?.getIsVisible()}
         />
       </span>
     ),
@@ -58,17 +63,40 @@ export const TRANSACTION_COLUMNS: readonly DataTableColumn<ApiTransaction>[] = [
   column.display({
     id: "wallet",
     header: "Wallet",
-    cell: ({ row }) =>
-      transferOf(row.original) ?? walletName(row.original.wallet),
+    enableHiding: true,
+    cell: ({ row }) => (
+      <span className="whitespace-nowrap">
+        {transferOf(row.original) ?? walletName(row.original.wallet)}
+      </span>
+    ),
+  }),
+  column.display({
+    id: "type",
+    header: "Type",
+    enableHiding: true,
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">
+        {TRANSACTION_TYPE_LABELS[row.original.type]}
+      </span>
+    ),
   }),
   column.display({
     id: "tags",
     header: "Tags",
-    cell: ({ row }) => <TagChipList tags={row.original.tags} />,
+    enableHiding: true,
+    // Takes the spare width while Note, the other filler, is hidden.
+    meta: { grow: true },
+    // A transfer carries no tags.
+    cell: ({ row }) =>
+      row.original.type === "transfer" ? null : (
+        <TransactionTagsCell tags={row.original.tags} />
+      ),
   }),
   column.accessor("note", {
+    id: "note",
     header: "Note",
-    meta: { grow: true },
+    enableHiding: true,
+    meta: { grow: true, hiddenByDefault: true },
     cell: ({ getValue }) => (
       <span className="text-muted-foreground block truncate">{getValue()}</span>
     ),
@@ -76,6 +104,7 @@ export const TRANSACTION_COLUMNS: readonly DataTableColumn<ApiTransaction>[] = [
   column.accessor("amount", {
     id: "amount",
     header: "Amount",
+    enableHiding: true,
     enableSorting: true,
     meta: { align: "end" },
     cell: ({ row }) => (
