@@ -17,3 +17,16 @@ CHANGELOG.md
 test-results
 playwright-report
 .sonar-reports
+
+# Biome formats code and JSON; this stops a stray `prettier --write` on them
+*.ts
+*.tsx
+*.mts
+*.cts
+*.js
+*.mjs
+*.cjs
+*.jsx
+*.json
+*.jsonc
+*.css

@@ -50,6 +50,21 @@ uses port 5100. Specs run on 360px Chromium; tests tagged
 [test ownership](../code-conventions.md#test-ownership) rules and the
 browser test policy in [AGENTS.md](../../AGENTS.md).
 
+To look at a signed-in screen, `shot.spec.ts` signs up a fresh user, seeds a
+seven-digit wallet, last month's income and today's expense, and saves
+full-page light and dark screenshots of each route at each width. It skips
+unless `SHOT_ROUTES` is set, and counts as one e2e run under the resource
+limits:
+
+```bash
+SHOT_ROUTES=/,/reports SHOT_WIDTHS=1024,1440 pnpm --filter @bookkeeping/web test:e2e:shot
+```
+
+It prints each file's path, by default under
+`apps/web/test-results/shots/`, or `SHOT_DIR`. For the phone, run
+`pnpm --filter @bookkeeping/web test:e2e shot.spec.ts --project phone-chromium`
+with `SHOT_WIDTHS=360`.
+
 ## Coverage
 
 Coverage is an on-demand report, not part of `pnpm test` or `pnpm run ci`, and

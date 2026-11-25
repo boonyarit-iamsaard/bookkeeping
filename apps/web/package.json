@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "tsx tests/e2e/run.ts",
+    "test:e2e:shot": "tsx tests/e2e/run.ts shot.spec.ts --project desktop-chromium",
     "test:e2e:ci": "dotenvx run -f .env --ignore=MISSING_ENV_FILE --env CI=1 -- tsx tests/e2e/run.ts",
     "test:watch": "vitest",
     "types:check": "tsc --noEmit"
