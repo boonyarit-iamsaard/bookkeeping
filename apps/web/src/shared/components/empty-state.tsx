@@ -9,8 +9,8 @@ interface EmptyStateProps {
   description: React.ReactNode;
   /** The one next step, usually a primary link. */
   action?: React.ReactNode;
-  /** Restyles the card, for a place that is already one. */
-  className?: string;
+  /** Drops the card, for a place that already is one, such as an entry dialog. */
+  bare?: boolean;
 }
 
 /**
@@ -23,14 +23,15 @@ export function EmptyState({
   title,
   description,
   action,
-  className,
+  bare,
 }: Readonly<EmptyStateProps>) {
   return (
     <section
       aria-labelledby={headingId}
       className={cn(
         "bg-card shadow-card flex flex-col items-start gap-4 rounded-2xl p-5 sm:p-7",
-        className,
+        bare &&
+          "rounded-none bg-transparent px-6 pt-2 pb-6 shadow-none sm:px-6 sm:pt-2 sm:pb-6",
       )}
     >
       <span className="bg-secondary text-secondary-foreground flex size-12 items-center justify-center rounded-lg">

@@ -151,7 +151,7 @@ export function EntryDialog({
       disablePointerDismissal={dirty}
     >
       <SheetPortal className={className}>
-        <div data-entry-dialog="" className="flex min-h-0 flex-auto flex-col">
+        <div className="flex min-h-0 flex-auto flex-col">
           <SheetHeader>{title}</SheetHeader>
           <CatchBoundary
             getResetKey={() => String(open)}

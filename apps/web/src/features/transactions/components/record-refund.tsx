@@ -24,6 +24,7 @@ function NoReceivingWallet({
 }: Readonly<NoReceivingWalletProps>) {
   return (
     <EmptyState
+      bare={hosted}
       icon={WalletIcon}
       headingId="no-wallet-heading"
       title="No active wallets"

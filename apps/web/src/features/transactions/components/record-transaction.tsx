@@ -11,7 +11,6 @@ import {
 import { EmptyState } from "@/shared/components/empty-state";
 import type { EntryDialogHost } from "@/shared/components/form/entry-dialog";
 import { buttonVariants } from "@/shared/components/ui/button";
-import { cn } from "@/shared/helpers/cn";
 
 interface NoWalletProps {
   /** In an entry dialog, which is the card, so the state drops its own. */
@@ -21,10 +20,7 @@ interface NoWalletProps {
 function NoWallet({ hosted }: Readonly<NoWalletProps>) {
   return (
     <EmptyState
-      className={cn(
-        hosted &&
-          "rounded-none bg-transparent px-6 pt-2 pb-6 shadow-none sm:px-6 sm:pt-2 sm:pb-6",
-      )}
+      bare={hosted}
       icon={WalletIcon}
       headingId="no-wallet-heading"
       title="No active wallets"
