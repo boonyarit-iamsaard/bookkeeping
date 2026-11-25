@@ -59,13 +59,14 @@ export function DisplayFigure({
     <section
       {...(morphName && morphProps(morphName))}
       aria-labelledby={headingId}
-      className="bg-hero text-hero-foreground shadow-hero relative isolate flex h-full min-h-44 flex-col overflow-hidden rounded-3xl px-5 pt-6 pb-6 sm:min-h-48 sm:px-7 sm:pt-7 sm:pb-7"
+      className="bg-hero text-hero-foreground shadow-hero @container relative isolate flex h-full min-h-44 flex-col overflow-hidden rounded-3xl px-5 pt-6 pb-6 sm:min-h-48 sm:px-7 sm:pt-7 sm:pb-7"
     >
       <HeroCoin />
       <h2 id={headingId} className="text-hero-muted text-sm font-medium">
         {heading}
       </h2>
-      <p className="mt-auto pt-4 text-4xl leading-none font-bold tracking-[-0.025em] sm:text-5xl">
+      {/* The larger size needs the card's room as well as the viewport's, so a narrow desktop cell keeps the figure whole. */}
+      <p className="mt-auto pt-4 text-4xl leading-none font-bold tracking-[-0.025em] sm:@sm:text-5xl">
         <Money amount={amount} sign={sign} display className="font-bold" />
       </p>
       <p className="text-hero-muted mt-3 text-sm">{caption}</p>

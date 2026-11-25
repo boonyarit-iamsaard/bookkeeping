@@ -12,7 +12,7 @@ import {
   HomePhoneLoading,
 } from "@/features/home/screens/home.phone";
 import { historySearchSchema } from "@/features/transactions/history-schema";
-import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
+import { isDesktopViewport, useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function HomeRoute() {
   const { initialToday } = Route.useLoaderData();
@@ -46,6 +46,10 @@ export const Route = createFileRoute("/_app/")({
       context.queryClient.ensureQueryData(plan.recent),
       context.queryClient.ensureQueryData(plan.categories),
       context.queryClient.ensureQueryData(plan.categorySpending),
+      // Desktop's cash flow; its six months hold the last, which the tiles compare against.
+      ...(isDesktopViewport() ? plan.trend() : []).map((query) =>
+        context.queryClient.ensureQueryData(query),
+      ),
     ]);
     return { initialToday };
   },

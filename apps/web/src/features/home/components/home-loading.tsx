@@ -17,6 +17,17 @@ export function SummarySkeleton() {
   );
 }
 
+/** A desktop month figure tile in neutral blocks. */
+export function TileSkeleton() {
+  return (
+    <div className="bg-card shadow-card flex flex-col rounded-2xl p-6">
+      <Skeleton className="h-7 w-28" />
+      <Skeleton className="mt-auto h-8 w-36" />
+      <Skeleton className="mt-2 h-4 w-32" />
+    </div>
+  );
+}
+
 interface HomeLoadingProps {
   children: React.ReactNode;
 }

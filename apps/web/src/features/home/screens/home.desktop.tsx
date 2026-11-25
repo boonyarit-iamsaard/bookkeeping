@@ -1,15 +1,16 @@
 import type { CalendarDate } from "@bookkeeping/domain/dates";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
+import { CashFlowCard } from "@/features/home/components/cash-flow-card";
 import { Arrival } from "@/features/home/components/home-arrival";
 import {
   HomeLoading,
-  SummarySkeleton,
+  TileSkeleton,
 } from "@/features/home/components/home-loading";
-import { MonthCard, TodayCard } from "@/features/home/components/period-cards";
+import { MonthFigureTile } from "@/features/home/components/month-figure-tile";
 import { createHomeCategorySummary } from "@/features/home/home-category-summary";
 import { createHomeQueryPlan } from "@/features/home/home-queries";
 import { useHomeReads } from "@/features/home/hooks/use-home-reads";
@@ -35,9 +36,10 @@ interface CategoriesCardProps {
   today: CalendarDate;
 }
 
-// The figures in thirds, then spending beside the wallets, 5 + 7 of twelve.
-const FIGURES_ROW = "grid-cols-3";
-const SPENDING_ROW = "grid-cols-[minmax(0,5fr)_minmax(0,7fr)]";
+// Spendable beside this month's figures, then spending beside the wallets, 5 + 7 of twelve.
+const FIVE_SEVEN_ROW = "grid-cols-[minmax(0,5fr)_minmax(0,7fr)]";
+// Income and Net expenses side by side, Net beneath as their result, as on the phone's month card.
+const MONTH_TILES = "grid grid-cols-2 gap-8 *:h-full";
 
 function LinkArrow() {
   return <ArrowRight aria-hidden="true" strokeWidth={2} className="size-3.5" />;
@@ -73,15 +75,19 @@ function CategoriesCard({ today }: Readonly<CategoriesCardProps>) {
 }
 
 /**
- * Home as a dashboard grid: the figures, then spending beside the wallets,
- * then the records as a table. The cards in a row share one height.
+ * Home as a dashboard grid: Spendable and this month's figures, the cash
+ * flow, then spending beside the wallets, then the records as a table. The cards in a row share one height.
  */
 export function HomeDesktop({
   initialToday,
   savedId,
 }: Readonly<HomeDesktopProps>) {
-  const { today, walletCollection, daily, monthly, recent, arrive } =
+  const { today, walletCollection, monthly, recent, arrive } =
     useHomeReads(initialToday);
+  // The trend's six months end with this one, so the one before is last month.
+  const previous = useSuspenseQueries({
+    queries: createHomeQueryPlan(today).trend(),
+  }).at(-2)?.data;
   if (walletCollection.items.length === 0) {
     return (
       <Page layout="wide">
@@ -99,22 +105,39 @@ export function HomeDesktop({
   return (
     <Page layout="wide">
       <TitleBar title="Home" />
-      <DashboardRow className={FIGURES_ROW}>
+      <DashboardRow className={FIVE_SEVEN_ROW}>
         <Arrival order={0} animate={arrive}>
           <WalletsTotal balance={walletCollection.balance} lead="spendable" />
         </Arrival>
-        <Arrival order={1} animate={arrive}>
-          <TodayCard report={daily} />
-        </Arrival>
-        <Arrival order={2} animate={arrive}>
-          <MonthCard report={monthly} />
-        </Arrival>
+        <section aria-labelledby="home-month-heading" className={MONTH_TILES}>
+          {/* The tiles read as this month's; the comparison names last month. */}
+          <h2 id="home-month-heading" className="sr-only">
+            This month
+          </h2>
+          {(["income", "netExpenses", "net"] as const).map((figure, index) => (
+            <div
+              key={figure}
+              className={figure === "net" ? "col-span-2 *:h-full" : "*:h-full"}
+            >
+              <Arrival order={index + 1} animate={arrive}>
+                <MonthFigureTile
+                  figure={figure}
+                  report={monthly}
+                  previous={previous}
+                />
+              </Arrival>
+            </div>
+          ))}
+        </section>
       </DashboardRow>
-      <DashboardRow className={SPENDING_ROW}>
-        <Arrival order={3} animate={arrive}>
+      <Arrival order={4} animate={arrive}>
+        <CashFlowCard today={today} />
+      </Arrival>
+      <DashboardRow className={FIVE_SEVEN_ROW}>
+        <Arrival order={5} animate={arrive}>
           <CategoriesCard today={today} />
         </Arrival>
-        <Arrival order={4} animate={arrive}>
+        <Arrival order={6} animate={arrive}>
           <DashboardCard headingId="home-wallets-heading" heading="Wallets">
             <WalletTable
               wallets={activeWallets}
@@ -128,7 +151,7 @@ export function HomeDesktop({
           </DashboardCard>
         </Arrival>
       </DashboardRow>
-      <Arrival order={5} animate={arrive}>
+      <Arrival order={7} animate={arrive}>
         <DashboardCard
           headingId="recent-heading"
           heading="Recent transactions"
@@ -156,12 +179,18 @@ export function HomeDesktop({
 export function HomeDesktopLoading() {
   return (
     <HomeLoading>
-      <DashboardRow className={FIGURES_ROW}>
+      <DashboardRow className={FIVE_SEVEN_ROW}>
         <HeroSkeleton />
-        <SummarySkeleton />
-        <SummarySkeleton />
+        <div className={MONTH_TILES}>
+          <TileSkeleton />
+          <TileSkeleton />
+          <div className="col-span-2 *:h-full">
+            <TileSkeleton />
+          </div>
+        </div>
       </DashboardRow>
-      <DashboardRow className={SPENDING_ROW}>
+      <TableCardSkeleton />
+      <DashboardRow className={FIVE_SEVEN_ROW}>
         <TableCardSkeleton />
         <TableCardSkeleton />
       </DashboardRow>

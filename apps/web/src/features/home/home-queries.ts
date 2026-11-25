@@ -6,6 +6,7 @@ import {
   walletQueries,
 } from "@/core/api/queries";
 import { reportMonthOf } from "@/features/reports/report-month";
+import { TREND_LENGTH, trendMonths } from "@/features/reports/trend-series";
 
 // Enough to confirm what was just recorded; history holds the rest.
 const RECENT_TRANSACTION_LIMIT = "10";
@@ -21,5 +22,10 @@ export function createHomeQueryPlan(today: CalendarDate) {
     // Only the desktop grid shows it.
     categorySpending: reportQueries.categorySpending(reportMonthOf(today)),
     recent: transactionQueries.list({ limit: RECENT_TRANSACTION_LIMIT }),
+    /** The desktop cash flow: one monthly report per month, the cache Reports reads. */
+    trend: (length = TREND_LENGTH) =>
+      trendMonths(reportMonthOf(today), length).map((month) =>
+        reportQueries.monthly(month),
+      ),
   };
 }

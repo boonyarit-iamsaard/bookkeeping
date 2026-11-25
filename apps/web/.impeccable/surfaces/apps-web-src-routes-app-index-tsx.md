@@ -49,8 +49,9 @@ and coin faint off its corner; This month card below, Income and Net
 expenses side by side with their arrow tiles and Net beneath as the result,
 the whole card linking to Reports; Recent transactions
 starts above the tab bar. The Iris ＋ sits centered in the tab bar; desktop
-puts New transaction in the header. From 1024px Home splits in two under
-the header's width: hero and This month left, Recent transactions right.
+puts New transaction in the header. From 1024px Home is a dashboard grid:
+the Spendable hero beside this month's Income, Net expenses and Net tiles,
+the cash flow beneath, then the rows below.
 
 FORM: Canon, pinned by the owner (PRODUCT.md Brand Commitments: clean modern
 fintech at MAKE by KBank and K PLUS craft); the roll was overridden by the
@@ -84,3 +85,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 ## Unresolved
 
 - Chart component (ticket 05) uses the chart tokens defined here.
+- Desktop Home (#394) drops Today: the hero takes 5 of 12 columns at the
+  row's height, Income and Net expenses tiles sit beside it with Net beneath
+  spanning both, each stating its exact signed change from last month, and a
+  Cash flow card with a 6 / 12 month switch follows. The display figure steps
+  up only in a card at least 24rem wide, so the narrower hero never clips.

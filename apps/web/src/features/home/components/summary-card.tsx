@@ -16,7 +16,7 @@ type SummaryReport = Omit<MonthlyReport, "month"> & Omit<DailyReport, "date">;
 type Flow = "income" | "expense";
 
 /** Each flow wears its chart token, so Home and Reports agree. */
-const FLOW_HUE_CLASSES: Record<Flow, string> = {
+export const FLOW_HUE_CLASSES: Record<Flow, string> = {
   income: "[--hue:var(--chart-income)]",
   expense: "[--hue:var(--chart-expense)]",
 };
