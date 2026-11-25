@@ -8,6 +8,7 @@ import { PastLastPage } from "@/features/transactions/components/past-last-page"
 import { TRANSACTION_COLUMNS } from "@/features/transactions/components/transaction-columns";
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
+import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
 import type { HistoryTableSettings } from "@/features/transactions/history-pages";
 import { changeHistoryTable } from "@/features/transactions/history-pages";
 import type { HistorySearch } from "@/features/transactions/history-schema";
@@ -87,14 +88,19 @@ export function TransactionsDesktop({
         >
           {/* Clips the sticky header's side fill to the card's corners. */}
           <TableCard className="overflow-clip">
-            <HistoryDataTable
-              columns={TRANSACTION_COLUMNS}
-              columnsStorageKey="bookkeeping.transactions-columns"
-              search={search}
-              transactions={transactions}
-              total={total}
-              onChange={show}
-            />
+            <TransactionRowActions>
+              {(rowActions) => (
+                <HistoryDataTable
+                  columns={TRANSACTION_COLUMNS}
+                  columnsStorageKey="bookkeeping.transactions-columns"
+                  search={search}
+                  transactions={transactions}
+                  total={total}
+                  onChange={show}
+                  rowActions={rowActions}
+                />
+              )}
+            </TransactionRowActions>
           </TableCard>
         </TransactionHistory>
       )}
