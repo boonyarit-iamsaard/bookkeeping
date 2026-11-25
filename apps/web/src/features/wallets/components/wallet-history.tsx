@@ -5,7 +5,7 @@ interface WalletHistoryProps {
   walletId: string;
   empty: boolean;
   /** The page after this one; none on the last. */
-  olderPage: number | undefined;
+  olderPage?: number | undefined;
   /** The transactions, in the composition's own layout. */
   children: React.ReactNode;
 }
@@ -23,7 +23,7 @@ export function WalletHistory({
         aria-labelledby="wallet-transactions-heading"
         className="flex flex-col gap-6 sm:gap-8"
       >
-        {/* The month headings carry the list visually; this names the region. */}
+        {/* The month headings or the table carry the list visually; this names the region. */}
         <h2 id="wallet-transactions-heading" className="sr-only">
           Transactions
         </h2>
