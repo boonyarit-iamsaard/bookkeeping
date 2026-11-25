@@ -1,8 +1,8 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import type { components } from "@/core/api/openapi.gen";
 import { transactionQueries, walletQueries } from "@/core/api/queries";
-import { TransactionForm } from "@/features/transactions/components/transaction-form";
 import { editableTransaction } from "@/features/transactions/editable-transaction";
+import type { TransactionFormProps } from "@/features/transactions/hooks/use-transaction-entry-form";
 import { linkedExpenseView } from "@/features/transactions/linked-expense";
 import type {
   LinkedExpenseView,
@@ -23,6 +23,7 @@ interface EditTransactionFormProps {
   transaction: Transaction;
   wallets: readonly WalletOption[];
   host?: EntryDialogHost;
+  formComponent: React.ComponentType<TransactionFormProps>;
 }
 
 interface EditRefundFormProps extends EditTransactionFormProps {
@@ -40,9 +41,10 @@ function EditForm({
   refundOf,
   refunds,
   host,
+  formComponent: Form,
 }: Readonly<EditFormProps>) {
   return (
-    <TransactionForm
+    <Form
       wallets={wallets}
       mode={{
         kind: "correct",
@@ -78,12 +80,15 @@ function EditExpenseForm(props: Readonly<EditTransactionFormProps>) {
 interface EditTransactionProps {
   transactionId: string;
   host?: EntryDialogHost;
+  /** The composition to correct with; the route or dialog host picks it. */
+  formComponent: React.ComponentType<TransactionFormProps>;
 }
 
 /** The edit form: a refund shows its expense; an expense shows what it has refunded. */
 export function EditTransaction({
   transactionId,
   host,
+  formComponent,
 }: Readonly<EditTransactionProps>) {
   const { data: transaction } = useSuspenseQuery(
     transactionQueries.detail(transactionId),
@@ -97,7 +102,7 @@ export function EditTransaction({
         : []),
     ],
   });
-  const props = { transaction, wallets, host };
+  const props = { transaction, wallets, host, formComponent };
 
   if (transaction.refundOf) {
     return <EditRefundForm {...props} expenseId={transaction.refundOf.id} />;

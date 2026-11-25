@@ -6,6 +6,7 @@ import {
 } from "@/features/transactions/components/edit-transaction";
 import { RecordRefund } from "@/features/transactions/components/record-refund";
 import { TransactionDetailBody } from "@/features/transactions/components/transaction-detail-body";
+import { TransactionFormDesktop } from "@/features/transactions/screens/transaction-form.desktop";
 import {
   EntryDialog,
   EntrySavedNotice,
@@ -46,13 +47,19 @@ export function TransactionDetailDesktop({
           refunding ? "Record refund" : editTransactionTitle(transaction.type)
         }
         loadError="This form could not load. Try again; nothing has been saved."
+        className="sm:max-w-2xl"
       >
         {refunding ? (
-          <RecordRefund expenseId={transaction.id} host={entryDialog.host} />
+          <RecordRefund
+            expenseId={transaction.id}
+            host={entryDialog.host}
+            formComponent={TransactionFormDesktop}
+          />
         ) : (
           <EditTransaction
             transactionId={transaction.id}
             host={entryDialog.host}
+            formComponent={TransactionFormDesktop}
           />
         )}
       </EntryDialog>

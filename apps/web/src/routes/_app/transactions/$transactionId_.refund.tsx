@@ -11,13 +11,17 @@ import { HistoryErrorBoundary } from "@/features/transactions/components/history
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { RecordRefund } from "@/features/transactions/components/record-refund";
 import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
+import { TransactionFormDesktop } from "@/features/transactions/screens/transaction-form.desktop";
+import { TransactionFormPhone } from "@/features/transactions/screens/transaction-form.phone";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function RefundPage() {
   const { transactionId } = Route.useParams();
+  const desktop = useIsDesktop();
 
   return (
-    <Page layout="entry">
+    <Page layout={desktop ? "column" : "entry"}>
       <TitleBar
         title="Record refund"
         back={
@@ -28,20 +32,26 @@ function RefundPage() {
           />
         }
         actions={
-          <Link
-            to="/transactions/$transactionId"
-            params={{ transactionId }}
-            className={buttonVariants({
-              variant: "ghost",
-              size: "lg",
-              className: "-mr-3",
-            })}
-          >
-            Cancel
-          </Link>
+          // The desktop form's footer carries Cancel.
+          !desktop && (
+            <Link
+              to="/transactions/$transactionId"
+              params={{ transactionId }}
+              className={buttonVariants({
+                variant: "ghost",
+                size: "lg",
+                className: "-mr-3",
+              })}
+            >
+              Cancel
+            </Link>
+          )
         }
       />
-      <RecordRefund expenseId={transactionId} />
+      <RecordRefund
+        expenseId={transactionId}
+        formComponent={desktop ? TransactionFormDesktop : TransactionFormPhone}
+      />
     </Page>
   );
 }

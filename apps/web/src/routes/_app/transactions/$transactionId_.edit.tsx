@@ -17,16 +17,20 @@ import {
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
 import { HistoryLoading } from "@/features/transactions/components/history-loading";
 import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
+import { TransactionFormDesktop } from "@/features/transactions/screens/transaction-form.desktop";
+import { TransactionFormPhone } from "@/features/transactions/screens/transaction-form.phone";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function EditTransactionPage() {
   const { transactionId } = Route.useParams();
+  const desktop = useIsDesktop();
   const { data: transaction } = useSuspenseQuery(
     transactionQueries.detail(transactionId),
   );
 
   return (
-    <Page layout="entry">
+    <Page layout={desktop ? "column" : "entry"}>
       <TitleBar
         title={editTransactionTitle(transaction.type)}
         back={
@@ -37,20 +41,26 @@ function EditTransactionPage() {
           />
         }
         actions={
-          <Link
-            to="/transactions/$transactionId"
-            params={{ transactionId: transaction.id }}
-            className={buttonVariants({
-              variant: "ghost",
-              size: "lg",
-              className: "-mr-3",
-            })}
-          >
-            Cancel
-          </Link>
+          // The desktop form's footer carries Cancel.
+          !desktop && (
+            <Link
+              to="/transactions/$transactionId"
+              params={{ transactionId: transaction.id }}
+              className={buttonVariants({
+                variant: "ghost",
+                size: "lg",
+                className: "-mr-3",
+              })}
+            >
+              Cancel
+            </Link>
+          )
         }
       />
-      <EditTransaction transactionId={transaction.id} />
+      <EditTransaction
+        transactionId={transaction.id}
+        formComponent={desktop ? TransactionFormDesktop : TransactionFormPhone}
+      />
     </Page>
   );
 }
