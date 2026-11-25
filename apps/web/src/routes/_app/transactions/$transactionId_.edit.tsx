@@ -1,57 +1,49 @@
 // biome-ignore lint/style/useFilenamingConvention: TanStack Router dynamic params must be valid JavaScript identifiers.
 import { carriesOwnTags } from "@bookkeeping/domain/transactions";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   categoryQueries,
   tagQueries,
   transactionQueries,
   walletQueries,
 } from "@/core/api/queries";
-import { Page } from "@/core/shell/page";
-import { BackLink, TitleBar } from "@/core/shell/title-bar";
-import {
-  EditTransaction,
-  editTransactionTitle,
-} from "@/features/transactions/components/edit-transaction";
 import { HistoryErrorBoundary } from "@/features/transactions/components/history-error-boundary";
-import { HistoryLoading } from "@/features/transactions/components/history-loading";
+import type { TransactionEntry } from "@/features/transactions/components/transaction-entry-content";
 import { loadOwnedTransaction } from "@/features/transactions/owned-transaction";
-import { buttonVariants } from "@/shared/components/ui/button";
+import {
+  TransactionEntryDesktop,
+  TransactionEntryDesktopLoading,
+} from "@/features/transactions/screens/transaction-entry.desktop";
+import {
+  TransactionEntryPhone,
+  TransactionEntryPhoneLoading,
+} from "@/features/transactions/screens/transaction-entry.phone";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function EditTransactionPage() {
   const { transactionId } = Route.useParams();
+  const desktop = useIsDesktop();
   const { data: transaction } = useSuspenseQuery(
     transactionQueries.detail(transactionId),
   );
+  const entry = {
+    kind: "correct",
+    transactionId: transaction.id,
+    transactionType: transaction.type,
+  } satisfies TransactionEntry;
+  return desktop ? (
+    <TransactionEntryDesktop entry={entry} />
+  ) : (
+    <TransactionEntryPhone entry={entry} />
+  );
+}
 
-  return (
-    <Page layout="entry">
-      <TitleBar
-        title={editTransactionTitle(transaction.type)}
-        back={
-          <BackLink
-            to="/transactions/$transactionId"
-            params={{ transactionId: transaction.id }}
-            aria-label="Back to transaction"
-          />
-        }
-        actions={
-          <Link
-            to="/transactions/$transactionId"
-            params={{ transactionId: transaction.id }}
-            className={buttonVariants({
-              variant: "ghost",
-              size: "lg",
-              className: "-mr-3",
-            })}
-          >
-            Cancel
-          </Link>
-        }
-      />
-      <EditTransaction transactionId={transaction.id} />
-    </Page>
+function EditTransactionLoading() {
+  return useIsDesktop() ? (
+    <TransactionEntryDesktopLoading title="Edit transaction" fixedType />
+  ) : (
+    <TransactionEntryPhoneLoading title="Edit transaction" />
   );
 }
 
@@ -92,7 +84,7 @@ export const Route = createFileRoute("/_app/transactions/$transactionId_/edit")(
       ]);
     },
     staticData: { form: true },
-    pendingComponent: HistoryLoading,
+    pendingComponent: EditTransactionLoading,
     errorComponent: HistoryErrorBoundary,
     component: EditTransactionPage,
   },

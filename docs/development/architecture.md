@@ -59,7 +59,7 @@ apps/server/
       health/             # Health check resource
       reports/            # /v1/reports/monthly and /v1/reports/daily: server-calculated monthly and daily totals
       sign-up/            # /sign-up: whether sign-up is open or closed
-      transactions/       # /v1/transactions: list with cursors, get, create, update, delete, refunds, entry defaults
+      transactions/       # /v1/transactions: list by numbered page, get, create, update, delete, refunds, entry defaults
       wallets/            # /v1/wallets: list with as-of balances, get, create, replace opening balances, archive, and delete
     reset-password-cli.ts # Owner-run lockout recovery: sets an Account's password
     server.ts             # Node entrypoint: parses env and serves the app

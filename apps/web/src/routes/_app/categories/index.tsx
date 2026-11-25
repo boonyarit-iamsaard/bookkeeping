@@ -1,9 +1,15 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { categoryQueries } from "@/core/api/queries";
-import { Page } from "@/core/shell/page";
-import { CategoriesLoading } from "@/features/categories/components/categories-loading";
-import { CategoryManagement } from "@/features/categories/components/category-management";
+import {
+  CategoriesDesktop,
+  CategoriesDesktopLoading,
+} from "@/features/categories/screens/categories.desktop";
+import {
+  CategoriesPhone,
+  CategoriesPhoneLoading,
+} from "@/features/categories/screens/categories.phone";
+import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 function CategoriesPage() {
   const { data: categoryCollection } = useSuspenseQuery(categoryQueries.list());
@@ -15,10 +21,18 @@ function CategoriesPage() {
     ]),
   );
 
-  return (
-    <Page layout="dashboard">
-      <CategoryManagement categories={categoryCollection.items} usage={usage} />
-    </Page>
+  return useIsDesktop() ? (
+    <CategoriesDesktop categories={categoryCollection.items} usage={usage} />
+  ) : (
+    <CategoriesPhone categories={categoryCollection.items} usage={usage} />
+  );
+}
+
+function CategoriesLoading() {
+  return useIsDesktop() ? (
+    <CategoriesDesktopLoading />
+  ) : (
+    <CategoriesPhoneLoading />
   );
 }
 

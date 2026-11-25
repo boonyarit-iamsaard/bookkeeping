@@ -1,5 +1,7 @@
 # A separate desktop shell from 1024px
 
+Superseded by ADR 0017.
+
 ADR 0006 made the client phone-first, and until now desktop was the phone
 column with a header from 640px. That column leaves a wide window mostly
 empty and gives desktop no room for denser layouts. From 1024px the signed-in

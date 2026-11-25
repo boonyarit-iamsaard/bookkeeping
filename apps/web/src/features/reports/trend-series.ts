@@ -9,13 +9,13 @@ export const TREND_HEADING = "Last six months";
 /** January of year 1, counted in months since year 0. */
 const FIRST_MONTH_INDEX = 12;
 
-/** The six months ending at `month` (YYYY-MM), oldest first, none before the calendar's first. */
-export function trendMonths(month: string): string[] {
+/** The `length` months ending at `month` (YYYY-MM), oldest first, none before the calendar's first. */
+export function trendMonths(month: string, length = TREND_LENGTH): string[] {
   const [year, monthNumber] = month.split("-").map(Number);
   const last = year * 12 + (monthNumber - 1);
   const months: string[] = [];
   for (
-    let index = Math.max(last - (TREND_LENGTH - 1), FIRST_MONTH_INDEX);
+    let index = Math.max(last - (length - 1), FIRST_MONTH_INDEX);
     index <= last;
     index += 1
   ) {

@@ -225,6 +225,18 @@
       "plugins": ["./biome-plugins/no-cached-read-clear.grit"]
     },
     {
+      "includes": [
+        "apps/web/src/**",
+        "!apps/web/src/routes/**",
+        "!apps/web/src/core/shell/**"
+      ],
+      "plugins": ["./biome-plugins/no-desktop-check.grit"]
+    },
+    {
+      "includes": ["apps/web/src/**", "!apps/web/src/core/shell/**"],
+      "plugins": ["./biome-plugins/no-desktop-classes.grit"]
+    },
+    {
       "includes": ["apps/web/src/features/**"],
       "plugins": ["./biome-plugins/no-feature-timers.grit"],
       "linter": {

@@ -124,6 +124,8 @@ interface EntryDialogProps {
   dirty: boolean;
   /** What a failed load says, with nothing saved yet. */
   loadError: React.ReactNode;
+  /** Widens or narrows the dialog; the default fits one column of fields. */
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -139,6 +141,7 @@ export function EntryDialog({
   title,
   dirty,
   loadError,
+  className,
   children,
 }: Readonly<EntryDialogProps>) {
   return (
@@ -147,8 +150,8 @@ export function EntryDialog({
       onOpenChange={onOpenChange}
       disablePointerDismissal={dirty}
     >
-      <SheetPortal>
-        <div data-entry-dialog="" className="flex min-h-0 flex-auto flex-col">
+      <SheetPortal className={className}>
+        <div className="flex min-h-0 flex-auto flex-col">
           <SheetHeader>{title}</SheetHeader>
           <CatchBoundary
             getResetKey={() => String(open)}

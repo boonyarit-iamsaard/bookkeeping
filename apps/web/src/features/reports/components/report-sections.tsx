@@ -1,0 +1,287 @@
+import type { CalendarDate } from "@bookkeeping/domain/dates";
+import { formatCalendarDate } from "@bookkeeping/domain/dates";
+import { Link } from "@tanstack/react-router";
+import type { components } from "@/core/api/openapi.gen";
+import type { BalanceTrend } from "@/features/reports/balance-trend";
+import type { CategoryBreakdown } from "@/features/reports/category-breakdown";
+import type { ReportFigure } from "@/features/reports/report-labels";
+import { REPORT_FIGURE_LABELS } from "@/features/reports/report-labels";
+import { formatReportMonth } from "@/features/reports/report-month";
+import type { TrendPoint } from "@/features/reports/trend-series";
+import { TREND_HEADING } from "@/features/reports/trend-series";
+import { FlowBars } from "@/shared/components/chart/flow-bars";
+import type { WalletShare } from "@/shared/components/chart/wallet-share-chart";
+import { WalletShareChart } from "@/shared/components/chart/wallet-share-chart";
+import { DisplayFigure } from "@/shared/components/display-figure";
+import { Money } from "@/shared/components/money";
+import { buttonVariants } from "@/shared/components/ui/button";
+import { BalanceOverTime } from "./balance-over-time";
+import { SpendingByCategory } from "./spending-by-category";
+import { TrendChart } from "./trend-chart";
+
+type MonthlyReport = components["schemas"]["MonthlyReport"];
+type WalletSummary = components["schemas"]["Wallet"];
+type ApiMoney = components["schemas"]["Money"];
+
+export interface FinancialReportProps {
+  summary: Readonly<MonthlyReport>;
+  categoryBreakdown: Readonly<CategoryBreakdown>;
+  balanceTrend: Readonly<BalanceTrend>;
+  /** The wallet drawn beside the total; none by default. */
+  comparedWalletId: string | undefined;
+  onCompareWallet: (walletId: string | undefined) => void;
+  currentWallets: readonly WalletSummary[];
+  /** The Total balance today; none without a wallet. */
+  currentTotal: ApiMoney | null;
+  /** The wallets opened by `asOf`, at their balance then. */
+  datedWallets: readonly WalletSummary[];
+  /** The Total balance at `asOf`; none before any wallet opened. */
+  datedTotal: ApiMoney | null;
+  asOf: CalendarDate;
+  trend: readonly TrendPoint[];
+  /** The Balance date control, shown with the balances it dates. */
+  balanceDate: React.ReactNode;
+}
+
+const SUMMARY_FIGURES = [
+  "income",
+  "grossExpenses",
+  "refunds",
+  "netExpenses",
+  "net",
+] as const satisfies readonly ReportFigure[];
+
+export interface ReportCardProps {
+  headingId: string;
+  heading: React.ReactNode;
+  children: React.ReactNode;
+}
+
+/** The card each composition draws a report section in. */
+export type ReportCardComponent = React.ComponentType<
+  Readonly<ReportCardProps>
+>;
+
+function BalanceRow({
+  name,
+  walletId,
+  archived,
+  current,
+  dated,
+  asOf,
+}: Readonly<BalanceRowProps>) {
+  return (
+    <div
+      data-balance-row={name}
+      className="flex flex-col gap-3 py-4 first:pt-4"
+    >
+      <dt className="font-medium">
+        {walletId ? (
+          <Link
+            to="/wallets/$walletId"
+            params={{ walletId }}
+            className="focus-visible:outline-ring inline-flex min-h-11 min-w-11 items-center rounded-sm underline-offset-4 hover:underline focus-visible:outline-2"
+          >
+            {name}
+          </Link>
+        ) : (
+          name
+        )}
+        {archived && (
+          <span className="text-muted-foreground text-sm"> · Archived</span>
+        )}
+      </dt>
+      <dd className="grid grid-cols-2 gap-x-4">
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-muted-foreground text-sm">Current</span>
+          <Money amount={current} />
+        </span>
+        {/* The date column says something only when it differs from Current. */}
+        {dated !== null && current.value !== dated.value && (
+          <span
+            data-balance-total={walletId ? undefined : true}
+            className="flex min-w-0 flex-col gap-0.5"
+          >
+            <span className="text-muted-foreground text-sm">
+              {formatCalendarDate(asOf)}
+            </span>
+            <Money amount={dated} />
+          </span>
+        )}
+      </dd>
+    </div>
+  );
+}
+
+/**
+ * The report's sections, each in the composition's card, for the composition
+ * to arrange.
+ */
+export function createReportSections(
+  {
+    summary,
+    categoryBreakdown,
+    balanceTrend,
+    comparedWalletId,
+    onCompareWallet,
+    currentWallets,
+    currentTotal,
+    datedWallets,
+    datedTotal,
+    asOf,
+    trend,
+    balanceDate,
+  }: Readonly<FinancialReportProps>,
+  ReportCard: ReportCardComponent,
+) {
+  const shares: WalletShare[] = datedWallets.map((wallet) => ({
+    wallet,
+    balance: wallet.balance,
+  }));
+  const currentBalances = new Map(
+    currentWallets.map((wallet) => [wallet.id, wallet.balance]),
+  );
+  const month = formatReportMonth(summary.month);
+
+  const net = (
+    <DisplayFigure
+      amount={summary.net}
+      heading="Net"
+      headingId="report-net-heading"
+      caption={`${month} · income − net expenses`}
+    />
+  );
+  const monthCard = (
+    <ReportCard headingId="monthly-totals-heading" heading={month}>
+      {summary.transactionCount > 0 && (
+        <fieldset className="m-0 min-w-0 border-0 p-0">
+          <legend className="sr-only">Income against net expenses</legend>
+          <FlowBars
+            income={summary.income}
+            netExpenses={summary.netExpenses}
+            showAmounts={false}
+          />
+        </fieldset>
+      )}
+      <dl className="divide-border/70 divide-y">
+        {SUMMARY_FIGURES.map((key) => (
+          <div
+            key={key}
+            data-summary={key}
+            className={`flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0 ${key === "net" ? "font-semibold" : ""}`}
+          >
+            <dt>{REPORT_FIGURE_LABELS[key]}</dt>
+            <dd>
+              <Money amount={summary[key]} className="text-lg" />
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="text-muted-foreground text-sm leading-normal">
+        Net expenses = gross expenses − refunds. Net = income − net expenses.
+        Openings and transfers are excluded; refunds count in their own month.
+      </p>
+      {summary.transactionCount === 0 && (
+        <p className="text-muted-foreground text-sm">
+          No income, expenses or refunds recorded this month.
+        </p>
+      )}
+    </ReportCard>
+  );
+  const categories = (
+    <ReportCard
+      headingId="category-spending-heading"
+      heading="Spending by category"
+    >
+      <SpendingByCategory breakdown={categoryBreakdown} month={month} />
+    </ReportCard>
+  );
+  const trendCard = (
+    <ReportCard headingId="trend-heading" heading={TREND_HEADING}>
+      <TrendChart key={summary.month} points={trend} />
+    </ReportCard>
+  );
+  const balances = (
+    <ReportCard headingId="wallet-balances-heading" heading="Wallet balances">
+      {balanceDate}
+      <p className="text-muted-foreground text-sm">
+        End of day {formatCalendarDate(asOf)} · Bangkok. Archived holdings are
+        included; wallets appear from their opening date.
+      </p>
+      {currentTotal === null ? (
+        <div className="flex flex-col items-start gap-3">
+          <p>Add a wallet to begin tracking balances.</p>
+          <Link to="/wallets/new" className={buttonVariants({ size: "lg" })}>
+            Create wallet
+          </Link>
+        </div>
+      ) : (
+        <>
+          {datedTotal === null ? (
+            <p>No wallet was open on {formatCalendarDate(asOf)}.</p>
+          ) : (
+            <>
+              <WalletShareChart shares={shares} />
+              <p
+                data-share-total
+                className="flex flex-wrap items-baseline justify-between gap-x-3 border-t pt-4 font-semibold"
+              >
+                Total
+                <Money amount={datedTotal} className="text-lg" />
+              </p>
+            </>
+          )}
+          <dl className="divide-border/70 divide-y border-t">
+            <BalanceRow
+              name="Total balance"
+              current={currentTotal}
+              dated={datedTotal}
+              asOf={asOf}
+            />
+            {shares.flatMap(({ wallet, balance }) => {
+              const current = currentBalances.get(wallet.id);
+              return current
+                ? [
+                    <BalanceRow
+                      key={wallet.id}
+                      name={wallet.name}
+                      walletId={wallet.id}
+                      archived={Boolean(wallet.archivedAt)}
+                      current={current}
+                      asOf={asOf}
+                      dated={balance}
+                    />,
+                  ]
+                : [];
+            })}
+          </dl>
+        </>
+      )}
+    </ReportCard>
+  );
+  const overTime = (
+    <ReportCard headingId="balance-trend-heading" heading="Balance over time">
+      <BalanceOverTime
+        reportMonth={summary.month}
+        balanceDate={asOf}
+        trend={balanceTrend}
+        month={month}
+        wallets={currentWallets}
+        comparedWalletId={comparedWalletId}
+        onCompareWallet={onCompareWallet}
+      />
+    </ReportCard>
+  );
+
+  return { net, monthCard, categories, trendCard, balances, overTime };
+}
+
+interface BalanceRowProps {
+  name: string;
+  walletId?: string;
+  archived?: boolean;
+  current: ApiMoney;
+  /** The balance at the end of `asOf`; none before anything opened. */
+  dated: ApiMoney | null;
+  asOf: CalendarDate;
+}

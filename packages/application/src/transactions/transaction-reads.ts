@@ -10,16 +10,17 @@ import type {
   TransactionChange,
   TransactionDetail,
   TransactionFilters,
+  TransactionListOrder,
+  TransactionListSort,
 } from "@bookkeeping/domain/transactions";
-import { and, asc, desc, eq, gte, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, lte, or, sql } from "drizzle-orm";
 import { isUuid } from "../shared/identifier";
 import { carriesAnyTag } from "../tags/tag-links";
-import type { DetailRow, TransactionRef } from "./transaction-detail";
+import type { TransactionRef } from "./transaction-detail";
 import {
   currentRefundsOf,
   detailQuery,
   ownedCurrent,
-  recordingPosition,
   toDetails,
   toOneDetail,
 } from "./transaction-detail";
@@ -132,45 +133,22 @@ export interface ListTransactionsOptions extends TransactionFilters {
   ownerId: string;
 }
 
-export interface TransactionListPosition {
-  transactionDate: TransactionDetail["transactionDate"];
-  /** Canonical UTC text with six fractional-second digits. */
-  recordedAt: string;
-  id: string;
+/** Ties break by recording time, then id, in the sort's direction, so pages hold a stable order. */
+function transactionListOrder(
+  sort: TransactionListSort,
+  order: TransactionListOrder,
+) {
+  const direction = order === "asc" ? asc : desc;
+  return [
+    direction(
+      sort === "amount" ? transactions.amount : transactions.transactionDate,
+    ),
+    direction(transactions.recordedAt),
+    direction(transactions.id),
+  ] as const;
 }
 
-export interface ListTransactionPageOptions extends ListTransactionsOptions {
-  limit: number;
-  after?: TransactionListPosition;
-}
-
-export interface TransactionPage {
-  items: readonly TransactionDetail[];
-  nextPosition: TransactionListPosition | null;
-}
-
-interface TransactionWhereOptions {
-  filters: Readonly<ListTransactionsOptions>;
-  after?: TransactionListPosition;
-}
-
-const transactionListOrder = [
-  desc(transactions.transactionDate),
-  desc(transactions.recordedAt),
-  desc(transactions.id),
-] as const;
-
-function transactionWhere({
-  filters,
-  after,
-}: Readonly<TransactionWhereOptions>) {
-  const sameDate = after
-    ? eq(transactions.transactionDate, after.transactionDate)
-    : undefined;
-  const sameRecordingTime = after
-    ? eq(recordingPosition, after.recordedAt)
-    : undefined;
-
+function transactionWhere(filters: Readonly<ListTransactionsOptions>) {
   return and(
     ownedCurrent(filters.ownerId),
     filters.from ? gte(transactions.transactionDate, filters.from) : undefined,
@@ -200,26 +178,7 @@ function transactionWhere({
           filters.tagIds,
         )
       : undefined,
-    after
-      ? or(
-          lt(transactions.transactionDate, after.transactionDate),
-          and(sameDate, lt(recordingPosition, after.recordedAt)),
-          and(sameDate, sameRecordingTime, lt(transactions.id, after.id)),
-        )
-      : undefined,
   );
-}
-
-function toTransactionListPosition(
-  row: Readonly<
-    Pick<DetailRow, "transactionDate" | "recordingPosition" | "id">
-  >,
-) {
-  return {
-    transactionDate: row.transactionDate,
-    recordedAt: row.recordingPosition,
-    id: row.id,
-  };
 }
 
 /** Current financial history, newest transaction date first. */
@@ -228,27 +187,44 @@ export async function listTransactions(
   filters: Readonly<ListTransactionsOptions>,
 ): Promise<readonly TransactionDetail[]> {
   const rows = await detailQuery(db)
-    .where(transactionWhere({ filters }))
-    .orderBy(...transactionListOrder);
+    .where(transactionWhere(filters))
+    .orderBy(...transactionListOrder("date", "desc"));
   return toDetails(db, rows);
 }
 
-/** One keyset page of current financial history, newest first. */
-export async function listTransactionPage(
+export interface ListNumberedTransactionPageOptions
+  extends ListTransactionsOptions {
+  /** From 1; a page past the last is empty. */
+  page: number;
+  pageSize: number;
+  sort: TransactionListSort;
+  order: TransactionListOrder;
+}
+
+export interface NumberedTransactionPage {
+  items: readonly TransactionDetail[];
+  /** Every transaction the filters match, across all pages. */
+  total: number;
+}
+
+/**
+ * One numbered page of current financial history in the chosen order. Amounts
+ * are stored unsigned, so amount sorts by size.
+ */
+export async function listNumberedTransactionPage(
   db: Database,
-  options: Readonly<ListTransactionPageOptions>,
-): Promise<TransactionPage> {
-  const rows = await detailQuery(db)
-    .where(transactionWhere({ filters: options, after: options.after }))
-    .orderBy(...transactionListOrder)
-    .limit(options.limit + 1);
-  const items = rows.slice(0, options.limit);
-  const last = items.at(-1);
-  return {
-    items: await toDetails(db, items),
-    nextPosition:
-      rows.length > options.limit && last
-        ? toTransactionListPosition(last)
-        : null,
-  };
+  options: Readonly<ListNumberedTransactionPageOptions>,
+): Promise<NumberedTransactionPage> {
+  const where = transactionWhere(options);
+  const [rows, [counted]] = await Promise.all([
+    detailQuery(db)
+      .where(where)
+      .orderBy(...transactionListOrder(options.sort, options.order))
+      .limit(options.pageSize)
+      .offset((options.page - 1) * options.pageSize),
+    db
+      .select({ total: count() })
+      .from(detailQuery(db).where(where).as("listed")),
+  ]);
+  return { items: await toDetails(db, rows), total: counted?.total ?? 0 };
 }

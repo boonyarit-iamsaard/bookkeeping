@@ -2,12 +2,10 @@ import { formatCalendarDate } from "@bookkeeping/domain/dates";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Plus, Wallet } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
-import { WalletTable } from "@/features/wallets/components/wallet-table";
 import { WalletTile } from "@/features/wallets/components/wallet-tile";
 import { WalletsTotal } from "@/features/wallets/components/wallet-total";
 import { walletCaption } from "@/features/wallets/wallet-labels";
 import { walletMorphName } from "@/features/wallets/wallet-morph";
-import { TableCard } from "@/shared/components/dashboard-card";
 import { EmptyState } from "@/shared/components/empty-state";
 import { Money } from "@/shared/components/money";
 import { buttonVariants } from "@/shared/components/ui/button";
@@ -15,7 +13,6 @@ import { ARRIVAL_CLASS } from "@/shared/helpers/arrival";
 import { cn } from "@/shared/helpers/cn";
 import { morphProps } from "@/shared/helpers/morph";
 import { openInPlace } from "@/shared/helpers/plain-click";
-import { useIsDesktop } from "@/shared/hooks/use-is-desktop";
 
 type WalletSummary = components["schemas"]["Wallet"];
 type TotalBalanceSplit = components["schemas"]["TotalBalanceSplit"];
@@ -25,7 +22,7 @@ interface EmptyWalletsProps {
   onCreateWallet?: (() => void) | null;
 }
 
-interface WalletListProps extends EmptyWalletsProps {
+interface WalletListProps {
   wallets: readonly WalletSummary[];
   balance: Readonly<TotalBalanceSplit>;
   /** The wallet just created, if any; it alone arrives with a rise. */
@@ -35,44 +32,33 @@ interface WalletListProps extends EmptyWalletsProps {
 /** A new account holder's first step: create a wallet. */
 export function EmptyWallets({ onCreateWallet }: Readonly<EmptyWalletsProps>) {
   return (
-    <div className="lg:max-w-2xl">
-      <EmptyState
-        icon={Wallet}
-        headingId="empty-wallets-heading"
-        title="No wallets yet"
-        description="Add the cash, bank accounts, and e-wallets you want to track. Each one starts from an opening balance on the date its history begins."
-        action={
-          <Link
-            to="/wallets/new"
-            onClick={openInPlace(onCreateWallet)}
-            className={buttonVariants({ size: "lg" })}
-          >
-            <Plus data-icon="inline-start" />
-            Create your first wallet
-          </Link>
-        }
-      />
-    </div>
+    <EmptyState
+      icon={Wallet}
+      headingId="empty-wallets-heading"
+      title="No wallets yet"
+      description="Add the cash, bank accounts, and e-wallets you want to track. Each one starts from an opening balance on the date its history begins."
+      action={
+        <Link
+          to="/wallets/new"
+          onClick={openInPlace(onCreateWallet)}
+          className={buttonVariants({ size: "lg" })}
+        >
+          <Plus data-icon="inline-start" />
+          Create your first wallet
+        </Link>
+      }
+    />
   );
 }
 
+/** Below 1024px: the total as a hero, then one card per wallet. */
 export function WalletList({
   wallets,
   balance,
   createdId,
-  onCreateWallet,
 }: Readonly<WalletListProps>) {
-  const desktop = useIsDesktop();
   if (wallets.length === 0) {
-    return <EmptyWallets onCreateWallet={onCreateWallet} />;
-  }
-  if (desktop) {
-    // From 1024px the table carries the total in its footer, so no hero.
-    return (
-      <TableCard>
-        <WalletTable wallets={wallets} total={balance.total} captionArchived />
-      </TableCard>
-    );
+    return <EmptyWallets />;
   }
 
   return (

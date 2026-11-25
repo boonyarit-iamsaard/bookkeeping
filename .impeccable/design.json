@@ -1063,6 +1063,14 @@
       "description": "A card leading with an Iris Tonal tile, a title, a teaching sentence and the one next step.",
       "html": "<section class=\"ds-empty\" aria-labelledby=\"ds-empty-h\"><span class=\"ds-empty-tile\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" style=\"stroke-width:2\"><path d=\"M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1\"/><path d=\"M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4\"/></svg></span><div><h2 id=\"ds-empty-h\">No wallets yet</h2><p>Add the cash, bank accounts and e-wallets you want to track.</p></div><button class=\"ds-empty-action\">Create your first wallet</button></section>",
       "css": ".ds-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px; border-radius: 20px; background: var(--card, oklch(1 0 0)); box-shadow: var(--shadow-card, 0 1px 2px oklch(0.3 0.06 285 / 5%), 0 6px 20px -8px oklch(0.3 0.06 285 / 10%)); color: var(--foreground, oklch(0.21 0.025 285)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; } .ds-empty-tile { display: flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 14px; background: var(--secondary, oklch(0.945 0.03 285)); color: var(--secondary-foreground, oklch(0.44 0.19 285)); } .ds-empty-tile svg { width: 24px; height: 24px; } .ds-empty div { display: flex; flex-direction: column; gap: 6px; } .ds-empty h2, .ds-empty p { margin: 0; } .ds-empty h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.025em; } .ds-empty p { max-width: 65ch; color: var(--muted-foreground, oklch(0.5 0.022 285)); font-size: 14px; line-height: 1.5; } .ds-empty-action { height: 44px; padding: 0 16px; border: 0; border-radius: 14px; background: var(--primary, oklch(0.54 0.21 285)); color: var(--primary-foreground, oklch(1 0 0)); font: 600 14px Inter, ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms ease-out; } .ds-empty-action:hover { background: color-mix(in oklch, var(--primary, oklch(0.54 0.21 285)), black 12%); } .ds-empty-action:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.54 0.21 285)) 45%, transparent); } @media (min-width: 640px) { .ds-empty { padding: 28px; } .ds-empty-action { height: 40px; } }"
+    },
+    {
+      "name": "Data Table",
+      "kind": "card",
+      "refersTo": "data-table",
+      "description": "Desktop only: a Table Card of bare hairline rows with sortable headers, a row menu, and a footer with the count and Page X of Y; whole rows link, the amount sits at the column's end.",
+      "html": "<div class=\"ds-table-card\"><table class=\"ds-table\" aria-label=\"Transactions\"><thead><tr><th><button class=\"ds-sort ds-sorted\">Date <span aria-hidden=\"true\">↓</span></button></th><th>Category</th><th>Type</th><th class=\"ds-end\"><button class=\"ds-sort\">Amount <span aria-hidden=\"true\">↕</span></button></th><th><span class=\"ds-sr\">Actions</span></th></tr></thead><tbody><tr><td class=\"ds-muted\">1 Oct 2026</td><td class=\"ds-strong\">Food &amp; Drink › Groceries</td><td class=\"ds-muted\">Expense</td><td class=\"ds-end\">−฿1,385.50</td><td>⋮</td></tr><tr><td class=\"ds-muted\">1 Oct 2026</td><td class=\"ds-strong\">Transfer</td><td class=\"ds-muted\">Transfer</td><td class=\"ds-end\">฿2,000.00</td><td>⋮</td></tr></tbody></table><div class=\"ds-foot\"><span>2 transactions</span><span class=\"ds-page\">Page 1 of 1</span></div></div>",
+      "css": ".ds-table-card { padding: 0 24px 8px; border-radius: 20px; background: var(--card, oklch(1 0 0)); box-shadow: var(--shadow-card, 0 1px 2px oklch(0.3 0.06 285 / 5%), 0 6px 20px -8px oklch(0.3 0.06 285 / 10%)); color: var(--foreground, oklch(0.21 0.025 285)); font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; } .ds-table { width: 100%; border-collapse: collapse; } .ds-table th { height: 40px; padding: 0 12px; text-align: left; font-weight: 500; color: var(--muted-foreground, oklch(0.5 0.022 285)); white-space: nowrap; } .ds-table td { padding: 12px; border-top: 1px solid color-mix(in oklch, var(--border, oklch(0.915 0.012 285)) 70%, transparent); } .ds-table th:first-child, .ds-table td:first-child { padding-left: 0; } .ds-table th:last-child, .ds-table td:last-child { padding-right: 0; } .ds-end { text-align: right !important; font-weight: 700; font-variant-numeric: tabular-nums; } .ds-muted { color: var(--muted-foreground, oklch(0.5 0.022 285)); } .ds-strong { font-weight: 600; } .ds-sort { border: 0; background: transparent; padding: 0; font: inherit; color: var(--muted-foreground, oklch(0.5 0.022 285)); } .ds-sorted { color: var(--foreground, oklch(0.21 0.025 285)); } .ds-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .ds-foot { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px solid var(--border, oklch(0.915 0.012 285)); color: var(--muted-foreground, oklch(0.5 0.022 285)); } .ds-page { color: var(--foreground, oklch(0.21 0.025 285)); font-weight: 500; font-variant-numeric: tabular-nums; }"
     }
   ],
   "narrative": {
@@ -1122,6 +1130,11 @@
         "name": "The Three Tokens Rule",
         "body": "Surfaces lift only through --shadow-card, --shadow-float, and --shadow-hero, plus the ＋'s capture glow. Buttons, fields, rows, chrome, and tiles are flat; a row never carries its own shadow inside its card.",
         "section": "elevation"
+      },
+      {
+        "name": "The Fixed Identity Rule",
+        "body": "A table column the owner can hide is never the only place a row's identifying data shows; when it hides, a fixed column takes the data over. In the transaction tables Date and Category are fixed, and with Wallet hidden a transfer's wallets move under Category.",
+        "section": "components"
       }
     ],
     "dos": [
@@ -1135,7 +1148,8 @@
       "Do use the three shadow tokens as defined, and the 1px light edge in dark.",
       "Do keep motion to the moments under Motion, and remove all of it under reduced motion.",
       "Do tell every chart series apart by label, position, and pattern as well as hue, and state each charted figure as text.",
-      "Do pair pictograms with words; an icon-only control needs an accessible name and a universal glyph such as ‹ or ✕."
+      "Do pair pictograms with words; an icon-only control needs an accessible name and a universal glyph such as ‹ or ✕.",
+      "Do give each screen its own phone and desktop composition; desktop tables are Data Tables in a Table Card, never the phone's rows stretched."
     ],
     "donts": [
       "Don't use red and green, or any category hue, to mean income, expense, or direction; chart income is Iris and chart expense is Amber.",
@@ -1146,7 +1160,8 @@
       "Don't put shadows on buttons, fields, rows, chrome, or tiles, or invent shadow values outside the three tokens and the capture glow.",
       "Don't show figures, ฿, or sample money in loading states, or animate skeletons.",
       "Don't animate figures, or add bounce, parallax, hover lift, or motion beyond the recorded moments.",
-      "Don't add a grab handle to sheets or an in-app theme switch; the system setting chooses light or dark."
+      "Don't add a grab handle to sheets or an in-app theme switch; the system setting chooses light or dark.",
+      "Don't let a hideable table column be a row's only identity, or add row selection or bulk actions to a Data Table."
     ]
   }
 }

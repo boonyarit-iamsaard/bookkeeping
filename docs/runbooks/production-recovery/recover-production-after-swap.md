@@ -82,7 +82,7 @@ the cause from step 1. Do 8a or 8b, not both.
 - **Do:**
   1. On a branch from an up-to-date `main`, change the schema and generate
      the fix as a new migration, following
-     `docs/code-conventions.md#database-migrations`. It starts from the
+     `docs/development/database-migrations.md`. It starts from the
      schema the pending migrations from step 7b leave.
   2. `git push -u origin HEAD`, then `gh pr create --fill`.
   3. Take the backup the PR template asks for, as in step 12.

@@ -4,6 +4,7 @@ import { isSignedInPathname } from "@/core/router/router";
 import type { CaptureLinkSearch } from "@/core/shell/capture-link-search";
 import { parseCaptureOrigin } from "@/features/transactions/capture-origin";
 import { RecordTransaction } from "@/features/transactions/components/record-transaction";
+import { TransactionFormDesktop } from "@/features/transactions/screens/transaction-form.desktop";
 import {
   EntryDialog,
   EntrySavedNotice,
@@ -49,6 +50,7 @@ export function RecordTransactionDialog({
       <EntryDialog
         {...record.dialog}
         title="New transaction"
+        className="sm:max-w-2xl"
         loadError="Your wallets could not load. Try again; nothing has been recorded."
       >
         <RecordTransaction
@@ -57,6 +59,7 @@ export function RecordTransactionDialog({
           )}
           requestedWalletId={captureSearch.wallet}
           host={record.host}
+          formComponent={TransactionFormDesktop}
         />
       </EntryDialog>
     </OpenRecordDialog.Provider>

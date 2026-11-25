@@ -107,7 +107,7 @@ _Avoid_: Previous wallet, likely wallet
 
 **Correction**:
 Changing a recorded transaction's wallets, category, amount, date, note or tags in place, keeping its type, refund link and recording time.
-_Avoid_: Edit, amendment
+_Avoid_: Edit, amendment (an interface button may still read "Edit")
 
 **Retained wallet**:
 An archived wallet that a transaction already points at, which correcting that transaction may keep even though new entries and moves cannot use archived wallets.

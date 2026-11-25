@@ -9,7 +9,8 @@ function subscribe(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
-function isDesktopViewport() {
+/** The same check outside React, for a route's loader. */
+export function isDesktopViewport() {
   return window.matchMedia(DESKTOP_QUERY).matches;
 }
 

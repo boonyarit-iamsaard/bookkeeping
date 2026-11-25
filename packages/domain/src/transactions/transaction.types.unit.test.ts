@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { carriesOwnCategory, carriesOwnTags } from "./transaction.types";
+import {
+  carriesOwnCategory,
+  carriesOwnTags,
+  isTransactionListPage,
+} from "./transaction.types";
 
 describe("what a transaction carries of its own", () => {
   test("income and expense carry their own category and tags", () => {
@@ -15,4 +19,17 @@ describe("what a transaction carries of its own", () => {
       expect(carriesOwnTags({ type })).toBe(false);
     }
   });
+});
+
+test("a list page is a safe whole number from 1", () => {
+  expect([1, 2, Number.MAX_SAFE_INTEGER].map(isTransactionListPage)).toEqual([
+    true,
+    true,
+    true,
+  ]);
+  expect(
+    [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, Number.NaN].map(
+      isTransactionListPage,
+    ),
+  ).toEqual([false, false, false, false, false]);
 });

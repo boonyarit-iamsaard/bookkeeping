@@ -11,6 +11,7 @@ import {
   changeHistoryFilter,
   toggleHistoryTag,
 } from "@/features/transactions/history-filter-change";
+import { historyTableSettings } from "@/features/transactions/history-pages";
 import type {
   HistoryFilterKey,
   HistoryFilterValues,
@@ -66,7 +67,10 @@ export function HistoryFilterBar({
   const chosenTags = values.tagId ?? [];
 
   function show(search: HistoryFilterValues) {
-    void navigate({ to: "/transactions", search });
+    void navigate({
+      to: "/transactions",
+      search: (previous) => ({ ...historyTableSettings(previous), ...search }),
+    });
   }
 
   function change(key: HistoryFilterKey) {

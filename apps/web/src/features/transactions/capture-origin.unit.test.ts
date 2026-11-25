@@ -75,18 +75,18 @@ describe("parseCaptureOrigin", () => {
     );
   });
 
-  test("returns history to its newest page after save but preserves the cursor on cancel", () => {
+  test("returns history to its newest page after save but preserves the page on cancel", () => {
     const transactionsOrigin = parseCaptureOrigin(
-      "/transactions?type=expense&cursor=older-page",
+      "/transactions?type=expense&page=2",
       isSignedInPathname,
     );
     const walletOrigin = parseCaptureOrigin(
-      "/wallets/wallet-1?cursor=older-page",
+      "/wallets/wallet-1?page=2",
       isSignedInPathname,
     );
 
     expect(captureOriginHref(transactionsOrigin)).toBe(
-      "/transactions?type=expense&cursor=older-page",
+      "/transactions?type=expense&page=2",
     );
     expect(captureReturnHref(transactionsOrigin, "new-id")).toBe(
       "/transactions?type=expense&created=new-id",
@@ -98,11 +98,11 @@ describe("parseCaptureOrigin", () => {
 
   test("does not treat the new-wallet screen as wallet history", () => {
     const origin = parseCaptureOrigin(
-      "/wallets/new?cursor=older-page",
+      "/wallets/new?page=2",
       isSignedInPathname,
     );
     expect(captureReturnHref(origin, "new-id")).toBe(
-      "/wallets/new?cursor=older-page&created=new-id",
+      "/wallets/new?page=2&created=new-id",
     );
   });
 });
@@ -123,10 +123,10 @@ describe("captureSearchForLocation", () => {
     expect(
       captureSearchForLocation({
         pathname: "/wallets/wallet-1",
-        searchStr: "?cursor=next-page",
+        searchStr: "?page=3",
       }),
     ).toEqual({
-      origin: "/wallets/wallet-1?cursor=next-page",
+      origin: "/wallets/wallet-1?page=3",
       wallet: "wallet-1",
     });
     expect(
@@ -146,11 +146,10 @@ describe("captureSearchForLocation", () => {
       expect(
         captureSearchForLocation({
           pathname,
-          searchStr:
-            "?origin=%2Fwallets%2Fwallet-1%3Fcursor%3Dolder-page&wallet=wallet-1",
+          searchStr: "?origin=%2Fwallets%2Fwallet-1%3Fpage%3D2&wallet=wallet-1",
         }),
       ).toEqual({
-        origin: "/wallets/wallet-1?cursor=older-page",
+        origin: "/wallets/wallet-1?page=2",
         wallet: "wallet-1",
       });
     },

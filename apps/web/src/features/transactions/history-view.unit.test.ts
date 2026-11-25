@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { historySearchSchema } from "./history-schema";
-import { buildHistoryView } from "./history-view";
+import {
+  buildHistoryView,
+  historyReadSearch,
+  walletHistoryList,
+} from "./history-view";
 
 const CASH = "00000000-0000-4000-8000-000000000001";
 const COFFEE = "00000000-0000-4000-8000-000000000003";
@@ -14,7 +18,6 @@ describe("history view", () => {
         walletId: CASH,
         type: "expense",
         tagId: [COFFEE],
-        cursor: "eyJ2IjoxfQ",
       }),
     ).toEqual({
       state: "valid",
@@ -32,7 +35,31 @@ describe("history view", () => {
         walletId: CASH,
         type: "expense",
         tagId: [COFFEE],
-        cursor: "eyJ2IjoxfQ",
+        page: "1",
+        pageSize: "50",
+        sort: "date",
+        order: "desc",
+      },
+    });
+  });
+
+  test("the numbered page keeps the address's page, size, sort and order", () => {
+    const view = buildHistoryView({
+      type: "income",
+      page: 3,
+      pageSize: 10,
+      sort: "amount",
+      order: "asc",
+    });
+    expect(view).toMatchObject({
+      state: "valid",
+      values: { type: "income" },
+      list: {
+        type: "income",
+        page: "3",
+        pageSize: "10",
+        sort: "amount",
+        order: "asc",
       },
     });
   });
@@ -43,7 +70,7 @@ describe("history view", () => {
       walletId: "gone",
       type: "7",
       categoryId: "not-a-uuid",
-      cursor: "eyJ2IjoxfQ",
+      page: 2,
     });
     expect(view).not.toHaveProperty("list");
     expect(view).toMatchObject({
@@ -98,14 +125,55 @@ describe("history view", () => {
     expect(view.state === "invalid" && [...view.invalidKeys]).toEqual(["from"]);
   });
 
-  test("the cursor, saved id, and deletion flag are not filters", () => {
+  test("the page, sort, saved id, and deletion flag are not filters", () => {
     expect(
-      buildHistoryView({ cursor: "eyJ2IjoxfQ", created: CASH, deleted: 1 }),
+      buildHistoryView({
+        page: 2,
+        sort: "amount",
+        created: CASH,
+        deleted: 1,
+      }),
     ).toEqual({
       state: "valid",
       values: {},
       hasFilters: false,
-      list: { cursor: "eyJ2IjoxfQ" },
+      list: { page: "2", pageSize: "50", sort: "amount", order: "desc" },
+    });
+  });
+});
+
+describe("the phone and desktop reads of one address", () => {
+  const address = {
+    type: "expense",
+    page: 2,
+    pageSize: 10,
+    sort: "amount",
+    order: "asc",
+  } as const;
+
+  test("the desktop keeps the table's size, sort and order", () => {
+    expect(historyReadSearch(address, { desktop: true })).toEqual(address);
+  });
+
+  test("the phone keeps the filters and page, and drops the table's size, sort and order", () => {
+    expect(historyReadSearch(address, { desktop: false })).toEqual({
+      type: "expense",
+      page: 2,
+    });
+  });
+
+  test("a wallet's list is pinned to it and sends the size", () => {
+    expect(walletHistoryList(CASH, {})).toEqual({
+      walletId: CASH,
+      page: "1",
+      pageSize: "50",
+    });
+    expect(walletHistoryList(CASH, address)).toEqual({
+      walletId: CASH,
+      page: "2",
+      pageSize: "10",
+      sort: "amount",
+      order: "asc",
     });
   });
 });
