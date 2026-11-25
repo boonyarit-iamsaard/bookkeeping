@@ -36,7 +36,7 @@ const FLOW_ICONS: Partial<
 };
 
 /** The sign carries the direction in text, so the arrow is never the only cue. */
-const CHANGE_MARKS: Record<
+export const CHANGE_MARKS: Record<
   FigureChange["direction"],
   { icon: LucideIcon; sign: string }
 > = {

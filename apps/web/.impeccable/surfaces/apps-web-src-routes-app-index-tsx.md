@@ -51,7 +51,8 @@ the whole card linking to Reports; Recent transactions
 starts above the tab bar. The Iris ＋ sits centered in the tab bar; desktop
 puts New transaction in the header. From 1024px Home is a dashboard grid:
 the Spendable hero beside this month's Income, Net expenses and Net tiles,
-the cash flow beneath, then the rows below.
+the cash flow beneath, then Spending by category this month beside last
+month across the grid, then Wallets beside Recent transactions.
 
 FORM: Canon, pinned by the owner (PRODUCT.md Brand Commitments: clean modern
 fintech at MAKE by KBank and K PLUS craft); the roll was overridden by the
@@ -90,3 +91,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   spanning both, each stating its exact signed change from last month, and a
   Cash flow card with a 6 / 12 month switch follows. The display figure steps
   up only in a card at least 24rem wide, so the narrower hero never clips.
+- Desktop Home (#395): Spending by category is one full-width card, a table
+  row per parent with this month, last month and the signed change from last
+  month, two decorative bars under the name on one scale (this month solid,
+  last month the hue at 40%) and a month key in the header; top six, the rest
+  in Reports. Wallets (5) sits beside Recent transactions (7), the latter a
+  compact data table (Date, Category, Wallet, Amount) with "View all". A
+  dashboard card is a size container: below 24rem its tables drop secondary
+  columns (wallet Type and Held as, the recent rows' Wallet) rather than clip
+  a figure.

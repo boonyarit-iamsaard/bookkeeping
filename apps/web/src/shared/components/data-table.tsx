@@ -3,6 +3,7 @@ import type {
   ColumnDef,
   Header,
   PaginationState,
+  Table as ReactTable,
   RowData,
   SortingState,
   TableFeatures,
@@ -55,8 +56,13 @@ declare module "@tanstack/react-table" {
     align?: "end";
     /** Takes the table's spare width and truncates first when there is none. */
     grow?: true;
+    /** Drops out when the table sits in a narrow card container. */
+    secondary?: true;
   }
 }
+
+/** A column a narrow dashboard card drops, so no figure beside it clips. */
+export const SECONDARY_COLUMN = "@max-sm:hidden";
 
 const features = tableFeatures({ rowSortingFeature, rowPaginationFeature });
 
@@ -125,6 +131,7 @@ function HeaderCell<TData extends RowData>({
       className={cn(
         end && "text-right",
         column.columnDef.meta?.grow && "w-full max-w-0",
+        column.columnDef.meta?.secondary && SECONDARY_COLUMN,
       )}
     >
       {column.getCanSort() ? (
@@ -149,6 +156,81 @@ function HeaderCell<TData extends RowData>({
         <FlexRender header={header} />
       )}
     </TableHead>
+  );
+}
+
+interface CompactDataTableProps<TData extends RowData> {
+  /** Names the table for assistive technology. */
+  label: string;
+  columns: readonly DataTableColumn<TData>[];
+  rows: readonly TData[];
+  rowId: (row: TData) => string;
+  /** Attributes for one row's `tr`, such as a data hook or a highlight. */
+  rowProps?: (row: TData) => React.ComponentProps<"tr">;
+}
+
+interface DataTableBodyProps<TData extends RowData> {
+  table: ReactTable<DataTableFeatures, TData>;
+  rowProps: CompactDataTableProps<TData>["rowProps"];
+}
+
+function DataTableBody<TData extends RowData>({
+  table,
+  rowProps,
+}: Readonly<DataTableBodyProps<TData>>) {
+  return (
+    <TableBody>
+      {table.getRowModel().rows.map((row) => (
+        <TableRow key={row.id} {...rowProps?.(row.original)}>
+          {row.getAllCells().map((cell) => (
+            <TableCell
+              key={cell.id}
+              className={cn(
+                cell.column.columnDef.meta?.align === "end" && "text-right",
+                cell.column.columnDef.meta?.grow && "w-full max-w-0",
+                cell.column.columnDef.meta?.secondary && SECONDARY_COLUMN,
+              )}
+            >
+              <FlexRender cell={cell} />
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </TableBody>
+  );
+}
+
+/**
+ * A data table's columns and rows alone, for a short excerpt such as Home's
+ * recent rows: no sorting, paging or footer, and the header scrolls with it.
+ */
+export function CompactDataTable<TData extends RowData>({
+  label,
+  columns,
+  rows,
+  rowId,
+  rowProps,
+}: Readonly<CompactDataTableProps<TData>>) {
+  const table = useTable({
+    features,
+    columns: [...columns],
+    data: [...rows],
+    getRowId: rowId,
+    enableSorting: false,
+  });
+  return (
+    <Table aria-label={label}>
+      <TableHeader>
+        {table.getHeaderGroups().map((group) => (
+          <TableRow key={group.id}>
+            {group.headers.map((header) => (
+              <HeaderCell key={header.id} header={header} />
+            ))}
+          </TableRow>
+        ))}
+      </TableHeader>
+      <DataTableBody table={table} rowProps={rowProps} />
+    </Table>
   );
 }
 
@@ -205,23 +287,7 @@ export function DataTable<TData extends RowData>({
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id} {...rowProps?.(row.original)}>
-              {row.getAllCells().map((cell) => (
-                <TableCell
-                  key={cell.id}
-                  className={cn(
-                    cell.column.columnDef.meta?.align === "end" && "text-right",
-                    cell.column.columnDef.meta?.grow && "w-full max-w-0",
-                  )}
-                >
-                  <FlexRender cell={cell} />
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
+        <DataTableBody table={table} rowProps={rowProps} />
       </Table>
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t py-3">
         <p className="text-muted-foreground text-sm">{rowCountLabel}</p>

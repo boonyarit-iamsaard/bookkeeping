@@ -106,7 +106,7 @@ test("the tiles compare this month with last, and the cash flow spans six or twe
   ).toContainText("−฿80.00", { timeout: 2_000 });
 });
 
-test("the desktop grid lines the figures, cash flow, categories, wallets and records in rows", {
+test("the desktop grid compares category spending by month, then sets the wallets beside the recent records", {
   tag: "@matrix",
 }, async ({ page }) => {
   test.skip(!isDesktop(page), "Phone keeps its single column");
@@ -114,7 +114,7 @@ test("the desktop grid lines the figures, cash flow, categories, wallets and rec
   await createWalletThroughForm(page, {
     name: "Cash",
     openingAmount: "1000",
-    openingDate: "2026-09-01",
+    openingDate: "2025-01-01",
   });
   await createWalletThroughForm(page, {
     name: "Old card",
@@ -129,9 +129,15 @@ test("the desktop grid lines the figures, cash flow, categories, wallets and rec
   await expect(
     page.getByRole("button", { name: "Unarchive wallet", exact: true }),
   ).toBeVisible();
+  const today = todayIn({ timeZone: APP_TIME_ZONE });
+  const lastMonth = lastMonthOf(today);
+  await page.goto("/transactions/new");
+  await page.getByLabel("Amount").fill("30");
+  await chooseDate(page.getByLabel("Date", { exact: true }), lastMonth.date);
+  await page.getByRole("button", { name: "Save −฿30.00 · Cash" }).click();
+  await expectSavedRecord(page);
   await page.goto("/transactions/new");
   await page.getByLabel("Amount").fill("80");
-  await page.getByLabel("Note (optional)", { exact: true }).fill("Lunch");
   await page.getByRole("button", { name: "Save −฿80.00 · Cash" }).click();
   const saved = await expectSavedRecord(page);
   const savedId = (await saved.locator("a").first().getAttribute("href"))
@@ -141,10 +147,14 @@ test("the desktop grid lines the figures, cash flow, categories, wallets and rec
     throw new Error("Missing saved expense link");
   }
 
+  const thisMonthName = new Date(`${today}T00:00:00Z`).toLocaleString("en-US", {
+    month: "short",
+    timeZone: "UTC",
+  });
   await page.goto(`/?created=${savedId}`);
   const total = page.getByRole("region", { name: "Total balance" });
   const netExpenses = page.getByRole("region", { name: "Net expenses" });
-  await expect(total).toContainText("฿970.00");
+  await expect(total).toContainText("฿940.00");
   await expect(netExpenses).toContainText("฿80.00");
   // Row 1: Spendable beside Income and Net expenses, Net beneath them, the
   // hero as tall as the pair and Net together.
@@ -166,57 +176,66 @@ test("the desktop grid lines the figures, cash flow, categories, wallets and rec
   );
   expect(cashFlowBox.y).toBeGreaterThan(totalBox.y + totalBox.height);
 
-  // Row 2: spending by category beside the Wallets table.
+  // Row 2: this month's spending beside last month's, across the grid.
   const categories = page.getByRole("region", { name: "Spending by category" });
-  await expect(categories).toContainText("Uncategorized");
-  await expect(categories).toContainText("฿80.00");
+  const comparison = categories.getByRole("table");
+  await expect(comparison.getByRole("columnheader")).toHaveText([
+    "Category",
+    thisMonthName,
+    lastMonth.name,
+    `Change from ${lastMonth.name}`,
+  ]);
+  await expect(
+    comparison.getByRole("row", { name: /Uncategorized/ }).getByRole("cell"),
+  ).toHaveText(["Uncategorized", "฿80.00", "฿30.00", "+฿50.00"]);
+  const categoriesBox = await boxOf(categories);
+  expect(categoriesBox.y).toBeGreaterThan(cashFlowBox.y + cashFlowBox.height);
+  expect(categoriesBox.width).toBeCloseTo(cashFlowBox.width, 0);
+
+  // Row 3: the Wallets table beside the recent records.
   const wallets = page.getByRole("region", { name: "Wallets" });
   const walletTable = wallets.getByRole("table");
+  // The 5-of-12 card keeps name and balance; Type and Held as are on Wallets.
   await expect(walletTable.getByRole("columnheader")).toHaveText([
     "Wallet",
-    "Type",
-    "Held as",
     "Balance",
   ]);
   const cashRow = walletTable.getByRole("row", { name: /Cash/ });
-  await expect(cashRow).toContainText("Spendable");
-  await expect(cashRow).toContainText("฿920.00");
+  await expect(cashRow).toContainText("฿890.00");
   await expect(walletTable.getByRole("row", { name: /Old card/ })).toHaveCount(
     0,
   );
   await expect(
     walletTable.getByRole("row", { name: /Total balance/ }),
-  ).toContainText("฿970.00");
+  ).toContainText("฿940.00");
   await expect(wallets).toContainText("1 archived wallet not shown");
-  const categoriesBox = await boxOf(categories);
   const walletsBox = await boxOf(wallets);
-  expect(walletsBox.y).toBeCloseTo(categoriesBox.y, 0);
-  expect(walletsBox.height).toBeCloseTo(categoriesBox.height, 0);
-  expect(categoriesBox.y).toBeGreaterThan(cashFlowBox.y + cashFlowBox.height);
+  expect(walletsBox.y).toBeGreaterThan(categoriesBox.y + categoriesBox.height);
 
-  // Row 3: the records as a table, the one just saved arriving with a fade.
+  // The recent records as a compact table, the one just saved arriving with a fade.
   const recent = page.getByRole("region", { name: "Recent transactions" });
-  const recentTable = recent.getByRole("table");
+  const recentTable = recent.getByRole("table", {
+    name: "Recent transactions",
+  });
   await expect(recentTable.getByRole("columnheader")).toHaveText([
     "Date",
     "Category",
     "Wallet",
-    "Tags",
-    "Note",
     "Amount",
   ]);
+  await expect(recent.getByRole("button", { name: /page/ })).toHaveCount(0);
   const row = recentTable.locator("[data-saved]");
   await expect(row).toContainText("Uncategorized");
   await expect(row).toContainText("Cash");
-  await expect(row).toContainText("Lunch");
   await expect(row).toContainText("−฿80.00");
-  expect((await boxOf(recent)).y).toBeGreaterThan(
-    walletsBox.y + walletsBox.height,
-  );
+  const recentBox = await boxOf(recent);
+  expect(recentBox.y).toBeCloseTo(walletsBox.y, 0);
+  expect(recentBox.height).toBeCloseTo(walletsBox.height, 0);
+  expect(recentBox.x).toBeGreaterThan(walletsBox.x + walletsBox.width);
   await row.getByRole("link").click();
   await expect(page).toHaveURL(new RegExp(`/transactions/${savedId}$`));
 
   await page.goto("/");
-  await page.getByRole("link", { name: "All transactions" }).click();
+  await page.getByRole("link", { name: "View all transactions" }).click();
   await expect(page).toHaveURL(/\/transactions$/);
 });

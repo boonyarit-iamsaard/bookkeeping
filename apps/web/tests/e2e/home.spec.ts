@@ -230,6 +230,6 @@ test("loads without sample money, then reads an empty ledger as empty", {
   await expect(recent).toContainText("No transactions yet");
   await expect(recent.getByRole("listitem")).toHaveCount(0);
   await expect(
-    page.getByRole("link", { name: "All transactions" }),
+    page.getByRole("link", { name: /^(All|View all) transactions$/ }),
   ).toHaveCount(0);
 });

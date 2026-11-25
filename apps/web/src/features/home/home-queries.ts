@@ -19,8 +19,12 @@ export function createHomeQueryPlan(today: CalendarDate) {
     wallets: walletQueries.list(),
     daily: reportQueries.daily(today),
     monthly: reportQueries.monthly(reportMonthOf(today)),
-    // Only the desktop grid shows it.
+    // Only the desktop grid shows them, this month beside the one before.
     categorySpending: reportQueries.categorySpending(reportMonthOf(today)),
+    /** Absent in the calendar's first month. */
+    lastMonthCategorySpending: trendMonths(reportMonthOf(today), 2)
+      .slice(0, -1)
+      .map((month) => reportQueries.categorySpending(month)),
     recent: transactionQueries.list({ limit: RECENT_TRANSACTION_LIMIT }),
     /** The desktop cash flow: one monthly report per month, the cache Reports reads. */
     trend: (length = TREND_LENGTH) =>

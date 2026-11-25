@@ -4,6 +4,7 @@ import {
   WALLET_TYPE_LABELS,
   walletHeldAsLabel,
 } from "@/features/wallets/wallet-labels";
+import { SECONDARY_COLUMN } from "@/shared/components/data-table";
 import { Money } from "@/shared/components/money";
 import {
   Table,
@@ -39,8 +40,8 @@ export function WalletTable({
       <TableHeader>
         <TableRow>
           <TableHead>Wallet</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Held as</TableHead>
+          <TableHead className={SECONDARY_COLUMN}>Type</TableHead>
+          <TableHead className={SECONDARY_COLUMN}>Held as</TableHead>
           <TableHead className="text-right">Balance</TableHead>
         </TableRow>
       </TableHeader>
@@ -66,8 +67,12 @@ export function WalletTable({
                 </span>
               )}
             </TableCell>
-            <TableCell>{WALLET_TYPE_LABELS[wallet.type]}</TableCell>
-            <TableCell>{walletHeldAsLabel(wallet)}</TableCell>
+            <TableCell className={SECONDARY_COLUMN}>
+              {WALLET_TYPE_LABELS[wallet.type]}
+            </TableCell>
+            <TableCell className={SECONDARY_COLUMN}>
+              {walletHeldAsLabel(wallet)}
+            </TableCell>
             <TableCell className="text-right">
               <Money amount={wallet.balance} />
             </TableCell>
@@ -77,7 +82,8 @@ export function WalletTable({
       {total && (
         <TableFooter>
           <TableRow>
-            <TableCell colSpan={3}>Total balance</TableCell>
+            <TableCell>Total balance</TableCell>
+            <TableCell colSpan={2} className={SECONDARY_COLUMN} />
             <TableCell className="text-right">
               <Money amount={total} />
             </TableCell>

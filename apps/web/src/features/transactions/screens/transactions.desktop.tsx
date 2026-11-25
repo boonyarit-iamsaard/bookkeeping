@@ -6,7 +6,10 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { HistoryFilterBar } from "@/features/transactions/components/history-filter-bar";
-import { TRANSACTION_COLUMNS } from "@/features/transactions/components/transaction-columns";
+import {
+  TRANSACTION_COLUMNS,
+  transactionRowProps,
+} from "@/features/transactions/components/transaction-columns";
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
 import type { HistoryTableSettings } from "@/features/transactions/history-pages";
@@ -18,8 +21,6 @@ import { TableCard } from "@/shared/components/dashboard-card";
 import { DataTable } from "@/shared/components/data-table";
 import { Skeleton, TableCardSkeleton } from "@/shared/components/skeleton";
 import { buttonVariants } from "@/shared/components/ui/button";
-import { ARRIVAL_CLASS } from "@/shared/helpers/arrival";
-import { cn } from "@/shared/helpers/cn";
 
 interface TransactionsDesktopProps {
   search: HistorySearch;
@@ -117,17 +118,7 @@ export function TransactionsDesktop({
               columns={TRANSACTION_COLUMNS}
               rows={transactions}
               rowId={(transaction) => transaction.id}
-              rowProps={(transaction) => ({
-                "data-transaction-row": true,
-                "data-saved": transaction.id === search.created || undefined,
-                className: cn(
-                  "has-[a:hover]:bg-accent/70",
-                  transaction.id === search.created && [
-                    ARRIVAL_CLASS,
-                    "bg-primary/7",
-                  ],
-                ),
-              })}
+              rowProps={transactionRowProps(search.created)}
               sorting={[
                 {
                   id: search.sort ?? "date",

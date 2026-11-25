@@ -10,6 +10,8 @@ import { TRANSACTION_TYPE_SIGNS } from "@/features/transactions/transaction-labe
 import type { DataTableColumn } from "@/shared/components/data-table";
 import { dataTableColumns } from "@/shared/components/data-table";
 import { Money } from "@/shared/components/money";
+import { ARRIVAL_CLASS } from "@/shared/helpers/arrival";
+import { cn } from "@/shared/helpers/cn";
 
 type ApiTransaction = components["schemas"]["Transaction"];
 
@@ -84,3 +86,25 @@ export const TRANSACTION_COLUMNS: readonly DataTableColumn<ApiTransaction>[] = [
     ),
   }),
 ];
+
+/** Home's recent rows: enough to recognise each, the rest one click away. */
+export const RECENT_TRANSACTION_COLUMNS = TRANSACTION_COLUMNS.filter(
+  (definition) =>
+    ["date", "category", "wallet", "amount"].includes(definition.id ?? ""),
+).map((definition) =>
+  definition.id === "wallet"
+    ? { ...definition, meta: { secondary: true as const } }
+    : definition,
+);
+
+/** A transaction row's hooks and hover, the one just saved arriving with a fade. */
+export function transactionRowProps(savedId: string | undefined) {
+  return (transaction: Readonly<ApiTransaction>) => ({
+    "data-transaction-row": true,
+    "data-saved": transaction.id === savedId || undefined,
+    className: cn(
+      "has-[a:hover]:bg-accent/70",
+      transaction.id === savedId && [ARRIVAL_CLASS, "bg-primary/7"],
+    ),
+  });
+}
