@@ -1,10 +1,12 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
+import { captureSearchForLocation } from "@/features/transactions/capture-origin";
 import { HistoryDataTable } from "@/features/transactions/components/history-data-table";
 import { HistoryFilterBar } from "@/features/transactions/components/history-filter-bar";
 import { HistoryTypeTabs } from "@/features/transactions/components/history-type-tabs";
 import { PastLastPage } from "@/features/transactions/components/past-last-page";
+import { useOpenRecordDialog } from "@/features/transactions/components/record-transaction-dialog";
 import { TRANSACTION_COLUMNS } from "@/features/transactions/components/transaction-columns";
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
 import { TransactionHistory } from "@/features/transactions/components/transaction-history";
@@ -22,16 +24,33 @@ import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads
 import { TableCard } from "@/shared/components/dashboard-card";
 import { Skeleton, TableCardSkeleton } from "@/shared/components/skeleton";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { openInPlace } from "@/shared/helpers/plain-click";
 
 interface TransactionsDesktopProps {
   search: HistorySearch;
+}
+
+/** The screen's one Iris action, moved here from the top bar. */
+function NewTransactionLink() {
+  const location = useLocation();
+  const openRecord = useOpenRecordDialog();
+  return (
+    <Link
+      to="/transactions/new"
+      search={captureSearchForLocation(location)}
+      onClick={openInPlace(openRecord)}
+      className={buttonVariants({ size: "lg" })}
+    >
+      New transaction
+    </Link>
+  );
 }
 
 /** The desktop list's loading shape: the title, the filter bar, a table. */
 export function TransactionsDesktopLoading() {
   return (
     <Page layout="wide" loading>
-      <TitleBar title="Transactions" />
+      <TitleBar title="Transactions" actions={<NewTransactionLink />} />
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="contents">
         <Skeleton className="h-16" />
@@ -65,7 +84,7 @@ export function TransactionsDesktop({
 
   return (
     <Page layout="wide">
-      <TitleBar title="Transactions" />
+      <TitleBar title="Transactions" actions={<NewTransactionLink />} />
       {/* An empty ledger has nothing to narrow. */}
       {(view.hasFilters || total > 0) && (
         <>

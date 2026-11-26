@@ -20,7 +20,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/shared/components/ui/sidebar";
-import { isPlainClick } from "@/shared/helpers/plain-click";
+import { openInPlace } from "@/shared/helpers/plain-click";
 import { useToday } from "@/shared/hooks/use-today";
 
 interface WordmarkAnchorProps extends React.ComponentPropsWithRef<"a"> {}
@@ -65,6 +65,8 @@ interface DesktopShellProps {
   captureSearch: CaptureLinkSearch;
   /** Opens New transaction over the current screen instead of navigating. */
   onNewTransaction?: () => void;
+  /** Leaves New transaction to a screen that puts it on its own title row. */
+  hideNewTransaction?: boolean;
   children: React.ReactNode;
 }
 
@@ -78,6 +80,7 @@ export function DesktopShell({
   accountMenu,
   captureSearch,
   onNewTransaction,
+  hideNewTransaction,
   children,
 }: Readonly<DesktopShellProps>) {
   const today = useToday();
@@ -118,19 +121,16 @@ export function DesktopShell({
             Today · {formatCalendarDate(today)}
           </p>
           <div className="ml-auto flex items-center gap-2">
-            <Link
-              to="/transactions/new"
-              search={captureSearch}
-              onClick={(event) => {
-                if (onNewTransaction && isPlainClick(event)) {
-                  event.preventDefault();
-                  onNewTransaction();
-                }
-              }}
-              className={buttonVariants({ size: "lg" })}
-            >
-              New transaction
-            </Link>
+            {!hideNewTransaction && (
+              <Link
+                to="/transactions/new"
+                search={captureSearch}
+                onClick={openInPlace(onNewTransaction)}
+                className={buttonVariants({ size: "lg" })}
+              >
+                New transaction
+              </Link>
+            )}
             {accountMenu}
           </div>
         </header>
