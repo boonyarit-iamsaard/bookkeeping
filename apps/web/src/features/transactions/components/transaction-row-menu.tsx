@@ -47,7 +47,7 @@ export function TransactionRowMenu({
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon" />}
+        render={<Button variant="ghost" size="icon-sm" />}
         // Above the row's stretched link, so the button is its own target.
         className="relative z-1"
         aria-label={`Actions for ${name} on ${formatCalendarDate(transaction.transactionDate)}`}
