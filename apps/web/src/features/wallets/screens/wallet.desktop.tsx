@@ -15,6 +15,7 @@ import type {
   HistoryTableSearch,
   HistoryTableSettings,
 } from "@/features/transactions/history-schema";
+import { historyReadSearch } from "@/features/transactions/history-view";
 import { WalletDesktopHeader } from "@/features/wallets/components/wallet-desktop-header";
 import { WalletHistory } from "@/features/wallets/components/wallet-history";
 import { WalletManageLink } from "@/features/wallets/components/wallet-manage-link";
@@ -37,7 +38,8 @@ export function WalletDesktop({
   const navigate = useNavigate();
   const columns = useMemo(() => transactionColumns(wallet.id), [wallet.id]);
   const { total } = page.page;
-  const lastPage = lastHistoryPage(search, total);
+  const readSearch = historyReadSearch(search, { desktop: true });
+  const lastPage = lastHistoryPage(readSearch, total);
 
   function show(change: HistoryTableSettings) {
     void navigate({
@@ -78,7 +80,7 @@ export function WalletDesktop({
                 <HistoryDataTable
                   columns={columns}
                   columnsStorageKey="bookkeeping.wallet-transactions-columns"
-                  search={search}
+                  search={readSearch}
                   transactions={page.items}
                   total={total}
                   onChange={show}

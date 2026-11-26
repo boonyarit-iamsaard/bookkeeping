@@ -77,10 +77,16 @@ test("a wallet's page sorts and pages its transactions, keeping the view in the 
   test.skip(!isDesktop(page), "Phone keeps its month sections");
   const cash = await seedLedger(page);
 
-  await page.goto(`/wallets/${cash}?pageSize=10`);
   const table = page.getByRole("table", { name: "Transactions" });
   const rows = table.locator("[data-transaction-row]");
   const pageLabel = page.getByText(/^Page \d+ of \d+$/);
+  // With no size in the address, the table opens at ten rows.
+  await page.goto(`/wallets/${cash}`);
+  await expect(page.getByLabel("Rows per page")).toHaveText("10");
+  await expect(pageLabel).toHaveText("Page 1 of 3");
+  await expect(rows).toHaveCount(10);
+
+  await page.goto(`/wallets/${cash}?pageSize=10`);
   await expect(page.getByText("25 transactions")).toBeVisible();
   await expect(pageLabel).toHaveText("Page 1 of 3");
   await expect(rows).toHaveCount(10);

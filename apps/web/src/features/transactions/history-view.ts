@@ -1,4 +1,5 @@
 import { isCalendarDate } from "@bookkeeping/domain/dates";
+import type { TRANSACTION_PAGE_SIZES } from "@bookkeeping/domain/transactions";
 import {
   DEFAULT_TRANSACTION_PAGE_SIZE,
   TRANSACTION_TYPES,
@@ -38,16 +39,22 @@ export function historyPageSize({
   return pageSize ?? DEFAULT_TRANSACTION_PAGE_SIZE;
 }
 
+/** Desktop tables open at a page that fits on screen; the server's default stays for the phone. */
+const DESKTOP_PAGE_SIZE = 10 satisfies (typeof TRANSACTION_PAGE_SIZES)[number];
+
 /**
  * The settings for a list read. Phone month sections read newest first at the
- * default size. Navigation keeps the full address for both compositions.
+ * default size; desktop tables read 10 rows unless the address names a size.
+ * Navigation keeps the full address for both compositions.
  */
 export function historyReadSearch(
   search: Readonly<HistorySearch>,
   { desktop }: Readonly<{ desktop: boolean }>,
 ): HistorySearch {
-  const { pageSize: _size, sort: _sort, order: _order, ...phone } = search;
-  return desktop ? search : phone;
+  const { pageSize, sort: _sort, order: _order, ...phone } = search;
+  return desktop
+    ? { ...search, pageSize: pageSize ?? DESKTOP_PAGE_SIZE }
+    : phone;
 }
 
 const HISTORY_FIELDS = [...HISTORY_FILTER_KEYS, "tagId"] as const;

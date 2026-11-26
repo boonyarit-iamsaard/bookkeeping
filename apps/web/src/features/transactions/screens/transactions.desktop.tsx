@@ -17,6 +17,7 @@ import type {
   HistorySearch,
   HistoryTableSettings,
 } from "@/features/transactions/history-schema";
+import { historyReadSearch } from "@/features/transactions/history-view";
 import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads";
 import { TableCard } from "@/shared/components/dashboard-card";
 import { Skeleton, TableCardSkeleton } from "@/shared/components/skeleton";
@@ -45,10 +46,11 @@ export function TransactionsDesktop({
   search,
 }: Readonly<TransactionsDesktopProps>) {
   const navigate = useNavigate();
+  const readSearch = historyReadSearch(search, { desktop: true });
   const { view, pending, transactions, total, filterErrors, ...collections } =
-    useHistoryReads(search);
+    useHistoryReads(readSearch);
   const lastPage =
-    view.state === "valid" ? lastHistoryPage(search, total) : undefined;
+    view.state === "valid" ? lastHistoryPage(readSearch, total) : undefined;
 
   function show(change: HistoryTableSettings) {
     void navigate({
@@ -100,7 +102,7 @@ export function TransactionsDesktop({
                 <HistoryDataTable
                   columns={TRANSACTION_COLUMNS}
                   columnsStorageKey="bookkeeping.transactions-columns"
-                  search={search}
+                  search={readSearch}
                   transactions={transactions}
                   total={total}
                   onChange={show}

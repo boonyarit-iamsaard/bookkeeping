@@ -165,16 +165,14 @@ export function HeaderCell<TData extends RowData>({
         <button
           type="button"
           onClick={column.getToggleSortingHandler()}
-          className={buttonVariants({
-            variant: "ghost",
-            size: "sm",
+          // Merged, so the header's weight and Slate beat the Ghost button's.
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
             // The label keeps the column's text edge.
-            className: cn(
-              "text-muted-foreground -mx-2 px-2 font-medium",
-              sorted && "text-foreground",
-              end && "flex-row-reverse",
-            ),
-          })}
+            "text-muted-foreground -mx-2 px-2 font-medium",
+            sorted && "text-foreground",
+            end && "flex-row-reverse",
+          )}
         >
           <FlexRender header={header} />
           <SortGlyph sorted={sorted} />
