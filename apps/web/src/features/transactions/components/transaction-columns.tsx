@@ -74,12 +74,17 @@ export function transactionColumns(
       id: "wallet",
       header: "Wallet",
       enableHiding: true,
-      cell: ({ row }) => (
-        <span className="whitespace-nowrap">
-          {transferOf(row.original, pageWalletId) ??
-            walletName(row.original.wallet)}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const wallet =
+          transferOf(row.original, pageWalletId) ??
+          walletName(row.original.wallet);
+        // Category never truncates, so a long wallet gives way instead.
+        return (
+          <span title={wallet} className="block max-w-48 truncate">
+            {wallet}
+          </span>
+        );
+      },
     }),
     column.display({
       id: "type",
