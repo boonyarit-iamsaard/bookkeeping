@@ -52,6 +52,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { cn } from "@/shared/helpers/cn";
+import { pageRangeLabel } from "@/shared/helpers/page-range";
 
 declare module "@tanstack/react-table" {
   interface ColumnMeta<
@@ -117,7 +118,7 @@ interface DataTableProps<TData extends RowData> {
   pageSizes: readonly number[];
   /** Every row the server holds across all pages. */
   rowCount: number;
-  /** The toolbar's count beside Columns, such as "120 transactions". */
+  /** The footer's count, such as "120 transactions"; past one page it follows "11–20 of". */
   rowCountLabel: string;
   /** Where this browser keeps the table's column choice; columns opt in with `enableHiding`. */
   columnsStorageKey: string;
@@ -358,8 +359,7 @@ export function DataTable<TData extends RowData>({
   const pageSizeLabelId = useId();
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-4 pt-4 pb-1">
-        <p className="text-muted-foreground text-sm">{rowCountLabel}</p>
+      <div className="flex items-center justify-end gap-4 pt-4 pb-1">
         <div className="flex items-center gap-2">
           {toolbarEnd}
           <ColumnsMenu
@@ -390,8 +390,11 @@ export function DataTable<TData extends RowData>({
           renderRowActions={renderRowActions}
         />
       </Table>
-      <div className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3 border-t py-3">
-        <div className="flex items-center gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t py-3">
+        <p className="text-muted-foreground text-sm tabular-nums">
+          {pageRangeLabel(pagination, { rowCount, rowCountLabel })}
+        </p>
+        <div className="ml-auto flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span
               id={pageSizeLabelId}
@@ -425,7 +428,7 @@ export function DataTable<TData extends RowData>({
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              size="icon"
+              size="icon-sm"
               aria-label="First page"
               disabled={!table.getCanPreviousPage()}
               onClick={() => table.firstPage()}
@@ -434,7 +437,7 @@ export function DataTable<TData extends RowData>({
             </Button>
             <Button
               variant="outline"
-              size="icon"
+              size="icon-sm"
               aria-label="Previous page"
               disabled={!table.getCanPreviousPage()}
               onClick={() => table.previousPage()}
@@ -443,7 +446,7 @@ export function DataTable<TData extends RowData>({
             </Button>
             <Button
               variant="outline"
-              size="icon"
+              size="icon-sm"
               aria-label="Next page"
               disabled={!table.getCanNextPage()}
               onClick={() => table.nextPage()}
@@ -452,7 +455,7 @@ export function DataTable<TData extends RowData>({
             </Button>
             <Button
               variant="outline"
-              size="icon"
+              size="icon-sm"
               aria-label="Last page"
               disabled={!table.getCanNextPage()}
               onClick={() => table.lastPage()}

@@ -87,7 +87,9 @@ test("a wallet's page sorts and pages its transactions, keeping the view in the 
   await expect(rows).toHaveCount(10);
 
   await page.goto(`/wallets/${cash}?pageSize=10`);
-  await expect(page.getByText("25 transactions")).toBeVisible();
+  await expect(
+    page.getByText("1–10 of 25 transactions", { exact: true }),
+  ).toBeVisible();
   await expect(pageLabel).toHaveText("Page 1 of 3");
   await expect(rows).toHaveCount(10);
   await expect(table.getByRole("columnheader", { name: "Wallet" })).toHaveCount(
@@ -156,6 +158,8 @@ test("a wallet's row menu deletes and stays on the wallet's page", {
     new RegExp(`/wallets/${cash}\\?pageSize=10&deleted=1$`),
   );
   await expect(page.getByText("Transaction deleted.")).toBeVisible();
-  await expect(page.getByText("24 transactions")).toBeVisible();
+  await expect(
+    page.getByText("1–10 of 24 transactions", { exact: true }),
+  ).toBeVisible();
   await expect(newest).toHaveCount(0);
 });

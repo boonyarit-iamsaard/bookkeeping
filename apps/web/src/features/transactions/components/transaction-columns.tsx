@@ -56,8 +56,13 @@ export function transactionColumns(
     column.display({
       id: "category",
       header: "Category",
+      // A wallet's page has no Wallet column, so Category takes the spare
+      // width; elsewhere it stops at 160px to leave room at 1024px.
+      meta: pageWalletId ? { grow: true } : undefined,
       cell: ({ row, table }) => (
-        <span className="font-semibold">
+        <span
+          className={cn("block font-semibold", !pageWalletId && "max-w-40")}
+        >
           <TransactionCategoryCell
             transaction={row.original}
             transfer={transferOf(row.original, pageWalletId)}
@@ -74,13 +79,15 @@ export function transactionColumns(
       id: "wallet",
       header: "Wallet",
       enableHiding: true,
+      // Category and Tags keep capped widths, so Wallet takes what is left
+      // and a long name gives way.
+      meta: { grow: true },
       cell: ({ row }) => {
         const wallet =
           transferOf(row.original, pageWalletId) ??
           walletName(row.original.wallet);
-        // Category never truncates, so a long wallet gives way instead.
         return (
-          <span title={wallet} className="block max-w-48 truncate">
+          <span title={wallet} className="block truncate">
             {wallet}
           </span>
         );
@@ -90,6 +97,8 @@ export function transactionColumns(
       id: "type",
       header: "Type",
       enableHiding: true,
+      // Hidden so the row fits at 1024px; Category and Amount's sign carry it.
+      meta: { hiddenByDefault: true },
       cell: ({ row }) => (
         <span className="text-muted-foreground">
           {TRANSACTION_TYPE_LABELS[row.original.type]}
@@ -100,8 +109,6 @@ export function transactionColumns(
       id: "tags",
       header: "Tags",
       enableHiding: true,
-      // Takes the spare width while Note, the other filler, is hidden.
-      meta: { grow: true },
       // A transfer carries no tags.
       cell: ({ row }) =>
         row.original.type === "transfer" ? null : (

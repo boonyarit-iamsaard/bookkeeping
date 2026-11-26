@@ -130,13 +130,12 @@ test("desktop history's type filter link, column menu and one-line tags cell", {
   await page.keyboard.press("Escape");
   await page.goto("/transactions?pageSize=10");
 
-  // Columns: Note hidden by default; Date and Category always shown.
+  // Columns: Type and Note hidden by default; Date and Category always shown.
   const headers = table.locator("thead").getByRole("columnheader");
   await expect(headers).toHaveText([
     "Date",
     "Category",
     "Wallet",
-    "Type",
     "Tags",
     "Amount",
     "Actions",
@@ -152,34 +151,26 @@ test("desktop history's type filter link, column menu and one-line tags cell", {
   await menu.getByRole("menuitemcheckbox", { name: "Wallet" }).click();
   await menu.getByRole("menuitemcheckbox", { name: "Note" }).click();
   await page.keyboard.press("Escape");
-  const chosen = [
-    "Date",
-    "Category",
-    "Type",
-    "Tags",
-    "Note",
-    "Amount",
-    "Actions",
-  ];
+  const chosen = ["Date", "Category", "Tags", "Note", "Amount", "Actions"];
   await expect(headers).toHaveText(chosen);
   await page.reload();
   await expect(headers).toHaveText(chosen);
   // With Wallet hidden, a transfer's wallets move under Category.
   await expect(rows.filter({ hasText: "Transfer" })).toContainText("Savings");
 
-  // Tags: two chips cut short, then +3 naming all five, on one line.
+  // Tags: one chip cut short, then +4 naming all five, on one line.
   const tagged = rows.filter({ hasText: "Five tags" });
   const cell = tagged.getByRole("list", { name: "Tags" });
-  await expect(cell.getByRole("link")).toHaveCount(2);
+  await expect(cell.getByRole("link")).toHaveCount(1);
   await expect(cell.getByRole("link").first()).toHaveAttribute(
     "title",
     TAG_NAMES[0] ?? "",
   );
   const more = cell.getByRole("button", {
-    name: `3 more tags: ${TAG_NAMES.join(", ")}`,
+    name: `4 more tags: ${TAG_NAMES.join(", ")}`,
   });
-  await expect(more).toHaveText("+3");
-  const untagged = rows.filter({ hasText: "Income" }).first();
+  await expect(more).toHaveText("+4");
+  const untagged = rows.filter({ hasText: "500.00" });
   const [taggedBox, untaggedBox] = await Promise.all([
     tagged.boundingBox(),
     untagged.boundingBox(),
@@ -188,7 +179,7 @@ test("desktop history's type filter link, column menu and one-line tags cell", {
   expect(
     Math.abs((taggedBox?.height ?? 0) - (untaggedBox?.height ?? 0)),
   ).toBeLessThanOrEqual(1);
-  await cell.getByRole("link").nth(1).focus();
+  await cell.getByRole("link").focus();
   await page.keyboard.press("Tab");
   await expect(more).toBeFocused();
   await expect(page.locator("[data-slot=tooltip-content]")).toHaveText(
@@ -199,7 +190,7 @@ test("desktop history's type filter link, column menu and one-line tags cell", {
   ).toHaveCount(0);
 
   // A chip filters the history by its tag, keeping the view.
-  await cell.getByRole("link").nth(1).click();
+  await cell.getByRole("link").click();
   await expect(page).toHaveURL(/pageSize=10&tagId=/);
   await expect(rows).toHaveCount(1);
   await expect(rows).toContainText("Five tags");

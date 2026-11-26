@@ -81,7 +81,9 @@ test("desktop history sorts and pages on the server, keeping the view in the add
   const pageLabel = page.getByText(/^Page \d+ of \d+$/);
   const rowsPerPage = page.getByLabel("Rows per page");
   // With no size in the address, ten rows per page makes three pages.
-  await expect(page.getByText("25 transactions")).toBeVisible();
+  await expect(
+    page.getByText("1–10 of 25 transactions", { exact: true }),
+  ).toBeVisible();
   await expect(rowsPerPage).toHaveText("10");
   await expect(pageLabel).toHaveText("Page 1 of 3");
   await expect(rows).toHaveCount(10);

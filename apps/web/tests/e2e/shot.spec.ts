@@ -152,13 +152,15 @@ async function seedVerificationLedger(page: Page) {
     transactionDate: daysAgo(20),
     note: "",
   });
+  return cash;
 }
 
 test("shot", { tag: "@matrix" }, async ({ page }, testInfo) => {
   test.skip(routes.length === 0, "Runs only through pnpm test:e2e:shot");
   await signUpFreshUser(page);
   await seedSampleMoney(page);
-  await seedVerificationLedger(page);
+  // A route may name the seeded Cash wallet as `:cash`, such as /wallets/:cash.
+  const cash = await seedVerificationLedger(page);
   const project = testInfo.project.name;
   for (const route of routes) {
     const name =
@@ -167,7 +169,7 @@ test("shot", { tag: "@matrix" }, async ({ page }, testInfo) => {
       await page.emulateMedia({ colorScheme: scheme });
       for (const width of widths) {
         await page.setViewportSize({ width, height: 1100 });
-        await page.goto(route);
+        await page.goto(route.replace(":cash", cash));
         await page.waitForLoadState("networkidle");
         const path = resolve(
           `${directory}/${project}-${name}-${width}-${scheme}.png`,

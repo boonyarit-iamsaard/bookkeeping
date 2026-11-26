@@ -26,17 +26,22 @@ export function TransactionCategoryCell({
   transfer,
   showTransfer,
 }: Readonly<TransactionCategoryCellProps>) {
+  const path = transaction.category && categoryLabel(transaction.category);
   return (
     <>
       <Link
         to="/transactions/$transactionId"
         params={{ transactionId: transaction.id }}
-        // A label never breaks inside, so the spare width goes to Tags instead.
-        className={cn("whitespace-nowrap", tableRowLinkClass)}
+        // The full path names the link and shows on hover; the cell shows only
+        // the subcategory, so a nested path leaves room for the other columns.
+        aria-label={path || undefined}
+        title={path || undefined}
+        // One line in the width its column gives it; the link is unpositioned,
+        // so its stretched ::after is not clipped.
+        className={cn("block truncate", tableRowLinkClass)}
       >
-        {transaction.category
-          ? categoryLabel(transaction.category)
-          : TRANSACTION_TYPE_LABELS[transaction.type]}
+        {transaction.category?.name ??
+          TRANSACTION_TYPE_LABELS[transaction.type]}
       </Link>
       {/* Captions are text, not links: the row is the link. */}
       {transaction.type === "refund" && transaction.category && (
