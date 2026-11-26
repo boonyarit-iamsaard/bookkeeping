@@ -3,8 +3,7 @@ import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { captureSearchForLocation } from "@/features/transactions/capture-origin";
 import { HistoryDataTable } from "@/features/transactions/components/history-data-table";
-import { HistoryFilterBar } from "@/features/transactions/components/history-filter-bar";
-import { HistoryTypeTabs } from "@/features/transactions/components/history-type-tabs";
+import { HistoryFilterPopover } from "@/features/transactions/components/history-filter-popover";
 import { PastLastPage } from "@/features/transactions/components/past-last-page";
 import { useOpenRecordDialog } from "@/features/transactions/components/record-transaction-dialog";
 import { TRANSACTION_COLUMNS } from "@/features/transactions/components/transaction-columns";
@@ -22,7 +21,7 @@ import type {
 import { historyReadSearch } from "@/features/transactions/history-view";
 import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads";
 import { TableCard } from "@/shared/components/dashboard-card";
-import { Skeleton, TableCardSkeleton } from "@/shared/components/skeleton";
+import { TableCardSkeleton } from "@/shared/components/skeleton";
 import { buttonVariants } from "@/shared/components/ui/button";
 import { openInPlace } from "@/shared/helpers/plain-click";
 
@@ -46,21 +45,20 @@ function NewTransactionLink() {
   );
 }
 
-/** The desktop list's loading shape: the title, the filter bar, a table. */
+/** The desktop list's loading shape: the title and a table. */
 export function TransactionsDesktopLoading() {
   return (
     <Page layout="wide" loading>
       <TitleBar title="Transactions" actions={<NewTransactionLink />} />
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="contents">
-        <Skeleton className="h-16" />
         <TableCardSkeleton rows={5} />
       </div>
     </Page>
   );
 }
 
-/** From 1024px: a filter bar over one data table that sorts and pages on the server. */
+/** From 1024px: one data table that filters, sorts and pages on the server. */
 export function TransactionsDesktop({
   search,
 }: Readonly<TransactionsDesktopProps>) {
@@ -85,14 +83,6 @@ export function TransactionsDesktop({
   return (
     <Page layout="wide">
       <TitleBar title="Transactions" actions={<NewTransactionLink />} />
-      {/* An empty ledger has nothing to narrow. */}
-      {(view.hasFilters || total > 0) && (
-        <>
-          <HistoryFilterBar {...collections} values={view.values} />
-          {/* Outside the table, so an empty tab still leads back to the others. */}
-          <HistoryTypeTabs search={search} view={view} />
-        </>
-      )}
       {search.deleted === 1 && <TransactionDeletedNotice />}
       {lastPage !== undefined ? (
         <PastLastPage
@@ -125,6 +115,12 @@ export function TransactionsDesktop({
                   transactions={transactions}
                   total={total}
                   onChange={show}
+                  toolbarEnd={
+                    <HistoryFilterPopover
+                      {...collections}
+                      values={view.values}
+                    />
+                  }
                   renderRowActions={renderRowActions}
                 />
               )}

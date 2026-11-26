@@ -121,6 +121,8 @@ interface DataTableProps<TData extends RowData> {
   rowCountLabel: string;
   /** Where this browser keeps the table's column choice; columns opt in with `enableHiding`. */
   columnsStorageKey: string;
+  /** Controls at the toolbar's end, before Columns, such as a Filters popover. */
+  toolbarEnd?: React.ReactNode;
   /** A last cell per row, such as its action menu; it sits above the row's stretched link. */
   renderRowActions?: (row: TData) => React.ReactNode;
 }
@@ -314,6 +316,7 @@ export function DataTable<TData extends RowData>({
   rowCount,
   rowCountLabel,
   columnsStorageKey,
+  toolbarEnd,
   renderRowActions,
 }: Readonly<DataTableProps<TData>>) {
   const [columnVisibility, setColumnVisibility] = useStoredColumnVisibility(
@@ -357,18 +360,21 @@ export function DataTable<TData extends RowData>({
     <div className="flex flex-col">
       <div className="flex items-center justify-between gap-4 pt-4 pb-1">
         <p className="text-muted-foreground text-sm">{rowCountLabel}</p>
-        <ColumnsMenu
-          columns={table.getAllLeafColumns().map((column) => ({
-            id: column.id,
-            label:
-              typeof column.columnDef.header === "string"
-                ? column.columnDef.header
-                : column.id,
-            visible: column.getIsVisible(),
-            hideable: column.getCanHide(),
-            setVisible: (visible) => column.toggleVisibility(visible),
-          }))}
-        />
+        <div className="flex items-center gap-2">
+          {toolbarEnd}
+          <ColumnsMenu
+            columns={table.getAllLeafColumns().map((column) => ({
+              id: column.id,
+              label:
+                typeof column.columnDef.header === "string"
+                  ? column.columnDef.header
+                  : column.id,
+              visible: column.getIsVisible(),
+              hideable: column.getCanHide(),
+              setVisible: (visible) => column.toggleVisibility(visible),
+            }))}
+          />
+        </div>
       </div>
       {/* No scroll box, so the header can stick under the 64px top bar. */}
       <Table aria-label={label} containerClassName="overflow-x-visible">

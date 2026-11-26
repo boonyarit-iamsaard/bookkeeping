@@ -148,12 +148,14 @@ test("desktop history sorts and pages on the server, keeping the view in the add
   await expect(rows.first()).toContainText("−฿110.00");
 
   // A filter keeps the sort and rows per page and returns to page 1.
+  await page.getByRole("button", { name: /^Filters/ }).click();
   const bar = page.getByRole("search", { name: "Filter transactions" });
   await chooseOption(bar.getByLabel("Type", { exact: true }), "Expense");
   await expect(page).toHaveURL(
     /\?pageSize=10&sort=amount&order=asc&type=expense$/,
   );
   await expect(pageLabel).toHaveText("Page 1 of 3");
+  await page.keyboard.press("Escape");
 
   // More rows per page returns to page 1 too.
   await next.click();

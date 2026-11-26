@@ -23,6 +23,8 @@ interface HistoryDataTableProps {
   total: number;
   /** The address's change for one table control. */
   onChange: (change: HistoryTableSettings) => void;
+  /** Controls at the toolbar's end, before Columns. */
+  toolbarEnd?: React.ReactNode;
   /** A last cell per row, such as its action menu. */
   renderRowActions?: (transaction: Readonly<ApiTransaction>) => React.ReactNode;
 }
@@ -39,6 +41,7 @@ export function HistoryDataTable({
   transactions,
   total,
   onChange,
+  toolbarEnd,
   renderRowActions,
 }: Readonly<HistoryDataTableProps>) {
   const page = search.page ?? 1;
@@ -75,6 +78,7 @@ export function HistoryDataTable({
       rowCount={total}
       rowCountLabel={countLabel(total)}
       columnsStorageKey={columnsStorageKey}
+      toolbarEnd={toolbarEnd}
       renderRowActions={renderRowActions}
     />
   );

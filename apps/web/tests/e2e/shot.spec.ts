@@ -12,6 +12,8 @@ import { signUpFreshUser } from "./helpers/sign-up-fresh-user";
 const routes = process.env.SHOT_ROUTES?.split(",").filter(Boolean) ?? [];
 const widths = (process.env.SHOT_WIDTHS ?? "1024,1440").split(",").map(Number);
 const directory = process.env.SHOT_DIR ?? "test-results/shots";
+// `SHOT_VIDEO=1` also records the run, such as a popover opening.
+test.use({ video: process.env.SHOT_VIDEO ? "on" : "off" });
 
 /** The 15th of last month, a day every report month has. */
 function lastMonthDay(): string {
@@ -172,6 +174,18 @@ test("shot", { tag: "@matrix" }, async ({ page }, testInfo) => {
         );
         await page.screenshot({ path, fullPage: true });
         console.log(path);
+        // A screen with a Filters popover is shot again with it open.
+        const filters = page.getByRole("button", { name: /^Filters/ });
+        if ((await filters.count()) > 0) {
+          await filters.click();
+          await expect(
+            page.getByRole("search", { name: "Filter transactions" }),
+          ).toBeVisible();
+          const open = path.replace(/\.png$/, "-filters.png");
+          await page.screenshot({ path: open, fullPage: true });
+          console.log(open);
+          await page.keyboard.press("Escape");
+        }
       }
     }
   }

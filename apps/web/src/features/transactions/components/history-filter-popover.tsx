@@ -1,6 +1,6 @@
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
 import { useNavigate } from "@tanstack/react-router";
-import { Hash } from "lucide-react";
+import { ListFilter } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
 import { FilterSelect } from "@/features/transactions/components/filter-select";
 import {
@@ -16,6 +16,7 @@ import type {
   HistoryFilterKey,
   HistoryFilterValues,
 } from "@/features/transactions/history-schema";
+import { HISTORY_FILTER_KEYS } from "@/features/transactions/history-schema";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { Button } from "@/shared/components/ui/button";
@@ -24,13 +25,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
+import { cn } from "@/shared/helpers/cn";
 import { useToday } from "@/shared/hooks/use-today";
 
 type ApiWallet = components["schemas"]["Wallet"];
 type ApiCategory = components["schemas"]["Category"];
 type ApiTag = components["schemas"]["TagSummary"];
 
-interface HistoryFilterBarProps {
+interface HistoryFilterPopoverProps {
   wallets: readonly ApiWallet[];
   categories: readonly ApiCategory[];
   tags: readonly ApiTag[];
@@ -41,31 +43,48 @@ interface HistoryFilterBarProps {
 function Field({
   id,
   label,
+  wide = false,
   children,
-}: Readonly<{ id: string; label: string; children: React.ReactNode }>) {
+}: Readonly<{
+  id: string;
+  label: string;
+  /** Spans both columns. */
+  wide?: boolean;
+  children: React.ReactNode;
+}>) {
   return (
-    <div className="flex w-44 min-w-0 flex-col gap-1.5 text-sm font-semibold">
+    <div
+      className={cn(
+        "flex min-w-0 flex-col gap-1.5 text-sm font-semibold",
+        wide && "col-span-2",
+      )}
+    >
       <label htmlFor={id}>{label}</label>
       {children}
     </div>
   );
 }
 
+/** Single-choice filters that are set, plus one per chosen tag. */
+function activeFilterCount(values: Readonly<HistoryFilterValues>) {
+  return (
+    HISTORY_FILTER_KEYS.filter((key) => values[key] !== undefined).length +
+    (values.tagId?.length ?? 0)
+  );
+}
+
 /**
- * From 1024px the history's filters sit in a bar above the table. Each change
- * writes the address at once, so there is nothing to apply and no chips: the
- * controls themselves show what is on.
+ * From 1024px the history's filters, stacked in two columns. Each change
+ * writes the address at once, so there is nothing to apply.
  */
-export function HistoryFilterBar({
+function HistoryFilterFields({
   wallets,
   categories,
   tags,
   values,
-}: Readonly<HistoryFilterBarProps>) {
+}: Readonly<HistoryFilterPopoverProps>) {
   const navigate = useNavigate();
   const today = useToday();
-  const chosenTags = values.tagId ?? [];
-
   function show(search: HistoryFilterValues) {
     void navigate({
       to: "/transactions",
@@ -78,10 +97,7 @@ export function HistoryFilterBar({
   }
 
   return (
-    <search
-      aria-label="Filter transactions"
-      className="flex flex-wrap items-end gap-3"
-    >
+    <search aria-label="Filter transactions" className="grid grid-cols-2 gap-3">
       <Field id="history-from" label="From">
         <DatePicker
           id="history-from"
@@ -124,16 +140,6 @@ export function HistoryFilterBar({
           ]}
         />
       </Field>
-      <Field id="history-categoryId" label="Category">
-        <FilterSelect
-          id="history-categoryId"
-          name="categoryId"
-          value={values.categoryId ?? ""}
-          onValueChange={change("categoryId")}
-          allLabel="All categories"
-          groups={categoryGroups(categories)}
-        />
-      </Field>
       <Field id="history-type" label="Type">
         <FilterSelect
           id="history-type"
@@ -151,24 +157,46 @@ export function HistoryFilterBar({
           ]}
         />
       </Field>
-      <Popover>
-        <PopoverTrigger render={<Button variant="outline" size="lg" />}>
-          <Hash data-icon="inline-start" strokeWidth={1.75} />
-          Tags{chosenTags.length > 0 ? ` · ${chosenTags.length}` : ""}
-        </PopoverTrigger>
-        <PopoverContent className="w-96 max-w-[calc(100vw-2rem)] p-4">
-          <TagFilter
-            tags={tags}
-            chosen={chosenTags}
-            onToggle={(tagId) => show(toggleHistoryTag(values, tagId))}
-          />
-        </PopoverContent>
-      </Popover>
-      {Object.keys(values).length > 0 && (
-        <Button variant="ghost" size="lg" onClick={() => show({})}>
-          Clear filters
-        </Button>
-      )}
+      <Field id="history-categoryId" label="Category" wide>
+        <FilterSelect
+          id="history-categoryId"
+          name="categoryId"
+          value={values.categoryId ?? ""}
+          onValueChange={change("categoryId")}
+          allLabel="All categories"
+          groups={categoryGroups(categories)}
+        />
+      </Field>
+      {/* Inline under a hairline, so choosing tags never stacks a second popover. */}
+      <div className="col-span-2 border-t pt-3">
+        <TagFilter
+          tags={tags}
+          chosen={values.tagId ?? []}
+          onToggle={(tagId) => show(toggleHistoryTag(values, tagId))}
+          compact
+        />
+      </div>
     </search>
+  );
+}
+
+/** Filters in the table's toolbar: a button counting what is on, opening the filters. */
+export function HistoryFilterPopover(
+  props: Readonly<HistoryFilterPopoverProps>,
+) {
+  const count = activeFilterCount(props.values);
+  return (
+    <Popover>
+      <PopoverTrigger render={<Button variant="outline" size="sm" />}>
+        <ListFilter aria-hidden="true" strokeWidth={1.75} />
+        Filters{count > 0 ? ` · ${count}` : ""}
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="max-h-(--available-height) w-[26rem] max-w-[calc(100vw-2rem)] [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] overflow-y-auto overscroll-contain p-4"
+      >
+        <HistoryFilterFields {...props} />
+      </PopoverContent>
+    </Popover>
   );
 }

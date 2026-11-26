@@ -99,33 +99,36 @@ async function seedLedger(page: Page) {
   });
 }
 
-test("desktop history's type tabs, column menu and one-line tags cell", {
+test("desktop history's type filter link, column menu and one-line tags cell", {
   tag: "@matrix",
 }, async ({ page }) => {
   test.skip(!isDesktop(page), "Phone keeps its month sections");
   await seedLedger(page);
 
-  await page.goto("/transactions?pageSize=10&page=2");
-  const tabs = page.getByRole("navigation", { name: "Transaction type" });
-  const tab = (name: string) =>
-    tabs.getByRole("link", { name: new RegExp(`^${name}`) });
-  await expect(tabs.getByRole("link")).toHaveText([
-    "All3",
-    "Expenses1",
-    "Income1",
-    "Transfers1",
-  ]);
-  await expect(tab("All")).toHaveAttribute("aria-current", "page");
-  // A tab keeps the rows per page but returns to page 1.
-  await tab("Expenses").click();
-  await expect(page).toHaveURL(/\/transactions\?pageSize=10&type=expense$/);
-  await expect(tab("Expenses")).toHaveAttribute("aria-current", "page");
+  // No type tabs; a link with a type still narrows the table.
+  await page.goto("/transactions?pageSize=10&type=expense");
+  await expect(
+    page.getByRole("navigation", { name: "Transaction type" }),
+  ).toHaveCount(0);
   const table = page.getByRole("table", { name: "Transactions" });
   const rows = table.locator("[data-transaction-row]");
   await expect(rows).toHaveCount(1);
-  await tab("All").click();
-  await expect(page).toHaveURL(/\/transactions\?pageSize=10$/);
+  await expect(page.getByRole("button", { name: /^Filters/ })).toHaveText(
+    "Filters · 1",
+  );
+  await page.goto("/transactions?pageSize=10");
   await expect(rows).toHaveCount(3);
+
+  // Each chosen tag counts once on the Filters button.
+  const filters = page.getByRole("button", { name: /^Filters/ });
+  await filters.click();
+  const bar = page.getByRole("search", { name: "Filter transactions" });
+  for (const name of TAG_NAMES.slice(0, 2)) {
+    await bar.locator("label", { hasText: name }).click();
+  }
+  await expect(filters).toHaveText("Filters · 2");
+  await page.keyboard.press("Escape");
+  await page.goto("/transactions?pageSize=10");
 
   // Columns: Note hidden by default; Date and Category always shown.
   const headers = table.locator("thead").getByRole("columnheader");

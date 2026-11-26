@@ -43,15 +43,6 @@ export function changeHistoryTable(
   };
 }
 
-/** The address after a type tab: that type, or none for All, from page 1. */
-export function changeHistoryType(
-  search: Readonly<HistorySearch>,
-  type: string | undefined,
-): HistorySearch {
-  const { type: _previous, ...rest } = changeHistoryTable(search, {});
-  return type === undefined ? rest : { ...rest, type };
-}
-
 /** The page after the one the address shows, or none when it shows the last. */
 export function olderHistoryPage(
   search: Readonly<HistorySearch>,

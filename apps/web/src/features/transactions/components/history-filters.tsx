@@ -79,6 +79,8 @@ interface TagFilterProps {
   chosen: readonly string[];
   /** Makes the chips controlled by `chosen`: each toggle goes here, not to a form. */
   onToggle?: (tagId: string) => void;
+  /** Desktop's 32px pills with 13px text, sized here because `lg:` stays in the shell (ADR 0017). */
+  compact?: boolean;
 }
 
 /**
@@ -89,7 +91,9 @@ export function TagFilter({
   tags,
   chosen,
   onToggle,
+  compact = false,
 }: Readonly<TagFilterProps>) {
+  const iconSize = compact ? "size-3.5" : "size-4";
   return (
     <fieldset className="flex min-w-0 flex-col gap-2 sm:col-span-2">
       <legend className="mb-2 text-sm font-semibold">Tags</legend>
@@ -102,7 +106,12 @@ export function TagFilter({
           {tags.map((tag) => (
             <label
               key={tag.id}
-              className="border-border bg-card hover:bg-accent has-checked:bg-secondary has-checked:text-secondary-foreground has-focus-visible:ring-ring/45 dark:bg-input/30 flex min-h-11 max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors duration-150 has-checked:border-transparent has-focus-visible:ring-[3px] motion-reduce:transition-none"
+              className={cn(
+                "border-border bg-card hover:bg-accent has-checked:bg-secondary has-checked:text-secondary-foreground has-focus-visible:ring-ring/45 dark:bg-input/30 flex max-w-full cursor-pointer items-center gap-1.5 rounded-full border transition-colors duration-150 has-checked:border-transparent has-focus-visible:ring-[3px] motion-reduce:transition-none",
+                compact
+                  ? "min-h-8 px-3 py-1 text-[13px] font-medium"
+                  : "min-h-11 px-3.5 py-2 text-sm font-semibold",
+              )}
             >
               <input
                 type="checkbox"
@@ -119,12 +128,15 @@ export function TagFilter({
               <Hash
                 aria-hidden="true"
                 strokeWidth={2}
-                className="text-muted-foreground size-4 shrink-0 peer-checked:hidden"
+                className={cn(
+                  "text-muted-foreground shrink-0 peer-checked:hidden",
+                  iconSize,
+                )}
               />
               <Check
                 aria-hidden="true"
                 strokeWidth={2.25}
-                className="hidden size-4 shrink-0 peer-checked:block"
+                className={cn("hidden shrink-0 peer-checked:block", iconSize)}
               />
               <span className="min-w-0 wrap-break-word">{tag.name}</span>
             </label>
