@@ -198,6 +198,9 @@ importers:
       '@bookkeeping/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@bookkeeping/seed':
+        specifier: workspace:*
+        version: link:../../packages/seed
       '@bookkeeping/server':
         specifier: workspace:*
         version: link:../server

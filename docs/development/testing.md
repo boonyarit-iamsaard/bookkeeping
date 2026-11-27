@@ -50,9 +50,9 @@ uses port 5100. Specs run on 360px Chromium; tests tagged
 [test ownership](../code-conventions.md#test-ownership) rules and the
 browser test policy in [AGENTS.md](../../AGENTS.md).
 
-To look at a signed-in screen, `shot.spec.ts` signs up a fresh user, seeds a
-seven-digit wallet, last month's income and today's expense, and saves
-full-page light and dark screenshots of each route at each width. It skips
+To look at a signed-in screen, `shot.spec.ts` signs in as the demo Account the
+test API seeds at startup with the sample ledger, and saves full-page light and
+dark screenshots of each route at each width. It skips
 unless `SHOT_ROUTES` is set, and counts as one e2e run under the resource
 limits:
 

@@ -2,9 +2,11 @@ import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { once } from "node:events";
+import { writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { startTestDatabase } from "@bookkeeping/database/testing/start-database";
+import { seedSampleLedger } from "@bookkeeping/seed/sample-ledger";
 
 // Playwright starts this as a `webServer` before the client, so a run from
 // the terminal and one from an editor both get a database and an API.
@@ -69,6 +71,13 @@ async function main() {
   const port = Number(requiredEnv("TEST_API_PORT"));
   const clientOrigin = requiredEnv("TEST_CLIENT_ORIGIN");
   const { container, environment } = await startTestDatabase();
+  // The database is empty, so the seed needs no flag. Only the shot spec reads
+  // the demo Account; behaviour specs sign up their own users.
+  const credentials = await seedSampleLedger(environment.DATABASE_URL);
+  await writeFile(
+    requiredEnv("TEST_DEMO_CREDENTIALS_FILE"),
+    JSON.stringify(credentials),
+  );
   const apiServer = startApiServer({ port, clientOrigin, environment });
   // The container client can hold the event loop open, so exit explicitly.
   function stopAndExit(code: number) {
