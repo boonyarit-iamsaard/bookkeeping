@@ -62,7 +62,7 @@ export function transactionColumns(
       id: "category",
       header: "Category",
       // A wallet's page has no Wallet column, so Category takes the spare
-      // width; elsewhere its leaf stops at 224px to leave room at 1024px.
+      // width; elsewhere it stops at 224px to leave room at 1024px.
       meta: pageWalletId ? { grow: true } : undefined,
       cell: ({ row, table }) => (
         <span className={cn("block font-medium", !pageWalletId && "max-w-56")}>

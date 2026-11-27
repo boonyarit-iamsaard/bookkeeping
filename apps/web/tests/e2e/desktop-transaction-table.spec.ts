@@ -63,8 +63,12 @@ async function seedLedger(page: Page) {
     categories.find(
       (item) => item.name === "Uncategorized" && item.kind === kind,
     )?.id;
-  if (!(cash && savings)) {
-    throw new Error("The seeded wallets were not found");
+  // A default child category, under Food & Drink.
+  const restaurants = categories.find(
+    (item) => item.name === "Restaurants",
+  )?.id;
+  if (!(cash && savings && restaurants)) {
+    throw new Error("The seeded wallets or categories were not found");
   }
   const tagIds = [];
   for (const name of TAG_NAMES) {
@@ -75,7 +79,7 @@ async function seedLedger(page: Page) {
     type: "expense",
     amount: amount("80.00"),
     walletId: cash,
-    categoryId: uncategorized("expense"),
+    categoryId: restaurants,
     transactionDate: "2026-09-10",
     note: "Five tags",
     tagIds,
@@ -190,6 +194,20 @@ test("desktop history's type filter link, column menu and one-line tags cell", {
 
   // Tags: one chip cut short, then +4 naming all five, on one line.
   const tagged = rows.filter({ hasText: "Five tags" });
+
+  // A child category: the parent and "›" in Slate regular, the leaf Ink medium.
+  const categoryLink = tagged.getByRole("link", {
+    name: "Food & Drink › Restaurants",
+  });
+  const weightAndColor = (text: string) =>
+    categoryLink.getByText(text, { exact: true }).evaluate((node) => {
+      const style = getComputedStyle(node);
+      return [style.fontWeight, style.color];
+    });
+  const [parentWeight, parentColor] = await weightAndColor("Food & Drink");
+  const [leafWeight, leafColor] = await weightAndColor("Restaurants");
+  expect([parentWeight, leafWeight]).toEqual(["400", "500"]);
+  expect(parentColor).not.toBe(leafColor);
   const cell = tagged.getByRole("list", { name: "Tags" });
   await expect(cell.getByRole("link")).toHaveCount(1);
   await expect(cell.getByRole("link").first()).toHaveAttribute(

@@ -70,21 +70,36 @@ export function TransactionCategoryCell({
   transfer,
   showTransfer,
 }: Readonly<TransactionCategoryCellProps>) {
-  const path = transaction.category && categoryLabel(transaction.category);
+  const category = transaction.category;
+  const path = category && categoryLabel(category);
   return (
     <>
       <Link
         to="/transactions/$transactionId"
         params={{ transactionId: transaction.id }}
-        // The full path names the link; the cell shows only the leaf, which a
-        // shown path would cut off. No title: it showed over the whole row.
+        // The full path names the link. No title: it showed over the whole row.
         aria-label={path || undefined}
         // One line in the width its column gives it; the link is unpositioned,
         // so its stretched ::after is not clipped.
-        className={cn("block truncate", tableRowLinkClass)}
+        className={cn(
+          category?.parentName ? "flex min-w-0" : "block truncate",
+          tableRowLinkClass,
+        )}
       >
-        {transaction.category?.name ??
-          TRANSACTION_TYPE_LABELS[transaction.type]}
+        {category?.parentName ? (
+          <>
+            {/* The quieter parent gives way first, so the leaf stays whole. */}
+            <span className="text-muted-foreground min-w-0 shrink-[100] truncate font-normal">
+              {category.parentName}
+            </span>
+            <span className="text-muted-foreground shrink-0 px-1 font-normal">
+              ›
+            </span>
+            <span className="min-w-0 truncate">{category.name}</span>
+          </>
+        ) : (
+          (category?.name ?? TRANSACTION_TYPE_LABELS[transaction.type])
+        )}
       </Link>
       {/* Captions are text, not links: the row is the link. */}
       {transaction.type === "refund" && transaction.category && (
