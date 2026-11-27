@@ -23,7 +23,7 @@ test("filters apply through the address and open the saved record", {
 }, async ({ page }) => {
   test.skip(
     isDesktop(page),
-    "Desktop filters live in the bar, covered by desktop-transactions.spec.ts",
+    "Desktop filters live in a popover, covered by desktop-transactions.spec.ts",
   );
   await signUpFreshUser(page);
   await createWalletThroughForm(page, {
