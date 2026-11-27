@@ -27,6 +27,7 @@ const workspaces = [
   "packages/auth",
   "packages/database",
   "packages/domain",
+  "packages/seed",
 ];
 
 it("clearing one Vitest invocation preserves the other invocations' module caches", async () => {

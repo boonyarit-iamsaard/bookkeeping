@@ -19,12 +19,13 @@
     "./testing/next-migration": "./src/testing/next-migration.ts",
     "./testing/wallets-table": "./src/testing/wallets-table.ts",
     "./migrate": "./src/migrate.ts",
-    "./demo-account": "./src/demo-account.ts"
+    "./demo-account": "./src/demo-account.ts",
+    "./database-url": "./src/database-url.ts",
+    "./local-database-url": "./src/local-database-url.ts"
   },
   "scripts": {
     "db:push": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- drizzle-kit push",
     "db:migrate": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/migrate-cli.ts",
-    "db:fresh": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/fresh-cli.ts",
     "db:adopt-baseline": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/adopt-baseline-cli.ts",
     "db:studio": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- drizzle-kit studio",
     "test": "vitest run",

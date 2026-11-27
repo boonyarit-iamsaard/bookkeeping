@@ -117,16 +117,27 @@ origin), its `CLIENT_ORIGINS` (the client origin), and the client's
 | `pnpm db:push`    | Push the schema straight to `DATABASE_URL`; for experiments on a throwaway database |
 | `pnpm db:migrate` | Apply pending committed migrations                                                  |
 | `pnpm db:fresh`   | Reset a local database and rebuild it from committed migrations                     |
+| `pnpm db:seed`    | Fill a local, migrated database with a sample ledger and print the demo credentials |
 | `pnpm db:studio`  | Open Drizzle Studio                                                                 |
 
 These commands need only Docker and `packages/database/.env`; neither app has
 to be running. The database commands run from `packages/database`, which owns
-the schema. `db:fresh` is destructive and refuses any non-loopback host. It
-also refuses a database holding an Account other than the demo Account
+the schema; `db:fresh` and `db:seed` run from `packages/seed` and read the same
+`packages/database/.env`. `db:fresh` is destructive and refuses any non-loopback
+host. It also refuses a database holding an Account other than the demo Account
 (`demo@bookkeeping.localhost`), since a production database forwarded to a local
 port would otherwise be wiped; pass `--allow-other-accounts`
 (`pnpm db:fresh --allow-other-accounts`) to reset it anyway. A database that has
 never been migrated counts as holding no Accounts.
+
+`pnpm db:seed` writes one sample ledger (wallets, categories, tags and about
+4 months of transactions, dated relative to today) to a migrated database. It
+creates the demo Account `demo@bookkeeping.localhost` through normal sign-up and
+prints its email and fixed fake password; sign in with them. Re-running replaces
+only the demo Account. It has the same guards as `db:fresh`: loopback hosts only,
+and it refuses a database holding any other Account unless you pass
+`--allow-other-accounts`, in which case it never writes or deletes those
+Accounts. `pnpm db:fresh --seed` resets the database and then seeds it.
 
 ## Production containers
 

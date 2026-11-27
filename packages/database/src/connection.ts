@@ -51,6 +51,8 @@ export type Database = PgDatabase<NodePgQueryResultHKT, typeof schema>;
 
 export interface DatabaseConnection {
   db: Database;
+  /** The pool behind `db`, for raw checks that need no schema. */
+  pool: Pool;
   close: () => Promise<void>;
 }
 
@@ -59,6 +61,7 @@ export function createDatabase(connectionString: string): DatabaseConnection {
   const db = drizzle({ client: pool, schema });
   return {
     db,
+    pool,
     close: () => pool.end(),
   };
 }

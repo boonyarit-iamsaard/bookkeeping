@@ -106,7 +106,8 @@ any time soon.
 ## Development
 
 - [Setup](docs/development/setup.md): local setup, environment configuration,
-  database commands, and production containers
+  database commands (including the `db:seed` sample ledger), and production
+  containers
 - [Workflow](docs/development/workflow.md): Git workflow, checks, and
   dependency updates
 - [Architecture](docs/development/architecture.md): project structure and

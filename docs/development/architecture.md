@@ -185,6 +185,12 @@ validated `DATABASE_URL` to `createDatabase` from
 `@bookkeeping/database/connection`. The Drizzle CLI reads the schema through
 `packages/database/drizzle.config.ts`.
 
+`packages/seed/` (`@bookkeeping/seed`) is dev-only: `seedSampleLedger` fills a
+local database with the demo Account and sample ledger through sign-up and
+application use cases, behind `pnpm db:seed` and `pnpm db:fresh --seed`. It
+depends on auth, application and database; nothing in the server, web app or
+any deploy path imports it.
+
 `apps/backup/` (backup job, restore drill) and `infra/aws/` sit outside the
 pnpm workspace; see the [backup README](../../apps/backup/README.md) and the
 [AWS README](../../infra/aws/README.md).

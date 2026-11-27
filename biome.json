@@ -173,6 +173,7 @@
         "apps/server/vitest.image.config.mts",
         "packages/application/vitest.config.mts",
         "packages/auth/vitest.config.mts",
+        "packages/seed/vitest.config.mts",
         "packages/domain/vitest.config.mts",
         "packages/domain/stryker.config.mjs",
         "packages/database/drizzle.config.ts",

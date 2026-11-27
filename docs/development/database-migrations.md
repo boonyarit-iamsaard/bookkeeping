@@ -55,3 +55,4 @@ reapplies every committed migration. It is destructive and only works when
 a remote database. A loopback URL can still be a tunnel to production, so before
 dropping anything it also refuses a database holding an Account other than
 `demo@bookkeeping.localhost`; `--allow-other-accounts` overrides that check.
+`db:fresh --seed` then fills the rebuilt database with the sample ledger.
