@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { users } from "./auth/auth.schema";
 import { createDatabase } from "./connection";
+import { demoAccountEmail } from "./demo-account";
 import { freshDatabase, migrateDatabase } from "./migrate";
 import { withEmptyDatabase } from "./testing/empty-database";
 import {
@@ -105,7 +106,7 @@ describe("freshDatabase", () => {
           await connection.close();
         }
 
-        await freshDatabase(url);
+        await freshDatabase(url, { allowOtherAccounts: true });
 
         const resetConnection = createDatabase(url);
         try {
@@ -120,6 +121,79 @@ describe("freshDatabase", () => {
         } finally {
           await resetConnection.close();
         }
+      });
+    },
+  );
+});
+
+async function insertAccount(url: string, email: string): Promise<void> {
+  const connection = createDatabase(url);
+  try {
+    await connection.db.insert(users).values({ name: "Someone", email });
+  } finally {
+    await connection.close();
+  }
+}
+
+async function readAccountEmails(url: string): Promise<string[]> {
+  const connection = createDatabase(url);
+  try {
+    const rows = await connection.db.select({ email: users.email }).from(users);
+    return rows.map((row) => row.email);
+  } finally {
+    await connection.close();
+  }
+}
+
+describe("freshDatabase with other Accounts", () => {
+  test(
+    "refuses a database holding another Account, names the override and drops nothing",
+    migrationTestOptions,
+    async () => {
+      await withEmptyDatabase(async (url) => {
+        await migrateDatabase(url);
+        await insertAccount(url, demoAccountEmail);
+        await insertAccount(url, "owner@example.com");
+
+        await expect(freshDatabase(url)).rejects.toThrow(
+          "--allow-other-accounts",
+        );
+
+        expect((await readAccountEmails(url)).toSorted()).toEqual(
+          [demoAccountEmail, "owner@example.com"].toSorted(),
+        );
+      });
+    },
+  );
+
+  test(
+    "resets that database when told to allow other Accounts",
+    migrationTestOptions,
+    async () => {
+      await withEmptyDatabase(async (url) => {
+        await migrateDatabase(url);
+        await insertAccount(url, "owner@example.com");
+
+        await freshDatabase(url, { allowOtherAccounts: true });
+
+        expect(await readAccountEmails(url)).toEqual([]);
+      });
+    },
+  );
+
+  test(
+    "resets without the flag when the database is unmigrated, has no Accounts or only the demo Account",
+    migrationTestOptions,
+    async () => {
+      await withEmptyDatabase(async (url) => {
+        await freshDatabase(url);
+        expect(await readAccountEmails(url)).toEqual([]);
+
+        await freshDatabase(url);
+
+        await insertAccount(url, demoAccountEmail);
+        await freshDatabase(url);
+        expect(await readAccountEmails(url)).toEqual([]);
       });
     },
   );

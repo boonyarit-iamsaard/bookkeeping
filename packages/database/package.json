@@ -18,7 +18,8 @@
     "./testing/empty-database": "./src/testing/empty-database.ts",
     "./testing/next-migration": "./src/testing/next-migration.ts",
     "./testing/wallets-table": "./src/testing/wallets-table.ts",
-    "./migrate": "./src/migrate.ts"
+    "./migrate": "./src/migrate.ts",
+    "./demo-account": "./src/demo-account.ts"
   },
   "scripts": {
     "db:push": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- drizzle-kit push",

@@ -121,7 +121,12 @@ origin), its `CLIENT_ORIGINS` (the client origin), and the client's
 
 These commands need only Docker and `packages/database/.env`; neither app has
 to be running. The database commands run from `packages/database`, which owns
-the schema. `db:fresh` is destructive and refuses any non-loopback host.
+the schema. `db:fresh` is destructive and refuses any non-loopback host. It
+also refuses a database holding an Account other than the demo Account
+(`demo@bookkeeping.localhost`), since a production database forwarded to a local
+port would otherwise be wiped; pass `--allow-other-accounts`
+(`pnpm db:fresh --allow-other-accounts`) to reset it anyway. A database that has
+never been migrated counts as holding no Accounts.
 
 ## Production containers
 

@@ -52,4 +52,6 @@ migration before committing the resulting schema.
 reapplies every committed migration. It is destructive and only works when
 `DATABASE_URL` points to `localhost`, `127.0.0.1` or `::1`, judged by the host
 `pg` connects to, so a `?host=` query parameter counts; it has no override for
-a remote database.
+a remote database. A loopback URL can still be a tunnel to production, so before
+dropping anything it also refuses a database holding an Account other than
+`demo@bookkeeping.localhost`; `--allow-other-accounts` overrides that check.
