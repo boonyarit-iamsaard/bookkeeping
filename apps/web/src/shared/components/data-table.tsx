@@ -128,8 +128,8 @@ interface DataTableProps<TData extends RowData> {
   toolbarStart?: React.ReactNode;
   /** Controls at the toolbar's end, before Columns, such as a Filters popover. */
   toolbarEnd?: React.ReactNode;
-  /** Shown under the toolbar in place of the rows and footer, such as an invalid filter's notice. */
-  notice?: React.ReactNode;
+  /** With no rows, shown under the toolbar in place of the header, rows and footer, such as a no-match message. */
+  empty?: React.ReactNode;
   /** A last cell per row, such as its action menu; it sits above the row's stretched link. */
   renderRowActions?: (row: TData) => React.ReactNode;
 }
@@ -329,7 +329,7 @@ export function DataTable<TData extends RowData>({
   columnsStorageKey,
   toolbarStart,
   toolbarEnd,
-  notice,
+  empty,
   renderRowActions,
 }: Readonly<DataTableProps<TData>>) {
   const [columnVisibility, setColumnVisibility] = useStoredColumnVisibility(
@@ -389,8 +389,8 @@ export function DataTable<TData extends RowData>({
           />
         </div>
       </div>
-      {notice ? (
-        <div className="pt-3 pb-6">{notice}</div>
+      {rows.length === 0 && empty ? (
+        <div className="pt-3 pb-6">{empty}</div>
       ) : (
         <>
           {/* No scroll box, so the header can stick under the 64px top bar. */}

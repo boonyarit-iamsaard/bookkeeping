@@ -27,8 +27,8 @@ interface HistoryDataTableProps {
   toolbarStart?: React.ReactNode;
   /** Controls at the toolbar's end, before Columns. */
   toolbarEnd?: React.ReactNode;
-  /** Shown under the toolbar in place of the rows, such as an invalid filter's notice. */
-  notice?: React.ReactNode;
+  /** With no rows, shown under the toolbar in place of the header, rows and footer, such as a no-match message. */
+  empty?: React.ReactNode;
   /** A last cell per row, such as its action menu. */
   renderRowActions?: (transaction: Readonly<ApiTransaction>) => React.ReactNode;
 }
@@ -47,7 +47,7 @@ export function HistoryDataTable({
   onChange,
   toolbarStart,
   toolbarEnd,
-  notice,
+  empty,
   renderRowActions,
 }: Readonly<HistoryDataTableProps>) {
   const page = search.page ?? 1;
@@ -86,7 +86,7 @@ export function HistoryDataTable({
       columnsStorageKey={columnsStorageKey}
       toolbarStart={toolbarStart}
       toolbarEnd={toolbarEnd}
-      notice={notice}
+      empty={empty}
       renderRowActions={renderRowActions}
     />
   );

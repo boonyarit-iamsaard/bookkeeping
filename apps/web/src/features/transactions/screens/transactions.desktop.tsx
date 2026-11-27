@@ -9,13 +9,12 @@ import { PastLastPage } from "@/features/transactions/components/past-last-page"
 import { useOpenRecordDialog } from "@/features/transactions/components/record-transaction-dialog";
 import { TRANSACTION_COLUMNS } from "@/features/transactions/components/transaction-columns";
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
-import {
-  FilterErrorNotice,
-  TransactionHistory,
-} from "@/features/transactions/components/transaction-history";
+import { FilterErrorNotice } from "@/features/transactions/components/transaction-history";
+import { TransactionList } from "@/features/transactions/components/transaction-list";
 import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
 import {
   changeHistoryTable,
+  historyTableSettings,
   lastHistoryPage,
 } from "@/features/transactions/history-pages";
 import type {
@@ -27,6 +26,7 @@ import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads
 import { TableCard } from "@/shared/components/dashboard-card";
 import { TableCardSkeleton } from "@/shared/components/skeleton";
 import { buttonVariants } from "@/shared/components/ui/button";
+import { cn } from "@/shared/helpers/cn";
 import { openInPlace } from "@/shared/helpers/plain-click";
 
 interface TransactionsDesktopProps {
@@ -46,6 +46,33 @@ function NewTransactionLink() {
     >
       New transaction
     </Link>
+  );
+}
+
+/** No row matches the filters: a message in the table card and a way back to every row. */
+function NoMatchingTransactions({
+  search,
+}: Readonly<{ search: HistorySearch }>) {
+  return (
+    <section
+      aria-labelledby="no-matches-heading"
+      className="flex flex-col items-start gap-1.5"
+    >
+      <h2 id="no-matches-heading" className="text-lg font-bold tracking-tight">
+        No matching transactions
+      </h2>
+      <p className="text-muted-foreground max-w-prose text-sm leading-normal">
+        Try a wider date range, or clear the filters to see all your history.
+      </p>
+      <Link
+        to="/transactions"
+        // The table settings alone: every filter, the page and notices go.
+        search={historyTableSettings(search)}
+        className={cn(buttonVariants({ variant: "secondary" }), "mt-2.5")}
+      >
+        Clear filters
+      </Link>
+    </section>
   );
 }
 
@@ -80,11 +107,13 @@ export function TransactionsDesktop({
     });
   }
 
-  // An invalid filter's notice takes the rows' place, under the toolbar's chips.
-  const notice =
+  // With no rows, the card keeps its toolbar and says why under it.
+  const empty =
     filterErrors.length > 0 ? (
       <FilterErrorNotice errors={filterErrors} />
-    ) : undefined;
+    ) : (
+      <NoMatchingTransactions search={search} />
+    );
   const historyTable = (
     // Clips the sticky header's side fill to the card's corners.
     <TableCard className="overflow-clip">
@@ -101,7 +130,7 @@ export function TransactionsDesktop({
             toolbarEnd={
               <HistoryFilterPopover {...collections} values={view.values} />
             }
-            notice={notice}
+            empty={empty}
             renderRowActions={renderRowActions}
           />
         )}
@@ -131,16 +160,10 @@ export function TransactionsDesktop({
             Go to page {lastPage}
           </Link>
         </PastLastPage>
-      ) : notice ? (
+      ) : view.hasFilters || transactions.length > 0 ? (
         historyTable
       ) : (
-        <TransactionHistory
-          transactions={transactions}
-          filterErrors={filterErrors}
-          filtered={view.hasFilters}
-        >
-          {historyTable}
-        </TransactionHistory>
+        <TransactionList transactions={transactions} />
       )}
     </Page>
   );

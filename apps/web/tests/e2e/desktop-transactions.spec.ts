@@ -204,20 +204,49 @@ test("desktop history is one table with a Filters popover, and a wallet page of 
   await expect(chips).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Clear all" })).toHaveCount(0);
 
-  await page.goto("/transactions");
+  // No match is a message inside the card, under the same toolbar.
+  await page.goto("/transactions?pageSize=25&sort=amount&order=asc");
   await filters.click();
   await chooseDate(bar.getByLabel("To", { exact: true }), "2026-08-31");
   await expect(page).toHaveURL(/to=2026-08-31$/);
   await expect(rows).toHaveCount(1);
   await chooseOption(bar.getByLabel("Type", { exact: true }), "Income");
-  await expect(page.getByText("No matching transactions")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(bar).toHaveCount(0);
+  const card = page.getByRole("region", { name: "No matching transactions" });
+  await expect(card).toContainText(
+    "Try a wider date range, or clear the filters to see all your history.",
+  );
   await expect(table).toHaveCount(0);
+  // One card holds the toolbar and the message.
+  const tableCard = page.locator(".shadow-card").filter({ has: filters });
+  await expect(tableCard.filter({ has: card })).toHaveCount(1);
+  await expect(page.getByText("Rows per page")).toHaveCount(0);
+  await expect(filters).toHaveText("Filters · 2");
+  await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+  await expect(chips.getByRole("listitem")).toHaveCount(2);
+  await card.getByRole("link", { name: "Clear filters" }).click();
+  await expect(rows).toHaveCount(4);
+  const cleared = new URL(page.url()).searchParams;
+  expect(Object.fromEntries(cleared)).toEqual({
+    pageSize: "25",
+    sort: "amount",
+    order: "asc",
+  });
 
-  // An invalid filter says what is wrong.
+  // An invalid filter says what is wrong inside the card, and Filters still reads it.
   await page.goto("/transactions?from=2026-09-03&to=2026-09-01");
-  await expect(page.getByRole("alert")).toHaveText(
+  await expect(tableCard.getByRole("alert")).toHaveText(
     "From date must be on or before To date.",
   );
+  await filters.click();
+  await expect(bar.getByLabel("From", { exact: true })).toContainText(
+    "3 Sep 2026",
+  );
+  await expect(bar.getByLabel("To", { exact: true })).toContainText(
+    "1 Sep 2026",
+  );
+  await page.keyboard.press("Escape");
   // A bad value is a visibly invalid chip, and the notice sits under the toolbar.
   await page.goto("/transactions?walletId=gone&type=expense");
   const alert = page.getByRole("alert");
@@ -307,6 +336,8 @@ test("desktop history loads without sample money and reads an empty ledger as em
   await expect(page.getByText("Nothing recorded yet")).toBeVisible();
   await expect(page.getByRole("table")).toHaveCount(0);
   await expect(page.getByRole("search")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Filters/ })).toHaveCount(0);
+  await expect(page.getByText("No matching transactions")).toHaveCount(0);
 
   await page.goto("/wallets");
   await page.getByRole("link", { name: "Cash", exact: true }).click();
