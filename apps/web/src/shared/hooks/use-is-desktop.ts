@@ -1,13 +1,7 @@
-import { useSyncExternalStore } from "react";
+import { useMediaQuery } from "@/shared/hooks/use-media-query";
 
 // Tailwind's `lg`: the desktop layout starts where its classes do.
 const DESKTOP_QUERY = "(min-width: 64rem)";
-
-function subscribe(onChange: () => void) {
-  const query = window.matchMedia(DESKTOP_QUERY);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
 
 /** The same check outside React, for a route's loader. */
 export function isDesktopViewport() {
@@ -19,5 +13,5 @@ export function isDesktopViewport() {
  * follows a resize live, so a screen swaps its composition without a reload.
  */
 export function useIsDesktop(): boolean {
-  return useSyncExternalStore(subscribe, isDesktopViewport, () => false);
+  return useMediaQuery(DESKTOP_QUERY, false);
 }

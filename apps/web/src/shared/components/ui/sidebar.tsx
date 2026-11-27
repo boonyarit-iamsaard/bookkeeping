@@ -104,13 +104,22 @@ function SidebarProvider({
       ) {
         event.preventDefault();
         toggleSidebar();
-      } else if (event.key === "Escape" && !event.defaultPrevented) {
-        closePeek();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSidebar, closePeek]);
+  }, [toggleSidebar]);
+
+  // Escape ends a peek, unless a dialog or menu above it already used the key.
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape" && !event.defaultPrevented) {
+        closePeek();
+      }
+    }
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [closePeek]);
 
   const contextValue = useMemo<SidebarContextProps>(
     () => ({

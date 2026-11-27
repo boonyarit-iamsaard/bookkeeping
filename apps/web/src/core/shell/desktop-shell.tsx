@@ -7,8 +7,8 @@ import {
   DESTINATIONS,
   MANAGEMENT_DESTINATIONS,
 } from "@/core/shell/destinations";
+import { NewTransactionLink } from "@/core/shell/new-transaction-link";
 import { useIsWide } from "@/core/shell/use-is-wide";
-import { buttonVariants } from "@/shared/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -22,7 +22,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/shared/components/ui/sidebar";
-import { openInPlace } from "@/shared/helpers/plain-click";
 import { useToday } from "@/shared/hooks/use-today";
 
 interface WordmarkAnchorProps extends React.ComponentPropsWithRef<"a"> {}
@@ -140,14 +139,10 @@ export function DesktopShell({
           </p>
           <div className="ml-auto flex items-center gap-2">
             {!hideNewTransaction && (
-              <Link
-                to="/transactions/new"
-                search={captureSearch}
-                onClick={openInPlace(onNewTransaction)}
-                className={buttonVariants({ size: "lg" })}
-              >
-                New transaction
-              </Link>
+              <NewTransactionLink
+                captureSearch={captureSearch}
+                onNewTransaction={onNewTransaction}
+              />
             )}
             {accountMenu}
           </div>

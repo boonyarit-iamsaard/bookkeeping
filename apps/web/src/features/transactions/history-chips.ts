@@ -118,16 +118,14 @@ export function historyFilterChips(
       label?: string;
     }
   > = {
-    from: (raw) => ({
-      field: "From",
-      value: dateLabel(raw),
-      label: `From ${dateLabel(raw)}`,
-    }),
-    to: (raw) => ({
-      field: "To",
-      value: dateLabel(raw),
-      label: `To ${dateLabel(raw)}`,
-    }),
+    from: (raw) => {
+      const value = dateLabel(raw);
+      return { field: "From", value, label: `From ${value}` };
+    },
+    to: (raw) => {
+      const value = dateLabel(raw);
+      return { field: "To", value, label: `To ${value}` };
+    },
     walletId: (raw) => ({ field: "Wallet", value: nameOf(names.wallets, raw) }),
     categoryId: (raw) => ({
       field: "Category",

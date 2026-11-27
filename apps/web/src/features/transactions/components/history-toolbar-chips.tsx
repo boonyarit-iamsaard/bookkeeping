@@ -1,11 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
 import { TriangleAlert, X } from "lucide-react";
 import { useId } from "react";
 import type { components } from "@/core/api/openapi.gen";
 import { historyFilterChips } from "@/features/transactions/history-chips";
-import { historyTableSettings } from "@/features/transactions/history-pages";
-import type { HistoryFilterValues } from "@/features/transactions/history-schema";
 import type { HistoryView } from "@/features/transactions/history-view";
+import { useShowHistoryFilters } from "@/features/transactions/hooks/use-show-history-filters";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/helpers/cn";
 
@@ -27,18 +25,11 @@ export function HistoryToolbarChips({
   tags,
   view,
 }: Readonly<HistoryToolbarChipsProps>) {
-  const navigate = useNavigate();
+  const show = useShowHistoryFilters();
   const id = useId();
   const chips = historyFilterChips(view, { wallets, categories, tags });
   if (chips.length === 0) {
     return null;
-  }
-
-  function show(filters: HistoryFilterValues) {
-    void navigate({
-      to: "/transactions",
-      search: (previous) => ({ ...historyTableSettings(previous), ...filters }),
-    });
   }
 
   return (

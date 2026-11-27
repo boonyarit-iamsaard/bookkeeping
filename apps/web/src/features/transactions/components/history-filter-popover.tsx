@@ -1,5 +1,4 @@
 import { TRANSACTION_TYPES } from "@bookkeeping/domain/transactions";
-import { useNavigate } from "@tanstack/react-router";
 import { ListFilter } from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
 import { FilterSelect } from "@/features/transactions/components/filter-select";
@@ -11,12 +10,12 @@ import {
   changeHistoryFilter,
   toggleHistoryTag,
 } from "@/features/transactions/history-filter-change";
-import { historyTableSettings } from "@/features/transactions/history-pages";
 import type {
   HistoryFilterKey,
   HistoryFilterValues,
 } from "@/features/transactions/history-schema";
 import { HISTORY_FILTER_KEYS } from "@/features/transactions/history-schema";
+import { useShowHistoryFilters } from "@/features/transactions/hooks/use-show-history-filters";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
 import { Button } from "@/shared/components/ui/button";
@@ -83,14 +82,8 @@ function HistoryFilterFields({
   tags,
   values,
 }: Readonly<HistoryFilterPopoverProps>) {
-  const navigate = useNavigate();
+  const show = useShowHistoryFilters();
   const today = useToday();
-  function show(search: HistoryFilterValues) {
-    void navigate({
-      to: "/transactions",
-      search: (previous) => ({ ...historyTableSettings(previous), ...search }),
-    });
-  }
 
   function change(key: HistoryFilterKey) {
     return (value: string) => show(changeHistoryFilter(values, { key, value }));

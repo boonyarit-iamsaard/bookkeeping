@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { NewTransactionLink } from "@/core/shell/new-transaction-link";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
 import { captureSearchForLocation } from "@/features/transactions/capture-origin";
@@ -26,25 +27,20 @@ import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads
 import { TableCard } from "@/shared/components/dashboard-card";
 import { TableCardSkeleton } from "@/shared/components/skeleton";
 import { buttonVariants } from "@/shared/components/ui/button";
-import { openInPlace } from "@/shared/helpers/plain-click";
 
 interface TransactionsDesktopProps {
   search: HistorySearch;
 }
 
 /** The screen's one Iris action, moved here from the top bar. */
-function NewTransactionLink() {
+function TitleNewTransaction() {
   const location = useLocation();
   const openRecord = useOpenRecordDialog();
   return (
-    <Link
-      to="/transactions/new"
-      search={captureSearchForLocation(location)}
-      onClick={openInPlace(openRecord)}
-      className={buttonVariants({ size: "lg" })}
-    >
-      New transaction
-    </Link>
+    <NewTransactionLink
+      captureSearch={captureSearchForLocation(location)}
+      onNewTransaction={openRecord}
+    />
   );
 }
 
@@ -84,7 +80,7 @@ function NoMatchingTransactions({
 export function TransactionsDesktopLoading() {
   return (
     <Page layout="wide" loading>
-      <TitleBar title="Transactions" actions={<NewTransactionLink />} />
+      <TitleBar title="Transactions" actions={<TitleNewTransaction />} />
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="contents">
         <TableCardSkeleton rows={5} />
@@ -109,6 +105,10 @@ export function TransactionsDesktop({
       to: "/transactions",
       search: changeHistoryTable(search, change),
     });
+  }
+
+  if (pending) {
+    return <TransactionsDesktopLoading />;
   }
 
   // With no rows, the card keeps its toolbar and says why under it.
@@ -142,10 +142,6 @@ export function TransactionsDesktop({
     </TableCard>
   );
 
-  if (pending) {
-    return <TransactionsDesktopLoading />;
-  }
-
   // The table keeps its card once filters narrow it to nothing.
   const history =
     view.hasFilters || transactions.length > 0 ? (
@@ -156,7 +152,7 @@ export function TransactionsDesktop({
 
   return (
     <Page layout="wide">
-      <TitleBar title="Transactions" actions={<NewTransactionLink />} />
+      <TitleBar title="Transactions" actions={<TitleNewTransaction />} />
       {search.deleted === 1 && <TransactionDeletedNotice />}
       {lastPage !== undefined ? (
         <PastLastPage
