@@ -61,6 +61,13 @@ Create a GitHub issue.
 
 Read it as in **Read an issue** above.
 
+## Done bar for a ticket
+
+A ticket is done when its acceptance criteria pass and every step in its
+**Design verification** section, such as `/impeccable polish`, has run and its
+findings are fixed. Commit only after that, and fix or answer each review
+finding first.
+
 ## Wayfinding operations
 
 Used by `/wayfinder`. The **map** is a single issue with **child** issues as tickets.
