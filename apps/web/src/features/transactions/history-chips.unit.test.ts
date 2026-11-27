@@ -7,9 +7,13 @@ const CASH = "00000000-0000-4000-8000-000000000001";
 const FOOD = "00000000-0000-4000-8000-000000000002";
 const COFFEE = "00000000-0000-4000-8000-000000000003";
 const SNACKS = "00000000-0000-4000-8000-000000000004";
+const GROCERIES = "00000000-0000-4000-8000-000000000005";
 const names = {
   wallets: [{ id: CASH, name: "Cash" }],
-  categories: [{ id: FOOD, name: "Food" }],
+  categories: [
+    { id: FOOD, name: "Food", parentId: null },
+    { id: GROCERIES, name: "Groceries", parentId: FOOD },
+  ],
   tags: [
     { id: COFFEE, name: "Coffee" },
     { id: SNACKS, name: "Snacks" },
@@ -31,6 +35,34 @@ describe("history filter chips", () => {
         from: "2026-09-01",
       }).map((chip) => chip.label),
     ).toEqual(["From 1 Sep 2026", "To 3 Sep 2026", "Cash", "Food", "Expense"]);
+  });
+
+  test("names each chip's field and its bare value", () => {
+    expect(
+      chipsFor({
+        from: "2026-09-01",
+        to: "2026-09-03",
+        walletId: CASH,
+        categoryId: FOOD,
+        type: "expense",
+        tagId: [COFFEE],
+      }).map(({ field, value }) => [field, value]),
+    ).toEqual([
+      ["From", "1 Sep 2026"],
+      ["To", "3 Sep 2026"],
+      ["Wallet", "Cash"],
+      ["Category", "Food"],
+      ["Type", "Expense"],
+      ["Tag", "Coffee"],
+    ]);
+  });
+
+  test("names a child category's full path but keeps the phone label short", () => {
+    const [chip] = chipsFor({ categoryId: GROCERIES });
+    expect(chip).toMatchObject({
+      label: "Groceries",
+      value: "Food › Groceries",
+    });
   });
 
   test("removing a chip keeps the other filters and drops the page and saved id", () => {

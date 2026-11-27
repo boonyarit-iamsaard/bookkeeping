@@ -155,6 +155,32 @@ describe("the phone and desktop reads of one address", () => {
     expect(historyReadSearch(address, { desktop: true })).toEqual(address);
   });
 
+  test("the desktop reads 10 rows when the address names no size", () => {
+    const read = historyReadSearch({ type: "expense" }, { desktop: true });
+    expect(read).toEqual({ type: "expense", pageSize: 10 });
+    expect(buildHistoryView(read)).toMatchObject({
+      list: { pageSize: "10" },
+    });
+    expect(walletHistoryList(CASH, read)).toMatchObject({ pageSize: "10" });
+  });
+
+  test("the desktop reads the size the address names over its default", () => {
+    const read = historyReadSearch({ pageSize: 50 }, { desktop: true });
+    expect(buildHistoryView(read)).toMatchObject({
+      list: { pageSize: "50" },
+    });
+  });
+
+  test("the phone reads the server's default size whatever the address names", () => {
+    const read = historyReadSearch(address, { desktop: false });
+    expect(buildHistoryView(read)).toMatchObject({
+      list: { pageSize: "50" },
+    });
+    expect(
+      buildHistoryView(historyReadSearch({}, { desktop: false })),
+    ).toMatchObject({ list: { pageSize: "50" } });
+  });
+
   test("the phone keeps the filters and page, and drops the table's size, sort and order", () => {
     expect(historyReadSearch(address, { desktop: false })).toEqual({
       type: "expense",

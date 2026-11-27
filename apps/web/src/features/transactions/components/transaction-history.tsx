@@ -14,6 +14,19 @@ interface TransactionHistoryProps {
   children: ReactNode;
 }
 
+/** Why the address's filters are invalid, one message each. */
+export function FilterErrorNotice({
+  errors,
+}: Readonly<{ errors: readonly string[] }>) {
+  return (
+    <ErrorNotice>
+      {errors.map((error) => (
+        <p key={error}>{error}</p>
+      ))}
+    </ErrorNotice>
+  );
+}
+
 export function TransactionHistory({
   transactions,
   filterErrors,
@@ -21,13 +34,7 @@ export function TransactionHistory({
   children,
 }: Readonly<TransactionHistoryProps>) {
   if (filterErrors.length > 0) {
-    return (
-      <ErrorNotice>
-        {filterErrors.map((error) => (
-          <p key={error}>{error}</p>
-        ))}
-      </ErrorNotice>
-    );
+    return <FilterErrorNotice errors={filterErrors} />;
   }
 
   if (filtered && transactions.length === 0) {

@@ -23,6 +23,12 @@ interface HistoryDataTableProps {
   total: number;
   /** The address's change for one table control. */
   onChange: (change: HistoryTableSettings) => void;
+  /** Content at the toolbar's start, such as the active filters' chips. */
+  toolbarStart?: React.ReactNode;
+  /** Controls at the toolbar's end, before Columns. */
+  toolbarEnd?: React.ReactNode;
+  /** With no rows, shown under the toolbar in place of the header, rows and footer, such as a no-match message. */
+  empty?: React.ReactNode;
   /** A last cell per row, such as its action menu. */
   renderRowActions?: (transaction: Readonly<ApiTransaction>) => React.ReactNode;
 }
@@ -39,6 +45,9 @@ export function HistoryDataTable({
   transactions,
   total,
   onChange,
+  toolbarStart,
+  toolbarEnd,
+  empty,
   renderRowActions,
 }: Readonly<HistoryDataTableProps>) {
   const page = search.page ?? 1;
@@ -75,6 +84,9 @@ export function HistoryDataTable({
       rowCount={total}
       rowCountLabel={countLabel(total)}
       columnsStorageKey={columnsStorageKey}
+      toolbarStart={toolbarStart}
+      toolbarEnd={toolbarEnd}
+      empty={empty}
       renderRowActions={renderRowActions}
     />
   );

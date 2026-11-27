@@ -28,8 +28,12 @@ test("from 1024px New transaction opens over the screen and saving keeps it ther
 
   await page.goto("/transactions?type=expense");
   const screenUrl = page.url();
+  // On Transactions New transaction sits on the title row, not the top bar.
+  await expect(
+    page.getByRole("banner").getByRole("link", { name: "New transaction" }),
+  ).toHaveCount(0);
   await page
-    .getByRole("banner")
+    .locator("main")
     .getByRole("link", { name: "New transaction" })
     .click();
   const dialog = page.getByRole("dialog", { name: "New transaction" });
@@ -63,6 +67,18 @@ test("from 1024px New transaction opens over the screen and saving keeps it ther
   expect(entryUrl.searchParams.get("origin")).toBe(
     "/transactions?type=expense",
   );
+
+  // A History load error has no title row, so the top bar keeps it.
+  await page.route("**/v1/transactions?*", (route) =>
+    route.fulfill({ status: 500 }),
+  );
+  await page.goto("/transactions");
+  await expect(page.getByText("Your records could not load")).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(
+    page.getByRole("banner").getByRole("link", { name: "New transaction" }),
+  ).toBeVisible();
 });
 
 test("the entry dialog ignores the scrim once changed and scopes Escape to a picker", {

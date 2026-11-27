@@ -3,6 +3,7 @@ import {
   Outlet,
   redirect,
   useLocation,
+  useMatch,
 } from "@tanstack/react-router";
 import { readSession } from "@/core/auth/session";
 import { DesktopShell } from "@/core/shell/desktop-shell";
@@ -19,6 +20,10 @@ function AppLayout() {
   const isDesktop = useIsDesktop();
   const isFormScreen = useIsFormScreen();
   const location = useLocation();
+  const transactions = useMatch({
+    from: "/_app/transactions/",
+    shouldThrow: false,
+  });
   const captureSearch = captureSearchForLocation({
     pathname: location.pathname,
     searchStr: location.searchStr,
@@ -33,6 +38,11 @@ function AppLayout() {
             captureSearch={captureSearch}
             // On a form page ＋ navigates, so two forms never share field ids.
             onNewTransaction={isFormScreen ? undefined : openRecord}
+            // Transactions carries New transaction on its own title row; its
+            // load error has none, so the top bar keeps it there.
+            hideNewTransaction={
+              transactions !== undefined && transactions.status !== "error"
+            }
           >
             <Outlet />
           </DesktopShell>

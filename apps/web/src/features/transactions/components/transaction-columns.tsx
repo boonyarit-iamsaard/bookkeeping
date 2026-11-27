@@ -3,13 +3,11 @@ import type { components } from "@/core/api/openapi.gen";
 import { transferWallets } from "@/features/transactions/components/transaction-list";
 import {
   TransactionCategoryCell,
+  TransactionTypeIcon,
   walletName,
 } from "@/features/transactions/components/transaction-table";
 import { TransactionTagsCell } from "@/features/transactions/components/transaction-tags-cell";
-import {
-  TRANSACTION_TYPE_LABELS,
-  TRANSACTION_TYPE_SIGNS,
-} from "@/features/transactions/transaction-labels";
+import { TRANSACTION_TYPE_SIGNS } from "@/features/transactions/transaction-labels";
 import type { DataTableColumn } from "@/shared/components/data-table";
 import { dataTableColumns } from "@/shared/components/data-table";
 import { Money } from "@/shared/components/money";
@@ -54,10 +52,20 @@ export function transactionColumns(
       ),
     }),
     column.display({
+      id: "type",
+      header: "Type",
+      enableHiding: true,
+      meta: { srOnlyHeader: true },
+      cell: ({ row }) => <TransactionTypeIcon type={row.original.type} />,
+    }),
+    column.display({
       id: "category",
       header: "Category",
+      // A wallet's page has no Wallet column, so Category takes the spare
+      // width; elsewhere it stops at 224px to leave room at 1024px.
+      meta: pageWalletId ? { grow: true } : undefined,
       cell: ({ row, table }) => (
-        <span className="font-semibold">
+        <span className={cn("block font-medium", !pageWalletId && "max-w-56")}>
           <TransactionCategoryCell
             transaction={row.original}
             transfer={transferOf(row.original, pageWalletId)}
@@ -74,29 +82,21 @@ export function transactionColumns(
       id: "wallet",
       header: "Wallet",
       enableHiding: true,
-      cell: ({ row }) => (
-        <span className="whitespace-nowrap">
-          {transferOf(row.original, pageWalletId) ??
-            walletName(row.original.wallet)}
-        </span>
-      ),
-    }),
-    column.display({
-      id: "type",
-      header: "Type",
-      enableHiding: true,
-      cell: ({ row }) => (
-        <span className="text-muted-foreground">
-          {TRANSACTION_TYPE_LABELS[row.original.type]}
-        </span>
-      ),
+      // Category and Tags keep capped widths, so Wallet takes what is left
+      // and a long name gives way.
+      meta: { grow: true },
+      cell: ({ row }) => {
+        const wallet =
+          transferOf(row.original, pageWalletId) ??
+          walletName(row.original.wallet);
+        // No title: the row's link covers the cell, so it could never show.
+        return <span className="block truncate">{wallet}</span>;
+      },
     }),
     column.display({
       id: "tags",
       header: "Tags",
       enableHiding: true,
-      // Takes the spare width while Note, the other filler, is hidden.
-      meta: { grow: true },
       // A transfer carries no tags.
       cell: ({ row }) =>
         row.original.type === "transfer" ? null : (
@@ -124,9 +124,11 @@ export function transactionColumns(
       enableSorting: true,
       meta: { align: "end" },
       cell: ({ row }) => (
+        // Desktop rows read lighter than the phone: medium, still tabular.
         <Money
           amount={row.original.amount}
           sign={TRANSACTION_TYPE_SIGNS[row.original.type]}
+          className="font-medium"
         />
       ),
     }),

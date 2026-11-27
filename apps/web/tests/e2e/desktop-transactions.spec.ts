@@ -118,7 +118,7 @@ async function seedLedger(page: Page) {
   return { cash, savings, lunch };
 }
 
-test("desktop history is one table with a live filter bar, and a wallet page of the same rows", {
+test("desktop history is one table with a Filters popover, and a wallet page of the same rows", {
   tag: "@matrix",
 }, async ({ page }) => {
   test.skip(!isDesktop(page), "Phone keeps its lists and filter sheet");
@@ -128,9 +128,9 @@ test("desktop history is one table with a live filter bar, and a wallet page of 
   const table = page.getByRole("table", { name: "Transactions" });
   await expect(table.locator("thead").getByRole("columnheader")).toHaveText([
     "Date",
+    "Type",
     "Category",
     "Wallet",
-    "Type",
     "Tags",
     "Amount",
     "Actions",
@@ -152,47 +152,124 @@ test("desktop history is one table with a live filter bar, and a wallet page of 
     0,
   );
 
-  // The filter bar writes the address at once; there is nothing to apply.
+  // Filters opens a popover that writes the address at once; there is
+  // nothing to apply, no filter bar above the table and no type tabs.
+  await expect(
+    page.getByRole("search", { name: "Filter transactions" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("navigation", { name: "Transaction type" }),
+  ).toHaveCount(0);
+  const filters = page.getByRole("button", { name: /^Filters/ });
+  await expect(filters).toHaveText("Filters");
+  await filters.click();
   const bar = page.getByRole("search", { name: "Filter transactions" });
   await expect(bar.getByRole("button", { name: "Clear filters" })).toHaveCount(
     0,
   );
+  await chooseOption(bar.getByLabel("Wallet", { exact: true }), "Cash");
   await chooseOption(bar.getByLabel("Type", { exact: true }), "Expense");
-  await expect(page).toHaveURL(/\/transactions\?type=expense$/);
+  await expect(page).toHaveURL(/\/transactions\?walletId=.+&type=expense$/);
   await expect(rows).toHaveCount(2);
-  await bar.getByRole("button", { name: /^Tags/ }).click();
-  await page
-    .getByRole("dialog")
-    .locator("label", { hasText: "Coffee" })
-    .click();
+  await expect(filters).toHaveText("Filters · 2");
+  // Tags are pills in the same popover, not a second one.
+  await bar.locator("label", { hasText: "Coffee" }).click();
   await expect(page).toHaveURL(/type=expense&tagId=/);
   await expect(rows).toHaveCount(1);
-  await expect(bar.getByRole("button", { name: /^Tags/ })).toHaveText(
-    "Tags · 1",
-  );
+  await expect(filters).toHaveText("Filters · 3");
+  await expect(page.getByRole("dialog")).toHaveCount(1);
   await page.keyboard.press("Escape");
-  await bar.getByRole("button", { name: "Clear filters" }).click();
-  await expect(page).toHaveURL(/\/transactions$/);
-  await expect(rows).toHaveCount(4);
+  await expect(bar).toHaveCount(0);
 
+  // The active filters are chips at the toolbar's start, each ✕ lifting its own.
+  const chips = page.getByRole("list", { name: "Active filters" });
+  await expect(chips.getByRole("listitem")).toHaveText([
+    "WalletCash",
+    "TypeExpense",
+    "TagCoffee",
+  ]);
+  const removeType = page.getByRole("button", {
+    name: "Remove type filter: Expense",
+  });
+  await removeType.focus();
+  await expect(removeType).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/transactions\?walletId=[^&]+&tagId=[^&]+$/);
+  await expect(chips.getByRole("listitem")).toHaveText([
+    "WalletCash",
+    "TagCoffee",
+  ]);
+  await page.getByRole("button", { name: "Clear all" }).click();
+  await expect(page).toHaveURL(/\/transactions$/);
+  await expect(chips).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Clear all" })).toHaveCount(0);
+
+  // No match is a message inside the card, under the same toolbar.
+  await page.goto("/transactions?pageSize=25&sort=amount&order=asc");
+  await filters.click();
   await chooseDate(bar.getByLabel("To", { exact: true }), "2026-08-31");
   await expect(page).toHaveURL(/to=2026-08-31$/);
   await expect(rows).toHaveCount(1);
   await chooseOption(bar.getByLabel("Type", { exact: true }), "Income");
-  await expect(page.getByText("No matching transactions")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(bar).toHaveCount(0);
+  const card = page.getByRole("region", { name: "No matching transactions" });
+  await expect(card).toContainText(
+    "Try a wider date range, or clear the filters to see all your history.",
+  );
   await expect(table).toHaveCount(0);
-  await bar.getByRole("button", { name: "Clear filters" }).click();
+  // One card holds the toolbar and the message.
+  const tableCard = page.locator(".shadow-card").filter({ has: filters });
+  await expect(tableCard.filter({ has: card })).toHaveCount(1);
+  await expect(page.getByText("Rows per page")).toHaveCount(0);
+  await expect(filters).toHaveText("Filters · 2");
+  await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+  await expect(chips.getByRole("listitem")).toHaveCount(2);
+  await card.getByRole("link", { name: "Clear filters" }).click();
   await expect(rows).toHaveCount(4);
+  const cleared = new URL(page.url()).searchParams;
+  expect(Object.fromEntries(cleared)).toEqual({
+    pageSize: "25",
+    sort: "amount",
+    order: "asc",
+  });
 
-  // Invalid filters keep their values in the bar and say what is wrong.
+  // An invalid filter says what is wrong inside the card, and Filters still reads it.
   await page.goto("/transactions?from=2026-09-03&to=2026-09-01");
-  await expect(page.getByRole("alert")).toHaveText(
+  await expect(tableCard.getByRole("alert")).toHaveText(
     "From date must be on or before To date.",
   );
-  await expect(bar.getByLabel("From", { exact: true })).toHaveText(
+  await filters.click();
+  await expect(bar.getByLabel("From", { exact: true })).toContainText(
     "3 Sep 2026",
   );
-  await expect(bar.getByLabel("To", { exact: true })).toHaveText("1 Sep 2026");
+  await expect(bar.getByLabel("To", { exact: true })).toContainText(
+    "1 Sep 2026",
+  );
+  await page.keyboard.press("Escape");
+  // A bad value is a visibly invalid chip, and the notice sits under the toolbar.
+  await page.goto("/transactions?walletId=gone&type=expense");
+  const alert = page.getByRole("alert");
+  await expect(alert).toHaveText("Choose a valid wallet.");
+  await expect(
+    page.getByRole("list", { name: "Active filters" }).getByRole("listitem"),
+  ).toHaveText(["WalletgoneNot a value the history accepts", "TypeExpense"]);
+  await expect(page.getByRole("button", { name: "Clear all" })).toBeVisible();
+  const filtersBox = await filters.boundingBox();
+  const alertBox = await alert.boundingBox();
+  if (!(filtersBox && alertBox)) {
+    throw new Error("The toolbar or notice has no box");
+  }
+  expect(alertBox.y).toBeGreaterThan(filtersBox.y + filtersBox.height);
+  const removeGone = page.getByRole("button", {
+    name: "Remove wallet filter: gone",
+  });
+  await expect(removeGone).toHaveAccessibleDescription(
+    "Not a value the history accepts",
+  );
+  await removeGone.click();
+  await expect(page).toHaveURL(/\/transactions\?type=expense$/);
+  await expect(table).toBeVisible();
 
   // The whole row opens the record, wherever it is clicked.
   await page.goto("/transactions");
@@ -217,7 +294,7 @@ test("desktop history is one table with a live filter bar, and a wallet page of 
   const walletTable = page.getByRole("table", { name: "Transactions" });
   await expect(
     walletTable.locator("thead").getByRole("columnheader"),
-  ).toHaveText(["Date", "Category", "Type", "Tags", "Amount", "Actions"]);
+  ).toHaveText(["Date", "Type", "Category", "Tags", "Amount", "Actions"]);
   await expect(walletTable.locator("[data-transaction-row]")).toHaveCount(4);
   await expect(
     walletTable.locator("[data-transaction-row]").first(),
@@ -259,6 +336,8 @@ test("desktop history loads without sample money and reads an empty ledger as em
   await expect(page.getByText("Nothing recorded yet")).toBeVisible();
   await expect(page.getByRole("table")).toHaveCount(0);
   await expect(page.getByRole("search")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Filters/ })).toHaveCount(0);
+  await expect(page.getByText("No matching transactions")).toHaveCount(0);
 
   await page.goto("/wallets");
   await page.getByRole("link", { name: "Cash", exact: true }).click();

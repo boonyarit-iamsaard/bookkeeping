@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { TagChip } from "@/features/tags/components/tag-chip";
+import { TAG_CHIP_TEXT, TagChip } from "@/features/tags/components/tag-chip";
 import { splitTagOverflow } from "@/features/tags/tag-overflow";
 import { changeHistoryTable } from "@/features/transactions/history-pages";
 import {
@@ -20,8 +20,8 @@ const CHIP_TARGET =
   "relative z-1 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45";
 
 /**
- * A table row's tags on one line: two chips, each filtering the history by
- * its tag, then a "+N" chip that names every tag on hover, focus and to
+ * A table row's tags on one line: one chip, filtering the history by its
+ * tag, then a "+N" chip that names every tag on hover, focus and to
  * assistive technology.
  */
 export function TransactionTagsCell({
@@ -34,8 +34,9 @@ export function TransactionTagsCell({
   const { shown, hidden } = splitTagOverflow(tags);
   const names = tags.map((tag) => tag.name).join(", ");
   return (
-    // Chips overhang the text line rather than heighten the row.
-    <ul aria-label="Tags" className="-my-0.5 flex gap-1.5">
+    // A reserved width, so a narrow table never squeezes the chips onto
+    // Amount; they overhang the text line rather than heighten the row.
+    <ul aria-label="Tags" className="-my-0.5 flex w-36 gap-1.5">
       {shown.map((tag) => (
         <li key={tag.id} className="flex min-w-0">
           <Link
@@ -52,7 +53,12 @@ export function TransactionTagsCell({
               "hover:[&>span]:bg-accent flex min-w-0 overflow-hidden",
             )}
           >
-            <TagChip name={tag.name} truncate className="max-w-40 min-w-0" />
+            <TagChip
+              name={tag.name}
+              truncate
+              size="table"
+              className="min-w-0"
+            />
           </Link>
         </li>
       ))}
@@ -63,7 +69,8 @@ export function TransactionTagsCell({
               aria-label={`${hidden.length} more ${hidden.length === 1 ? "tag" : "tags"}: ${names}`}
               className={cn(
                 CHIP_TARGET,
-                "bg-muted text-foreground px-2.5 py-0.5 text-[0.8125rem] leading-5 font-medium tabular-nums",
+                "bg-muted text-foreground px-2.5 py-0.5 font-medium tabular-nums",
+                TAG_CHIP_TEXT.table,
               )}
             >
               +{hidden.length}

@@ -79,13 +79,26 @@ test("desktop history sorts and pages on the server, keeping the view in the add
   const table = page.getByRole("table", { name: "Transactions" });
   const rows = table.locator("[data-transaction-row]");
   const pageLabel = page.getByText(/^Page \d+ of \d+$/);
-  await expect(page.getByText("25 transactions")).toBeVisible();
-  await expect(pageLabel).toHaveText("Page 1 of 1");
-  await expect(rows).toHaveCount(25);
+  const rowsPerPage = page.getByLabel("Rows per page");
+  // With no size in the address, ten rows per page makes three pages.
+  await expect(
+    page.getByText("1–10 of 25 transactions", { exact: true }),
+  ).toBeVisible();
+  await expect(rowsPerPage).toHaveText("10");
+  await expect(pageLabel).toHaveText("Page 1 of 3");
+  await expect(rows).toHaveCount(10);
+  await expect(rows.first()).toContainText("25 Sep 2026");
   await expect(table.locator("[data-month-row]")).toHaveCount(0);
   await expect(
     table.getByRole("columnheader", { name: "Date" }),
   ).toHaveAttribute("aria-sort", "descending");
+
+  // A size in the address wins over the default and survives a reload.
+  await chooseOption(rowsPerPage, "50");
+  await expect(page).toHaveURL(/\/transactions\?pageSize=50$/);
+  await page.reload();
+  await expect(pageLabel).toHaveText("Page 1 of 1");
+  await expect(rows).toHaveCount(25);
 
   // The header row stays under the top bar while the rows scroll.
   await page.mouse.wheel(0, 600);
@@ -93,12 +106,10 @@ test("desktop history sorts and pages on the server, keeping the view in the add
     .poll(async () => (await table.locator("thead").boundingBox())?.y)
     .toBe(64);
 
-  // Ten rows per page makes three pages.
-  await chooseOption(page.getByLabel("Rows per page"), "10");
+  await chooseOption(rowsPerPage, "10");
   await expect(page).toHaveURL(/\/transactions\?pageSize=10$/);
   await expect(pageLabel).toHaveText("Page 1 of 3");
   await expect(rows).toHaveCount(10);
-  await expect(rows.first()).toContainText("25 Sep 2026");
   const first = page.getByRole("button", { name: "First page" });
   const previous = page.getByRole("button", { name: "Previous page" });
   const next = page.getByRole("button", { name: "Next page" });
@@ -139,12 +150,14 @@ test("desktop history sorts and pages on the server, keeping the view in the add
   await expect(rows.first()).toContainText("−฿110.00");
 
   // A filter keeps the sort and rows per page and returns to page 1.
+  await page.getByRole("button", { name: /^Filters/ }).click();
   const bar = page.getByRole("search", { name: "Filter transactions" });
   await chooseOption(bar.getByLabel("Type", { exact: true }), "Expense");
   await expect(page).toHaveURL(
     /\?pageSize=10&sort=amount&order=asc&type=expense$/,
   );
   await expect(pageLabel).toHaveText("Page 1 of 3");
+  await page.keyboard.press("Escape");
 
   // More rows per page returns to page 1 too.
   await next.click();

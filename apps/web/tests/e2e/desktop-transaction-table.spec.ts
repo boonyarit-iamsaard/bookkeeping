@@ -63,8 +63,12 @@ async function seedLedger(page: Page) {
     categories.find(
       (item) => item.name === "Uncategorized" && item.kind === kind,
     )?.id;
-  if (!(cash && savings)) {
-    throw new Error("The seeded wallets were not found");
+  // A default child category, under Food & Drink.
+  const restaurants = categories.find(
+    (item) => item.name === "Restaurants",
+  )?.id;
+  if (!(cash && savings && restaurants)) {
+    throw new Error("The seeded wallets or categories were not found");
   }
   const tagIds = [];
   for (const name of TAG_NAMES) {
@@ -75,7 +79,7 @@ async function seedLedger(page: Page) {
     type: "expense",
     amount: amount("80.00"),
     walletId: cash,
-    categoryId: uncategorized("expense"),
+    categoryId: restaurants,
     transactionDate: "2026-09-10",
     note: "Five tags",
     tagIds,
@@ -99,45 +103,62 @@ async function seedLedger(page: Page) {
   });
 }
 
-test("desktop history's type tabs, column menu and one-line tags cell", {
+test("desktop history's type filter link, column menu and one-line tags cell", {
   tag: "@matrix",
 }, async ({ page }) => {
   test.skip(!isDesktop(page), "Phone keeps its month sections");
   await seedLedger(page);
 
-  await page.goto("/transactions?pageSize=10&page=2");
-  const tabs = page.getByRole("navigation", { name: "Transaction type" });
-  const tab = (name: string) =>
-    tabs.getByRole("link", { name: new RegExp(`^${name}`) });
-  await expect(tabs.getByRole("link")).toHaveText([
-    "All3",
-    "Expenses1",
-    "Income1",
-    "Transfers1",
-  ]);
-  await expect(tab("All")).toHaveAttribute("aria-current", "page");
-  // A tab keeps the rows per page but returns to page 1.
-  await tab("Expenses").click();
-  await expect(page).toHaveURL(/\/transactions\?pageSize=10&type=expense$/);
-  await expect(tab("Expenses")).toHaveAttribute("aria-current", "page");
+  // No type tabs; a link with a type still narrows the table.
+  await page.goto("/transactions?pageSize=10&type=expense");
+  await expect(
+    page.getByRole("navigation", { name: "Transaction type" }),
+  ).toHaveCount(0);
   const table = page.getByRole("table", { name: "Transactions" });
   const rows = table.locator("[data-transaction-row]");
   await expect(rows).toHaveCount(1);
-  await tab("All").click();
-  await expect(page).toHaveURL(/\/transactions\?pageSize=10$/);
+  await expect(page.getByRole("button", { name: /^Filters/ })).toHaveText(
+    "Filters · 1",
+  );
+  await page.goto("/transactions?pageSize=10");
   await expect(rows).toHaveCount(3);
 
-  // Columns: Note hidden by default; Date and Category always shown.
+  // Each chosen tag counts once on the Filters button.
+  const filters = page.getByRole("button", { name: /^Filters/ });
+  await filters.click();
+  const bar = page.getByRole("search", { name: "Filter transactions" });
+  for (const name of TAG_NAMES.slice(0, 2)) {
+    await bar.locator("label", { hasText: name }).click();
+  }
+  await expect(filters).toHaveText("Filters · 2");
+  await page.keyboard.press("Escape");
+  await page.goto("/transactions?pageSize=10");
+
+  // Columns: Type is an icon after Date, its header read but not shown; Note
+  // hidden by default; Date and Category always shown.
   const headers = table.locator("thead").getByRole("columnheader");
   await expect(headers).toHaveText([
     "Date",
+    "Type",
     "Category",
     "Wallet",
-    "Type",
     "Tags",
     "Amount",
     "Actions",
   ]);
+  await expect(headers.nth(1).locator(".sr-only")).toHaveText("Type");
+  const income = rows.filter({ hasText: "+" }).first();
+  const incomeIcon = income.getByRole("button", { name: "Income" });
+  await incomeIcon.hover();
+  await expect(page.locator("[data-slot=tooltip-content]")).toHaveText(
+    "Income",
+  );
+  const iconRowHeight = (await income.boundingBox())?.height ?? 0;
+  // No category or wallet title: the row link covers them, so none could show.
+  await expect(
+    table.locator('tbody a[href*="/transactions/"][title]'),
+  ).toHaveCount(0);
+  await expect(table.locator("tbody span[title]")).toHaveCount(0);
   await page.getByRole("button", { name: "Columns" }).click();
   const menu = page.getByRole("menu");
   await expect(
@@ -146,13 +167,20 @@ test("desktop history's type tabs, column menu and one-line tags cell", {
   await expect(
     menu.getByRole("menuitemcheckbox", { name: "Category" }),
   ).toHaveAttribute("aria-checked", "true");
+  await menu.getByRole("menuitemcheckbox", { name: "Type" }).click();
+  await expect(headers.filter({ hasText: "Type" })).toHaveCount(0);
+  // The icon's target overhangs its line rather than heightening the row.
+  expect(
+    Math.abs(((await income.boundingBox())?.height ?? 0) - iconRowHeight),
+  ).toBeLessThanOrEqual(1);
+  await menu.getByRole("menuitemcheckbox", { name: "Type" }).click();
   await menu.getByRole("menuitemcheckbox", { name: "Wallet" }).click();
   await menu.getByRole("menuitemcheckbox", { name: "Note" }).click();
   await page.keyboard.press("Escape");
   const chosen = [
     "Date",
-    "Category",
     "Type",
+    "Category",
     "Tags",
     "Note",
     "Amount",
@@ -164,19 +192,33 @@ test("desktop history's type tabs, column menu and one-line tags cell", {
   // With Wallet hidden, a transfer's wallets move under Category.
   await expect(rows.filter({ hasText: "Transfer" })).toContainText("Savings");
 
-  // Tags: two chips cut short, then +3 naming all five, on one line.
+  // Tags: one chip cut short, then +4 naming all five, on one line.
   const tagged = rows.filter({ hasText: "Five tags" });
+
+  // A child category: the parent and "›" in Slate regular, the leaf Ink medium.
+  const categoryLink = tagged.getByRole("link", {
+    name: "Food & Drink › Restaurants",
+  });
+  const weightAndColor = (text: string) =>
+    categoryLink.getByText(text, { exact: true }).evaluate((node) => {
+      const style = getComputedStyle(node);
+      return [style.fontWeight, style.color];
+    });
+  const [parentWeight, parentColor] = await weightAndColor("Food & Drink");
+  const [leafWeight, leafColor] = await weightAndColor("Restaurants");
+  expect([parentWeight, leafWeight]).toEqual(["400", "500"]);
+  expect(parentColor).not.toBe(leafColor);
   const cell = tagged.getByRole("list", { name: "Tags" });
-  await expect(cell.getByRole("link")).toHaveCount(2);
+  await expect(cell.getByRole("link")).toHaveCount(1);
   await expect(cell.getByRole("link").first()).toHaveAttribute(
     "title",
     TAG_NAMES[0] ?? "",
   );
   const more = cell.getByRole("button", {
-    name: `3 more tags: ${TAG_NAMES.join(", ")}`,
+    name: `4 more tags: ${TAG_NAMES.join(", ")}`,
   });
-  await expect(more).toHaveText("+3");
-  const untagged = rows.filter({ hasText: "Income" }).first();
+  await expect(more).toHaveText("+4");
+  const untagged = rows.filter({ hasText: "500.00" });
   const [taggedBox, untaggedBox] = await Promise.all([
     tagged.boundingBox(),
     untagged.boundingBox(),
@@ -185,7 +227,7 @@ test("desktop history's type tabs, column menu and one-line tags cell", {
   expect(
     Math.abs((taggedBox?.height ?? 0) - (untaggedBox?.height ?? 0)),
   ).toBeLessThanOrEqual(1);
-  await cell.getByRole("link").nth(1).focus();
+  await cell.getByRole("link").focus();
   await page.keyboard.press("Tab");
   await expect(more).toBeFocused();
   await expect(page.locator("[data-slot=tooltip-content]")).toHaveText(
@@ -196,7 +238,7 @@ test("desktop history's type tabs, column menu and one-line tags cell", {
   ).toHaveCount(0);
 
   // A chip filters the history by its tag, keeping the view.
-  await cell.getByRole("link").nth(1).click();
+  await cell.getByRole("link").click();
   await expect(page).toHaveURL(/pageSize=10&tagId=/);
   await expect(rows).toHaveCount(1);
   await expect(rows).toContainText("Five tags");

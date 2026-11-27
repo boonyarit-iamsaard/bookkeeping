@@ -1,54 +1,104 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { NewTransactionLink } from "@/core/shell/new-transaction-link";
 import { Page } from "@/core/shell/page";
 import { TitleBar } from "@/core/shell/title-bar";
+import { captureSearchForLocation } from "@/features/transactions/capture-origin";
 import { HistoryDataTable } from "@/features/transactions/components/history-data-table";
-import { HistoryFilterBar } from "@/features/transactions/components/history-filter-bar";
-import { HistoryTypeTabs } from "@/features/transactions/components/history-type-tabs";
+import { HistoryFilterPopover } from "@/features/transactions/components/history-filter-popover";
+import { HistoryToolbarChips } from "@/features/transactions/components/history-toolbar-chips";
 import { PastLastPage } from "@/features/transactions/components/past-last-page";
+import { useOpenRecordDialog } from "@/features/transactions/components/record-transaction-dialog";
 import { TRANSACTION_COLUMNS } from "@/features/transactions/components/transaction-columns";
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
-import { TransactionHistory } from "@/features/transactions/components/transaction-history";
+import { FilterErrorNotice } from "@/features/transactions/components/transaction-history";
+import { TransactionList } from "@/features/transactions/components/transaction-list";
 import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
 import {
   changeHistoryTable,
+  historyTableSettings,
   lastHistoryPage,
 } from "@/features/transactions/history-pages";
 import type {
   HistorySearch,
   HistoryTableSettings,
 } from "@/features/transactions/history-schema";
+import { historyReadSearch } from "@/features/transactions/history-view";
 import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads";
 import { TableCard } from "@/shared/components/dashboard-card";
-import { Skeleton, TableCardSkeleton } from "@/shared/components/skeleton";
+import { TableCardSkeleton } from "@/shared/components/skeleton";
 import { buttonVariants } from "@/shared/components/ui/button";
 
 interface TransactionsDesktopProps {
   search: HistorySearch;
 }
 
-/** The desktop list's loading shape: the title, the filter bar, a table. */
+/** The screen's one Iris action, moved here from the top bar. */
+function TitleNewTransaction() {
+  const location = useLocation();
+  const openRecord = useOpenRecordDialog();
+  return (
+    <NewTransactionLink
+      captureSearch={captureSearchForLocation(location)}
+      onNewTransaction={openRecord}
+    />
+  );
+}
+
+/** No row matches the filters: a message in the table card and a way back to every row. */
+function NoMatchingTransactions({
+  search,
+}: Readonly<{ search: HistorySearch }>) {
+  return (
+    <section
+      aria-labelledby="no-matches-heading"
+      className="flex flex-col items-start gap-4"
+    >
+      <div className="flex flex-col gap-1.5">
+        <h2
+          id="no-matches-heading"
+          className="text-lg font-bold tracking-tight"
+        >
+          No matching transactions
+        </h2>
+        <p className="text-muted-foreground max-w-prose text-sm leading-normal">
+          Try a wider date range, or clear the filters to see all your history.
+        </p>
+      </div>
+      <Link
+        to="/transactions"
+        // The table settings alone: every filter, the page and notices go.
+        search={historyTableSettings(search)}
+        className={buttonVariants({ variant: "secondary", size: "lg" })}
+      >
+        Clear filters
+      </Link>
+    </section>
+  );
+}
+
+/** The desktop list's loading shape: the title and a table. */
 export function TransactionsDesktopLoading() {
   return (
     <Page layout="wide" loading>
-      <TitleBar title="Transactions" />
+      <TitleBar title="Transactions" actions={<TitleNewTransaction />} />
       <output className="sr-only">Loading your records…</output>
       <div aria-hidden="true" className="contents">
-        <Skeleton className="h-16" />
         <TableCardSkeleton rows={5} />
       </div>
     </Page>
   );
 }
 
-/** From 1024px: a filter bar over one data table that sorts and pages on the server. */
+/** From 1024px: one data table that filters, sorts and pages on the server. */
 export function TransactionsDesktop({
   search,
 }: Readonly<TransactionsDesktopProps>) {
   const navigate = useNavigate();
+  const readSearch = historyReadSearch(search, { desktop: true });
   const { view, pending, transactions, total, filterErrors, ...collections } =
-    useHistoryReads(search);
+    useHistoryReads(readSearch);
   const lastPage =
-    view.state === "valid" ? lastHistoryPage(search, total) : undefined;
+    view.state === "valid" ? lastHistoryPage(readSearch, total) : undefined;
 
   function show(change: HistoryTableSettings) {
     void navigate({
@@ -61,17 +111,48 @@ export function TransactionsDesktop({
     return <TransactionsDesktopLoading />;
   }
 
+  // With no rows, the card keeps its toolbar and says why under it.
+  const empty =
+    filterErrors.length > 0 ? (
+      <FilterErrorNotice errors={filterErrors} />
+    ) : (
+      <NoMatchingTransactions search={search} />
+    );
+  const historyTable = (
+    // Clips the sticky header's side fill to the card's corners.
+    <TableCard className="overflow-clip">
+      <TransactionRowActions>
+        {(renderRowActions) => (
+          <HistoryDataTable
+            columns={TRANSACTION_COLUMNS}
+            columnsStorageKey="bookkeeping.transactions-columns"
+            search={readSearch}
+            transactions={transactions}
+            total={total}
+            onChange={show}
+            toolbarStart={<HistoryToolbarChips {...collections} view={view} />}
+            toolbarEnd={
+              <HistoryFilterPopover {...collections} values={view.values} />
+            }
+            empty={empty}
+            renderRowActions={renderRowActions}
+          />
+        )}
+      </TransactionRowActions>
+    </TableCard>
+  );
+
+  // The table keeps its card once filters narrow it to nothing.
+  const history =
+    view.hasFilters || transactions.length > 0 ? (
+      historyTable
+    ) : (
+      <TransactionList transactions={transactions} />
+    );
+
   return (
     <Page layout="wide">
-      <TitleBar title="Transactions" />
-      {/* An empty ledger has nothing to narrow. */}
-      {(view.hasFilters || total > 0) && (
-        <>
-          <HistoryFilterBar {...collections} values={view.values} />
-          {/* Outside the table, so an empty tab still leads back to the others. */}
-          <HistoryTypeTabs search={search} view={view} />
-        </>
-      )}
+      <TitleBar title="Transactions" actions={<TitleNewTransaction />} />
       {search.deleted === 1 && <TransactionDeletedNotice />}
       {lastPage !== undefined ? (
         <PastLastPage
@@ -88,28 +169,7 @@ export function TransactionsDesktop({
           </Link>
         </PastLastPage>
       ) : (
-        <TransactionHistory
-          transactions={transactions}
-          filterErrors={filterErrors}
-          filtered={view.hasFilters}
-        >
-          {/* Clips the sticky header's side fill to the card's corners. */}
-          <TableCard className="overflow-clip">
-            <TransactionRowActions>
-              {(renderRowActions) => (
-                <HistoryDataTable
-                  columns={TRANSACTION_COLUMNS}
-                  columnsStorageKey="bookkeeping.transactions-columns"
-                  search={search}
-                  transactions={transactions}
-                  total={total}
-                  onChange={show}
-                  renderRowActions={renderRowActions}
-                />
-              )}
-            </TransactionRowActions>
-          </TableCard>
-        </TransactionHistory>
+        history
       )}
     </Page>
   );

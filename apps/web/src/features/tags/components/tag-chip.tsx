@@ -6,7 +6,15 @@ interface TagChipProps {
   className?: string;
   /** Cuts a long name short on one line, for a table cell that may not grow. */
   truncate?: boolean;
+  /** "table": 20px tall at 12px, for desktop table rows. */
+  size?: "default" | "table";
 }
+
+/** The pill's text size, shared with a table's "+N" chip. */
+export const TAG_CHIP_TEXT = {
+  default: "text-[0.8125rem] leading-5",
+  table: "text-xs leading-4",
+} as const;
 
 /**
  * A tag read back: a Mist pill led by a Slate #, never a hue, because hue
@@ -18,18 +26,23 @@ export function TagChip({
   name,
   className,
   truncate = false,
+  size = "default",
 }: Readonly<TagChipProps>) {
   return (
     <span
       className={cn(
-        "bg-muted text-foreground inline-flex max-w-full items-start gap-1 rounded-full py-0.5 pr-2.5 pl-2 text-[0.8125rem] leading-5 font-medium",
+        "bg-muted text-foreground inline-flex max-w-full items-start gap-1 rounded-full py-0.5 pr-2.5 pl-2 font-medium",
+        TAG_CHIP_TEXT[size],
         className,
       )}
     >
       <Hash
         aria-hidden="true"
         strokeWidth={2}
-        className="text-muted-foreground mt-[0.1875rem] size-3.5 shrink-0"
+        className={cn(
+          "text-muted-foreground shrink-0",
+          size === "table" ? "mt-0.5 size-3" : "mt-[0.1875rem] size-3.5",
+        )}
       />
       <span
         className={cn("min-w-0", truncate ? "truncate" : "wrap-break-word")}

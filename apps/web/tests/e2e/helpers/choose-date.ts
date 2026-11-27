@@ -58,6 +58,8 @@ export async function chooseDate(
   date: string,
 ): Promise<void> {
   const calendar = await openCalendarAt(trigger, date);
+  // Pinned by id, since an enclosing popover (Filters) stays open after it.
+  const id = await calendar.getAttribute("id");
   await calendar.locator(`[data-date="${date}"]`).click();
-  await expect(calendar).toBeHidden();
+  await expect(trigger.page().locator(`[id="${id}"]`)).toBeHidden();
 }
