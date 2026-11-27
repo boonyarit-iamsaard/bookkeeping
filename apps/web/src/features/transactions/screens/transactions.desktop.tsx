@@ -26,7 +26,6 @@ import { useHistoryReads } from "@/features/transactions/hooks/use-history-reads
 import { TableCard } from "@/shared/components/dashboard-card";
 import { TableCardSkeleton } from "@/shared/components/skeleton";
 import { buttonVariants } from "@/shared/components/ui/button";
-import { cn } from "@/shared/helpers/cn";
 import { openInPlace } from "@/shared/helpers/plain-click";
 
 interface TransactionsDesktopProps {
@@ -56,19 +55,24 @@ function NoMatchingTransactions({
   return (
     <section
       aria-labelledby="no-matches-heading"
-      className="flex flex-col items-start gap-1.5"
+      className="flex flex-col items-start gap-4"
     >
-      <h2 id="no-matches-heading" className="text-lg font-bold tracking-tight">
-        No matching transactions
-      </h2>
-      <p className="text-muted-foreground max-w-prose text-sm leading-normal">
-        Try a wider date range, or clear the filters to see all your history.
-      </p>
+      <div className="flex flex-col gap-1.5">
+        <h2
+          id="no-matches-heading"
+          className="text-lg font-bold tracking-tight"
+        >
+          No matching transactions
+        </h2>
+        <p className="text-muted-foreground max-w-prose text-sm leading-normal">
+          Try a wider date range, or clear the filters to see all your history.
+        </p>
+      </div>
       <Link
         to="/transactions"
         // The table settings alone: every filter, the page and notices go.
         search={historyTableSettings(search)}
-        className={cn(buttonVariants({ variant: "secondary" }), "mt-2.5")}
+        className={buttonVariants({ variant: "secondary", size: "lg" })}
       >
         Clear filters
       </Link>
