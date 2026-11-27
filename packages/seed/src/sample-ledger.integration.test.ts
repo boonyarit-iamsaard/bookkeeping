@@ -172,6 +172,7 @@ describe("seedSampleLedger", () => {
     async () => {
       await withMigratedDatabase(async (url) => {
         await addOtherAccount(url);
+        const before = await readOwnedRecords(url, otherAccountEmail);
 
         await expect(seedSampleLedger(url)).rejects.toThrow(
           allowOtherAccountsFlag,
@@ -180,6 +181,7 @@ describe("seedSampleLedger", () => {
         expect((await readOwnedRecords(url, demoAccountEmail)).accounts).toBe(
           0,
         );
+        expect(await readOwnedRecords(url, otherAccountEmail)).toEqual(before);
       });
     },
   );

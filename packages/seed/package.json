@@ -7,8 +7,8 @@
     "./sample-ledger": "./src/sample-ledger.ts"
   },
   "scripts": {
-    "db:fresh": "dotenvx run -f ../database/.env --ignore=MISSING_ENV_FILE -- tsx src/fresh-cli.ts",
-    "db:seed": "dotenvx run -f ../database/.env --ignore=MISSING_ENV_FILE -- tsx src/seed-cli.ts",
+    "db:fresh": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/fresh-cli.ts",
+    "db:seed": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/seed-cli.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",

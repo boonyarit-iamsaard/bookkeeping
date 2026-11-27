@@ -140,7 +140,8 @@ interface TransactionCase {
   tags?: readonly string[];
   note?: string;
   /** Names an expense so a later refund can return money for it. */
-  id?: string;
+  expenseKey?: string;
+  /** The `expenseKey` of the expense this refund returns money for. */
   refundOf?: string;
 }
 
@@ -295,7 +296,7 @@ export const transactionCases: readonly TransactionCase[] = [
     amount: baht(3290),
     tags: ["online", "bought during the 11.11 mega sale"],
     note: "Wireless earbuds",
-    id: "earbuds",
+    expenseKey: "earbuds",
   },
   // A Refund, returning part of the expense above.
   {

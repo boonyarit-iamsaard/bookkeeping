@@ -12,6 +12,7 @@ pnpm install
 cp apps/web/.env.example apps/web/.env
 cp apps/server/.env.example apps/server/.env
 cp packages/database/.env.example packages/database/.env
+cp packages/seed/.env.example packages/seed/.env
 ```
 
 Set `BETTER_AUTH_SECRET` in `apps/server/.env` to a random secret of at least
@@ -68,8 +69,9 @@ environment:
 `pnpm start:server` runs the compiled production output with the environment
 the caller injects, which `apps/server/turbo.json` passes through Turborepo.
 The database commands load `DATABASE_URL` from `packages/database/.env` (copy
-`packages/database/.env.example`), and `drizzle.config.ts` validates it. The
-server and database scripts load their own `.env` through dotenvx; the web
+`packages/database/.env.example`), and `drizzle.config.ts` validates it;
+`db:fresh` and `db:seed` load the same variable from `packages/seed/.env`. The
+server, database, and seed scripts load their own `.env` through dotenvx; the web
 `dev` script runs Vite, which reads `apps/web/.env` itself. See
 [Scripts and environment](../code-conventions.md#scripts-and-environment).
 
@@ -120,10 +122,10 @@ origin), its `CLIENT_ORIGINS` (the client origin), and the client's
 | `pnpm db:seed`    | Fill a local, migrated database with a sample ledger and print the demo credentials |
 | `pnpm db:studio`  | Open Drizzle Studio                                                                 |
 
-These commands need only Docker and `packages/database/.env`; neither app has
+These commands need only Docker and their workspace's `.env`; neither app has
 to be running. The database commands run from `packages/database`, which owns
-the schema; `db:fresh` and `db:seed` run from `packages/seed` and read the same
-`packages/database/.env`. `db:fresh` is destructive and refuses any non-loopback
+the schema; `db:fresh` and `db:seed` run from `packages/seed` and read its own
+`packages/seed/.env`. `db:fresh` is destructive and refuses any non-loopback
 host. It also refuses a database holding an Account other than the demo Account
 (`demo@bookkeeping.localhost`), since a production database forwarded to a local
 port would otherwise be wiped; pass `--allow-other-accounts`

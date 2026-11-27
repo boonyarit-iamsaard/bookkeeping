@@ -17,6 +17,7 @@ import { assertLocalDatabaseUrl } from "@bookkeeping/database/local-database-url
 import { APP_TIME_ZONE, addDays, todayIn } from "@bookkeeping/domain/dates";
 import type { Result } from "@bookkeeping/domain/result";
 import { eq } from "drizzle-orm";
+import type { WalletKey } from "./sample-ledger-cases";
 import {
   categoryCases,
   openedDaysAgo,
@@ -43,7 +44,7 @@ const demoPassword = "demo-password-for-local-use";
 const seedAuthSecret = "sample-ledger-seed-secret-not-for-real-use";
 
 /** Every use case returns a Result; a refusal here means the cases are wrong. */
-function expectOk<Value>(result: Result<Value, unknown>, doing: string): Value {
+function expectOk<Value>(result: Result<Value, unknown>, doing: string) {
   if (!result.ok) {
     throw new Error(
       `Sample ledger: ${doing} was refused: ${JSON.stringify(result.error)}`,
@@ -52,11 +53,8 @@ function expectOk<Value>(result: Result<Value, unknown>, doing: string): Value {
   return result.value;
 }
 
-async function createWallets(
-  db: Database,
-  ownerId: string,
-): Promise<Map<string, string>> {
-  const ids = new Map<string, string>();
+async function createWallets(db: Database, ownerId: string) {
+  const ids = new Map<WalletKey, string>();
   const today = todayIn({ timeZone: APP_TIME_ZONE });
   for (const wallet of walletCases) {
     const created = await createWallet(db, {
@@ -73,10 +71,14 @@ async function createWallets(
   return ids;
 }
 
-async function createCategories(
-  db: Database,
-  ownerId: string,
-): Promise<Map<string, string>> {
+type CategoryKey = `${string}:${string}`;
+
+/** The key a Category is found by: its kind and the label a person reads. */
+function categoryKey(kind: string, label: string): CategoryKey {
+  return `${kind}:${label}`;
+}
+
+async function createCategories(db: Database, ownerId: string) {
   for (const { kind, parent, child, iconId } of categoryCases) {
     const created = await createCategory(db, {
       ownerId,
@@ -91,19 +93,16 @@ async function createCategories(
   // Sign-up provisioned the default categories; look every one up by the label
   // a person reads: "Parent" or "Parent › Child", per kind.
   const listed = await listCategories(db, ownerId);
-  const ids = new Map<string, string>();
+  const ids = new Map<CategoryKey, string>();
   for (const category of listed) {
     const parent = listed.find(({ id }) => id === category.parentId);
     const label = parent ? `${parent.name} › ${category.name}` : category.name;
-    ids.set(`${category.kind}:${label}`, category.id);
+    ids.set(categoryKey(category.kind, label), category.id);
   }
   return ids;
 }
 
-async function createTags(
-  db: Database,
-  ownerId: string,
-): Promise<Map<string, string>> {
+async function createTags(db: Database, ownerId: string) {
   const ids = new Map<string, string>();
   for (const name of tagNames) {
     const created = await createTag(db, {
@@ -116,7 +115,10 @@ async function createTags(
   return ids;
 }
 
-function lookup(ids: ReadonlyMap<string, string>, key: string): string {
+function requireId<Key extends string>(
+  ids: ReadonlyMap<Key, string>,
+  key: Key,
+) {
   const id = ids.get(key);
   if (id === undefined) {
     throw new Error(`Sample ledger names ${key}, which does not exist`);
@@ -125,17 +127,22 @@ function lookup(ids: ReadonlyMap<string, string>, key: string): string {
 }
 
 interface LedgerIds {
-  wallets: ReadonlyMap<string, string>;
-  categories: ReadonlyMap<string, string>;
+  wallets: ReadonlyMap<WalletKey, string>;
+  categories: ReadonlyMap<CategoryKey, string>;
   tags: ReadonlyMap<string, string>;
+}
+
+interface CreateTransactionsOptions {
+  ownerId: string;
+  ids: LedgerIds;
 }
 
 async function createTransactions(
   db: Database,
-  { ownerId, ids }: Readonly<{ ownerId: string; ids: LedgerIds }>,
-): Promise<void> {
+  { ownerId, ids }: Readonly<CreateTransactionsOptions>,
+) {
   const today = todayIn({ timeZone: APP_TIME_ZONE });
-  const expenseIds = new Map<string, string>();
+  const refundableIds = new Map<string, string>();
   // Oldest first, so recorded order follows the dates and a Refund follows its expense.
   const chronological = transactionCases.toSorted(
     (a, b) => b.daysAgo - a.daysAgo,
@@ -145,41 +152,43 @@ async function createTransactions(
       ownerId,
       idempotencyKey: randomUUID(),
       type: sample.type,
-      walletId: lookup(ids.wallets, sample.wallet),
-      destinationWalletId: sample.to ? lookup(ids.wallets, sample.to) : null,
+      walletId: requireId(ids.wallets, sample.wallet),
+      destinationWalletId: sample.to ? requireId(ids.wallets, sample.to) : null,
       categoryId: sample.category
-        ? lookup(ids.categories, `${sample.type}:${sample.category}`)
+        ? requireId(ids.categories, categoryKey(sample.type, sample.category))
         : null,
       refundOfTransactionId: sample.refundOf
-        ? lookup(expenseIds, sample.refundOf)
+        ? requireId(refundableIds, sample.refundOf)
         : null,
       amount: sample.amount,
       transactionDate: addDays(today, -sample.daysAgo),
       note: sample.note ?? "",
-      tagIds: (sample.tags ?? []).map((name) => lookup(ids.tags, name)),
+      tagIds: (sample.tags ?? []).map((name) => requireId(ids.tags, name)),
     });
     const transaction = expectOk(
       created,
       `${sample.type} ${sample.note ?? ""}`,
     );
-    if (sample.id) {
-      expenseIds.set(sample.id, transaction.id);
+    if (sample.expenseKey) {
+      refundableIds.set(sample.expenseKey, transaction.id);
     }
   }
 }
 
+interface ArchiveWalletsOptions {
+  ownerId: string;
+  walletIds: ReadonlyMap<WalletKey, string>;
+}
+
 async function archiveWallets(
   db: Database,
-  {
-    ownerId,
-    walletIds,
-  }: Readonly<{ ownerId: string; walletIds: ReadonlyMap<string, string> }>,
-): Promise<void> {
+  { ownerId, walletIds }: Readonly<ArchiveWalletsOptions>,
+) {
   for (const wallet of walletCases) {
     if ("archived" in wallet) {
       const archived = await changeWalletState(db, {
         ownerId,
-        id: lookup(walletIds, wallet.key),
+        id: requireId(walletIds, wallet.key),
         archived: true,
       });
       expectOk(archived, `archiving ${wallet.name}`);
@@ -187,7 +196,7 @@ async function archiveWallets(
   }
 }
 
-async function writeSampleLedger(db: Database, ownerId: string): Promise<void> {
+async function writeSampleLedger(db: Database, ownerId: string) {
   const wallets = await createWallets(db, ownerId);
   const categories = await createCategories(db, ownerId);
   const tags = await createTags(db, ownerId);

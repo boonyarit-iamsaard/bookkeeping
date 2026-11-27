@@ -4,14 +4,16 @@ import { listWalletsWithBalance } from "@bookkeeping/application/wallets";
 import { createAuth } from "@bookkeeping/auth/config";
 import { users } from "@bookkeeping/database/auth";
 import { categories } from "@bookkeeping/database/categories";
-import { createDatabase } from "@bookkeeping/database/connection";
+import type { Database } from "@bookkeeping/database/connection";
 import { migrateDatabase } from "@bookkeeping/database/migrate";
 import { tags, transactionTags } from "@bookkeeping/database/tags";
 import { withEmptyDatabase } from "@bookkeeping/database/testing/empty-database";
+import { withConnection } from "@bookkeeping/database/testing/with-connection";
 import { transactions } from "@bookkeeping/database/transactions";
 import { wallets } from "@bookkeeping/database/wallets";
 import { eq } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import type { DemoCredentials } from "../sample-ledger";
 
 /** Runs `use` against a migrated database of its own, as `db:fresh` leaves one. */
 export function withMigratedDatabase(use: (url: string) => Promise<void>) {
@@ -21,70 +23,54 @@ export function withMigratedDatabase(use: (url: string) => Promise<void>) {
   });
 }
 
-export async function signIn(
-  url: string,
-  credentials: Readonly<{ email: string; password: string }>,
-) {
-  const connection = createDatabase(url);
-  try {
-    const auth = createAuth({
-      db: connection.db,
-      secret: "sign-in-check-secret-with-at-least-32-chars",
-      baseURL: "http://localhost:4000",
-    });
-    return await auth.api.signInEmail({ body: credentials });
-  } finally {
-    await connection.close();
-  }
+function createTestAuth(db: Database) {
+  return createAuth({
+    db,
+    secret: "demo-ledger-test-secret-with-at-least-32-chars",
+    baseURL: "http://localhost:4000",
+  });
+}
+
+export function signIn(url: string, credentials: DemoCredentials) {
+  return withConnection(url, ({ db }) =>
+    createTestAuth(db).api.signInEmail({ body: credentials }),
+  );
 }
 
 export const otherAccountEmail = "other@bookkeeping.test";
 
 /** Signs up an Account that is not the demo one and gives it a wallet and a tag. */
-export async function addOtherAccount(url: string): Promise<void> {
-  const connection = createDatabase(url);
-  try {
-    const auth = createAuth({
-      db: connection.db,
-      secret: "other-account-secret-with-at-least-32-chars",
-      baseURL: "http://localhost:4000",
-    });
-    const { user } = await auth.api.signUpEmail({
+export function addOtherAccount(url: string) {
+  return withConnection(url, async ({ db }) => {
+    const { user } = await createTestAuth(db).api.signUpEmail({
       body: {
         name: "Other",
         email: otherAccountEmail,
         password: "other-account-password",
       },
     });
-    await createWalletForTest(connection.db, { ownerId: user.id });
-    await createTagForTest(connection.db, { ownerId: user.id, name: "Kept" });
-  } finally {
-    await connection.close();
-  }
+    await createWalletForTest(db, { ownerId: user.id });
+    await createTagForTest(db, { ownerId: user.id, name: "Kept" });
+  });
 }
 
 /** The Wallets and balances an Account's Home screen shows, through the application read. */
-export async function readWalletBalances(url: string, email: string) {
-  const connection = createDatabase(url);
-  try {
-    const [owner] = await connection.db
+export function readWalletBalances(url: string, email: string) {
+  return withConnection(url, async ({ db }) => {
+    const [owner] = await db
       .select({ id: users.id })
       .from(users)
       .where(eq(users.email, email));
     if (!owner) {
       throw new Error(`No Account ${email}`);
     }
-    return await listWalletsWithBalance(connection.db, { ownerId: owner.id });
-  } finally {
-    await connection.close();
-  }
+    return await listWalletsWithBalance(db, { ownerId: owner.id });
+  });
 }
 
 /** Everything the Account with this email owns, read the way a caller sees it. */
-export async function readOwnedRecords(url: string, email: string) {
-  const connection = createDatabase(url);
-  try {
-    const { db } = connection;
+export function readOwnedRecords(url: string, email: string) {
+  return withConnection(url, async ({ db }) => {
     const owners = await db.select().from(users).where(eq(users.email, email));
     const [owner] = owners;
     if (!owner) {
@@ -114,7 +100,5 @@ export async function readOwnedRecords(url: string, email: string) {
         .innerJoin(tags, eq(tags.id, transactionTags.tagId))
         .where(ownedBy(tags)),
     };
-  } finally {
-    await connection.close();
-  }
+  });
 }

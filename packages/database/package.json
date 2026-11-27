@@ -18,6 +18,7 @@
     "./testing/empty-database": "./src/testing/empty-database.ts",
     "./testing/next-migration": "./src/testing/next-migration.ts",
     "./testing/wallets-table": "./src/testing/wallets-table.ts",
+    "./testing/with-connection": "./src/testing/with-connection.ts",
     "./migrate": "./src/migrate.ts",
     "./demo-account": "./src/demo-account.ts",
     "./database-url": "./src/database-url.ts",

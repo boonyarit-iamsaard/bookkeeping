@@ -1,7 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 import { users } from "./auth/auth.schema";
-import { createDatabase } from "./connection";
 import { demoAccountEmail } from "./demo-account";
 import { freshDatabase, migrateDatabase } from "./migrate";
 import { withEmptyDatabase } from "./testing/empty-database";
@@ -12,21 +11,19 @@ import {
 import { createTestUser } from "./testing/test-database";
 import { testDatabaseUrl } from "./testing/url";
 import { hasWalletColumn, withLockedWallets } from "./testing/wallets-table";
+import { withConnection } from "./testing/with-connection";
 
 // Migrations can exceed Vitest's 5 s default on a loaded machine; matches the
 // integration project's hookTimeout.
 const migrationTestOptions = { timeout: 60_000 };
 
-async function readAppliedMigrationHashes(url: string): Promise<string[]> {
-  const connection = createDatabase(url);
-  try {
-    const result = await connection.db.execute<{ hash: string }>(
+function readAppliedMigrationHashes(url: string) {
+  return withConnection(url, async ({ db }) => {
+    const result = await db.execute<{ hash: string }>(
       sql`SELECT hash FROM drizzle.__drizzle_migrations ORDER BY id`,
     );
     return result.rows.map((row) => row.hash);
-  } finally {
-    await connection.close();
-  }
+  });
 }
 
 describe("migrateDatabase", () => {
@@ -42,18 +39,15 @@ describe("migrateDatabase", () => {
       expect(appliedBefore).not.toHaveLength(0);
       expect(await readAppliedMigrationHashes(url)).toEqual(appliedBefore);
 
-      const connection = createDatabase(url);
-      try {
-        const user = await createTestUser(connection.db);
-        const [storedUser] = await connection.db
+      await withConnection(url, async ({ db }) => {
+        const user = await createTestUser(db);
+        const [storedUser] = await db
           .select({ id: users.id })
           .from(users)
           .where(eq(users.id, user.id));
 
         expect(storedUser?.id).toBe(user.id);
-      } finally {
-        await connection.close();
-      }
+      });
     },
   );
 });
@@ -97,52 +91,38 @@ describe("freshDatabase", () => {
     async () => {
       await withEmptyDatabase(async (url) => {
         await migrateDatabase(url);
-        const connection = createDatabase(url);
-        let userId: string;
-        try {
-          const user = await createTestUser(connection.db);
-          userId = user.id;
-        } finally {
-          await connection.close();
-        }
+        const { id: userId } = await withConnection(url, ({ db }) =>
+          createTestUser(db),
+        );
 
         await freshDatabase(url, { allowOtherAccounts: true });
 
-        const resetConnection = createDatabase(url);
-        try {
-          const rows = await resetConnection.db
+        await withConnection(url, async ({ db }) => {
+          const rows = await db
             .select({ id: users.id })
             .from(users)
             .where(eq(users.id, userId));
           expect(rows).toHaveLength(0);
 
-          const newUser = await createTestUser(resetConnection.db);
+          const newUser = await createTestUser(db);
           expect(newUser.id).not.toBe(userId);
-        } finally {
-          await resetConnection.close();
-        }
+        });
       });
     },
   );
 });
 
-async function insertAccount(url: string, email: string): Promise<void> {
-  const connection = createDatabase(url);
-  try {
-    await connection.db.insert(users).values({ name: "Someone", email });
-  } finally {
-    await connection.close();
-  }
+function insertAccount(url: string, email: string) {
+  return withConnection(url, async ({ db }) => {
+    await db.insert(users).values({ name: "Someone", email });
+  });
 }
 
-async function readAccountEmails(url: string): Promise<string[]> {
-  const connection = createDatabase(url);
-  try {
-    const rows = await connection.db.select({ email: users.email }).from(users);
+function readAccountEmails(url: string) {
+  return withConnection(url, async ({ db }) => {
+    const rows = await db.select({ email: users.email }).from(users);
     return rows.map((row) => row.email);
-  } finally {
-    await connection.close();
-  }
+  });
 }
 
 describe("freshDatabase with other Accounts", () => {
