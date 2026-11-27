@@ -148,6 +148,12 @@ typography:
     fontWeight: 400
     lineHeight: 1.43
     letterSpacing: "normal"
+  chip:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.8125rem"
+    fontWeight: 500
+    lineHeight: 1.54
+    letterSpacing: "normal"
   tab-label:
     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.75rem"
@@ -414,10 +420,12 @@ A violet-blue family on tinted neutrals: Iris acts, Midnight holds the figure, a
 - **Figure Flow** (`{typography.figure-flow}`): paired summary figures, such as Income and Net expenses.
 - **Row Title** (`{typography.row-title}`): the first line of a row; it wraps rather than truncating.
 - **Row Figure** (`{typography.row-figure}`): a row's amount, beside the row title; uniform, never stepped down.
+- **Desktop table weights:** in a desktop Data Table the row title (a transaction's category) and row figure (its amount) drop to medium (500), so a dense table reads lighter than the phone's large rows; the amount keeps the rest of `money`.
 - **Body** (`{typography.body}`): input values (16px on phone so the browser never zooms, 14px from 768px) and running text.
 - **Label** (`{typography.label}`): buttons, field labels, desktop nav links, segments, and section links.
 - **Hero Label** (`{typography.hero-label}`): the hero heading, such as Spendable or Total balance, in Midnight Muted.
 - **Caption** (`{typography.caption}`): row metadata, descriptions, empty copy, and errors, in Slate.
+- **Chip** (`{typography.chip}`): the Tag Chip, filter chips and compact tag pills, at 13px medium; a desktop table's chips step down to 12px (see Tag Chip).
 - **Tab Label** (`{typography.tab-label}`): the word under each phone tab icon.
 
 ### Named Rules
@@ -506,7 +514,7 @@ A refund's source expense is a Wash link (12px corners, at least 64px): 44px Cat
 
 ### Tag Chip and Tag Picker
 
-The **Tag Chip** is a Mist pill: Ink text (13px, medium, 20px line height), decorative 14px Slate #, no category hue or shadow. Names and lists wrap; lists are named Tags. Rows show chips below metadata, not nested controls. Detail chips link to that tag's history in 44px targets with focus ring and Wash hover; empty reads "No tags". Transfers omit Tags.
+The **Tag Chip** is a Mist pill: Ink text (13px, medium, 20px line height), decorative 14px Slate #, no category hue or shadow. Names and lists wrap; lists are named Tags. Rows show chips below metadata, not nested controls. Desktop table cells use the **table** size, an option of the chip: 20px tall, 12px text on a 16px line, a 12px #; the "+N" chip beside it matches. The Tags page, detail and phone keep the 13px chip. Detail chips link to that tag's history in 44px targets with focus ring and Wash hover; empty reads "No tags". Transfers omit Tags.
 
 The **Tag Picker** follows Category on income/expense forms: "Tags (optional)", zero to five, never required to save. Its field leads with a 32px Mist # tile and ends with a Slate chevron. "Add tags" becomes wrapping Iris Tonal chosen chips; the field grows. Below, up to four recent tags are wrapping Outline quick chips, at least 44px tall. Chosen chips use Iris Tonal and check instead of #; toggles expose `aria-pressed`. Tags never fill category, wallet, amount, or note.
 

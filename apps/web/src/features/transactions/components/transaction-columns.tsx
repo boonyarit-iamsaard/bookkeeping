@@ -65,9 +65,7 @@ export function transactionColumns(
       // width; elsewhere its leaf stops at 224px to leave room at 1024px.
       meta: pageWalletId ? { grow: true } : undefined,
       cell: ({ row, table }) => (
-        <span
-          className={cn("block font-semibold", !pageWalletId && "max-w-56")}
-        >
+        <span className={cn("block font-medium", !pageWalletId && "max-w-56")}>
           <TransactionCategoryCell
             transaction={row.original}
             transfer={transferOf(row.original, pageWalletId)}
@@ -126,9 +124,11 @@ export function transactionColumns(
       enableSorting: true,
       meta: { align: "end" },
       cell: ({ row }) => (
+        // Desktop rows read lighter than the phone: medium, still tabular.
         <Money
           amount={row.original.amount}
           sign={TRANSACTION_TYPE_SIGNS[row.original.type]}
+          className="font-medium"
         />
       ),
     }),

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { TagChip } from "@/features/tags/components/tag-chip";
+import { TAG_CHIP_TEXT, TagChip } from "@/features/tags/components/tag-chip";
 import { splitTagOverflow } from "@/features/tags/tag-overflow";
 import { changeHistoryTable } from "@/features/transactions/history-pages";
 import {
@@ -53,7 +53,12 @@ export function TransactionTagsCell({
               "hover:[&>span]:bg-accent flex min-w-0 overflow-hidden",
             )}
           >
-            <TagChip name={tag.name} truncate className="min-w-0" />
+            <TagChip
+              name={tag.name}
+              truncate
+              size="table"
+              className="min-w-0"
+            />
           </Link>
         </li>
       ))}
@@ -64,7 +69,8 @@ export function TransactionTagsCell({
               aria-label={`${hidden.length} more ${hidden.length === 1 ? "tag" : "tags"}: ${names}`}
               className={cn(
                 CHIP_TARGET,
-                "bg-muted text-foreground px-2.5 py-0.5 text-[0.8125rem] leading-5 font-medium tabular-nums",
+                "bg-muted text-foreground px-2.5 py-0.5 font-medium tabular-nums",
+                TAG_CHIP_TEXT.table,
               )}
             >
               +{hidden.length}
