@@ -7,6 +7,7 @@ import { useState } from "react";
 import type { components } from "@/core/api/openapi.gen";
 import type { FilterOptionGroup } from "@/features/transactions/components/filter-select";
 import { FilterSelect } from "@/features/transactions/components/filter-select";
+import { FilterErrorNotice } from "@/features/transactions/components/transaction-history";
 import { historyFilterChips } from "@/features/transactions/history-chips";
 import { historyTableSettings } from "@/features/transactions/history-pages";
 import type { HistoryFilterValues } from "@/features/transactions/history-schema";
@@ -14,7 +15,6 @@ import { HISTORY_FILTER_KEYS } from "@/features/transactions/history-schema";
 import type { HistoryView } from "@/features/transactions/history-view";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { DatePicker } from "@/shared/components/date-picker";
-import { ErrorNotice } from "@/shared/components/error-notice";
 import { Button } from "@/shared/components/ui/button";
 import { SheetHeader, SheetPortal } from "@/shared/components/ui/sheet";
 import { cn } from "@/shared/helpers/cn";
@@ -193,13 +193,7 @@ export function HistoryFilters({
           className="flex min-h-0 flex-col"
         >
           <div className="flex min-h-0 flex-col gap-4 overflow-y-auto px-4 py-2 sm:px-6">
-            {errors.length > 0 && (
-              <ErrorNotice>
-                {errors.map((error) => (
-                  <p key={error}>{error}</p>
-                ))}
-              </ErrorNotice>
-            )}
+            {errors.length > 0 && <FilterErrorNotice errors={errors} />}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex min-w-0 flex-col gap-2 text-sm font-semibold">
                 <label htmlFor="history-from">From date</label>

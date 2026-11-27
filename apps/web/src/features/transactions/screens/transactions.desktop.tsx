@@ -4,11 +4,15 @@ import { TitleBar } from "@/core/shell/title-bar";
 import { captureSearchForLocation } from "@/features/transactions/capture-origin";
 import { HistoryDataTable } from "@/features/transactions/components/history-data-table";
 import { HistoryFilterPopover } from "@/features/transactions/components/history-filter-popover";
+import { HistoryToolbarChips } from "@/features/transactions/components/history-toolbar-chips";
 import { PastLastPage } from "@/features/transactions/components/past-last-page";
 import { useOpenRecordDialog } from "@/features/transactions/components/record-transaction-dialog";
 import { TRANSACTION_COLUMNS } from "@/features/transactions/components/transaction-columns";
 import { TransactionDeletedNotice } from "@/features/transactions/components/transaction-deleted-notice";
-import { TransactionHistory } from "@/features/transactions/components/transaction-history";
+import {
+  FilterErrorNotice,
+  TransactionHistory,
+} from "@/features/transactions/components/transaction-history";
 import { TransactionRowActions } from "@/features/transactions/components/transaction-row-actions";
 import {
   changeHistoryTable,
@@ -76,6 +80,35 @@ export function TransactionsDesktop({
     });
   }
 
+  // An invalid filter's notice takes the rows' place, under the toolbar's chips.
+  const notice =
+    filterErrors.length > 0 ? (
+      <FilterErrorNotice errors={filterErrors} />
+    ) : undefined;
+  const historyTable = (
+    // Clips the sticky header's side fill to the card's corners.
+    <TableCard className="overflow-clip">
+      <TransactionRowActions>
+        {(renderRowActions) => (
+          <HistoryDataTable
+            columns={TRANSACTION_COLUMNS}
+            columnsStorageKey="bookkeeping.transactions-columns"
+            search={readSearch}
+            transactions={transactions}
+            total={total}
+            onChange={show}
+            toolbarStart={<HistoryToolbarChips {...collections} view={view} />}
+            toolbarEnd={
+              <HistoryFilterPopover {...collections} values={view.values} />
+            }
+            notice={notice}
+            renderRowActions={renderRowActions}
+          />
+        )}
+      </TransactionRowActions>
+    </TableCard>
+  );
+
   if (pending) {
     return <TransactionsDesktopLoading />;
   }
@@ -98,34 +131,15 @@ export function TransactionsDesktop({
             Go to page {lastPage}
           </Link>
         </PastLastPage>
+      ) : notice ? (
+        historyTable
       ) : (
         <TransactionHistory
           transactions={transactions}
           filterErrors={filterErrors}
           filtered={view.hasFilters}
         >
-          {/* Clips the sticky header's side fill to the card's corners. */}
-          <TableCard className="overflow-clip">
-            <TransactionRowActions>
-              {(renderRowActions) => (
-                <HistoryDataTable
-                  columns={TRANSACTION_COLUMNS}
-                  columnsStorageKey="bookkeeping.transactions-columns"
-                  search={readSearch}
-                  transactions={transactions}
-                  total={total}
-                  onChange={show}
-                  toolbarEnd={
-                    <HistoryFilterPopover
-                      {...collections}
-                      values={view.values}
-                    />
-                  }
-                  renderRowActions={renderRowActions}
-                />
-              )}
-            </TransactionRowActions>
-          </TableCard>
+          {historyTable}
         </TransactionHistory>
       )}
     </Page>

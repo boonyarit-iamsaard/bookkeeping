@@ -124,8 +124,12 @@ interface DataTableProps<TData extends RowData> {
   rowCountLabel: string;
   /** Where this browser keeps the table's column choice; columns opt in with `enableHiding`. */
   columnsStorageKey: string;
+  /** Content at the toolbar's start, such as the active filters' chips. */
+  toolbarStart?: React.ReactNode;
   /** Controls at the toolbar's end, before Columns, such as a Filters popover. */
   toolbarEnd?: React.ReactNode;
+  /** Shown under the toolbar in place of the rows and footer, such as an invalid filter's notice. */
+  notice?: React.ReactNode;
   /** A last cell per row, such as its action menu; it sits above the row's stretched link. */
   renderRowActions?: (row: TData) => React.ReactNode;
 }
@@ -323,7 +327,9 @@ export function DataTable<TData extends RowData>({
   rowCount,
   rowCountLabel,
   columnsStorageKey,
+  toolbarStart,
   toolbarEnd,
+  notice,
   renderRowActions,
 }: Readonly<DataTableProps<TData>>) {
   const [columnVisibility, setColumnVisibility] = useStoredColumnVisibility(
@@ -365,8 +371,9 @@ export function DataTable<TData extends RowData>({
   const pageSizeLabelId = useId();
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-end gap-4 pt-4 pb-1">
-        <div className="flex items-center gap-2">
+      <div className="flex items-start gap-4 pt-4 pb-1">
+        <div className="min-w-0 flex-1 self-center">{toolbarStart}</div>
+        <div className="flex shrink-0 items-center gap-2">
           {toolbarEnd}
           <ColumnsMenu
             columns={table.getAllLeafColumns().map((column) => ({
@@ -382,95 +389,109 @@ export function DataTable<TData extends RowData>({
           />
         </div>
       </div>
-      {/* No scroll box, so the header can stick under the 64px top bar. */}
-      <Table aria-label={label} containerClassName="overflow-x-visible">
-        <TableHeader className="bg-card sticky top-16 z-10 shadow-[-1.5rem_0_0_var(--card),1.5rem_0_0_var(--card)]">
-          <DataTableHeaderRows
-            table={table}
-            hasRowActions={Boolean(renderRowActions)}
-          />
-        </TableHeader>
-        <DataTableBody
-          table={table}
-          rowProps={rowProps}
-          renderRowActions={renderRowActions}
-        />
-      </Table>
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t py-3">
-        <p className="text-muted-foreground text-sm tabular-nums">
-          {pageRangeLabel(pagination, { rowCount, rowCountLabel })}
-        </p>
-        <div className="ml-auto flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span
-              id={pageSizeLabelId}
-              className="text-muted-foreground text-sm"
-            >
-              Rows per page
-            </span>
-            <Select
-              value={String(pagination.pageSize)}
-              onValueChange={(size) => size && table.setPageSize(Number(size))}
-            >
-              <SelectTrigger aria-labelledby={pageSizeLabelId} className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {pageSizes.map((size) => (
-                  <SelectItem
-                    key={size}
-                    value={String(size)}
-                    label={String(size)}
+      {notice ? (
+        <div className="pt-3 pb-6">{notice}</div>
+      ) : (
+        <>
+          {/* No scroll box, so the header can stick under the 64px top bar. */}
+          <Table aria-label={label} containerClassName="overflow-x-visible">
+            <TableHeader className="bg-card sticky top-16 z-10 shadow-[-1.5rem_0_0_var(--card),1.5rem_0_0_var(--card)]">
+              <DataTableHeaderRows
+                table={table}
+                hasRowActions={Boolean(renderRowActions)}
+              />
+            </TableHeader>
+            <DataTableBody
+              table={table}
+              rowProps={rowProps}
+              renderRowActions={renderRowActions}
+            />
+          </Table>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t py-3">
+            <p className="text-muted-foreground text-sm tabular-nums">
+              {pageRangeLabel(pagination, { rowCount, rowCountLabel })}
+            </p>
+            <div className="ml-auto flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span
+                  id={pageSizeLabelId}
+                  className="text-muted-foreground text-sm"
+                >
+                  Rows per page
+                </span>
+                <Select
+                  value={String(pagination.pageSize)}
+                  onValueChange={(size) =>
+                    size && table.setPageSize(Number(size))
+                  }
+                >
+                  <SelectTrigger
+                    aria-labelledby={pageSizeLabelId}
+                    className="w-20"
                   >
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pageSizes.map((size) => (
+                      <SelectItem
+                        key={size}
+                        value={String(size)}
+                        label={String(size)}
+                      >
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p
+                className="text-sm font-medium tabular-nums"
+                aria-live="polite"
+              >
+                Page {pagination.pageIndex + 1} of {pageCount}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="First page"
+                  disabled={!table.getCanPreviousPage()}
+                  onClick={() => table.firstPage()}
+                >
+                  <ChevronFirst aria-hidden="true" strokeWidth={1.75} />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Previous page"
+                  disabled={!table.getCanPreviousPage()}
+                  onClick={() => table.previousPage()}
+                >
+                  <ChevronLeft aria-hidden="true" strokeWidth={1.75} />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Next page"
+                  disabled={!table.getCanNextPage()}
+                  onClick={() => table.nextPage()}
+                >
+                  <ChevronRight aria-hidden="true" strokeWidth={1.75} />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Last page"
+                  disabled={!table.getCanNextPage()}
+                  onClick={() => table.lastPage()}
+                >
+                  <ChevronLast aria-hidden="true" strokeWidth={1.75} />
+                </Button>
+              </div>
+            </div>
           </div>
-          <p className="text-sm font-medium tabular-nums" aria-live="polite">
-            Page {pagination.pageIndex + 1} of {pageCount}
-          </p>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              aria-label="First page"
-              disabled={!table.getCanPreviousPage()}
-              onClick={() => table.firstPage()}
-            >
-              <ChevronFirst aria-hidden="true" strokeWidth={1.75} />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              aria-label="Previous page"
-              disabled={!table.getCanPreviousPage()}
-              onClick={() => table.previousPage()}
-            >
-              <ChevronLeft aria-hidden="true" strokeWidth={1.75} />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              aria-label="Next page"
-              disabled={!table.getCanNextPage()}
-              onClick={() => table.nextPage()}
-            >
-              <ChevronRight aria-hidden="true" strokeWidth={1.75} />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              aria-label="Last page"
-              disabled={!table.getCanNextPage()}
-              onClick={() => table.lastPage()}
-            >
-              <ChevronLast aria-hidden="true" strokeWidth={1.75} />
-            </Button>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

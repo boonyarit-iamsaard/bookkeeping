@@ -181,6 +181,29 @@ test("desktop history is one table with a Filters popover, and a wallet page of 
   await page.keyboard.press("Escape");
   await expect(bar).toHaveCount(0);
 
+  // The active filters are chips at the toolbar's start, each ✕ lifting its own.
+  const chips = page.getByRole("list", { name: "Active filters" });
+  await expect(chips.getByRole("listitem")).toHaveText([
+    "WalletCash",
+    "TypeExpense",
+    "TagCoffee",
+  ]);
+  const removeType = page.getByRole("button", {
+    name: "Remove type filter: Expense",
+  });
+  await removeType.focus();
+  await expect(removeType).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/transactions\?walletId=[^&]+&tagId=[^&]+$/);
+  await expect(chips.getByRole("listitem")).toHaveText([
+    "WalletCash",
+    "TagCoffee",
+  ]);
+  await page.getByRole("button", { name: "Clear all" }).click();
+  await expect(page).toHaveURL(/\/transactions$/);
+  await expect(chips).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Clear all" })).toHaveCount(0);
+
   await page.goto("/transactions");
   await filters.click();
   await chooseDate(bar.getByLabel("To", { exact: true }), "2026-08-31");
@@ -195,6 +218,29 @@ test("desktop history is one table with a Filters popover, and a wallet page of 
   await expect(page.getByRole("alert")).toHaveText(
     "From date must be on or before To date.",
   );
+  // A bad value is a visibly invalid chip, and the notice sits under the toolbar.
+  await page.goto("/transactions?walletId=gone&type=expense");
+  const alert = page.getByRole("alert");
+  await expect(alert).toHaveText("Choose a valid wallet.");
+  await expect(
+    page.getByRole("list", { name: "Active filters" }).getByRole("listitem"),
+  ).toHaveText(["WalletgoneNot a value the history accepts", "TypeExpense"]);
+  await expect(page.getByRole("button", { name: "Clear all" })).toBeVisible();
+  const filtersBox = await filters.boundingBox();
+  const alertBox = await alert.boundingBox();
+  if (!(filtersBox && alertBox)) {
+    throw new Error("The toolbar or notice has no box");
+  }
+  expect(alertBox.y).toBeGreaterThan(filtersBox.y + filtersBox.height);
+  const removeGone = page.getByRole("button", {
+    name: "Remove wallet filter: gone",
+  });
+  await expect(removeGone).toHaveAccessibleDescription(
+    "Not a value the history accepts",
+  );
+  await removeGone.click();
+  await expect(page).toHaveURL(/\/transactions\?type=expense$/);
+  await expect(table).toBeVisible();
 
   // The whole row opens the record, wherever it is clicked.
   await page.goto("/transactions");

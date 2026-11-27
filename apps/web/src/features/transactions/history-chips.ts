@@ -16,16 +16,33 @@ interface Named {
   name: string;
 }
 
+interface NamedCategory extends Named {
+  parentId: string | null;
+}
+
 interface HistoryFilterNames {
   wallets: readonly Named[];
-  categories: readonly Named[];
+  categories: readonly NamedCategory[];
   tags: readonly Named[];
 }
+
+export type HistoryFilterField =
+  | "From"
+  | "To"
+  | "Wallet"
+  | "Category"
+  | "Type"
+  | "Tag";
 
 export interface HistoryFilterChip {
   /** Unique per chip: the filter's key, or `tagId:<id>` for each tag. */
   key: HistoryValueKey;
+  /** The phone chip's whole text, such as "From 1 Sep 2026" or "# Coffee". */
   label: string;
+  /** The filter's name, which the desktop chip shows before its value. */
+  field: HistoryFilterField;
+  /** The value alone, such as "1 Sep 2026", "Coffee" or a category's full path. */
+  value: string;
   /** The value is not one the history accepts, so it filters nothing. */
   invalid: boolean;
   /** The address with just this filter lifted, back on the first page. */
@@ -38,6 +55,15 @@ function dateLabel(value: string): string {
 
 function nameOf(items: readonly Named[], id: string): string {
   return items.find((item) => item.id === id)?.name ?? id;
+}
+
+/** "Food › Groceries" for a child, as the table names it; an unknown id as typed. */
+function categoryPathOf(categories: readonly NamedCategory[], id: string) {
+  const category = categories.find((item) => item.id === id);
+  const parent = categories.find((item) => item.id === category?.parentId);
+  return parent
+    ? `${parent.name} › ${nameOf(categories, id)}`
+    : nameOf(categories, id);
 }
 
 function typeLabel(value: string): string {
@@ -62,9 +88,12 @@ function tagChips({
     const rest = chosen.filter((other) => other !== tagId);
     const { tagId: _removed, ...others } = filters;
     const key = `tagId:${tagId}` as const;
+    const value = nameOf(tags, tagId);
     return {
       key,
-      label: `# ${nameOf(tags, tagId)}`,
+      label: `# ${value}`,
+      field: "Tag",
+      value,
       invalid: invalidKeys.has(key),
       without: rest.length > 0 ? { ...others, tagId: rest } : others,
     };
@@ -82,12 +111,30 @@ export function historyFilterChips(
   const filters = view.values;
   const invalidKeys: ReadonlySet<HistoryValueKey> =
     view.state === "invalid" ? view.invalidKeys : new Set();
-  const labels: Record<HistoryFilterKey, (value: string) => string> = {
-    from: (value) => `From ${dateLabel(value)}`,
-    to: (value) => `To ${dateLabel(value)}`,
-    walletId: (value) => nameOf(names.wallets, value),
-    categoryId: (value) => nameOf(names.categories, value),
-    type: typeLabel,
+  // Each filter's field and bare value, then the phone label when it differs from the value.
+  const chipText: Record<
+    HistoryFilterKey,
+    (raw: string) => Pick<HistoryFilterChip, "field" | "value"> & {
+      label?: string;
+    }
+  > = {
+    from: (raw) => ({
+      field: "From",
+      value: dateLabel(raw),
+      label: `From ${dateLabel(raw)}`,
+    }),
+    to: (raw) => ({
+      field: "To",
+      value: dateLabel(raw),
+      label: `To ${dateLabel(raw)}`,
+    }),
+    walletId: (raw) => ({ field: "Wallet", value: nameOf(names.wallets, raw) }),
+    categoryId: (raw) => ({
+      field: "Category",
+      value: categoryPathOf(names.categories, raw),
+      label: nameOf(names.categories, raw),
+    }),
+    type: (raw) => ({ field: "Type", value: typeLabel(raw) }),
   };
   const single = HISTORY_FILTER_KEYS.flatMap((key) => {
     const value = filters[key];
@@ -96,7 +143,8 @@ export function historyFilterChips(
     }
     const { [key]: _removed, ...without } = filters;
     const invalid = invalidKeys.has(key);
-    return [{ key, label: labels[key](value), invalid, without }];
+    const { field, value: shown, label = shown } = chipText[key](value);
+    return [{ key, label, field, value: shown, invalid, without }];
   });
   return [...single, ...tagChips({ filters, tags: names.tags, invalidKeys })];
 }
