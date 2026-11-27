@@ -117,6 +117,57 @@ test("the tab bar navigates on phone and the sidebar from 1024px", {
   }
 });
 
+test("below 1280px the sidebar rests on the rail and expands over the page", {
+  tag: "@matrix",
+}, async ({ page }) => {
+  test.skip(!isDesktop(page), "The sidebar is desktop-only");
+  await page.setViewportSize({ width: 1100, height: 720 });
+  await signUpFreshUser(page);
+  const nav = page.getByRole("navigation", { name: "Primary" });
+  const header = page.getByRole("banner");
+  const main = page.locator("main");
+  const width = async () => (await nav.boundingBox())?.width ?? 0;
+  const mainLeft = async () => (await main.boundingBox())?.x ?? -1;
+
+  // The device's saved choice is expanded, yet this range starts on the rail.
+  const expand = header.getByRole("button", { name: "Expand sidebar" });
+  await expect(expand).toBeVisible();
+  expect(await width()).toBeLessThan(100);
+  const left = await mainLeft();
+
+  // Expanding covers the page; the content stays where it was.
+  await expand.click();
+  await expect.poll(width).toBeGreaterThan(200);
+  expect(await mainLeft()).toBe(left);
+
+  // A click on the scrim beside the panel closes it.
+  await page.mouse.click(800, 400);
+  await expect.poll(width).toBeLessThan(100);
+
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect.poll(width).toBeGreaterThan(200);
+  await page.keyboard.press("Escape");
+  await expect.poll(width).toBeLessThan(100);
+
+  // Choosing a destination closes it too.
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect.poll(width).toBeGreaterThan(200);
+  await nav.getByRole("link", { name: "Wallets", exact: true }).click();
+  await expect(page).toHaveURL(/\/wallets$/);
+  await expect.poll(width).toBeLessThan(100);
+
+  // A peek is never saved: a reload starts on the rail again, and from
+  // 1280px the saved expanded choice still applies.
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect.poll(width).toBeGreaterThan(200);
+  await page.reload();
+  await expect(expand).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(
+    header.getByRole("button", { name: "Collapse sidebar" }),
+  ).toBeVisible();
+});
+
 test("back goes to the logical parent, even from a deep link", async ({
   page,
 }) => {

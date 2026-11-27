@@ -7,6 +7,7 @@ import {
   DESTINATIONS,
   MANAGEMENT_DESTINATIONS,
 } from "@/core/shell/destinations";
+import { useIsWide } from "@/core/shell/use-is-wide";
 import { buttonVariants } from "@/shared/components/ui/button";
 import {
   Sidebar,
@@ -19,6 +20,7 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 } from "@/shared/components/ui/sidebar";
 import { openInPlace } from "@/shared/helpers/plain-click";
 import { useToday } from "@/shared/hooks/use-today";
@@ -35,11 +37,28 @@ function WordmarkAnchor({
 /** The wordmark leads Home but is not a destination, so it is never current. */
 const WordmarkLink = createLink(WordmarkAnchor);
 
+/** Leads Home; choosing it ends a peek over the page, as a destination does. */
+function SidebarWordmark() {
+  const { closePeek } = useSidebar();
+  return (
+    <WordmarkLink
+      to="/"
+      onClick={closePeek}
+      className="focus-visible:ring-ring/45 flex items-center gap-2.5 rounded-md text-[1.0625rem] font-bold tracking-tight outline-none focus-visible:ring-[3px]"
+    >
+      <AppMark className="size-8 shrink-0" />
+      <span className="group-data-[collapsible=icon]:sr-only">Bookkeeping</span>
+    </WordmarkLink>
+  );
+}
+
 interface SidebarGroupLinksProps {
   destinations: readonly Destination[];
 }
 
 function SidebarGroupLinks({ destinations }: Readonly<SidebarGroupLinksProps>) {
+  // Choosing a destination ends a peek over the page.
+  const { closePeek } = useSidebar();
   return (
     <SidebarGroup>
       <SidebarMenu>
@@ -47,7 +66,13 @@ function SidebarGroupLinks({ destinations }: Readonly<SidebarGroupLinksProps>) {
           <SidebarMenuItem key={to}>
             <SidebarMenuButton
               tooltip={label}
-              render={<Link to={to} activeOptions={{ exact: to === "/" }} />}
+              render={
+                <Link
+                  to={to}
+                  activeOptions={{ exact: to === "/" }}
+                  onClick={closePeek}
+                />
+              }
             >
               <Icon aria-hidden="true" strokeWidth={1.75} />
               <span>{label}</span>
@@ -84,19 +109,12 @@ export function DesktopShell({
   children,
 }: Readonly<DesktopShellProps>) {
   const today = useToday();
+  const wide = useIsWide();
   return (
-    <SidebarProvider>
+    <SidebarProvider overlay={!wide}>
       <Sidebar data-shell="sidebar">
         <SidebarHeader className="h-16 justify-center px-3">
-          <WordmarkLink
-            to="/"
-            className="focus-visible:ring-ring/45 flex items-center gap-2.5 rounded-md text-[1.0625rem] font-bold tracking-tight outline-none focus-visible:ring-[3px]"
-          >
-            <AppMark className="size-8 shrink-0" />
-            <span className="group-data-[collapsible=icon]:sr-only">
-              Bookkeeping
-            </span>
-          </WordmarkLink>
+          <SidebarWordmark />
         </SidebarHeader>
         <SidebarContent>
           <nav aria-label="Primary">

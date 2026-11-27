@@ -188,6 +188,15 @@ test("shot", { tag: "@matrix" }, async ({ page }, testInfo) => {
           console.log(open);
           await page.keyboard.press("Escape");
         }
+        // Shot again with the sidebar toggled, scrolled so the sticky table
+        // header sits under an overlaid panel, then toggled back so the
+        // saved choice is unchanged.
+        await page.mouse.wheel(0, 400);
+        await page.keyboard.press("ControlOrMeta+b");
+        const toggled = path.replace(/\.png$/, "-sidebar.png");
+        await page.screenshot({ path: toggled });
+        console.log(toggled);
+        await page.keyboard.press("ControlOrMeta+b");
       }
     }
   }

@@ -21,7 +21,9 @@ import {
 // 1024px, where it collapses to icons. Phones keep their own chrome, so the
 // mobile sheet, the offcanvas and floating variants, and the parts the shell
 // does not use are gone. The device remembers the choice, as it does
-// Appearance, in local storage rather than shadcn's cookie.
+// Appearance, in local storage rather than shadcn's cookie. In overlay mode
+// the sidebar rests on its icons and expands over the page instead of pushing
+// it; that peek is never saved.
 
 const SIDEBAR_STORAGE_KEY = "bookkeeping.sidebar";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
@@ -29,6 +31,9 @@ const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 interface SidebarContextProps {
   state: "expanded" | "collapsed";
   toggleSidebar: () => void;
+  overlay: boolean;
+  /** Ends an overlay peek; with the sidebar pushing the page it does nothing. */
+  closePeek: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextProps | null>(null);
@@ -58,19 +63,38 @@ function writeSidebarOpen(open: boolean) {
   }
 }
 
+interface SidebarProviderProps extends React.ComponentProps<"div"> {
+  /** Rest on the icons and expand over the page, without saving the choice. */
+  overlay?: boolean;
+}
+
 function SidebarProvider({
   className,
   children,
+  overlay = false,
   ...props
-}: React.ComponentProps<"div">) {
-  const [open, setOpen] = useState(readSidebarOpen);
+}: Readonly<SidebarProviderProps>) {
+  const [open, setOpen] = useState(() => !overlay && readSidebarOpen());
+
+  // Entering overlay mode starts on the rail; leaving it restores the saved choice.
+  useEffect(() => {
+    setOpen(!overlay && readSidebarOpen());
+  }, [overlay]);
 
   const toggleSidebar = useCallback(() => {
     setOpen((wasOpen) => {
-      writeSidebarOpen(!wasOpen);
+      if (!overlay) {
+        writeSidebarOpen(!wasOpen);
+      }
       return !wasOpen;
     });
-  }, []);
+  }, [overlay]);
+
+  const closePeek = useCallback(() => {
+    if (overlay) {
+      setOpen(false);
+    }
+  }, [overlay]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -80,15 +104,22 @@ function SidebarProvider({
       ) {
         event.preventDefault();
         toggleSidebar();
+      } else if (event.key === "Escape" && !event.defaultPrevented) {
+        closePeek();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSidebar]);
+  }, [toggleSidebar, closePeek]);
 
   const contextValue = useMemo<SidebarContextProps>(
-    () => ({ state: open ? "expanded" : "collapsed", toggleSidebar }),
-    [open, toggleSidebar],
+    () => ({
+      state: open ? "expanded" : "collapsed",
+      toggleSidebar,
+      overlay,
+      closePeek,
+    }),
+    [open, toggleSidebar, overlay, closePeek],
   );
 
   return (
@@ -104,13 +135,18 @@ function SidebarProvider({
   );
 }
 
-/** Collapses to its icons; the gap beside it keeps the page out from under it. */
+/**
+ * Collapses to its icons; the gap beside it keeps the page out from under it.
+ * In overlay mode the gap stays at the rail's width, so the expanded panel
+ * floats over the page above a scrim, which closes it.
+ */
 function Sidebar({
   className,
   children,
   ...props
 }: React.ComponentProps<"div">) {
-  const { state } = useSidebar();
+  const { state, overlay, closePeek } = useSidebar();
+  const covering = overlay && state === "expanded";
   return (
     <div
       className="group peer text-foreground"
@@ -120,12 +156,27 @@ function Sidebar({
     >
       <div
         data-slot="sidebar-gap"
-        className="relative w-60 bg-transparent transition-[width] duration-200 ease-linear group-data-[collapsible=icon]:w-14 motion-reduce:transition-none"
+        className={cn(
+          "relative bg-transparent transition-[width] duration-200 ease-linear motion-reduce:transition-none",
+          overlay ? "w-14" : "w-60 group-data-[collapsible=icon]:w-14",
+        )}
       />
+      {covering && (
+        // Above the sticky top bar (z-20) and table header (z-10), below the panel.
+        <div
+          aria-hidden="true"
+          data-slot="sidebar-scrim"
+          onClick={closePeek}
+          className="fixed inset-0 z-25 bg-[oklch(0.18_0.04_285/18%)] dark:bg-[oklch(0.18_0.04_285/35%)]"
+        />
+      )}
       <div
         data-slot="sidebar-container"
         className={cn(
           "fixed inset-y-0 left-0 z-10 flex h-svh w-60 border-r transition-[width] duration-200 ease-linear group-data-[collapsible=icon]:w-14 motion-reduce:transition-none",
+          // Stays raised while the panel animates closed over the top bar.
+          overlay && "z-30",
+          covering && "shadow-float",
           className,
         )}
         {...props}
@@ -300,4 +351,5 @@ export {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
+  useSidebar,
 };
