@@ -130,16 +130,31 @@ test("desktop history's type filter link, column menu and one-line tags cell", {
   await page.keyboard.press("Escape");
   await page.goto("/transactions?pageSize=10");
 
-  // Columns: Type and Note hidden by default; Date and Category always shown.
+  // Columns: Type is an icon after Date, its header read but not shown; Note
+  // hidden by default; Date and Category always shown.
   const headers = table.locator("thead").getByRole("columnheader");
   await expect(headers).toHaveText([
     "Date",
+    "Type",
     "Category",
     "Wallet",
     "Tags",
     "Amount",
     "Actions",
   ]);
+  await expect(headers.nth(1).locator(".sr-only")).toHaveText("Type");
+  const income = rows.filter({ hasText: "+" }).first();
+  const incomeIcon = income.getByRole("button", { name: "Income" });
+  await incomeIcon.hover();
+  await expect(page.locator("[data-slot=tooltip-content]")).toHaveText(
+    "Income",
+  );
+  const iconRowHeight = (await income.boundingBox())?.height ?? 0;
+  // No category or wallet title: the row link covers them, so none could show.
+  await expect(
+    table.locator('tbody a[href*="/transactions/"][title]'),
+  ).toHaveCount(0);
+  await expect(table.locator("tbody span[title]")).toHaveCount(0);
   await page.getByRole("button", { name: "Columns" }).click();
   const menu = page.getByRole("menu");
   await expect(
@@ -148,10 +163,25 @@ test("desktop history's type filter link, column menu and one-line tags cell", {
   await expect(
     menu.getByRole("menuitemcheckbox", { name: "Category" }),
   ).toHaveAttribute("aria-checked", "true");
+  await menu.getByRole("menuitemcheckbox", { name: "Type" }).click();
+  await expect(headers.filter({ hasText: "Type" })).toHaveCount(0);
+  // The icon's target overhangs its line rather than heightening the row.
+  expect(
+    Math.abs(((await income.boundingBox())?.height ?? 0) - iconRowHeight),
+  ).toBeLessThanOrEqual(1);
+  await menu.getByRole("menuitemcheckbox", { name: "Type" }).click();
   await menu.getByRole("menuitemcheckbox", { name: "Wallet" }).click();
   await menu.getByRole("menuitemcheckbox", { name: "Note" }).click();
   await page.keyboard.press("Escape");
-  const chosen = ["Date", "Category", "Tags", "Note", "Amount", "Actions"];
+  const chosen = [
+    "Date",
+    "Type",
+    "Category",
+    "Tags",
+    "Note",
+    "Amount",
+    "Actions",
+  ];
   await expect(headers).toHaveText(chosen);
   await page.reload();
   await expect(headers).toHaveText(chosen);

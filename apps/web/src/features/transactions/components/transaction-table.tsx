@@ -1,12 +1,56 @@
+import type { TransactionType } from "@bookkeeping/domain/transactions";
 import { Link } from "@tanstack/react-router";
+import type { LucideIcon } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowRightLeft,
+  ArrowUpRight,
+  Undo2,
+} from "lucide-react";
 import type { components } from "@/core/api/openapi.gen";
 import { categoryLabel } from "@/features/categories/category-search";
 import { TRANSACTION_TYPE_LABELS } from "@/features/transactions/transaction-labels";
 import { tableRowLinkClass } from "@/shared/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/shared/components/ui/tooltip";
 import { cn } from "@/shared/helpers/cn";
 
 type ApiTransaction = components["schemas"]["Transaction"];
 type ApiTransactionWallet = components["schemas"]["TransactionWallet"];
+
+/** Home's income and expense arrows, the phone list's transfer. */
+const TYPE_ICONS: Record<TransactionType, LucideIcon> = {
+  income: ArrowDownLeft,
+  expense: ArrowUpRight,
+  transfer: ArrowRightLeft,
+  refund: Undo2,
+};
+
+/**
+ * A row's type as a muted icon, named by its tooltip and to assistive
+ * technology. It sits above the row's stretched link and overhangs its line,
+ * so it never heightens the row.
+ */
+export function TransactionTypeIcon({
+  type,
+}: Readonly<{ type: TransactionType }>) {
+  const Icon = TYPE_ICONS[type];
+  const label = TRANSACTION_TYPE_LABELS[type];
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        aria-label={label}
+        className="text-muted-foreground focus-visible:ring-ring/45 relative z-1 -my-1 flex size-6 items-center justify-center rounded-md outline-none focus-visible:ring-[3px]"
+      >
+        <Icon aria-hidden="true" strokeWidth={1.75} className="size-4" />
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function walletName(wallet: ApiTransactionWallet) {
   return wallet.archived ? `${wallet.name} (Archived)` : wallet.name;
@@ -32,10 +76,9 @@ export function TransactionCategoryCell({
       <Link
         to="/transactions/$transactionId"
         params={{ transactionId: transaction.id }}
-        // The full path names the link and shows on hover; the cell shows only
-        // the subcategory, so a nested path leaves room for the other columns.
+        // The full path names the link; the cell shows only the leaf, which a
+        // shown path would cut off. No title: it showed over the whole row.
         aria-label={path || undefined}
-        title={path || undefined}
         // One line in the width its column gives it; the link is unpositioned,
         // so its stretched ::after is not clipped.
         className={cn("block truncate", tableRowLinkClass)}

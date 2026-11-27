@@ -68,6 +68,8 @@ declare module "@tanstack/react-table" {
     secondary?: true;
     /** An optional column the owner must choose to show. */
     hiddenByDefault?: true;
+    /** The header names the column for screen readers only, as over icons. */
+    srOnlyHeader?: true;
   }
 }
 
@@ -180,6 +182,10 @@ export function HeaderCell<TData extends RowData>({
           <FlexRender header={header} />
           <SortGlyph sorted={sorted} />
         </button>
+      ) : column.columnDef.meta?.srOnlyHeader ? (
+        <span className="sr-only">
+          <FlexRender header={header} />
+        </span>
       ) : (
         <FlexRender header={header} />
       )}

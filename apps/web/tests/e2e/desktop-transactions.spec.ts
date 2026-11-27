@@ -128,6 +128,7 @@ test("desktop history is one table with a Filters popover, and a wallet page of 
   const table = page.getByRole("table", { name: "Transactions" });
   await expect(table.locator("thead").getByRole("columnheader")).toHaveText([
     "Date",
+    "Type",
     "Category",
     "Wallet",
     "Tags",
@@ -218,7 +219,7 @@ test("desktop history is one table with a Filters popover, and a wallet page of 
   const walletTable = page.getByRole("table", { name: "Transactions" });
   await expect(
     walletTable.locator("thead").getByRole("columnheader"),
-  ).toHaveText(["Date", "Category", "Tags", "Amount", "Actions"]);
+  ).toHaveText(["Date", "Type", "Category", "Tags", "Amount", "Actions"]);
   await expect(walletTable.locator("[data-transaction-row]")).toHaveCount(4);
   await expect(
     walletTable.locator("[data-transaction-row]").first(),
