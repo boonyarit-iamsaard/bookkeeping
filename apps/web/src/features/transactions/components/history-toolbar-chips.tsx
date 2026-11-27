@@ -43,7 +43,8 @@ export function HistoryToolbarChips({
     <div className="flex flex-wrap items-center gap-2">
       <ul
         aria-label="Active filters"
-        className="flex min-w-0 flex-wrap items-center gap-2"
+        // contents: the chips and Clear all wrap as one row, so Clear all stays after the last chip.
+        className="contents"
       >
         {chips.map((chip) => (
           <li
@@ -61,7 +62,7 @@ export function HistoryToolbarChips({
                 className="text-destructive size-3.5 shrink-0"
               />
             )}
-            <span className="shrink-0 opacity-70">{chip.field}</span>
+            <span className="shrink-0 opacity-80">{chip.field}</span>
             <span
               title={chip.value}
               className="max-w-72 truncate font-semibold"
