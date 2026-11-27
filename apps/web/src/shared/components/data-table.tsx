@@ -165,6 +165,13 @@ export function HeaderCell<TData extends RowData>({
   const { column } = header;
   const sorted = column.getIsSorted();
   const end = column.columnDef.meta?.align === "end";
+  const label = column.columnDef.meta?.srOnlyHeader ? (
+    <span className="sr-only">
+      <FlexRender header={header} />
+    </span>
+  ) : (
+    <FlexRender header={header} />
+  );
   return (
     <TableHead
       aria-sort={sorted ? ARIA_SORTS[sorted] : undefined}
@@ -186,12 +193,8 @@ export function HeaderCell<TData extends RowData>({
           <FlexRender header={header} />
           <SortGlyph sorted={sorted} />
         </button>
-      ) : column.columnDef.meta?.srOnlyHeader ? (
-        <span className="sr-only">
-          <FlexRender header={header} />
-        </span>
       ) : (
-        <FlexRender header={header} />
+        label
       )}
     </TableHead>
   );

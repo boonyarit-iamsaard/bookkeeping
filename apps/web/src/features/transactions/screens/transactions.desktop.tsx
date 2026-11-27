@@ -146,6 +146,14 @@ export function TransactionsDesktop({
     return <TransactionsDesktopLoading />;
   }
 
+  // The table keeps its card once filters narrow it to nothing.
+  const history =
+    view.hasFilters || transactions.length > 0 ? (
+      historyTable
+    ) : (
+      <TransactionList transactions={transactions} />
+    );
+
   return (
     <Page layout="wide">
       <TitleBar title="Transactions" actions={<NewTransactionLink />} />
@@ -164,10 +172,8 @@ export function TransactionsDesktop({
             Go to page {lastPage}
           </Link>
         </PastLastPage>
-      ) : view.hasFilters || transactions.length > 0 ? (
-        historyTable
       ) : (
-        <TransactionList transactions={transactions} />
+        history
       )}
     </Page>
   );

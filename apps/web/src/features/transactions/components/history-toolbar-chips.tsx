@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { TriangleAlert, X } from "lucide-react";
+import { useId } from "react";
 import type { components } from "@/core/api/openapi.gen";
 import { historyFilterChips } from "@/features/transactions/history-chips";
 import { historyTableSettings } from "@/features/transactions/history-pages";
@@ -27,6 +28,7 @@ export function HistoryToolbarChips({
   view,
 }: Readonly<HistoryToolbarChipsProps>) {
   const navigate = useNavigate();
+  const id = useId();
   const chips = historyFilterChips(view, { wallets, categories, tags });
   if (chips.length === 0) {
     return null;
@@ -46,7 +48,7 @@ export function HistoryToolbarChips({
         // contents: the chips and Clear all wrap as one row, so Clear all stays after the last chip.
         className="contents"
       >
-        {chips.map((chip) => (
+        {chips.map((chip, index) => (
           <li
             key={chip.key}
             className={cn(
@@ -70,14 +72,16 @@ export function HistoryToolbarChips({
               {chip.value}
             </span>
             {chip.invalid && (
-              <span className="sr-only">Not a value the history accepts</span>
+              <span id={`${id}-invalid-${index}`} className="sr-only">
+                Not a value the history accepts
+              </span>
             )}
             <button
               type="button"
               onClick={() => show(chip.without)}
               aria-label={`Remove ${chip.field.toLowerCase()} filter: ${chip.value}`}
-              aria-description={
-                chip.invalid ? "Not a value the history accepts" : undefined
+              aria-describedby={
+                chip.invalid ? `${id}-invalid-${index}` : undefined
               }
               className="focus-visible:ring-ring/45 flex size-6 shrink-0 items-center justify-center rounded-full transition-colors duration-150 outline-none hover:bg-[color-mix(in_oklch,var(--secondary),var(--primary)_10%)] focus-visible:ring-[3px] motion-reduce:transition-none"
             >
