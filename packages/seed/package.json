@@ -1,0 +1,32 @@
+{
+  "name": "@bookkeeping/seed",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./sample-ledger": "./src/sample-ledger.ts"
+  },
+  "scripts": {
+    "db:fresh": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/fresh-cli.ts",
+    "db:seed": "dotenvx run -f .env --ignore=MISSING_ENV_FILE -- tsx src/seed-cli.ts",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "types:check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bookkeeping/application": "workspace:*",
+    "@bookkeeping/auth": "workspace:*",
+    "@bookkeeping/database": "workspace:*",
+    "@bookkeeping/domain": "workspace:*",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "^2.38.2",
+    "@types/node": "^24",
+    "@vitest/coverage-v8": "^5.1.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.1.1"
+  }
+}

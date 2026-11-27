@@ -27,6 +27,7 @@ coverage/
 /packages/application/.turbo/
 /packages/auth/.turbo/
 /packages/database/.turbo/
+/packages/seed/.turbo/
 
 # production
 /apps/server/dist

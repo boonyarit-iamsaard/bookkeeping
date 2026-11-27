@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
+import { assertNoOtherAccounts } from "./demo-account";
 import { assertLocalDatabaseUrl } from "./local-database-url";
 
 export const migrationsFolder = fileURLToPath(
@@ -36,11 +37,22 @@ export async function migrateDatabase(
   }
 }
 
-export async function freshDatabase(url: string): Promise<void> {
+export interface FreshDatabaseOptions {
+  /** Resets even when the database holds Accounts other than the demo one. */
+  allowOtherAccounts?: boolean;
+}
+
+export async function freshDatabase(
+  url: string,
+  options: Readonly<FreshDatabaseOptions> = {},
+): Promise<void> {
   assertLocalDatabaseUrl(url);
 
   const pool = new Pool({ connectionString: url });
   try {
+    if (!options.allowOtherAccounts) {
+      await assertNoOtherAccounts(pool, "reset");
+    }
     await pool.query(`
       DROP SCHEMA IF EXISTS public CASCADE;
       DROP SCHEMA IF EXISTS drizzle CASCADE;

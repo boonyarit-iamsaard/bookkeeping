@@ -106,7 +106,8 @@ any time soon.
 ## Development
 
 - [Setup](docs/development/setup.md): local setup, environment configuration,
-  database commands, and production containers
+  database commands (including the `db:seed` sample ledger), and production
+  containers
 - [Workflow](docs/development/workflow.md): Git workflow, checks, and
   dependency updates
 - [Architecture](docs/development/architecture.md): project structure and
@@ -118,3 +119,9 @@ any time soon.
 - [Diagrams](docs/development/diagrams.md): the diagram kit
 - [Code conventions](docs/code-conventions.md): naming, vocabulary ownership,
   and house-style enforcement
+
+To look around with data in it, run `pnpm db:seed` against a local, migrated
+database, or `pnpm db:fresh --seed` to reset the database and seed it in one
+step. Both fill a demo Account with a sample ledger and print its email and
+password; sign in with them. They refuse a database holding any other Account
+unless you pass `--allow-other-accounts`, and never touch a non-local host.

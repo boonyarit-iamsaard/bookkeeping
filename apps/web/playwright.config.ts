@@ -1,3 +1,5 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 // `tests/e2e/run.ts` allocates free ports; a run started without it, such as
@@ -12,6 +14,13 @@ const apiOrigin = `http://localhost:${API_PORT}`;
 // the test API wins over any origin a developer's shell or `.env` sets.
 // Playwright passes this environment to the web servers and the workers.
 process.env.VITE_API_ORIGIN = apiOrigin;
+
+// The test API seeds the demo Account and writes its credentials here for the
+// shot spec; the port keeps parallel runs apart.
+process.env.TEST_DEMO_CREDENTIALS_FILE = join(
+  tmpdir(),
+  `bookkeeping-e2e-demo-${API_PORT}.json`,
+);
 
 // Under CI the runner builds the client with the API origin it allocated and
 // previews that output; locally the dev server reads the origin from its env.
